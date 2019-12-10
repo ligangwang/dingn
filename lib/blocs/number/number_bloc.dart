@@ -5,7 +5,6 @@ import 'package:dingn/blocs/number/bloc.dart';
 import 'package:dingn/models/number_model.dart';
 import 'package:dingn/repository/number_repository.dart';
 import 'package:flutter/material.dart';
-//import 'package:rxdart/rxdart.dart';
 
 class NumberBloc extends Bloc<DataEvent, NumberDataState> {
   NumberBloc({@required NumberRepository repository})
@@ -24,7 +23,6 @@ class NumberBloc extends Bloc<DataEvent, NumberDataState> {
   //       const Duration(milliseconds: 500),
   //     ));
   // }
-
 
   @override
   Stream<NumberDataState> mapEventToState(

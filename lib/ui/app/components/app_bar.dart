@@ -23,6 +23,12 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     final pageBloc = BlocProvider.of<PageBloc>(context);
 
     return AppBar(
+      leading: IconButton(
+        onPressed: (){
+          pageBloc.add(NavigateToPageEvent(const PageState(PageName.About, null, null)));
+        },
+        icon: Icon(Icons.menu)
+      ),
       title: GestureDetector(
         onTap: () {
           pageBloc.add(NavigateToPageEvent(const PageState(PageName.Number, null, null)));
