@@ -1,3 +1,4 @@
+import 'package:dingn/models/account.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
@@ -13,19 +14,16 @@ class Uninitialized extends AuthenticationState {
 }
 
 class Authenticated extends AuthenticationState {
-  Authenticated(this.displayName, this.photoURL, this.email);
+  Authenticated(this.account);
 
-  final String displayName;
-  final String photoURL;
-  final String email;
+  final Account account;
 
   @override
-  String toString() => 'Authenticated { displayName: $displayName }';
+  String toString() => 'Authenticated { userName: ${account.userName} }';
 
   @override
-  List<Object> get props => [displayName, photoURL];
+  List<Object> get props => [account.userName, account.photoURL];
 
-  String get initials => (displayName ?? email).substring(1, 3);
 }
 
 class Unauthenticated extends AuthenticationState {

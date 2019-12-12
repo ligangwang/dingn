@@ -25,17 +25,18 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       leading: IconButton(
         onPressed: (){
-          pageBloc.add(NavigateToPageEvent(const PageState(PageName.About, null, null)));
+          pageBloc.add(NavigateToPageEvent(const PageState(pageName:PageName.About)));
         },
         icon: Icon(Icons.menu)
       ),
-      title: GestureDetector(
-        onTap: () {
-          pageBloc.add(NavigateToPageEvent(const PageState(PageName.Number, null, null)));
+      title: FlatButton(
+        onPressed: () {
+          pageBloc.add(NavigateToPageEvent(const PageState(pageName:PageName.Number)));
         },
         child: const Text(
           'dingn',
-          style: TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold,
+          fontSize: AppTheme.fontSizeBrand),
         ),
       ),
       backgroundColor: Colors.transparent,
@@ -46,12 +47,12 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
             if (state is Authenticated) {
               return FlatButton(
                 onPressed: () {
-                  pageBloc.add(NavigateToPageEvent(const PageState(PageName.Account, null, null)));
+                  pageBloc.add(NavigateToPageEvent(PageState(pageName:PageName.Account, account: state.account)));
                 },
                 shape: const CircleBorder(side: BorderSide.none),
                 child: CircleAvatar(
-                  backgroundImage: state.photoURL!=null?NetworkImage(state.photoURL):null,
-                  child: Text(state.photoURL!=null?'':state.initials),
+                  backgroundImage: state.account.photoURL!=null?NetworkImage(state.account.photoURL):null,
+                  child: Text(state.account.photoURL!=null?'':state.account.initials),
                 ),
               );
             } else {
@@ -67,7 +68,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ],
       // bottom: const TabBar(
-      //   tabs: [
+      //   tabs: [  
       //     Tab(icon: Icon(Icons.view_list)),
       //     Tab(icon: Icon(Icons.language)),
       //   ],

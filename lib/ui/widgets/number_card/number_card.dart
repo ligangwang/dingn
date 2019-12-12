@@ -14,7 +14,7 @@ class NumberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-          BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(PageState(PageName.NumberDetail, numbers, itemIndex)));
+          BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(PageState(pageName:PageName.NumberDetail, items:numbers, itemIndex:itemIndex)));
       },
       child: Padding(
         padding: const EdgeInsets.all(8),

@@ -50,7 +50,7 @@ class _NumberPageState extends State<NumberPage> with AfterLayoutMixin, TickerPr
                           flexibleSpace: FlexibleSpaceBar(
                             title: Tooltip(
                               message: majorSystem,
-                              child: const Text('Major System', style: TextStyle(color:AppTheme.accentColor, fontSize: AppTheme.fontSizeMedium)),
+                              child: const Text('Mnemonic Major System', style: TextStyle(color:AppTheme.accentColor, fontSize: 12)),
                             ),
                             centerTitle: true,
                         ),

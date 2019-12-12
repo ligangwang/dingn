@@ -22,7 +22,7 @@ class AppTheme {
   static const fontWeightBold = FontWeight.w700;
 
   static const double fontSizeMedium = 16;
-
+  static const double fontSizeBrand = 20;
   static ThemeData theme() {
     return ThemeData(
       primaryColor: primaryColor,

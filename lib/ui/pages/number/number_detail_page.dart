@@ -37,11 +37,12 @@ class _NumberDetailState extends State<NumberDetailPage> with TickerProviderStat
   final int itemIndex;
 
   void onBackClicked(){
-    BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(const PageState(PageName.Number, null, null)));
+    BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(const PageState(pageName:PageName.Number)));
   }
 
   void _redirectToAccountPage(){
-    BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(PageState(PageName.Account, [PageState(PageName.NumberDetail, numbers, itemIndex)], 0)));
+    BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(PageState(pageName:PageName.Account, 
+      items:[PageState(pageName: PageName.NumberDetail, items:numbers, itemIndex:itemIndex)], itemIndex:0)));
   }
 
   @override

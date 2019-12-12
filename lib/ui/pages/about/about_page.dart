@@ -11,18 +11,6 @@ class AboutPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
-              children: <Widget>[
-                Text(
-                  'About dingn',
-                  style: Theme.of(context).textTheme.display1.copyWith(
-                        color: Colors.black,
-                        fontSize: 36,
-                      ),
-                ),
-
-              ],
-            ),
             const SizedBox(height: 16),
             _text('Welcome to dingn community, dedicated to mind and learning improvement.'),
             _text('\n'),

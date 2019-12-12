@@ -1,3 +1,5 @@
+import 'package:dingn/models/account.dart';
+import 'package:dingn/ui/pages/user_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dingn/blocs/bloc.dart';
@@ -8,17 +10,19 @@ import 'package:dingn/ui/widgets/register/register_form.dart';
 enum RegistrationState { login, register }
 
 class AccountPage extends StatefulWidget {
-  const AccountPage(this.returningPageState);
+  const AccountPage(this.returningPageState, this.userProfile);
 
   final PageState returningPageState;
+  final Account userProfile;
   @override
-  _AccountPageState createState() => _AccountPageState(returningPageState);
+  _AccountPageState createState() => _AccountPageState(returningPageState, userProfile);
 }
 
 class _AccountPageState extends State<AccountPage> {
-  _AccountPageState(this.returningPageState);
+  _AccountPageState(this.returningPageState, this.account);
 
   final PageState returningPageState;
+  final Account account;
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +35,7 @@ class _AccountPageState extends State<AccountPage> {
         if(returningPageState != null){
           BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(returningPageState));
         }
-        return FlatButton(
-          onPressed: () {
-            BlocProvider.of<AuthenticationBloc>(context).signOut();//.add(LoggedOutEvent());
-          },
-          child: const Text('Sign out'),
-        );
+        return UserProfilePage(account: account);
       }
       return const CustomError(
         errorMessage: 'Auth not initialised',

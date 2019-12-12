@@ -1,3 +1,4 @@
+import 'package:dingn/models/account.dart';
 import 'package:firebase/firebase.dart';
 
 
@@ -7,13 +8,30 @@ class UserRepository {
         _googleSignIn = googleSignin ?? GoogleAuthProvider(){
           _firebaseAuth.onAuthStateChanged.listen((User user){
             _user = user;
+            _account = _mapUserToAccount(user);
           });
         }
 
+  Account _mapUserToAccount(User user){
+    if (user == null)
+      return null;
+    return Account(
+      userName: '',
+      uid: user.uid,
+      email: user.email,
+      photoURL: user.photoURL,
+      fullName: user.displayName,
+      occupation: '',
+      bio: '',
+      followers: 0,
+      following: 0,
+      level: 0
+      );
+  }
   final Auth _firebaseAuth;
   final GoogleAuthProvider _googleSignIn;
   User _user;
-
+  Account _account;
   void listen(onUserChange){
       _firebaseAuth.onAuthStateChanged.listen(onUserChange);
   }
@@ -78,5 +96,6 @@ class UserRepository {
   String get uid => _user?.uid;
   String get photoURL => _user?.photoURL;
   String get email => _user?.email;
+  Account get account => _account;
  
 }

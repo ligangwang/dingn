@@ -77,7 +77,7 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
                   if (_accountPanelVisible)
                     OverlayPannel(
                       onClosedPressed: _closeAccountPanel,
-                      child: const AccountPage(null),
+                      child: const AccountPage(null, null),
                     ),
                 ],
               ),
@@ -106,7 +106,7 @@ class AppPage extends StatelessWidget {
             return AboutPage();
             break;
           case PageName.Account:
-            return AccountPage(state.items!=null?state.items[0]:null);
+            return AccountPage(state.items!=null?state.items[0]:null, state.account);
             break;
           default:
             return const CustomError(

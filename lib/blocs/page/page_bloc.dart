@@ -4,7 +4,7 @@ import './bloc.dart';
 
 class PageBloc extends Bloc<PageEvent, PageState> {
   @override
-  PageState get initialState => const PageState(PageName.Number, null, null);
+  PageState get initialState => const PageState(pageName:PageName.Number);
 
   @override
   Stream<PageState> mapEventToState(

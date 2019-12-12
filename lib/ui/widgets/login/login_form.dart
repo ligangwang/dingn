@@ -68,7 +68,7 @@ class _LoginFormState extends State<LoginForm> {
             ..showSnackBar(
               const SnackBar(
                 content: SuccessSnackbar(
-                  message: 'Successful sign in',
+                  message: 'Welcome back',
                 ),
               ),
             );
