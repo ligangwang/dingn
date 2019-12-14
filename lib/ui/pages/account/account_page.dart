@@ -1,3 +1,4 @@
+import 'package:dingn/blocs/account/bloc.dart';
 import 'package:dingn/models/account.dart';
 import 'package:dingn/ui/pages/user_profile.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +36,11 @@ class _AccountPageState extends State<AccountPage> {
         if(returningPageState != null){
           BlocProvider.of<PageBloc>(context).add(NavigateToPageEvent(returningPageState));
         }
-        return UserProfilePage(account: account);
+        BlocProvider.of<AccountBloc>(context).add(DisplayAccountEvent(account: account));
+        return SizedBox(
+            width: 200,
+            child: UserProfilePage()
+          );
       }
       return const CustomError(
         errorMessage: 'Auth not initialised',

@@ -5,9 +5,13 @@ class Validators {
   // final RegExp _passwordRegExp = RegExp(
   //   r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$',
   // );
-
+  final RegExp _userNameRegExp = RegExp(r'^[a-z0-9_-]{3,15}$');
   bool isValidEmail(String email) {
     return _emailRegExp.hasMatch(email);
+  }
+
+  bool isValidUserName(String userName) {
+    return _userNameRegExp.hasMatch(userName) && userName.length <= 12;
   }
 
   bool isValidPassword(String password) {

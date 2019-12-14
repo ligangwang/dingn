@@ -59,21 +59,25 @@ class _NumberPageState extends State<NumberPage> with AfterLayoutMixin, TickerPr
                               icon: const Icon(Icons.looks_one),
                               tooltip: '1 digits',
                               onPressed: (){onAction(1);},
+                              color: state.activeDigits == 1? Colors.grey:Colors.redAccent
                             ),
                             IconButton(
                               icon: const Icon(Icons.looks_two),
                               tooltip: '2 digits',
                               onPressed: (){onAction(2);},
+                              color: state.activeDigits == 2? Colors.grey:Colors.redAccent
                             ),
                             IconButton(
                               icon: const Icon(Icons.looks_3),
                               tooltip: '3 digits',
                               onPressed: (){onAction(3);},
+                              color: state.activeDigits == 3? Colors.grey:Colors.redAccent
                             ),
                             IconButton(
                               icon: const Icon(Icons.looks_4),
                               tooltip: '4 digits',
                               onPressed: (){onAction(4);},
+                              color: state.activeDigits == 4? Colors.grey:Colors.redAccent
                             ),
                           ]                                                    
                         //   bottom: 

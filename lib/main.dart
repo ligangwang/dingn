@@ -1,3 +1,4 @@
+import 'package:dingn/blocs/account/bloc.dart';
 import 'package:dingn/blocs/number/bloc.dart';
 import 'package:dingn/blocs/register/register_bloc.dart';
 import 'package:dingn/repository/number_repository.dart';
@@ -43,6 +44,9 @@ class AppProviders extends StatelessWidget {
         }),
         BlocProvider<LoginBloc>(builder: (context) {
           return LoginBloc(userRepository: userRepository);
+        }),
+        BlocProvider<AccountBloc>(builder: (context) {
+          return AccountBloc(userRepository: userRepository);
         }),
         BlocProvider<RegisterBloc>(builder: (context) {
           return RegisterBloc(userRepository: userRepository);

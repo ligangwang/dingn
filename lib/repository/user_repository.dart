@@ -1,10 +1,12 @@
 import 'package:dingn/models/account.dart';
 import 'package:firebase/firebase.dart';
+import 'package:firebase/firestore.dart';
 
 
 class UserRepository {
   UserRepository({Auth firebaseAuth, GoogleAuthProvider googleSignin})
       : _firebaseAuth = firebaseAuth ?? auth(),
+        _db = firestore(),
         _googleSignIn = googleSignin ?? GoogleAuthProvider(){
           _firebaseAuth.onAuthStateChanged.listen((User user){
             _user = user;
@@ -15,6 +17,10 @@ class UserRepository {
   Account _mapUserToAccount(User user){
     if (user == null)
       return null;
+    getUserName(user.uid).then((userName){
+      _account = _account.changeUserName(userName ?? user.displayName);
+    });
+    
     return Account(
       userName: '',
       uid: user.uid,
@@ -30,6 +36,7 @@ class UserRepository {
   }
   final Auth _firebaseAuth;
   final GoogleAuthProvider _googleSignIn;
+  final Firestore _db;
   User _user;
   Account _account;
   void listen(onUserChange){
@@ -91,11 +98,40 @@ class UserRepository {
     return (_firebaseAuth.currentUser).email;
   }
 
+  Future<bool> changeUserName(String userName) async {
+    try{
+      final docRef = _db.collection('accounts').doc(uid);
+      await docRef.set({'user_name': userName});
+      _account = _account.changeUserName(userName);
+      return true;
+    }catch(e){
+      rethrow;
+    }
+  }
+
+  Future<String> getUserName(String uid) async {
+      final docRef = _db.collection('accounts').doc(uid);
+      final docSnapshot = await docRef.get();
+      return docSnapshot == null? null : docSnapshot.data()['user_name'];
+  }
+
+  Future<bool> checkUserNameExists(String userName) async {
+    try{
+      final querySnapshot = await _db.collection('accounts')
+          .where('user_name', '==', userName)
+          .get();
+      return querySnapshot.docs.isNotEmpty;
+    }catch(e){
+      rethrow;
+    }
+  }
+
   bool get isSignedIn =>  _user != null;
   String get displayName => _user?.displayName;
   String get uid => _user?.uid;
   String get photoURL => _user?.photoURL;
   String get email => _user?.email;
   Account get account => _account;
+  String get userName => _account?.userName;
  
 }
