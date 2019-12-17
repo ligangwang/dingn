@@ -49,7 +49,7 @@ class _UserProfileState extends State<UserProfilePage>
                         height: 60,
                         alignment: Alignment.center,
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 30),
-                        child: Text(
+                        child: const Text(
                           'Display Name:',
                           style: TextStyle(
                               fontSize: 16.0,
