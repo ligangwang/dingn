@@ -13,14 +13,14 @@ import 'package:dingn/ui/app/components/error_listener.dart';
 import 'package:dingn/ui/app/components/app_bar.dart';
 import 'package:dingn/ui/app/components/overlay_panel.dart';
 
-class App extends StatefulWidget {
-  const App({Key key}) : super(key: key);
+class AppWidget extends StatefulWidget {
+  const AppWidget({Key key}) : super(key: key);
 
   @override
   _AppState createState() => _AppState();
 }
 
-class _AppState extends State<App> with SingleTickerProviderStateMixin {
+class _AppState extends State<AppWidget> with SingleTickerProviderStateMixin {
   bool isSmallScreen = false;
   bool _accountPanelVisible = true;
 

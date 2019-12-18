@@ -5,7 +5,7 @@ import 'package:firebase/firestore.dart';
 
 class NumberRepository {
   NumberRepository(UserRepository userRepository){
-      _db = firestore();
+      _db = firestore(userRepository.app);
       _lastNumDocs = {};
       _userRepository = userRepository;
   }

@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:bloc/bloc.dart';
 import 'package:firebase/firebase.dart' as fb;
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dingn/ui/app/app.dart';
+import 'package:dingn/ui/app/app_widget.dart';
 
 import 'package:dingn/repository/user_repository.dart';
 import 'package:dingn/themes.dart';
@@ -16,26 +16,24 @@ import 'package:dingn/blocs/bloc.dart';
 import 'package:dingn/blocs/simple_bloc_delegate.dart';
 
 void main() {
-  assert(() {
-    fb.initializeApp(
-      apiKey: 'AIzaSyDzWk1JfjsMi9o_yPBz69XSQmWBXfC8dWs',
-      authDomain: 'dingn.com',
-      databaseURL: 'https://dingn-193716.firebaseio.com',
-      projectId: 'dingn-193716',
-      storageBucket: 'dingn-193716.appspot.com',
-      messagingSenderId: '211238433635'
-    );
-    BlocSupervisor.delegate = SimpleBlocDelegate();
-    return true;
-  }());
-
-  runApp(AppProviders());
+  final app = fb.initializeApp(
+    apiKey: 'AIzaSyDzWk1JfjsMi9o_yPBz69XSQmWBXfC8dWs',
+    authDomain: 'dingn.com',
+    databaseURL: 'https://dingn-193716.firebaseio.com',
+    projectId: 'dingn-193716',
+    storageBucket: 'dingn-193716.appspot.com',
+    messagingSenderId: '211238433635'
+  );
+  BlocSupervisor.delegate = SimpleBlocDelegate();
+  runApp(AppProviders(app));
 }
 
 class AppProviders extends StatelessWidget {
+  const AppProviders(this._app);
+  final fb.App _app;
   @override
   Widget build(BuildContext context) {
-    final userRepository = UserRepository();
+    final userRepository = UserRepository(_app);
     final numberRepository = NumberRepository(userRepository);
     return MultiBlocProvider(
       providers: [
@@ -63,7 +61,7 @@ class AppProviders extends StatelessWidget {
             return NumberDetailBloc(
               repository: numberRepository,
               userRepository: userRepository,
-              wordRepository: WordRepository(),
+              wordRepository: WordRepository(_app),
             );
           },
         ),
@@ -77,7 +75,7 @@ class AppProviders extends StatelessWidget {
         title: 'dingn - mind improvement',
         theme: AppTheme.theme(),
         debugShowCheckedModeBanner: false,
-        home: const App(),
+        home: const AppWidget(),
       ),
     );
   }

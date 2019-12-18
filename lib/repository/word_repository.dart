@@ -3,8 +3,8 @@ import 'package:firebase/firebase.dart';
 import 'package:firebase/firestore.dart';
 
 class WordRepository {
-  WordRepository(){
-      _db = firestore();
+  WordRepository(App app){
+      _db = firestore(app);
   }
 
   Firestore _db;

@@ -4,10 +4,11 @@ import 'package:firebase/firestore.dart';
 
 
 class UserRepository {
-  UserRepository({Auth firebaseAuth, GoogleAuthProvider googleSignin})
-      : _firebaseAuth = firebaseAuth ?? auth(),
-        _db = firestore(),
-        _googleSignIn = googleSignin ?? GoogleAuthProvider(){
+  UserRepository(App app)
+      : _firebaseAuth = auth(app),
+        _db = firestore(app),
+        _app = app,
+        _googleSignIn = GoogleAuthProvider(){
           _firebaseAuth.onAuthStateChanged.listen((User user){
             _user = user;
             _account = _mapUserToAccount(user);
@@ -35,6 +36,7 @@ class UserRepository {
       );
   }
   final Auth _firebaseAuth;
+  final App _app;
   final GoogleAuthProvider _googleSignIn;
   final Firestore _db;
   User _user;
@@ -133,5 +135,6 @@ class UserRepository {
   String get email => _user?.email;
   Account get account => _account;
   String get userName => _account?.userName;
+  App get app => _app;
  
 }
