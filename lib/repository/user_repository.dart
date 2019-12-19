@@ -23,7 +23,7 @@ class UserRepository {
     });
     
     return Account(
-      userName: '',
+      userName: null,
       uid: user.uid,
       email: user.email,
       photoURL: user.photoURL,
@@ -114,7 +114,7 @@ class UserRepository {
   Future<String> getUserName(String uid) async {
       final docRef = _db.collection('accounts').doc(uid);
       final docSnapshot = await docRef.get();
-      return docSnapshot == null? null : docSnapshot.data()['user_name'];
+      return docSnapshot.data() == null? null : docSnapshot.data()['user_name'];
   }
 
   Future<bool> checkUserNameExists(String userName) async {

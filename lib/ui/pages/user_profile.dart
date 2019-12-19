@@ -1,4 +1,5 @@
 import 'package:dingn/blocs/account/bloc.dart';
+import 'package:dingn/blocs/authentication/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -85,6 +86,14 @@ class _UserProfileState extends State<UserProfilePage>
                     ],
                   )
                 ),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  child: IconButton(
+                    icon: Icon(Icons.exit_to_app),
+                    tooltip: 'Sign out',
+                    onPressed: ()=>BlocProvider.of<AuthenticationBloc>(context).signOut()
+                  )
+                )
               ],
             ),
           )
