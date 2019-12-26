@@ -7,7 +7,7 @@ class AuthenticationBloc
     extends Bloc<AuthenticationEvent, AuthenticationState> {
   AuthenticationBloc(UserRepository userRepository){
     _userRepository = userRepository;
-    userRepository.listen(onAuthChange);
+    userRepository.accountChanges.listen(onAuthChange);
 
     add(AppStartedEvent());
   }

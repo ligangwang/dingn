@@ -19,3 +19,5 @@ class SimpleBlocDelegate extends BlocDelegate {
     print(transition);
   }
 }
+
+

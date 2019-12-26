@@ -9,9 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:dingn/blocs/bloc.dart';
-import 'package:dingn/ui/app/components/error_listener.dart';
-import 'package:dingn/ui/app/components/app_bar.dart';
-import 'package:dingn/ui/app/components/overlay_panel.dart';
+import 'package:dingn/ui/app/error_listener.dart';
+import 'package:dingn/ui/app/app_bar.dart';
+import 'package:dingn/ui/app/overlay_panel.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({Key key}) : super(key: key);
@@ -67,7 +67,7 @@ class _AppState extends State<AppWidget> with SingleTickerProviderStateMixin {
                   Row(
                     children: <Widget>[
                       Expanded(
-                        child: AppPage(),
+                        child: _AppPage(),
                       ),
                       
                     // const CopyrightTailer(),
@@ -90,7 +90,7 @@ class _AppState extends State<AppWidget> with SingleTickerProviderStateMixin {
 }
 
 
-class AppPage extends StatelessWidget {
+class _AppPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PageBloc, PageState>(

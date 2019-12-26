@@ -66,7 +66,7 @@ class SetUserDataEvent extends NumberDetailDataEvent {
 
 class NumberDetailBloc extends Bloc<NumberDetailDataEvent, NumberDetailDataState> {
   NumberDetailBloc({this.repository, this.userRepository, this.wordRepository}){
-    userRepository.listen((user){
+    userRepository.accountChanges.listen((user){
       add(SetUserDataEvent(user?.uid));
     });
   }

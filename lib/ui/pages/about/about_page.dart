@@ -1,3 +1,4 @@
+import 'package:dingn/themes.dart';
 import 'package:dingn/ui/pages/number/number_detail_page.dart';
 import 'package:dingn/ui/widgets/common/hyperlink.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,9 @@ class AboutPage extends StatelessWidget {
               _text(digit_desc),
             _text('\n'),
             const Hyperlink(text: 'Learn more about major system', url: 'https://en.wikipedia.org/wiki/Mnemonic_major_system'),
+            _text('\n'),
+            _text('© dingn v1.12.18 - 2019', size:10)
+
           ],
         ),
       ),
@@ -31,11 +35,11 @@ class AboutPage extends StatelessWidget {
   }
 }
 
-Widget _text(String text) {
+Widget _text(String text, {double size=15}) {
   return Container(
     child: Text(
       text,
-      // style: const TextStyle(fontSize: 18, color: AppTheme.fadedBlack),
+      style: TextStyle(fontSize: size, color: AppTheme.fadedBlackColor),
     ),
   );
 }

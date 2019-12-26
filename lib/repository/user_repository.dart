@@ -1,109 +1,53 @@
 import 'package:dingn/models/account.dart';
-import 'package:firebase/firebase.dart';
-import 'package:firebase/firestore.dart';
+import 'package:dingn/repository/interface.dart';
 
 
 class UserRepository {
-  UserRepository(App app)
-      : _firebaseAuth = auth(app),
-        _db = firestore(app),
-        _app = app,
-        _googleSignIn = GoogleAuthProvider(){
-          _firebaseAuth.onAuthStateChanged.listen((User user){
-            _user = user;
-            _account = _mapUserToAccount(user);
+  UserRepository(DBService db, AuthService auth)
+      : _auth = auth,
+        _db = db{
+          _accountChanges = _auth.accountChanges.asyncMap((Account account) async{
+            if (account == null){
+              return account;
+            }else{
+              final userName = await getUserName(account.uid);
+              return account.changeUserName(userName ?? account.fullName);
+            }
           });
-        }
-
-  Account _mapUserToAccount(User user){
-    if (user == null)
-      return null;
-    getUserName(user.uid).then((userName){
-      _account = _account.changeUserName(userName ?? user.displayName);
-    });
-    
-    return Account(
-      userName: null,
-      uid: user.uid,
-      email: user.email,
-      photoURL: user.photoURL,
-      fullName: user.displayName,
-      occupation: '',
-      bio: '',
-      followers: 0,
-      following: 0,
-      level: 0
-      );
+          _accountChanges.listen((Account account){
+            _account = account;
+        });
   }
-  final Auth _firebaseAuth;
-  final App _app;
-  final GoogleAuthProvider _googleSignIn;
-  final Firestore _db;
-  User _user;
+
+  final DBService _db;
+  final AuthService _auth;
+
+  AuthService get auth => _auth;
+  DBService get db => _db;
+  Stream<Account> _accountChanges;
   Account _account;
-  void listen(onUserChange){
-      _firebaseAuth.onAuthStateChanged.listen(onUserChange);
+  Stream<Account> get accountChanges => _accountChanges;
+  
+  Future<Account> signInWithGoogle() async {
+    return await _auth.signInWithGoogle();
   }
 
-  Future<UserCredential> signInWithGoogle() async {
-    try {
-      return await _firebaseAuth.signInWithPopup(_googleSignIn);
-    } catch (e) {
-      print('Error in sign in with google: $e');
-      throw '$e';
-    }
-  }
-
-  Future<UserCredential> signInWithCredentials(
+  Future<Account> signInWithCredentials(
       String email, String password) async {
-    try {
-      return await _firebaseAuth.signInWithEmailAndPassword(email, password);
-    } catch (e) {
-      print('Error in sign in with credentials: $e');
-      // return e;
-      throw '$e';
-    }
+    return await _auth.signInWithCredentials(email, password);
   }
 
-  Future<UserCredential> signUp({String email, String password}) async {
-    try {
-      return await _firebaseAuth.createUserWithEmailAndPassword(
-        email,
-        password,
-      );
-    } catch (e) {
-      print('Error siging in with credentials: $e');
-      throw '$e';
-      // throw Error('Error signing up with credentials: $e');
-      // return e;
-    }
+  Future<Account> signUp({String email, String password}) async {
+    return await _auth.signUp(email, password);
   }
 
   Future<dynamic> signOut() async {
-    try {
-      return Future.wait([
-        _firebaseAuth.signOut(),
-      ]);
-    } catch (e) {
-      print ('Error signin out: $e');
-      // return e;
-      throw '$e';
-    }
-  }
-
-  // Future<bool> isSignedIn() async {
-  //   final currentUser = _firebaseAuth.currentUser;
-  //   return currentUser != null;
-  // }
-
-  Future<String> getUser() async {
-    return (_firebaseAuth.currentUser).email;
+    return await _auth.signOut();
   }
 
   Future<bool> changeUserName(String userName) async {
     try{
-      final docRef = _db.collection('accounts').doc(uid);
-      await docRef.set({'user_name': userName});
+      await _db.setDoc('accounts', uid, {'user_name': userName});
       _account = _account.changeUserName(userName);
       return true;
     }catch(e){
@@ -112,29 +56,19 @@ class UserRepository {
   }
 
   Future<String> getUserName(String uid) async {
-      final docRef = _db.collection('accounts').doc(uid);
-      final docSnapshot = await docRef.get();
-      return docSnapshot.data() == null? null : docSnapshot.data()['user_name'];
+      final data = await _db.getDoc('accounts', uid);
+      return data['user_name'];
   }
 
   Future<bool> checkUserNameExists(String userName) async {
-    try{
-      final querySnapshot = await _db.collection('accounts')
-          .where('user_name', '==', userName)
-          .get();
-      return querySnapshot.docs.isNotEmpty;
-    }catch(e){
-      rethrow;
-    }
+    return await _db.exists('accounts', 'user_name', userName);
   }
 
-  bool get isSignedIn =>  _user != null;
-  String get displayName => _user?.displayName;
-  String get uid => _user?.uid;
-  String get photoURL => _user?.photoURL;
-  String get email => _user?.email;
+  bool get isSignedIn =>  _account != null;
+  String get displayName => _account?.userName;
+  String get uid => _account?.uid;
+  String get photoURL => _account?.photoURL;
+  String get email => _account?.email;
   Account get account => _account;
   String get userName => _account?.userName;
-  App get app => _app;
- 
 }
