@@ -10,7 +10,7 @@ class FirebaseDBService implements DBService{
       }
 
   final Firestore _db;
-  Map<dynamic, DocumentSnapshot> _lastDocs;
+  Map<String, DocumentSnapshot> _lastDocs;
 
   @override
   Future<bool> setDoc(String collection, String docId, Map<String, dynamic> doc) async{
@@ -38,10 +38,11 @@ class FirebaseDBService implements DBService{
   Future<List<Map<String, dynamic>>> query(String collection, String field, dynamic value, int batchSize) async {
     try {
       QuerySnapshot querySnapshot;
-      if (_lastDocs[value] != null){
+      final lastDockey = '$collection-$field-$value';
+      if (_lastDocs[lastDockey] != null){
         querySnapshot = await _db.collection(collection)
           .where(field, '==', value)
-          .startAfter(snapshot:_lastDocs[value])
+          .startAfter(snapshot:_lastDocs[lastDockey])
           .limit(batchSize).get();
       }
       else{
@@ -50,7 +51,7 @@ class FirebaseDBService implements DBService{
         .limit(batchSize).get();
       }
       if (querySnapshot.docs.isNotEmpty){
-        _lastDocs[value] = querySnapshot.docs[querySnapshot.docs.length-1];
+        _lastDocs[lastDockey] = querySnapshot.docs[querySnapshot.docs.length-1];
         return querySnapshot.docs.map((doc)=>doc.data()).toList();
       }else{
         return <Map<String, dynamic>>[];
@@ -64,8 +65,21 @@ class FirebaseDBService implements DBService{
   @override
   Future<List<Map<String, dynamic>>> queryBatch(String collection, int batchSize) async {
     try {
-        final querySnapshot = await _db.collection(collection).limit(batchSize).get();
-        return querySnapshot.docs.map((doc)=>doc.data()).toList();
+        QuerySnapshot querySnapshot;
+        final lastDockey = '$collection';
+        if (_lastDocs[lastDockey] != null){
+          querySnapshot = await _db.collection(collection)
+            .startAfter(snapshot:_lastDocs[lastDockey])
+            .limit(batchSize).get();
+        }else{
+          querySnapshot = await _db.collection(collection).limit(batchSize).get();
+        }
+        if (querySnapshot.docs.isNotEmpty){
+          _lastDocs[lastDockey] = querySnapshot.docs[querySnapshot.docs.length-1];
+          return querySnapshot.docs.map((doc)=>doc.data()).toList();
+        }else{
+          return <Map<String, dynamic>>[];
+        }
     } catch (e) {
       print('Error in retrieving data: $e');
       return <Map<String, dynamic>>[];

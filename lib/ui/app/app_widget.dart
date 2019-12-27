@@ -1,9 +1,13 @@
 import 'dart:ui';
 
+import 'package:dingn/bloc_providers.dart';
+import 'package:dingn/repository/interface.dart';
+import 'package:dingn/themes.dart';
 import 'package:dingn/ui/pages/about/about_page.dart';
 import 'package:dingn/ui/pages/account/account_page.dart';
 import 'package:dingn/ui/pages/number/number_detail_page.dart';
 import 'package:dingn/ui/pages/number/number_page.dart';
+import 'package:dingn/ui/pages/word/word_page.dart';
 import 'package:dingn/ui/widgets/error/error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,6 +16,18 @@ import 'package:dingn/blocs/bloc.dart';
 import 'package:dingn/ui/app/error_listener.dart';
 import 'package:dingn/ui/app/app_bar.dart';
 import 'package:dingn/ui/app/overlay_panel.dart';
+
+Widget myApp(String title, {DBService db, AuthService auth}){
+  return wrapProviders(
+    db,
+    auth,
+    MaterialApp(
+      title: title,
+      theme: AppTheme.theme(),
+      debugShowCheckedModeBanner: false,
+      home: const AppWidget(),
+  ));
+}
 
 class AppWidget extends StatefulWidget {
   const AppWidget({Key key}) : super(key: key);
@@ -34,7 +50,8 @@ class _AppState extends State<AppWidget> with SingleTickerProviderStateMixin {
         isSmallScreen = false;
       });
     } 
-  }
+    print('is small screen $isSmallScreen, $screenSize');
+}
 
   void _openLoginPannel() {
     setState(() {
@@ -56,22 +73,26 @@ class _AppState extends State<AppWidget> with SingleTickerProviderStateMixin {
       appBar: MyAppBar(
         loginPressed: _openLoginPannel
       ),
-      body: //SingleChildScrollView(
-        NumberErrorListener(
-          child: BlocListener<AuthenticationBloc, AuthenticationState>(
-            listener: (context, state) {
-              _closeAccountPanel(); 
-            },
-            child: Stack(
+      body: NumberErrorListener(
+            child: BlocListener<AuthenticationBloc, AuthenticationState>(
+              listener: (context, state) {
+                _closeAccountPanel(); 
+              },
+              child:Stack(
                 children: <Widget>[
-                  Row(
+                  ListView(
                     children: <Widget>[
-                      Expanded(
-                        child: _AppPage(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Container(
+                            constraints: isSmallScreen? null:const BoxConstraints(maxWidth: 800, maxHeight: 600),
+                            child: _AppPage(),
+                          ),
+                        ],
                       ),
-                      
-                    // const CopyrightTailer(),
-                      
+                      if (!isSmallScreen)
+                        copyrightTailer(),
                     ],
                   ),
                   if (_accountPanelVisible)
@@ -81,14 +102,24 @@ class _AppState extends State<AppWidget> with SingleTickerProviderStateMixin {
                     ),
                 ],
               ),
-              
             ),
-          ),
-        
-      );
+          
+      )
+    );
   }
 }
 
+Widget copyrightTailer(){
+  return const Padding(
+    padding: EdgeInsets.all(50),
+    child: Center(
+      child: Text(
+        '© dingn 2019',
+        style: TextStyle(color: Colors.grey, fontSize: AppTheme.fontSizeFootnote),
+      )
+    )
+  );
+}
 
 class _AppPage extends StatelessWidget {
   @override
@@ -96,6 +127,8 @@ class _AppPage extends StatelessWidget {
     return BlocBuilder<PageBloc, PageState>(
       builder: (BuildContext context, PageState state) {
         switch (state.pageName) {
+          case PageName.Word:
+            return WordPage();
           case PageName.Number:
             return NumberPage();
             break;

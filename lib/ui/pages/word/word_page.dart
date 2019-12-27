@@ -29,19 +29,28 @@ class _WordPageState extends State<WordPage> with AfterLayoutMixin, TickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-        children: <Widget>[
-          BlocListener<AuthenticationBloc, AuthenticationState>(
+    return BlocListener<AuthenticationBloc, AuthenticationState>(
             listener: (BuildContext context, AuthenticationState state) {
             },
             child: BlocBuilder<NumberBloc, NumberDataState>(
               builder: (BuildContext context, NumberDataState state) {
-                return const Text('Hello');
+                return PageView.builder(
+                    itemBuilder: (context, index){
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(width: 1, color: Colors.redAccent),
+                          borderRadius: const BorderRadius.all(Radius.circular(20))
+                        ),
+                      );
+                    },
+                    itemCount: 10,
+                    physics: const ClampingScrollPhysics(),
+                    
+                );
               },
             ),
-          ),
-        ],
-      );
+          );
+        
   }
 }
 

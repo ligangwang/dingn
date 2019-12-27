@@ -8,7 +8,7 @@ class WordRepository {
 
   Future<List<Word>> retrieveData() async {
     try {
-      final data = await _db.queryBatch('words', 20);
+      final data = await _db.queryBatch('words', 5);
       return data.map((d)=>_docToWord(d)).toList();
     } catch (e) {
       throw '$e';

@@ -1,7 +1,7 @@
 import 'package:dingn/models/account.dart';
 import 'package:equatable/equatable.dart';
 
-enum PageName { About, Number, NumberDetail, Account }
+enum PageName { About, Number, NumberDetail, Word, Account }
 
 class PageState extends Equatable{
   const PageState({this.pageName, this.items, this.itemIndex, this.account});

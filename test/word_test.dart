@@ -1,7 +1,6 @@
-import 'package:dingn/bloc_providers.dart';
 import 'package:dingn/models/account.dart';
 import 'package:dingn/repository/interface.dart';
-import 'package:dingn/themes.dart';
+import 'package:dingn/ui/app/app_widget.dart';
 import 'package:dingn/ui/pages/word/word_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,29 +17,21 @@ class MockAuthService extends Mock implements AuthService{
 void main(){
   MockDBService db;
   MockAuthService auth;
-  Widget wordPage;
-
+  Widget app;
+  
   setUp((){
     db = MockDBService();
     auth = MockAuthService();
-    wordPage = wrapProviders(
-      db, auth, 
-      MaterialApp(
-        title: 'test',
-        theme: AppTheme.theme(),
-        debugShowCheckedModeBanner: false,
-        home: WordPage(),
-      )
-    );
+    app = myApp('test', db: db, auth: auth);
   });
 
   tearDown((){
   });
 
   group('word ui tests', (){
-    testWidgets('word ui display Hello text', (WidgetTester tester) async{
-      await tester.pumpWidget(wordPage);
-      expect(find.text('Hello'), findsOneWidget);
+    testWidgets('find word page from app', (WidgetTester tester) async{
+      await tester.pumpWidget(app);
+      expect(find.byType(WordPage), findsOneWidget);
     });
   });
 }
