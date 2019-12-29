@@ -1,4 +1,4 @@
-import 'package:dingn/repository/interface.dart';
+import 'package:dingn/interface.dart';
 import 'package:firebase/firebase.dart';
 import 'package:firebase/firestore.dart';
 
@@ -57,7 +57,7 @@ class FirebaseDBService implements DBService{
         return <Map<String, dynamic>>[];
       }
     } catch (e) {
-      print('Error in retrieving data: $e');
+      print('Error in query data: $e');
       rethrow;
     }
   }
@@ -66,7 +66,7 @@ class FirebaseDBService implements DBService{
   Future<List<Map<String, dynamic>>> queryBatch(String collection, int batchSize) async {
     try {
         QuerySnapshot querySnapshot;
-        final lastDockey = '$collection';
+        final lastDockey = collection;
         if (_lastDocs[lastDockey] != null){
           querySnapshot = await _db.collection(collection)
             .startAfter(snapshot:_lastDocs[lastDockey])
@@ -76,12 +76,20 @@ class FirebaseDBService implements DBService{
         }
         if (querySnapshot.docs.isNotEmpty){
           _lastDocs[lastDockey] = querySnapshot.docs[querySnapshot.docs.length-1];
-          return querySnapshot.docs.map((doc)=>doc.data()).toList();
+          return querySnapshot.docs.map(
+            (doc){
+              final d = doc.data();
+              if (d['word'] == null){
+                d['word'] = doc.id;
+              }
+              return d;
+            }
+          ).toList();
         }else{
           return <Map<String, dynamic>>[];
         }
     } catch (e) {
-      print('Error in retrieving data: $e');
+      print('Error in queryBatch data: $e');
       return <Map<String, dynamic>>[];
     }
   }  

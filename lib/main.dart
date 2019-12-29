@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:dingn/services/firebase_app.dart';
 import 'package:dingn/services/firebase_auth_service.dart';
 import 'package:dingn/services/firebase_db_service.dart';
-import 'package:dingn/ui/app/app_widget.dart';
+import 'package:dingn/app/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:dingn/interface.dart';
 
 void main() {
   final app = initialize();
+  GetIt.I.registerLazySingleton<DBService>(() => FirebaseDBService(app));
+  GetIt.I.registerLazySingleton<AuthService>(() => FirebaseAuthService(app));
   runApp(
-    myApp(
-      'dingn - mind improvement',
-      db: FirebaseDBService(app), 
-      auth: FirebaseAuthService(app),
-    )
-  );
+    const MyApp(
+      'dingn - mind improvement'
+    ));
 }

@@ -1,5 +1,5 @@
-import 'package:dingn/models/account.dart';
-import 'package:dingn/repository/interface.dart';
+import 'package:dingn/account/account.dart';
+import 'package:dingn/interface.dart';
 import 'package:firebase/firebase.dart';
 
 
@@ -73,6 +73,21 @@ class FirebaseAuthService implements AuthService {
       // return e;
     }
   }
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(
+        email
+      );      
+    } catch (e) {
+      print('Error siging in with credentials: $e');
+      throw '$e';
+      // throw Error('Error signing up with credentials: $e');
+      // return e;
+    }
+  }
+
 
   @override
   Future<dynamic> signOut() async {
