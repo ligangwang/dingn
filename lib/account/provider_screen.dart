@@ -31,13 +31,24 @@ class MainScreen extends StatelessWidget {
                   //right panel
                 ]),
           ),
-          const Padding(
-              padding: EdgeInsets.all(50),
-              child: Text(
-                '© dingn 2020',
-                style: TextStyle(
-                    color: Colors.grey, fontSize: AppTheme.fontSizeFootnote),
-              )),
+          Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const <Widget>[
+                  Text(
+                    '© dingn 2020',
+                    style: TextStyle(
+                      color: Colors.grey, 
+                      fontSize: AppTheme.fontSizeFootnote
+                    ),
+                  ),
+                  SizedBox(width: 5),
+                  Text('v1.1', 
+                    style: TextStyle(color: Colors.grey, fontSize: AppTheme.fontSizeTiny)),
+                ]
+              )
+          ),
         ],
       ),
     );
