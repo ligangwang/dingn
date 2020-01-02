@@ -19,6 +19,7 @@ class HomeScreen extends StatelessWidget {
               _text('\n'),
               _text(
                   "The major system (also called the phonetic number system, phonetic mnemonic system, or Herigone's mnemonic system) is a mnemonic technique used to aid in memorizing numbers."),
+              _text('\n'), 
               _text(
                   'The system works by converting numbers into consonant sounds, then into words by adding vowels. The system works on the principle that images can be remembered more easily than numbers.'),
               _text('\n'),

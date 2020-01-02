@@ -39,7 +39,7 @@ class SigninScreen extends StatelessWidget {
       theme: LoginTheme(
         primaryColor: Colors.white,
         accentColor: AppTheme.accentColor,
-        buttonTheme: LoginButtonTheme(backgroundColor: AppTheme.accentColor)
+        buttonTheme: const LoginButtonTheme(backgroundColor: AppTheme.accentColor)
       ),
       messages: LoginMessages(
         loginButton: 'sign in', 
