@@ -8,8 +8,6 @@ import 'package:provider/provider.dart';
 
 
 class SigninScreen extends StatelessWidget {
-  Duration get loginTime => const Duration(milliseconds: 2250);
-
   Future<String> _signinUser(BuildContext context, LoginData data) async {
     final accountModel = Provider.of<AccountModel>(context);
     final account = await accountModel.signInWithCredentials(email:data.name, password:data.password);

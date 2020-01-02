@@ -7,8 +7,8 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: FlatButton(
-        onPressed: () {
+      title: InkWell(
+        onTap: () {
           Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
         },
         child: const Text(
@@ -20,26 +20,33 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.transparent,
       elevation: 1,
       actions: <Widget>[
-        FlatButton(
-          onPressed: (){
+        InkWell(
+          onTap: (){
             Navigator.of(context).pushNamedAndRemoveUntil('/word', (Route<dynamic> route) => false);
           },
-          child: Column(
+          child: Container(
+            width: 50,
+            child: Column(
             children: <Widget>[
               Icon(Icons.library_books, color: AppTheme.accentColor,),
-              const Text('words', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
+              const Text('word', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
             ]
           )
+          )
         ),
-        FlatButton(
-          onPressed: (){
+
+        InkWell(
+          onTap: (){
             Navigator.of(context).pushNamedAndRemoveUntil('/number', (Route<dynamic> route) => false);
           },
-          child: Column(
+          child: Container(
+            width: 50,
+            child: Column(
             children: <Widget>[
               Icon(Icons.subject, color: AppTheme.accentColor),
-              const Text('numbers', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
+              const Text('number', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
             ]
+          )
           )
         ),
         AccountButton(),
@@ -76,15 +83,18 @@ class AccountButton extends StatelessWidget{
         ),
       );
     else
-      return FlatButton(
-        onPressed: (){
+      return InkWell(
+        onTap: (){
             Navigator.of(context).pushNamed('/signin');
         },
-        child: Column(
+        child: Container(
+          width: 50,
+          child: Column(
           children: <Widget>[
             Icon(Icons.account_box, color: AppTheme.accentColor,),
             const Text('signin', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
           ]
+        )
         )
       );    
   }

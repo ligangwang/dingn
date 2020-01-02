@@ -58,10 +58,10 @@ class AccountModel extends ProviderModel{
     try{
       _account = _account.changeUserName(userName);
       await _db.setDoc('accounts', uid, {'user_name': userName});
-      print('saved username: $userName');
       return true;
     }catch(e){
-      rethrow;
+      print('saved username: $userName error: $e');
+      return false;
     }
   }
 
@@ -71,6 +71,7 @@ class AccountModel extends ProviderModel{
       return data!=null? data['user_name']:null;
     }catch(e){
       print('get user name error: $e');
+      return null;
     }
   }
 

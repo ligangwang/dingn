@@ -18,7 +18,6 @@ class NumberScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accountModel = Provider.of<AccountModel>(context);
-    print('building number screen');
     return ProviderScreen<NumberModel>(
       modelBuilder: ()=>NumberModel(accountModel, 1),
       builder: (context, NumberModel numberModel, _){

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dingn/app/app_bar.dart';
 import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/themes.dart';
@@ -10,6 +12,8 @@ class MainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    print('context size: $size');
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: MyAppBar(),
@@ -21,7 +25,8 @@ class MainScreen extends StatelessWidget {
                 children: <Widget>[
                   //left panel
                   Container(
-                    constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
+                    width: min(size.width, 800),
+                    height: min(size.height, 600),
                     child: child,
                   ),
                   //right panel
@@ -30,7 +35,7 @@ class MainScreen extends StatelessWidget {
           const Padding(
               padding: EdgeInsets.all(50),
               child: Text(
-                '© dingn 2019',
+                '© dingn 2020',
                 style: TextStyle(
                     color: Colors.grey, fontSize: AppTheme.fontSizeFootnote),
               )),

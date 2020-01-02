@@ -22,7 +22,7 @@ class WordCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 ListTile(
-                  leading: Icon(Icons.bookmark, size: 50, color: AppTheme.accentColor,),
+                  leading: const Icon(Icons.bookmark, size: 50, color: AppTheme.accentColor,),
                   title: Text(word.word, style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
                   subtitle: Text('${word.lang}: ${word.ipa}')
                 ),
