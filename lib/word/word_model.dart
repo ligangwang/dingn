@@ -8,14 +8,14 @@ class WordModel extends ListProviderModel<Word>{
   Word dictToItem(Map<String, dynamic> data){
     return Word(
         data['word'], 
-        ipa: data['ipa'], 
-        lang: data['ipa-lang'],
+        ipa: data['ipa']??'', 
+        lang: data['ipa-lang']??'',
         number: data['number'], 
-        pos: data['pos'],
+        pos: data['pos'] ?? {},
         favorites: data['favorites'] ?? 0
     );
   }
-  
+
   @override
   Future<List<Map<String, dynamic>>> loadDataFromDb() async {
     return await db.queryBatch(collectionName, requestBatchSize);

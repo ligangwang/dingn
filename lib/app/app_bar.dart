@@ -6,17 +6,10 @@ import 'package:provider/provider.dart';
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
-    final accountModel = Provider.of<AccountModel>(context);
     return AppBar(
-      leading: IconButton(
-        onPressed: (){
-        },
-        icon: Icon(Icons.menu)
-      ),
-      titleSpacing: 0,
       title: FlatButton(
         onPressed: () {
-          Navigator.of(context).pushNamedAndRemoveUntil('/account', (Route<dynamic> route) => false);
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
         },
         child: const Text(
           'dingn',
@@ -49,7 +42,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
             ]
           )
         ),
-        _getAccountButton(context, accountModel),
+        AccountButton(),
       ],
       
       // bottom: const TabBar(
@@ -61,7 +54,14 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _getAccountButton(BuildContext context, AccountModel accountModel){
+  @override
+  Size get preferredSize => const Size.fromHeight(56.0);
+}
+
+class AccountButton extends StatelessWidget{
+  @override
+  Widget build(BuildContext context){
+    final accountModel = Provider.of<AccountModel>(context);
     if (accountModel.isSignedIn) 
       return FlatButton(
         onPressed: () {
@@ -86,11 +86,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
             const Text('signin', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
           ]
         )
-      );
-  } 
+      );    
+  }
 
-
-  @override
-  Size get preferredSize => const Size.fromHeight(56.0);
 }
-

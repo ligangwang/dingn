@@ -1,9 +1,9 @@
 import 'package:dingn/account/account.dart';
+import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/interface.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
-class AccountModel extends ChangeNotifier{
+class AccountModel extends ProviderModel{
   AccountModel(){
     _accountChanges = _auth.accountChanges.asyncMap((Account account) async{
       if (account == null){
@@ -15,31 +15,23 @@ class AccountModel extends ChangeNotifier{
     });
     _accountChanges.listen((Account account){
       _account = account;
+      notifyListeners();
     });
   }
 
   final DBService _db = GetIt.instance.get<DBService>();
   final AuthService _auth = GetIt.instance.get<AuthService>();
 
-  AuthService get auth => _auth;
-  DBService get db => _db;
   Stream<Account> _accountChanges;
   Account _account;
   Stream<Account> get accountChanges => _accountChanges;
-
-  //ui stuff
-  String _errorMessage;
-  final bool _isFormValid = false;
-  final bool _isSubmitting = false;
-  final bool _isSuccess = false;
-  final bool _isEmailValid = false;
-  final bool _isPasswordValid = false;
-  String get errorMessage => _errorMessage;
-  bool get isFormValid => _isFormValid;
-  bool get isSubmitting => _isSubmitting;
-  bool get isSuccess => _isSuccess;
-  bool get isEmailValid => _isEmailValid;
-  bool get isPasswordValid => _isPasswordValid;
+  bool editMode = false;
+  void setEditMode(bool isEditMode){
+    if (isEditMode != editMode){
+      editMode = isEditMode;
+      notifyListeners();
+    }
+  }
 
   Future<Account> signInWithGoogle() async {
     return await _auth.signInWithGoogle();
@@ -55,7 +47,7 @@ class AccountModel extends ChangeNotifier{
   }
 
   Future<dynamic> signOut() async {
-    return await _auth.signOut();
+    await _auth.signOut();
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
@@ -64,8 +56,9 @@ class AccountModel extends ChangeNotifier{
 
   Future<bool> changeUserName(String userName) async {
     try{
-      await _db.setDoc('accounts', uid, {'user_name': userName});
       _account = _account.changeUserName(userName);
+      await _db.setDoc('accounts', uid, {'user_name': userName});
+      print('saved username: $userName');
       return true;
     }catch(e){
       rethrow;
@@ -73,8 +66,12 @@ class AccountModel extends ChangeNotifier{
   }
 
   Future<String> getUserName(String uid) async {
+    try{
       final data = await _db.getDoc('accounts', uid);
-      return data['user_name'];
+      return data!=null? data['user_name']:null;
+    }catch(e){
+      print('get user name error: $e');
+    }
   }
 
   Future<bool> checkUserNameExists(String userName) async {

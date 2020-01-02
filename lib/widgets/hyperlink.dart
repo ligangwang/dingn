@@ -12,7 +12,7 @@ class Hyperlink extends StatelessWidget {
     return InkWell(
       child: Text(
         text,
-        style: TextStyle(decoration: TextDecoration.underline),
+        style: const TextStyle(decoration: TextDecoration.underline),
       ),
       onTap: ()=> UrlUtil.open(url),
     );

@@ -41,7 +41,7 @@ class FirebaseAuthService implements AuthService {
       return _mapUserToAccount(userCredential.user);
     } catch (e) {
       print('Error in sign in with google: $e');
-      throw '$e';
+      return null;
     }
   }
 
@@ -53,8 +53,8 @@ class FirebaseAuthService implements AuthService {
       return _mapUserToAccount(userCredential.user);
     } catch (e) {
       print('Error in sign in with credentials: $e');
-      // return e;
-      throw '$e';
+      return null;
+      //throw '$e';
     }
   }
 
@@ -67,10 +67,8 @@ class FirebaseAuthService implements AuthService {
       );
       return _mapUserToAccount(userCredential.user);
     } catch (e) {
-      print('Error siging in with credentials: $e');
-      throw '$e';
-      // throw Error('Error signing up with credentials: $e');
-      // return e;
+      print('Error siging up with credentials: $e');
+      return null;
     }
   }
 
@@ -81,10 +79,8 @@ class FirebaseAuthService implements AuthService {
         email
       );      
     } catch (e) {
-      print('Error siging in with credentials: $e');
+      print('Error reset password with email: $e');
       throw '$e';
-      // throw Error('Error signing up with credentials: $e');
-      // return e;
     }
   }
 
@@ -101,8 +97,4 @@ class FirebaseAuthService implements AuthService {
       throw '$e';
     }
   }
-
-  // Future<String> getUser() async {
-  //   return (_firebaseAuth.currentUser).email;
-  // }
 }

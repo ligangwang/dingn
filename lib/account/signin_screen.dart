@@ -1,13 +1,11 @@
 import 'package:dingn/account/account_model.dart';
+import 'package:dingn/account/google_login_button.dart';
+import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_login/flutter_login.dart';
 import 'package:provider/provider.dart';
 
-
-const users = {
-  'dribbble@gmail.com': '12345',
-  'hunter@gmail.com': 'hunter',
-};
 
 class SigninScreen extends StatelessWidget {
   Duration get loginTime => const Duration(milliseconds: 2250);
@@ -32,10 +30,18 @@ class SigninScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accountModel = Provider.of<AccountModel>(context);
+    if (accountModel.isSignedIn){
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+      });    
+    }
     return FlutterLogin(
-      title: 'dingn',
+      title: '',
       theme: LoginTheme(
-        primaryColor: Colors.grey
+        primaryColor: Colors.white,
+        accentColor: AppTheme.accentColor,
+        buttonTheme: LoginButtonTheme(backgroundColor: AppTheme.accentColor)
       ),
       messages: LoginMessages(
         loginButton: 'sign in', 
@@ -49,6 +55,7 @@ class SigninScreen extends StatelessWidget {
         Navigator.of(context).pop();
       },
       onRecoverPassword: (email)=>_recoverPassword(context, email),
+      extend: GoogleLoginButton(),
     );
   }
 }

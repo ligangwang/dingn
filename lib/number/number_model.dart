@@ -6,16 +6,14 @@ class NumberModel extends ListProviderModel<Number> {
   NumberModel(this.accountModel, int requestBatchSize):super('numbers', requestBatchSize);
 
   final AccountModel accountModel;
-  int _activeDigits = 1;
-  int get activeDigits => _activeDigits;
-  
-  void setDigits(int digits){
-    _activeDigits = digits;
-  }
   Future<void> setFavoriteWord(String number, String favoriteWord, String uid) async{
     try{
+      items[activeIndex] = activeItem.setMyFavoriteWord(favoriteWord);
+      notifyListeners(); 
+      print('notified listers after set favorite word: $number, $favoriteWord, $uid');
       await db.setDoc('number_favorites', '$uid-$number', {'number': number, 'favoriteWord': favoriteWord, 'uid': uid});
     }catch(e){
+      print('some thing wrong: $e');
       rethrow;
     }
   }
@@ -50,7 +48,7 @@ class NumberModel extends ListProviderModel<Number> {
   
   @override
   Future<List<Map<String, dynamic>>> loadDataFromDb() async {
-    return await db.query(collectionName, 'digits', activeDigits, requestBatchSize);
+    return await db.query(collectionName, 'digits', int.tryParse(activeKey), requestBatchSize);
   }
 
   @override

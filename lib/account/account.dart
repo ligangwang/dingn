@@ -12,7 +12,7 @@ class Account{
   final int level;
   final String uid;
   final String email;
-  String get initials => (userName ?? email).substring(1, 3).toUpperCase();
+  String get initials => (userName ?? email).substring(0, 2).toUpperCase();
   Account changeUserName(String userName){
     return Account(
       userName: userName,
