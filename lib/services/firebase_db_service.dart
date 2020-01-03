@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dingn/interface.dart';
 import 'package:firebase/firebase.dart';
 import 'package:firebase/firestore.dart';
@@ -62,20 +64,21 @@ class FirebaseDBService implements DBService{
     }
   }
 
+static final int _randMax = pow(2,32);
+static final int _negInt64 = pow(2,63);
+static final int _compInt64 = 2 * _negInt64;
+int _getRandom(){
+  final r = (Random().nextInt(_randMax) * _randMax) + Random().nextInt(_randMax);
+  return r>=_negInt64? r-_compInt64 : r;
+}
+
   @override
   Future<List<Map<String, dynamic>>> queryBatch(String collection, int batchSize) async {
     try {
-        QuerySnapshot querySnapshot;
-        final lastDockey = collection;
-        if (_lastDocs[lastDockey] != null){
-          querySnapshot = await _db.collection(collection)
-            .startAfter(snapshot:_lastDocs[lastDockey])
-            .limit(batchSize).get();
-        }else{
-          querySnapshot = await _db.collection(collection).limit(batchSize).get();
-        }
+        final querySnapshot = await _db.collection(collection)
+        .where('random', '>=', _getRandom())
+        .limit(batchSize).get();
         if (querySnapshot.docs.isNotEmpty){
-          _lastDocs[lastDockey] = querySnapshot.docs[querySnapshot.docs.length-1];
           return querySnapshot.docs.map(
             (doc){
               final d = doc.data();
@@ -92,5 +95,5 @@ class FirebaseDBService implements DBService{
       print('Error in queryBatch data: $e');
       return <Map<String, dynamic>>[];
     }
-  }  
+  }
 }

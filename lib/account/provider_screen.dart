@@ -20,16 +20,16 @@ class MainScreen extends StatelessWidget {
         children: <Widget>[
           Expanded(
             child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  //left panel
-                  Container(
-                    width: min(size.width, 800),
-                    height: min(size.height, 600),
-                    child: child,
-                  ),
-                  //right panel
-                ]),
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                //left panel
+                Container(
+                  width: min(size.width, 800),
+                  height: min(size.height, 600),
+                  child: child,
+                ),
+                //right panel
+              ]),
           ),
           Padding(
               padding: const EdgeInsets.all(10),
