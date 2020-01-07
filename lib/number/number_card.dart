@@ -53,7 +53,7 @@ class NumberCard extends StatelessWidget {
                       //crossAxisAlignment: CrossAxisAlignment.start,
                       //shrinkWrap: true,
                       children: <Widget>[
-                        for (var item in number.words.take(100))
+                        for (var item in number.words)
                           WordItem(item, item==number.favoriteWord, 
                             ()=>numberModel.setFavoriteWord(number.number, item, numberModel.accountModel.uid)
                           )

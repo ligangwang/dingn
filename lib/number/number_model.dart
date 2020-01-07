@@ -31,8 +31,9 @@ class NumberModel extends ListProviderModel<Number> {
     try{
       final key = '${accountModel.uid}-$number';
       final doc = await db.getDoc('number_favorites', key);
-      return doc ?? doc['favoriteWord'];
+      return doc==null? null: doc['favoriteWord'];
     }catch(e){
+      print('getMyFavoriteWord error: $e');
       return null;
     }
   }
@@ -42,6 +43,7 @@ class NumberModel extends ListProviderModel<Number> {
       final favoriteWordFutures = numbers.map((number)=>getMyFavoriteWord(number.number));
       return await Future.wait(favoriteWordFutures);
     }catch(e){
+      print('getMyFavoriteWords error: $e');
       return null;
     }
   }
@@ -55,5 +57,14 @@ class NumberModel extends ListProviderModel<Number> {
   Number dictToItem(Map<String, dynamic> data){
     final words = List.from(data['words']).map((i)=>i.toString()).toList();
     return Number(data['number'], words, data['most_favorite_word'], data['most_favorite_count'] ?? 0, null);
+  }
+
+  @override
+  Future<List<Number>> postLoad(List<Number> items) async{
+    final favorites = await getMyFavoriteWords(items);
+    for (int i = 0; i<items.length; i++){
+      items[i] = items[i].setMyFavoriteWord(favorites[i]);
+    }
+    return items;
   }
 }

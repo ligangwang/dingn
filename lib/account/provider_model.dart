@@ -17,11 +17,14 @@ class ProviderModel extends ChangeNotifier {
 enum ModelState { Progress, Done }
 
 class ItemList<T>{
-  ItemList(this.items);
+  ItemList(this.items){
+    hasMoreData = true;
+  }
   final List<T> items;
   int index;
   T get item => items[index]; 
   T operator[](int i) => items[i];
+  bool hasMoreData;
 }
 
 abstract class ListProviderModel<T> extends ProviderModel{
@@ -31,8 +34,6 @@ abstract class ListProviderModel<T> extends ProviderModel{
   final DBService db = GetIt.instance.get<DBService>();
   final int requestBatchSize;
   final Map<String, ItemList<T>> _items = {};
-  bool _hasMoreData = true;
-  bool get hasMoreData => _hasMoreData;
   List<T> get items => _items[_activeKey].items;
   int get itemCount => items.length; 
   T get activeItem => _items[_activeKey].item;
@@ -40,6 +41,7 @@ abstract class ListProviderModel<T> extends ProviderModel{
   set activeIndex(int index){
     _items[_activeKey].index = index;
   }
+  bool get hasMoreData=>_items[_activeKey].hasMoreData;
   final String collectionName;
   String _activeKey;
   String get activeKey => _activeKey;
@@ -63,15 +65,16 @@ abstract class ListProviderModel<T> extends ProviderModel{
     if (!hasMoreData)
       return;
     final dicts = await loadDataFromDb();
-    final dt = postLoad(dicts.map((dict)=>dictToItem(dict)).toList());
-    _hasMoreData = dt.length == requestBatchSize;
+    final dt = await postLoad(dicts.map((dict)=>dictToItem(dict)).toList());
+    _items[_activeKey].hasMoreData = dt.length == requestBatchSize;
   //  print('loaded items: ${dt.length}, $requestBatchSize');
     _add(dt);
   }
 
-  List<T> postLoad(List<T> items){
+  Future<List<T>> postLoad(List<T> items) async {
     return items;
   }
+
   T dictToItem(Map<String, dynamic> data);
 
 }
