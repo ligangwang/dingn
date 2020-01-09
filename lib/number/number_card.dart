@@ -1,15 +1,14 @@
-import 'package:dingn/number/number_model.dart';
+import 'package:dingn/number/number.dart';
 import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
 
 class NumberCard extends StatelessWidget {
-  const NumberCard({Key key, this.numberModel, this.index}) : super(key: key);
-  final NumberModel numberModel;
-  final int index;
+  const NumberCard({Key key, this.number, this.onFavorite}) : super(key: key);
+  final Number number;
+  final Future<void> Function(String) onFavorite;
 
   @override
   Widget build(BuildContext context) {
-    final number = numberModel.items[index];
     //if (index!=null)
     //  print('build number: $index, ${numberModel.activeItem.number}, ${numberModel.activeItem.favoriteWord}');
     return Container(
@@ -54,9 +53,7 @@ class NumberCard extends StatelessWidget {
                       //shrinkWrap: true,
                       children: <Widget>[
                         for (var item in number.words)
-                          WordItem(item, item==number.favoriteWord, 
-                            ()=>numberModel.setFavoriteWord(number.number, item, numberModel.accountModel.uid)
-                          )
+                          WordItem(item, item==number.favoriteWord, onFavorite)
                       ]
                     ),
                   ),
@@ -72,7 +69,7 @@ class WordItem extends StatelessWidget{
   const WordItem(this.word, this.isFavorite, this.onFavorite);
   final String word;
   final bool isFavorite;
-  final Future<void> Function() onFavorite;
+  final Future<void> Function(String) onFavorite;
   @override
   Widget build(BuildContext context){
     return ListTile(
@@ -82,7 +79,7 @@ class WordItem extends StatelessWidget{
         color: isFavorite ? Colors.redAccent: Colors.grey,
         onPressed: (){
           if (!isFavorite){
-            onFavorite();
+            onFavorite(word);
           }
         },
       ),

@@ -6,16 +6,20 @@ class NumberModel extends ListProviderModel<Number> {
   NumberModel(this.accountModel, int requestBatchSize):super('numbers', requestBatchSize);
 
   final AccountModel accountModel;
-  Future<void> setFavoriteWord(String number, String favoriteWord, String uid) async{
+  Future<void> setMyFavoriteWord(String number, String favoriteWord) async{
     try{
       items[activeIndex] = activeItem.setMyFavoriteWord(favoriteWord);
       notifyListeners(); 
-      print('notified listers after set favorite word: $number, $favoriteWord, $uid');
-      await db.setDoc('number_favorites', '$uid-$number', {'number': number, 'favoriteWord': favoriteWord, 'uid': uid});
+      await saveFavoriteWord(number, favoriteWord);
     }catch(e){
       print('some thing wrong: $e');
       rethrow;
     }
+  }
+
+  Future<void> saveFavoriteWord(String number, String favoriteWord) async {
+    final uid = accountModel.uid;
+    await db.setDoc('number_favorites', '$uid-$number', {'number': number, 'favoriteWord': favoriteWord, 'uid': uid});
   }
 
   Future<bool> setNumber(Number number) async {

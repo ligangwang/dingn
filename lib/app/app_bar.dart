@@ -1,9 +1,17 @@
 import 'package:dingn/account/account_model.dart';
+import 'package:dingn/number/number_model.dart';
+import 'package:dingn/number/number_search.dart';
+import 'package:dingn/number/number.dart';
+import 'package:dingn/word/word_model.dart';
+import 'package:dingn/word/word.dart';
+import 'package:dingn/word/word_search.dart';
 import 'package:flutter/material.dart';
 import 'package:dingn/themes.dart';
 import 'package:provider/provider.dart';
 
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const MyAppBar(this.name);
+  final String name;
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -20,49 +28,79 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.transparent,
       elevation: 1,
       actions: <Widget>[
-        InkWell(
-          onTap: (){
-            Navigator.of(context).pushNamedAndRemoveUntil('/word', (Route<dynamic> route) => false);
-          },
-          child: Container(
-            width: 50,
-            child: Column(
-            children: <Widget>[
-              Icon(Icons.library_books, color: AppTheme.accentColor,),
-              const Text('word', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
-            ]
-          )
-          )
-        ),
-
-        InkWell(
-          onTap: (){
-            Navigator.of(context).pushNamedAndRemoveUntil('/number', (Route<dynamic> route) => false);
-          },
-          child: Container(
-            width: 50,
-            child: Column(
-            children: <Widget>[
-              Icon(Icons.subject, color: AppTheme.accentColor),
-              const Text('number', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
-            ]
-          )
-          )
-        ),
+        if (name != '/word')
+          InkWell(
+            onTap: (){
+              Navigator.of(context).pushNamedAndRemoveUntil('/word', (Route<dynamic> route) => false);
+            },
+            child: Container(
+              width: 50,
+              child: Column(
+              children: <Widget>[
+                Icon(Icons.library_books, color: AppTheme.accentColor,),
+                const Text('word', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
+              ]
+            )
+            )
+          ),
+        if (name != '/number')
+          InkWell(
+            onTap: (){
+              Navigator.of(context).pushNamedAndRemoveUntil('/number', (Route<dynamic> route) => false);
+            },
+            child: Container(
+              width: 50,
+              child: Column(
+              children: <Widget>[
+                Icon(Icons.subject, color: AppTheme.accentColor),
+                const Text('number', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
+              ]
+            )
+            )
+          ),
+        if (name=='/number')
+          NumberSearchButton(),
+        if (name=='/word')
+          WordSearchButton(),
+        
         AccountButton(),
       ],
-      
-      // bottom: const TabBar(
-      //   tabs: [  
-      //     Tab(icon: Icon(Icons.view_list)),
-      //     Tab(icon: Icon(Icons.language)),
-      //   ],
-      // ),
     );
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(56.0);
+}
+
+class NumberSearchButton extends StatelessWidget{
+  @override
+  Widget build(BuildContext context){
+    final numberModel = Provider.of<NumberModel>(context);
+    return IconButton(
+      icon: const Icon(Icons.search),
+      onPressed: () async {
+        await showSearch<Number>(
+          context: context,
+          delegate: NumberSearch(numberModel)
+        );
+      },
+    );
+  }
+}
+
+class WordSearchButton extends StatelessWidget{
+  @override
+  Widget build(BuildContext context){
+    return IconButton(
+      icon: const Icon(Icons.search),
+      onPressed: () async {
+        await showSearch<Word>(
+          context: context,
+          delegate: WordSearch(Provider.of<WordModel>(context))
+        );
+      },
+    );
+  }
 }
 
 class AccountButton extends StatelessWidget{
@@ -90,11 +128,11 @@ class AccountButton extends StatelessWidget{
         child: Container(
           width: 50,
           child: Column(
-          children: <Widget>[
-            Icon(Icons.account_box, color: AppTheme.accentColor,),
-            const Text('signin', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
-          ]
-        )
+            children: <Widget>[
+              Icon(Icons.account_box, color: AppTheme.accentColor,),
+              const Text('signin', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
+            ]
+          )
         )
       );    
   }

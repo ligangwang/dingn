@@ -31,6 +31,7 @@ class _AccountScreenState extends State<AccountScreen>{
       return Container();
     _controller.text = accountModel.account.userName;
     return MainScreen(
+      name: '/account',
       child: Scaffold(
         body: Column(
           children: <Widget>[

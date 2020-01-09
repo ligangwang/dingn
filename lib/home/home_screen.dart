@@ -8,6 +8,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MainScreen(
+      name: '/',
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -15,7 +16,7 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const SizedBox(height: 16),
-              _text('Remember numbers using Major System'),
+              _text('Remember numbers/playing cards/list of items using Major System'),
               _text('\n'),
               _text(
                   "The major system (also called the phonetic number system, phonetic mnemonic system, or Herigone's mnemonic system) is a mnemonic technique used to aid in memorizing numbers."),

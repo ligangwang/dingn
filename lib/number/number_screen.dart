@@ -3,7 +3,7 @@ import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/number/major_system.dart';
 import 'package:dingn/number/number_model.dart';
 import 'package:dingn/number/number_card.dart';
-import 'package:dingn/widgets/load_more_widget.dart';
+import 'package:dingn/widgets/loading.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +19,7 @@ class NumberScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final accountModel = Provider.of<AccountModel>(context);
     return ProviderScreen<NumberModel>(
+      name: '/number',
       modelBuilder: ()=>NumberModel(accountModel, 1),
       builder: (context, NumberModel numberModel, _){
         return Container(
@@ -61,11 +62,12 @@ class NumberScreen extends StatelessWidget {
                     numberModel.activeIndex = index;
                     if (index>=numberModel.itemCount){
                       numberModel.loadData();
-                      return LoadMoreWidget();
+                      return Loading();
                     }else{
+                      final number = numberModel.items[index];
                       return NumberCard(
-                        numberModel: numberModel,
-                        index: index,
+                        number: number,
+                        onFavorite: (item)=>numberModel.setMyFavoriteWord(number.number, item),
                       );
                     }
                   },

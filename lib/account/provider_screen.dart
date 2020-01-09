@@ -7,15 +7,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class MainScreen extends StatelessWidget {
-  const MainScreen({this.child});
+  const MainScreen({this.name, this.child});
   final Widget child;
+  final String name;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      appBar: MyAppBar(),
+      appBar: MyAppBar(name),
       body: Column(
         children: <Widget>[
           Expanded(
@@ -44,7 +45,7 @@ class MainScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 5),
-                  Text('v1.2.2', 
+                  Text('v1.2.3', 
                     style: TextStyle(color: Colors.grey, fontSize: AppTheme.fontSizeTiny)),
                 ]
               )
@@ -56,15 +57,16 @@ class MainScreen extends StatelessWidget {
 }
 
 class ProviderScreen<T extends ProviderModel> extends StatelessWidget {
-  const ProviderScreen({this.modelBuilder, this.builder});
+  const ProviderScreen({this.name, this.modelBuilder, this.builder});
   final Widget Function(BuildContext context, T value, Widget child) builder;
   final T Function() modelBuilder;
+  final String name;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<T>(
       builder: (context) => modelBuilder(),
-      child: MainScreen(child: Consumer<T>(builder: builder)),
+      child: MainScreen(name: name, child: Consumer<T>(builder: builder)),
     );
   }
 }

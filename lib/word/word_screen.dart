@@ -1,5 +1,5 @@
 import 'package:dingn/account/provider_screen.dart';
-import 'package:dingn/widgets/load_more_widget.dart';
+import 'package:dingn/widgets/loading.dart';
 import 'package:dingn/word/word_card.dart';
 import 'package:dingn/word/word_model.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ class WordScreen extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
     return ProviderScreen<WordModel>(
+      name: '/word',
       modelBuilder: ()=>WordModel(1),
       builder: (context, WordModel wordModel, _){
         return Container(
@@ -19,7 +20,7 @@ class WordScreen extends StatelessWidget{
               itemBuilder: (context, index){
                 if (index>=wordModel.itemCount){
                   wordModel.loadData();
-                  return LoadMoreWidget();
+                  return Loading();
                 }else{
                   return WordCard(
                     word: wordModel.items[index],
