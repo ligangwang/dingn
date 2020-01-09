@@ -75,10 +75,15 @@ abstract class ListProviderModel<T> extends ProviderModel{
     return items;
   }
 
+  Future<T> postFind(T item) async {
+    return item;
+  }
+
   T dictToItem(Map<String, dynamic> data);
 
   Future<T> find(String key) async {
     final data = await db.getDoc(collectionName, key);
-    return dictToItem(data);
+    final item = dictToItem(data);
+    return await postFind(item);
   }
 }

@@ -71,4 +71,10 @@ class NumberModel extends ListProviderModel<Number> {
     }
     return items;
   }
+
+  @override
+  Future<Number> postFind(Number item) async {
+    final favorite = await getMyFavoriteWord(item.number);
+    return item.setMyFavoriteWord(favorite);
+  }
 }
