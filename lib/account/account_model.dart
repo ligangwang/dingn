@@ -1,6 +1,7 @@
 import 'package:dingn/account/account.dart';
 import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/interface.dart';
+import 'package:enum_to_string/enum_to_string.dart';
 import 'package:get_it/get_it.dart';
 
 class AccountModel extends ProviderModel{
@@ -9,8 +10,8 @@ class AccountModel extends ProviderModel{
       if (account == null){
         return account;
       }else{
-        final userName = await getUserName(account.uid);
-        return account.changeUserName(userName ?? account.fullName);
+        final accountInfo = await getAccountInfo(account.uid);
+        return account.changeAccountInfo(accountInfo);
       }
     });
     _accountChanges.listen((Account account){
@@ -31,6 +32,16 @@ class AccountModel extends ProviderModel{
       editMode = isEditMode;
       notifyListeners();
     }
+  }
+
+  Future<bool> setCardSide(CardSide side) async {
+    print('set card side: $cardSide, $side');
+    if (cardSide != side){
+      _account = _account.changeCardSide(side);
+      notifyListeners();
+      await _saveAccount(_account);
+    }
+    return true;
   }
 
   Future<Account> signInWithGoogle() async {
@@ -57,18 +68,34 @@ class AccountModel extends ProviderModel{
   Future<bool> changeUserName(String userName) async {
     try{
       _account = _account.changeUserName(userName);
-      await _db.setDoc('accounts', uid, {'user_name': userName});
+      await _saveAccount(_account);
       return true;
     }catch(e){
       print('saved username: $userName error: $e');
       return false;
     }
   }
+  
+  Future<bool> _saveAccount(Account account) async {
+    print('saving account: $uid, ${account.userName}, ${account.cardSide}');
+    try{
+      final cardSide = EnumToString.parse(account.cardSide);
+      await _db.setDoc('accounts', uid, {'user_name': account.userName, 'card_side': cardSide});
+      return true;
+    }catch(e){
+      print('_saveAccount error: $e');
+      return false;
+    }
+  }
 
-  Future<String> getUserName(String uid) async {
+  Future<Account> getAccountInfo(String uid) async {
     try{
       final data = await _db.getDoc('accounts', uid);
-      return data!=null? data['user_name']:null;
+      final String side = data!=null? data['card_side']:null;
+      final CardSide cardSide = side != null? EnumToString.fromString(CardSide.values, side): CardSide.OneSide;
+      return Account(
+        userName: data!=null? data['user_name']:null,
+        cardSide: cardSide);
     }catch(e){
       print('get user name error: $e');
       return null;
@@ -86,4 +113,5 @@ class AccountModel extends ProviderModel{
   String get email => _account?.email;
   Account get account => _account;
   String get userName => _account?.userName;
+  CardSide get cardSide => _account?.cardSide;
 }

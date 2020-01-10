@@ -1,3 +1,4 @@
+import 'package:dingn/account/account.dart';
 import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
@@ -104,7 +105,50 @@ class _AccountScreenState extends State<AccountScreen>{
                       ),
                     ),
                   ],
-                )),
+                )
+            ),
+            //choose
+            Container(
+                alignment: Alignment.bottomCenter,
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Container(
+                      alignment: Alignment.bottomCenter,
+                      padding: const EdgeInsets.only(right: 30),
+                      child: const Text(
+                        'Show Card Sides:',
+                        style: TextStyle(
+                            fontSize: AppTheme.fontSizeMedium,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Container(
+                      constraints:
+                          const BoxConstraints(maxHeight: 100, maxWidth: 200),
+                      child: RadioListTile(
+                        title: const Text('One Side - Training'),
+                        groupValue: accountModel.cardSide,
+                        value: CardSide.OneSide,
+                        onChanged: (value)=>accountModel.setCardSide(value),
+                      )
+                    ),
+                    Container(
+                      constraints:
+                          const BoxConstraints(maxHeight: 100, maxWidth: 200),
+                      child: RadioListTile(
+                        title: const Text('Two Sides - Recall'),
+                        groupValue: accountModel.cardSide,
+                        value: CardSide.TwoSides,
+                        onChanged: (value)=>accountModel.setCardSide(value),
+                      )
+                    ),
+                  ],
+                )
+            ),
             Container(
               padding: const EdgeInsets.all(20),
               child: FlatButton(

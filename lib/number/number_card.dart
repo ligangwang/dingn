@@ -1,20 +1,22 @@
+import 'package:dingn/account/account.dart';
+import 'package:dingn/account/account_model.dart';
 import 'package:dingn/number/number.dart';
 import 'package:dingn/themes.dart';
+import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class NumberCard extends StatelessWidget {
   const NumberCard({Key key, this.number, this.onFavorite}) : super(key: key);
   final Number number;
   final Future<void> Function(String) onFavorite;
-
   @override
   Widget build(BuildContext context) {
-    //if (index!=null)
-    //  print('build number: $index, ${numberModel.activeItem.number}, ${numberModel.activeItem.favoriteWord}');
-    return Container(
-          //constraints: const BoxConstraints(minWidth: 120, minHeight: 80, maxWidth: 600, maxHeight: 400),
+    final accountModel = Provider.of<AccountModel>(context);
+    if (accountModel.cardSide == CardSide.TwoSides){
+      return FlipCard(
+        front: Container(
           child: Card(
-            //margin: const EdgeInsets.all(20),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15.0)),
             child: Column(
@@ -24,6 +26,29 @@ class NumberCard extends StatelessWidget {
                   leading: const Icon(Icons.bookmark, size: 50, color: AppTheme.accentColor,),
                   title: Text(number.number, style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
                   //subtitle: Text('${word.lang}: ${word.ipa}')
+                ),
+              ],
+            ),
+          ),
+        ),
+        back: _getFullCard(number, onFavorite)
+      );
+    }
+    return _getFullCard(number, onFavorite);
+  }
+}
+
+Widget _getFullCard(Number number, Future<void> Function(String) onFavorite){
+  return Container(
+          child: Card(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.bookmark, size: 50, color: AppTheme.accentColor,),
+                  title: Text(number.number, style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
                 ),
                 const Divider(height: 10, thickness:1, indent: 20, endIndent: 20,),
                 Padding(
@@ -43,14 +68,7 @@ class NumberCard extends StatelessWidget {
                   child:
                   Container(
                     padding: const EdgeInsets.all(10),  
-                  
-                    //height: 300,
                     child: ListView(
-                      //spacing: 10,
-                      //controller: _controller,
-                      //mainAxisSize: MainAxisSize.min,
-                      //crossAxisAlignment: CrossAxisAlignment.start,
-                      //shrinkWrap: true,
                       children: <Widget>[
                         for (var item in number.words)
                           WordItem(item, item==number.favoriteWord, onFavorite)
@@ -61,8 +79,7 @@ class NumberCard extends StatelessWidget {
               ],
             ),
           ),
-        );
-  }
+        );  
 }
 
 class WordItem extends StatelessWidget{

@@ -1,6 +1,10 @@
+import 'package:dingn/account/account.dart';
+import 'package:dingn/account/account_model.dart';
 import 'package:dingn/themes.dart';
 import 'package:dingn/word/word.dart';
+import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class WordCard extends StatelessWidget {
   const WordCard({Key key, this.word}) : super(key: key);
@@ -8,11 +12,35 @@ class WordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-        onTap: () {
-          //view detail
-        },
-        child: Container(
+    final accountModel = Provider.of<AccountModel>(context);
+    if (accountModel.cardSide == CardSide.TwoSides){
+      return FlipCard(
+        front: Container(
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.bookmark, size: 50, color: AppTheme.accentColor,),
+                  title: Text(word.word, style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold, fontSize: AppTheme.fontSizeBrand)),
+                  subtitle: Text('${word.lang}: ${word.ipa}')
+                ),
+              ],
+            ),
+          ),
+        ),
+        back: _getFullCard(word),
+      );
+    }
+    return _getFullCard(word);
+  }
+}
+
+Widget _getFullCard(Word word){
+  return Container(
           //constraints: const BoxConstraints(minWidth: 120, minHeight: 80, maxWidth: 600, maxHeight: 400),
           child: Card(
             //margin: const EdgeInsets.all(20),
@@ -60,8 +88,7 @@ class WordCard extends StatelessWidget {
               ],
             ),
           ),
-        ));
-  }
+        );
 }
 
 Iterable<Widget> _buildMapEntry(MapEntry<String, dynamic> mapEntry) sync* {
