@@ -20,7 +20,7 @@ class NumberScreen extends StatelessWidget {
     final accountModel = Provider.of<AccountModel>(context);
     return ProviderScreen<NumberModel>(
       name: '/number',
-      modelBuilder: ()=>NumberModel(accountModel, 1),
+      modelBuilder: ()=>NumberModel(accountModel: accountModel, requestBatchSize: 1),
       builder: (context, NumberModel numberModel, _){
         return Container(
           padding: const EdgeInsets.all(10),
@@ -68,6 +68,7 @@ class NumberScreen extends StatelessWidget {
                       return NumberCard(
                         number: number,
                         onFavorite: (item)=>numberModel.setMyFavoriteWord(number.number, item),
+                        alwaysShowTwoSides: false,
                       );
                     }
                   },

@@ -58,7 +58,21 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
             )
           ),
-        if (name=='/number')
+        if (name != '/card')
+          InkWell(
+            onTap: (){
+              Navigator.of(context).pushNamedAndRemoveUntil('/card', (Route<dynamic> route) => false);
+            },
+            child: Container(
+              width: 50,
+              child: Column(
+              children: <Widget>[
+                Icon(Icons.sd_card, color: AppTheme.accentColor),
+                const Text('card', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
+              ]
+            )
+            )
+          ),        if (name=='/number')
           NumberSearchButton(),
         if (name=='/word')
           WordSearchButton(),

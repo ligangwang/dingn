@@ -3,7 +3,7 @@ import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/number/number.dart';
 
 class NumberModel extends ListProviderModel<Number> {
-  NumberModel(this.accountModel, int requestBatchSize):super('numbers', requestBatchSize);
+  NumberModel({this.accountModel, int requestBatchSize, List<String> presetItemKeys}):super(collectionName:'numbers', requestBatchSize: requestBatchSize, presetItemKeys:presetItemKeys);
 
   final AccountModel accountModel;
   Future<void> setMyFavoriteWord(String number, String favoriteWord) async{

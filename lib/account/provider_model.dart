@@ -28,9 +28,13 @@ class ItemList<T>{
 }
 
 abstract class ListProviderModel<T> extends ProviderModel{
-  ListProviderModel(this.collectionName, this.requestBatchSize){
+  ListProviderModel({this.collectionName, this.requestBatchSize, this.presetItemKeys}){
     setActiveKey('1');
+    presetItemIndex = 0;
   }
+  final List<String> presetItemKeys;
+  int presetItemIndex;
+
   final DBService db = GetIt.instance.get<DBService>();
   final int requestBatchSize;
   final Map<String, ItemList<T>> _items = {};
@@ -64,8 +68,17 @@ abstract class ListProviderModel<T> extends ProviderModel{
   Future<void> loadData() async{
     if (!hasMoreData)
       return;
-    final dicts = await loadDataFromDb();
-    final dt = await postLoad(dicts.map((dict)=>dictToItem(dict)).toList());
+    List<T> dt = [];
+    if (presetItemKeys!=null){
+      if (presetItemIndex < presetItemKeys.length){
+        final nextItem = await find(presetItemKeys[presetItemIndex]);
+        dt = [nextItem]; 
+      }
+      presetItemIndex ++;
+    }else{
+      final dicts = await loadDataFromDb();
+      dt = await postLoad(dicts.map((dict)=>dictToItem(dict)).toList());
+    }
     _items[_activeKey].hasMoreData = dt.length == requestBatchSize;
   //  print('loaded items: ${dt.length}, $requestBatchSize');
     _add(dt);

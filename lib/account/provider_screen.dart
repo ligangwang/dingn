@@ -45,7 +45,7 @@ class MainScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 5),
-                  Text('v1.2.6',
+                  Text('v1.2.8',
                     style: TextStyle(color: Colors.grey, fontSize: AppTheme.fontSizeTiny)),
                 ]
               )

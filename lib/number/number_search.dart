@@ -105,7 +105,8 @@ class _ResultCardState extends State<_ResultCard>{
             item = item.setMyFavoriteWord(word);
           });
           await widget.numberModel.saveFavoriteWord(item.number, word);
-        }
+        },
+        alwaysShowTwoSides: false,
       ),
     );
   }

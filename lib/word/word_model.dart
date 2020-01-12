@@ -2,7 +2,7 @@ import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/word/word.dart';
 
 class WordModel extends ListProviderModel<Word>{
-  WordModel(int requestBatchSize):super('words', requestBatchSize);
+  WordModel(int requestBatchSize):super(collectionName: 'words', requestBatchSize: requestBatchSize);
   
   @override
   Word dictToItem(Map<String, dynamic> data){

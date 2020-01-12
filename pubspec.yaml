@@ -54,6 +54,7 @@ flutter:
    - assets/images/dingn_v1.png
    - assets/images/dingn_v1_grey.png
    - assets/confetti.gif
+   - assets/images/cards/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

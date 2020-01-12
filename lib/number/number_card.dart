@@ -7,36 +7,47 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class NumberCard extends StatelessWidget {
-  const NumberCard({Key key, this.number, this.onFavorite}) : super(key: key);
+  const NumberCard({Key key, this.number, this.onFavorite, @required this.alwaysShowTwoSides, this.front}) : super(key: key);
   final Number number;
   final Future<void> Function(String) onFavorite;
+  final bool alwaysShowTwoSides;
+  final Widget front;
+
   @override
   Widget build(BuildContext context) {
     final accountModel = Provider.of<AccountModel>(context);
-    if (accountModel.cardSide == CardSide.TwoSides){
+    if (accountModel.cardSide == CardSide.TwoSides || alwaysShowTwoSides){
       return FlipCard(
         front: Container(
-          child: Card(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15.0)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                ListTile(
-                  leading: const Icon(Icons.bookmark, size: 50, color: AppTheme.accentColor,),
-                  title: Text(number.number, style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
-                  //subtitle: Text('${word.lang}: ${word.ipa}')
-                ),
-              ],
-            ),
-          ),
+          child: _getFrontCard(),
         ),
         back: _getFullCard(number, onFavorite)
       );
     }
     return _getFullCard(number, onFavorite);
   }
+
+  Widget _getFrontCard(){
+    if (front != null)
+      return front;
+    else
+      return Card(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.bookmark, size: 50, color: AppTheme.accentColor,),
+                  title: Text(number.number, style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+  }
 }
+
 
 Widget _getFullCard(Number number, Future<void> Function(String) onFavorite){
   return Container(
