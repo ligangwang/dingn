@@ -28,8 +28,8 @@ class HomeScreen extends StatelessWidget {
               for (var digitDesc in majorSystemDigits) _text(digitDesc),
               _text('\n'),
               const Hyperlink(
-                  text: 'Learn more about major system',
-                  url: 'https://en.wikipedia.org/wiki/Mnemonic_major_system'),
+                  text: 'Please send any issues and suggestions for improvements',
+                  url: 'mailto:support@dingn.com?subject=Issues or Suggestions&body='),
             ],
           ),
         ),

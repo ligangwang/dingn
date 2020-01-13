@@ -38,7 +38,7 @@ class _AccountScreenState extends State<AccountScreen>{
           children: <Widget>[
             Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
               Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(8),
                   height: 100.0,
                   width: 100.0,
                   child: CircleAvatar(
@@ -52,8 +52,8 @@ class _AccountScreenState extends State<AccountScreen>{
                           : null)),
             ]),
             Container(
-                alignment: Alignment.bottomCenter,
-                padding: const EdgeInsets.all(20),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.all(8),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -70,7 +70,7 @@ class _AccountScreenState extends State<AccountScreen>{
                       ),
                     ),
                     Container(
-                      alignment: Alignment.bottomCenter,
+                      alignment: Alignment.centerLeft,
                       constraints:
                           const BoxConstraints(minWidth: 100, maxWidth: 200),
                       child: TextField(
@@ -87,8 +87,8 @@ class _AccountScreenState extends State<AccountScreen>{
                       )
                     ),
                     Container(
-                      alignment: Alignment.bottomCenter,
-                      padding: const EdgeInsets.only(left: 30),
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(left: 8),
                       child: OutlineButton(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -109,16 +109,16 @@ class _AccountScreenState extends State<AccountScreen>{
             ),
             //choose
             Container(
-                alignment: Alignment.bottomCenter,
-                padding: const EdgeInsets.all(20),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.all(8),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
                     Container(
-                      alignment: Alignment.bottomCenter,
-                      padding: const EdgeInsets.only(right: 30),
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(right: 8),
                       child: const Text(
                         'Show Card Sides:',
                         style: TextStyle(
@@ -150,7 +150,7 @@ class _AccountScreenState extends State<AccountScreen>{
                 )
             ),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(8),
               child: FlatButton(
                 child: Column(children: const <Widget>[
                   Icon(Icons.exit_to_app, color: AppTheme.accentColor),
