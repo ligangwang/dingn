@@ -32,7 +32,7 @@ abstract class ListProviderModel<T> extends ProviderModel{
     setActiveKey('1');
     presetItemIndex = 0;
   }
-  final List<String> presetItemKeys;
+  List<String> presetItemKeys;
   int presetItemIndex;
 
   final DBService db = GetIt.instance.get<DBService>();
@@ -50,6 +50,13 @@ abstract class ListProviderModel<T> extends ProviderModel{
   String _activeKey;
   String get activeKey => _activeKey;
   
+  void setPresetItemKeys(List<String> itemKeys){
+    presetItemIndex = 0;
+    presetItemKeys = itemKeys;
+    //print('hello reset keys: $itemKeys');
+    _items[_activeKey] = ItemList([]);
+    notifyListeners();
+  }
   void setActiveKey(String activeKey){
     if (activeKey != _activeKey){
       _activeKey = activeKey;
@@ -60,6 +67,7 @@ abstract class ListProviderModel<T> extends ProviderModel{
 
   void _add(List<T> itemList){
     items.addAll(itemList);
+    //print('hello items: $items, added $itemList');
     notifyListeners();
   } 
 
@@ -71,10 +79,12 @@ abstract class ListProviderModel<T> extends ProviderModel{
     List<T> dt = [];
     if (presetItemKeys!=null){
       if (presetItemIndex < presetItemKeys.length){
+        //print('presetItemIndex finding: $presetItemIndex, ${presetItemKeys[presetItemIndex]}');
         final nextItem = await find(presetItemKeys[presetItemIndex]);
         dt = [nextItem]; 
+        //print('presetItemIndex: found: $presetItemIndex, ${presetItemKeys[presetItemIndex]}, $nextItem');
+        presetItemIndex ++;
       }
-      presetItemIndex ++;
     }else{
       final dicts = await loadDataFromDb();
       dt = await postLoad(dicts.map((dict)=>dictToItem(dict)).toList());

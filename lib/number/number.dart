@@ -19,4 +19,8 @@ class Number{
     return Number(number, words, mostFavoriteWord, mostFavoriteCount, myFavoriteWord);
   }
 
+  @override
+  String toString(){
+    return number;
+  }
 }

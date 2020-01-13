@@ -4,16 +4,44 @@ import 'package:dingn/number/major_system.dart';
 import 'package:dingn/number/number_model.dart';
 import 'package:dingn/number/number_card.dart';
 import 'package:dingn/playing_card/playing_card_numbers.dart';
+import 'package:dingn/utils/extensions.dart';
 import 'package:dingn/widgets/loading.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 final String majorSystem = majorSystemDigits.join('  ');
 
-class PlayingCardScreen extends StatelessWidget {
-  void onAction(BuildContext context, String digits){
-    final numberModel = Provider.of<NumberModel>(context);
-    numberModel.setActiveKey(digits);
+
+class PlayingCardScreen extends StatefulWidget {
+  @override
+  _PlayingCardState createState() => _PlayingCardState();
+}
+
+class _PlayingCardState extends State<PlayingCardScreen>{
+
+  PageController _pageController;
+  @override 
+  void initState(){
+    super.initState();
+    _createController();
+  }
+
+  void _createController(){
+    if (_pageController!=null){
+      _pageController.dispose();
+    }
+    _pageController = PageController(initialPage: 0, keepPage: true);
+  }
+
+  void shuffleItems(NumberModel numberModel){
+    numberModel.setPresetItemKeys(shuffle(List<String>.from(playingCardNumbers)));
+    _pageController.jumpToPage(0);
+  }
+
+  @override 
+  void dispose(){
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -28,14 +56,24 @@ class PlayingCardScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
+              Row(children: <Widget>[
+                  FlatButton.icon(
+                    icon: const Icon(Icons.shuffle),
+                    label: const Text('shuffle'),
+                    onPressed: ()=>shuffleItems(numberModel),
+                    textColor: Colors.redAccent
+                  ),
+              ]),
               Expanded(
                 child:
                 PageView.builder(
                   scrollDirection: Axis.horizontal,
+                  controller: _pageController,
                   itemBuilder: (context, index){
                     numberModel.activeIndex = index;
                     if (index>=numberModel.itemCount){
-                      numberModel.loadData();
+                      if(index==numberModel.itemCount)
+                        numberModel.loadData();
                       return Loading();
                     }else{
                       final number = numberModel.items[index];
