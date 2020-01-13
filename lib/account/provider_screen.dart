@@ -45,7 +45,7 @@ class MainScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 5),
-                  Text('v1.2.10',
+                  Text('v1.2.11', //v1.2.11: upgrade to flutter 1.13.8 
                     style: TextStyle(color: Colors.grey, fontSize: AppTheme.fontSizeTiny)),
                 ]
               )
