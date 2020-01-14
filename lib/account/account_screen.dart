@@ -117,18 +117,8 @@ class _AccountScreenState extends State<AccountScreen>{
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
                     Container(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(right: 8),
-                      child: const Text(
-                        'Show Card Sides:',
-                        style: TextStyle(
-                            fontSize: AppTheme.fontSizeMedium,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Container(
                       constraints:
-                          const BoxConstraints(maxHeight: 100, maxWidth: 200),
+                          const BoxConstraints(maxHeight: 100, maxWidth: 220),
                       child: RadioListTile(
                         title: const Text('One Side - Training'),
                         groupValue: accountModel.cardSide,
@@ -138,7 +128,7 @@ class _AccountScreenState extends State<AccountScreen>{
                     ),
                     Container(
                       constraints:
-                          const BoxConstraints(maxHeight: 100, maxWidth: 200),
+                          const BoxConstraints(maxHeight: 100, maxWidth: 220),
                       child: RadioListTile(
                         title: const Text('Two Sides - Recall'),
                         groupValue: accountModel.cardSide,
