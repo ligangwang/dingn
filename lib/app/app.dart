@@ -1,4 +1,4 @@
-import 'package:dingn/app/router.dart';
+import 'package:dingn/app/router_util.dart';
 import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
 
@@ -8,12 +8,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-          title: 'dingn - mind improvement',
-          theme: AppTheme.theme(),
-          debugShowCheckedModeBanner: false,
-          initialRoute: '/',
-          onGenerateRoute: (settings) =>
-              Router.generateRoute(context, settings),
+      title: 'dingn - mind improvement',
+      theme: AppTheme.theme(),
+      debugShowCheckedModeBanner: false,
+      initialRoute: '/',
+      onGenerateRoute: (settings) =>
+          RouterUtil.generateRoute(context, settings),
     );
   }
 }

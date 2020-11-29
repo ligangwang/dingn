@@ -3,14 +3,14 @@ import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:dingn/account/account_model.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 
-class AccountScreen extends StatefulWidget{
+class AccountScreen extends StatefulWidget {
   @override
   _AccountScreenState createState() => _AccountScreenState();
 }
 
-class _AccountScreenState extends State<AccountScreen>{
+class _AccountScreenState extends State<AccountScreen> {
   final _controller = TextEditingController();
 
   @override
@@ -21,15 +21,16 @@ class _AccountScreenState extends State<AccountScreen>{
 
   @override
   Widget build(BuildContext context) {
-    final accountModel = Provider.of<AccountModel>(context);
+    final accountModel = provider.Provider.of<AccountModel>(context);
     accountModel.accountChanges.listen((account) {
       if (account == null) {
         Navigator.of(context)
             .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
       }
     });
-    if (accountModel.account == null) 
+    if (accountModel.account == null) {
       return Container();
+    }
     _controller.text = accountModel.account.userName;
     return MainScreen(
       name: '/account',
@@ -70,34 +71,35 @@ class _AccountScreenState extends State<AccountScreen>{
                       ),
                     ),
                     Container(
-                      alignment: Alignment.centerLeft,
-                      constraints:
-                          const BoxConstraints(minWidth: 100, maxWidth: 200),
-                      child: TextField(
-                        controller: _controller,
-                        decoration: InputDecoration(
-                          hintText: 'Display Name',
-                          errorText: accountModel.errorMessage,
-                        ),
-                        readOnly: !accountModel.editMode,
-                        autofocus: accountModel.editMode,
-                        onSubmitted: (newValue) {
-                          newValue = newValue.trim();
-                        },
-                      )
-                    ),
+                        alignment: Alignment.centerLeft,
+                        constraints:
+                            const BoxConstraints(minWidth: 100, maxWidth: 200),
+                        child: TextField(
+                          controller: _controller,
+                          decoration: InputDecoration(
+                            hintText: 'Display Name',
+                            errorText: accountModel.errorMessage,
+                          ),
+                          readOnly: !accountModel.editMode,
+                          autofocus: accountModel.editMode,
+                          onSubmitted: (newValue) {
+                            newValue = newValue.trim();
+                          },
+                        )),
                     Container(
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.only(left: 8),
                       child: OutlineButton(
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: const BorderSide(width: 2)),
-                        child: Text(accountModel.editMode? 'save': 'edit', style: const TextStyle(color: AppTheme.accentColor)),
-                        onPressed: (){
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(width: 2)),
+                        child: Text(accountModel.editMode ? 'save' : 'edit',
+                            style:
+                                const TextStyle(color: AppTheme.accentColor)),
+                        onPressed: () {
                           if (!accountModel.editMode)
                             accountModel.setEditMode(true);
-                          else{
+                          else {
                             accountModel.changeUserName(_controller.text);
                             accountModel.setEditMode(false);
                           }
@@ -105,8 +107,7 @@ class _AccountScreenState extends State<AccountScreen>{
                       ),
                     ),
                   ],
-                )
-            ),
+                )),
             //choose
             Container(
                 alignment: Alignment.centerLeft,
@@ -117,43 +118,38 @@ class _AccountScreenState extends State<AccountScreen>{
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
                     Container(
-                      constraints:
-                          const BoxConstraints(maxHeight: 100, maxWidth: 220),
-                      child: RadioListTile(
-                        title: const Text('One Side - Training'),
-                        groupValue: accountModel.cardSide,
-                        value: CardSide.OneSide,
-                        onChanged: (value)=>accountModel.setCardSide(value),
-                      )
-                    ),
+                        constraints:
+                            const BoxConstraints(maxHeight: 100, maxWidth: 220),
+                        child: RadioListTile(
+                          title: const Text('One Side - Training'),
+                          groupValue: accountModel.cardSide,
+                          value: CardSide.OneSide,
+                          onChanged: (value) => accountModel.setCardSide(value),
+                        )),
                     Container(
-                      constraints:
-                          const BoxConstraints(maxHeight: 100, maxWidth: 220),
-                      child: RadioListTile(
-                        title: const Text('Two Sides - Recall'),
-                        groupValue: accountModel.cardSide,
-                        value: CardSide.TwoSides,
-                        onChanged: (value)=>accountModel.setCardSide(value),
-                      )
-                    ),
+                        constraints:
+                            const BoxConstraints(maxHeight: 100, maxWidth: 220),
+                        child: RadioListTile(
+                          title: const Text('Two Sides - Recall'),
+                          groupValue: accountModel.cardSide,
+                          value: CardSide.TwoSides,
+                          onChanged: (value) => accountModel.setCardSide(value),
+                        )),
                   ],
-                )
-            ),
+                )),
             Container(
-              padding: const EdgeInsets.all(8),
-              child: FlatButton(
-                child: Column(children: const <Widget>[
-                  Icon(Icons.exit_to_app, color: AppTheme.accentColor),
-                  Text(
-                    'Sign out',
-                    style: TextStyle(
-                        color: AppTheme.accentColor,
-                        fontSize: AppTheme.fontSizeIconButtonText),
-                  )
-                ]),
-                onPressed: () => accountModel.signOut()
-              )
-            )
+                padding: const EdgeInsets.all(8),
+                child: FlatButton(
+                    child: Column(children: const <Widget>[
+                      Icon(Icons.exit_to_app, color: AppTheme.accentColor),
+                      Text(
+                        'Sign out',
+                        style: TextStyle(
+                            color: AppTheme.accentColor,
+                            fontSize: AppTheme.fontSizeIconButtonText),
+                      )
+                    ]),
+                    onPressed: () => accountModel.signOut()))
           ],
         ),
       ),

@@ -13,12 +13,7 @@ void main() {
   final app = initialize();
   GetIt.I.registerLazySingleton<DBService>(() => FirebaseDBService(app));
   GetIt.I.registerLazySingleton<AuthService>(() => FirebaseAuthService(app));
-  runApp(
-    ChangeNotifierProvider<AccountModel>(
-      builder: (context) => AccountModel(),
-      child: const MyApp(
-      'dingn - mind improvement'
-      )
-    )
-  );
+  runApp(ChangeNotifierProvider<AccountModel>(
+      create: (context) => AccountModel(),
+      child: const MyApp('dingn - mind improvement')));
 }

@@ -7,7 +7,7 @@ import 'package:dingn/word/word.dart';
 import 'package:dingn/word/word_search.dart';
 import 'package:flutter/material.dart';
 import 'package:dingn/themes.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MyAppBar(this.name);
@@ -17,12 +17,15 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: InkWell(
         onTap: () {
-          Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
         },
         child: const Text(
           'dingn',
-          style: TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold,
-          fontSize: AppTheme.fontSizeBrand),
+          style: TextStyle(
+              color: AppTheme.accentColor,
+              fontWeight: FontWeight.bold,
+              fontSize: AppTheme.fontSizeBrand),
         ),
       ),
       backgroundColor: Colors.transparent,
@@ -30,53 +33,54 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: <Widget>[
         if (name != '/word')
           InkWell(
-            onTap: (){
-              Navigator.of(context).pushNamedAndRemoveUntil('/word', (Route<dynamic> route) => false);
-            },
-            child: Container(
-              width: 50,
-              child: Column(
-              children: <Widget>[
-                Icon(Icons.library_books, color: AppTheme.accentColor,),
-                const Text('word', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
-              ]
-            )
-            )
-          ),
+              onTap: () {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/word', (Route<dynamic> route) => false);
+              },
+              child: Container(
+                  width: 50,
+                  child: Column(children: const <Widget>[
+                    Icon(
+                      Icons.library_books,
+                      color: AppTheme.accentColor,
+                    ),
+                    Text('word',
+                        style: TextStyle(
+                            color: AppTheme.accentColor,
+                            fontSize: AppTheme.fontSizeIconButtonText)),
+                  ]))),
         if (name != '/number')
           InkWell(
-            onTap: (){
-              Navigator.of(context).pushNamedAndRemoveUntil('/number', (Route<dynamic> route) => false);
-            },
-            child: Container(
-              width: 50,
-              child: Column(
-              children: <Widget>[
-                Icon(Icons.subject, color: AppTheme.accentColor),
-                const Text('number', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
-              ]
-            )
-            )
-          ),
+              onTap: () {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/number', (Route<dynamic> route) => false);
+              },
+              child: Container(
+                  width: 50,
+                  child: Column(children: const <Widget>[
+                    Icon(Icons.subject, color: AppTheme.accentColor),
+                    Text('number',
+                        style: TextStyle(
+                            color: AppTheme.accentColor,
+                            fontSize: AppTheme.fontSizeIconButtonText)),
+                  ]))),
         if (name != '/card')
           InkWell(
-            onTap: (){
-              Navigator.of(context).pushNamedAndRemoveUntil('/card', (Route<dynamic> route) => false);
-            },
-            child: Container(
-              width: 50,
-              child: Column(
-              children: <Widget>[
-                Icon(Icons.sd_card, color: AppTheme.accentColor),
-                const Text('card', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
-              ]
-            )
-            )
-          ),        if (name=='/number')
-          NumberSearchButton(),
-        if (name=='/word')
-          WordSearchButton(),
-        
+              onTap: () {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/card', (Route<dynamic> route) => false);
+              },
+              child: Container(
+                  width: 50,
+                  child: Column(children: const <Widget>[
+                    Icon(Icons.sd_card, color: AppTheme.accentColor),
+                    Text('card',
+                        style: TextStyle(
+                            color: AppTheme.accentColor,
+                            fontSize: AppTheme.fontSizeIconButtonText)),
+                  ]))),
+        if (name == '/number') NumberSearchButton(),
+        if (name == '/word') WordSearchButton(),
         AccountButton(),
       ],
     );
@@ -86,69 +90,72 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(56.0);
 }
 
-class NumberSearchButton extends StatelessWidget{
+class NumberSearchButton extends StatelessWidget {
   @override
-  Widget build(BuildContext context){
-    final numberModel = Provider.of<NumberModel>(context);
+  Widget build(BuildContext context) {
+    final numberModel = provider.Provider.of<NumberModel>(context);
     return IconButton(
       icon: const Icon(Icons.search),
       onPressed: () async {
         await showSearch<Number>(
-          context: context,
-          delegate: NumberSearch(numberModel)
-        );
+            context: context, delegate: NumberSearch(numberModel));
       },
     );
   }
 }
 
-class WordSearchButton extends StatelessWidget{
+class WordSearchButton extends StatelessWidget {
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.search),
       onPressed: () async {
         await showSearch<Word>(
-          context: context,
-          delegate: WordSearch(Provider.of<WordModel>(context))
-        );
+            context: context,
+            delegate: WordSearch(provider.Provider.of<WordModel>(context)));
       },
     );
   }
 }
 
-class AccountButton extends StatelessWidget{
+class AccountButton extends StatelessWidget {
   @override
-  Widget build(BuildContext context){
-    final accountModel = Provider.of<AccountModel>(context);
-    if (accountModel.isSignedIn) 
+  Widget build(BuildContext context) {
+    final accountModel = provider.Provider.of<AccountModel>(context);
+    if (accountModel.isSignedIn)
       return FlatButton(
         onPressed: () {
-          Navigator.of(context).pushNamedAndRemoveUntil('/account', (Route<dynamic> route) => false);
+          Navigator.of(context).pushNamedAndRemoveUntil(
+              '/account', (Route<dynamic> route) => false);
         },
         shape: const CircleBorder(side: BorderSide.none),
         child: CircleAvatar(
           backgroundColor: AppTheme.accentColor,
           foregroundColor: Colors.white,
-          backgroundImage: accountModel.account.photoURL!=null?NetworkImage(accountModel.account.photoURL):null,
-          child: Text(accountModel.account.photoURL!=null?'':accountModel.account.initials),
+          backgroundImage: accountModel.account.photoURL != null
+              ? NetworkImage(accountModel.account.photoURL)
+              : null,
+          child: Text(accountModel.account.photoURL != null
+              ? ''
+              : accountModel.account.initials),
         ),
       );
     else
       return InkWell(
-        onTap: (){
+          onTap: () {
             Navigator.of(context).pushNamed('/signin');
-        },
-        child: Container(
-          width: 50,
-          child: Column(
-            children: <Widget>[
-              Icon(Icons.account_box, color: AppTheme.accentColor,),
-              const Text('signin', style: TextStyle(color: AppTheme.accentColor, fontSize: AppTheme.fontSizeIconButtonText)),
-            ]
-          )
-        )
-      );    
+          },
+          child: Container(
+              width: 50,
+              child: Column(children: const <Widget>[
+                Icon(
+                  Icons.account_box,
+                  color: AppTheme.accentColor,
+                ),
+                Text('signin',
+                    style: TextStyle(
+                        color: AppTheme.accentColor,
+                        fontSize: AppTheme.fontSizeIconButtonText)),
+              ])));
   }
-
 }

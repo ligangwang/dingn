@@ -6,13 +6,15 @@ import 'package:dingn/number/number_screen.dart';
 import 'package:dingn/playing_card/playing_card_screen.dart';
 import 'package:dingn/word/word_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-  
-class Router {  
-  static Route<dynamic> generateRoute(BuildContext context, RouteSettings settings) {
-    final accountModel = Provider.of<AccountModel>(context);
+import 'package:provider/provider.dart' as provider;
+
+class RouterUtil {
+  static Route<dynamic> generateRoute(
+      BuildContext context, RouteSettings settings) {
+    final accountModel =
+        provider.Provider.of<AccountModel>(context, listen: false);
     var route = settings.name;
-    if (route != '/signin' && route != '/' && !accountModel.isSignedIn){
+    if (route != '/signin' && route != '/' && !accountModel.isSignedIn) {
       route = '/signin';
     }
     switch (route) {

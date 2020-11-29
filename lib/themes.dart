@@ -42,10 +42,10 @@ class AppTheme {
         // title: TextStyle(
         //   fontFamily: fontFamilyWorkSans
         // ),
-        body1: TextStyle(
+        bodyText1: TextStyle(
           fontSize: fontSizeMedium,
         ),
-        body2: TextStyle(
+        bodyText2: TextStyle(
           fontSize: fontSizeMedium,
         ),
         button: TextStyle(
