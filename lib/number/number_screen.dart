@@ -1,8 +1,8 @@
 import 'package:dingn/account/account_model.dart';
 import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/number/major_system.dart';
-import 'package:dingn/number/number_model.dart';
 import 'package:dingn/number/number_card.dart';
+import 'package:dingn/number/number_model.dart';
 import 'package:dingn/widgets/loading.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider;

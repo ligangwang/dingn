@@ -1,8 +1,8 @@
 import 'package:dingn/account/account.dart';
+import 'package:dingn/account/account_model.dart';
 import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
-import 'package:dingn/account/account_model.dart';
 import 'package:provider/provider.dart' as provider;
 
 class AccountScreen extends StatefulWidget {
@@ -89,9 +89,10 @@ class _AccountScreenState extends State<AccountScreen> {
                     Container(
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.only(left: 8),
-                      child: OutlineButton(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                             side: const BorderSide(width: 2)),
                         child: Text(accountModel.editMode ? 'save' : 'edit',
                             style:
@@ -139,7 +140,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 )),
             Container(
                 padding: const EdgeInsets.all(8),
-                child: FlatButton(
+                child: TextButton(
                     child: Column(children: const <Widget>[
                       Icon(Icons.exit_to_app, color: AppTheme.accentColor),
                       Text(

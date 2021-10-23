@@ -1,4 +1,4 @@
-import 'package:universal_html/prefer_universal/html.dart' as html;
+import 'package:universal_html/html.dart' as html;
 
 class UrlUtil {
   UrlUtil._();

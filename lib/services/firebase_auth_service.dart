@@ -1,39 +1,41 @@
 import 'package:dingn/account/account.dart';
 import 'package:dingn/interface.dart';
-import 'package:firebase/firebase.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class FirebaseAuthService implements AuthService {
-  FirebaseAuthService(App app)
-      : _firebaseAuth = auth(app),
-        _googleSignIn = GoogleAuthProvider(){
-        _accountChanges = _firebaseAuth.onAuthStateChanged.map((User user)=>_mapUserToAccount(user));
-      }
-
-  Account _mapUserToAccount(User user){
-    if (user == null)
-      return null;
-    return Account(
-      userName: null,
-      uid: user.uid,
-      email: user.email,
-      photoURL: user.photoURL,
-      fullName: user.displayName,
-      occupation: '',
-      bio: '',
-      followers: 0,
-      following: 0,
-      level: 0
-      );
+  FirebaseAuthService(FirebaseApp app)
+      : _firebaseAuth = FirebaseAuth.instanceFor(app: app),
+        _googleSignIn = GoogleAuthProvider() {
+    _accountChanges = _firebaseAuth
+        .authStateChanges()
+        .map((User user) => _mapUserToAccount(user));
   }
 
-  final Auth _firebaseAuth;
+  Account _mapUserToAccount(User user) {
+    if (user == null) {
+      return null;
+    }
+    return Account(
+        userName: null,
+        uid: user.uid,
+        email: user.email,
+        photoURL: user.photoURL,
+        fullName: user.displayName,
+        occupation: '',
+        bio: '',
+        followers: 0,
+        following: 0,
+        level: 0);
+  }
+
+  final FirebaseAuth _firebaseAuth;
   final GoogleAuthProvider _googleSignIn;
   Stream<Account> _accountChanges;
 
   @override
   Stream<Account> get accountChanges => _accountChanges;
-  
+
   @override
   Future<Account> signInWithGoogle() async {
     try {
@@ -46,10 +48,10 @@ class FirebaseAuthService implements AuthService {
   }
 
   @override
-  Future<Account> signInWithCredentials(
-      String email, String password) async {
+  Future<Account> signInWithCredentials(String email, String password) async {
     try {
-      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(email, password);
+      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+          email: email, password: password);
       return _mapUserToAccount(userCredential.user);
     } catch (e) {
       print('Error in sign in with credentials: $e');
@@ -62,8 +64,8 @@ class FirebaseAuthService implements AuthService {
   Future<Account> signUp(String email, String password) async {
     try {
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
-        email,
-        password,
+        email: email,
+        password: password,
       );
       return _mapUserToAccount(userCredential.user);
     } catch (e) {
@@ -75,15 +77,12 @@ class FirebaseAuthService implements AuthService {
   @override
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _firebaseAuth.sendPasswordResetEmail(
-        email
-      );      
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
     } catch (e) {
       print('Error reset password with email: $e');
       throw '$e';
     }
   }
-
 
   @override
   Future<dynamic> signOut() async {
@@ -92,7 +91,7 @@ class FirebaseAuthService implements AuthService {
         _firebaseAuth.signOut(),
       ]);
     } catch (e) {
-      print ('Error signin out: $e');
+      print('Error signin out: $e');
       // return e;
       throw '$e';
     }

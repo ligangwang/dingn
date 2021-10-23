@@ -1,12 +1,12 @@
 import 'package:dingn/account/account_model.dart';
+import 'package:dingn/number/number.dart';
 import 'package:dingn/number/number_model.dart';
 import 'package:dingn/number/number_search.dart';
-import 'package:dingn/number/number.dart';
-import 'package:dingn/word/word_model.dart';
+import 'package:dingn/themes.dart';
 import 'package:dingn/word/word.dart';
+import 'package:dingn/word/word_model.dart';
 import 'package:dingn/word/word_search.dart';
 import 'package:flutter/material.dart';
-import 'package:dingn/themes.dart';
 import 'package:provider/provider.dart' as provider;
 
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -123,12 +123,13 @@ class AccountButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final accountModel = provider.Provider.of<AccountModel>(context);
     if (accountModel.isSignedIn)
-      return FlatButton(
+      return TextButton(
         onPressed: () {
           Navigator.of(context).pushNamedAndRemoveUntil(
               '/account', (Route<dynamic> route) => false);
         },
-        shape: const CircleBorder(side: BorderSide.none),
+        style: TextButton.styleFrom(
+            shape: const CircleBorder(side: BorderSide.none)),
         child: CircleAvatar(
           backgroundColor: AppTheme.accentColor,
           foregroundColor: Colors.white,

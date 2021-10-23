@@ -12,8 +12,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.theme(),
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
-      onGenerateRoute: (settings) =>
-          RouterUtil.generateRoute(context, settings),
+      onGenerateRoute: (settings) => generateRoute(context, settings),
     );
   }
 }

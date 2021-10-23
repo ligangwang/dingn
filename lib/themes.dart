@@ -27,9 +27,8 @@ class AppTheme {
   static const double fontSizeIconButtonText = 12;
   static const double fontSizeBrand = 20;
   static ThemeData theme() {
-    return ThemeData(
+    final theme = ThemeData(
       primaryColor: primaryColor,
-      accentColor: accentColor,
       buttonTheme: const ButtonThemeData(textTheme: ButtonTextTheme.normal),
       dividerColor: accentColor,
       errorColor: errorColor,
@@ -53,10 +52,6 @@ class AppTheme {
         ),
       ),
       fontFamily: fontFamilyDefault,
-      accentIconTheme: const IconThemeData(
-        color: accentColor,
-        size: 30,
-      ),
       primaryIconTheme: const IconThemeData(
         color: accentColor,
         size: 30,
@@ -66,5 +61,8 @@ class AppTheme {
         size: 30,
       ),
     );
+    theme.copyWith(
+        colorScheme: theme.colorScheme.copyWith(secondary: accentColor));
+    return theme;
   }
 }

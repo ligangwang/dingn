@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'package:dingn/app/app_bar.dart';
 import 'package:dingn/account/provider_model.dart';
+import 'package:dingn/app/app_bar.dart';
 import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider;

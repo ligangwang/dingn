@@ -1,8 +1,8 @@
 import 'package:dingn/account/account_model.dart';
 import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/number/major_system.dart';
-import 'package:dingn/number/number_model.dart';
 import 'package:dingn/number/number_card.dart';
+import 'package:dingn/number/number_model.dart';
 import 'package:dingn/playing_card/playing_card_numbers.dart';
 import 'package:dingn/utils/extensions.dart';
 import 'package:dingn/widgets/loading.dart';
@@ -57,11 +57,11 @@ class _PlayingCardState extends State<PlayingCardScreen> {
               padding: const EdgeInsets.all(10),
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                 Row(children: <Widget>[
-                  FlatButton.icon(
+                  TextButton.icon(
                       icon: const Icon(Icons.shuffle),
                       label: const Text('shuffle'),
                       onPressed: () => shuffleItems(numberModel),
-                      textColor: Colors.redAccent),
+                      style: TextButton.styleFrom(primary: Colors.redAccent)),
                 ]),
                 Expanded(
                   child: PageView.builder(
