@@ -93,7 +93,8 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
 class NumberSearchButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final numberModel = provider.Provider.of<NumberModel>(context);
+    final numberModel =
+        provider.Provider.of<NumberModel>(context, listen: false);
     return IconButton(
       icon: const Icon(Icons.search),
       onPressed: () async {
