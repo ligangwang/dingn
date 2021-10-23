@@ -9,7 +9,7 @@ class SigninScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final accountModel = provider.Provider.of<AccountModel>(context);
     if (accountModel.isSignedIn) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
+      SchedulerBinding.instance!.addPostFrameCallback((_) {
         Navigator.of(context)
             .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
       });

@@ -9,10 +9,10 @@ class FirebaseAuthService implements AuthService {
         _googleSignIn = GoogleAuthProvider() {
     _accountChanges = _firebaseAuth
         .authStateChanges()
-        .map((User user) => _mapUserToAccount(user));
+        .map((User? user) => _mapUserToAccount(user));
   }
 
-  Account _mapUserToAccount(User user) {
+  Account? _mapUserToAccount(User? user) {
     if (user == null) {
       return null;
     }
@@ -31,13 +31,13 @@ class FirebaseAuthService implements AuthService {
 
   final FirebaseAuth _firebaseAuth;
   final GoogleAuthProvider _googleSignIn;
-  Stream<Account> _accountChanges;
+  Stream<Account?>? _accountChanges;
 
   @override
-  Stream<Account> get accountChanges => _accountChanges;
+  Stream<Account?>? get accountChanges => _accountChanges;
 
   @override
-  Future<Account> signInWithGoogle() async {
+  Future<Account?> signInWithGoogle() async {
     try {
       final userCredential = await _firebaseAuth.signInWithPopup(_googleSignIn);
       return _mapUserToAccount(userCredential.user);
@@ -48,10 +48,10 @@ class FirebaseAuthService implements AuthService {
   }
 
   @override
-  Future<Account> signInWithCredentials(String email, String password) async {
+  Future<Account?> signInWithCredentials(String? email, String? password) async {
     try {
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-          email: email, password: password);
+          email: email!, password: password!);
       return _mapUserToAccount(userCredential.user);
     } catch (e) {
       print('Error in sign in with credentials: $e');
@@ -61,11 +61,11 @@ class FirebaseAuthService implements AuthService {
   }
 
   @override
-  Future<Account> signUp(String email, String password) async {
+  Future<Account?> signUp(String? email, String? password) async {
     try {
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+        email: email!,
+        password: password!,
       );
       return _mapUserToAccount(userCredential.user);
     } catch (e) {

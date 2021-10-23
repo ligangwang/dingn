@@ -8,16 +8,16 @@ import 'package:provider/provider.dart' as provider;
 
 class NumberCard extends StatelessWidget {
   const NumberCard(
-      {Key key,
+      {Key? key,
       this.number,
       this.onFavorite,
-      @required this.alwaysShowTwoSides,
+      required this.alwaysShowTwoSides,
       this.front})
       : super(key: key);
-  final Number number;
-  final Future<void> Function(String) onFavorite;
+  final Number? number;
+  final Future<void> Function(String)? onFavorite;
   final bool alwaysShowTwoSides;
-  final Widget front;
+  final Widget? front;
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +27,12 @@ class NumberCard extends StatelessWidget {
           front: Container(
             child: _getFrontCard(),
           ),
-          back: _getFullCard(number, onFavorite));
+          back: _getFullCard(number!, onFavorite));
     }
-    return _getFullCard(number, onFavorite);
+    return _getFullCard(number!, onFavorite);
   }
 
-  Widget _getFrontCard() {
+  Widget? _getFrontCard() {
     if (front != null)
       return front;
     else
@@ -49,7 +49,7 @@ class NumberCard extends StatelessWidget {
                 size: 50,
                 color: AppTheme.accentColor,
               ),
-              title: Text(number.number,
+              title: Text(number!.number,
                   style: const TextStyle(
                       color: AppTheme.accentColor,
                       fontWeight: FontWeight.bold)),
@@ -60,7 +60,7 @@ class NumberCard extends StatelessWidget {
   }
 }
 
-Widget _getFullCard(Number number, Future<void> Function(String) onFavorite) {
+Widget _getFullCard(Number number, Future<void> Function(String)? onFavorite) {
   return Container(
     child: Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
@@ -92,7 +92,7 @@ Widget _getFullCard(Number number, Future<void> Function(String) onFavorite) {
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(width: 20),
                 if (number.favoriteWord != null)
-                  Text(number.favoriteWord,
+                  Text(number.favoriteWord!,
                       style: const TextStyle(color: AppTheme.accentColor)),
               ],
             ),
@@ -122,7 +122,7 @@ class WordItem extends StatelessWidget {
   const WordItem(this.word, this.isFavorite, this.onFavorite);
   final String word;
   final bool isFavorite;
-  final Future<void> Function(String) onFavorite;
+  final Future<void> Function(String)? onFavorite;
   @override
   Widget build(BuildContext context) {
     return ListTile(
@@ -132,7 +132,7 @@ class WordItem extends StatelessWidget {
         color: isFavorite ? Colors.redAccent : Colors.grey,
         onPressed: () {
           if (!isFavorite) {
-            onFavorite(word);
+            onFavorite!(word);
           }
         },
       ),

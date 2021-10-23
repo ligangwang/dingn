@@ -5,9 +5,9 @@ class WordModel extends ListProviderModel<Word>{
   WordModel(int requestBatchSize):super(collectionName: 'words', requestBatchSize: requestBatchSize);
   
   @override
-  Word dictToItem(Map<String, dynamic> data){
+  Word dictToItem(Map<String, dynamic>? data){
     return Word(
-        data['word'], 
+        data!['word'], 
         ipa: data['ipa']??'', 
         lang: data['ipa-lang']??'',
         number: data['number'], 

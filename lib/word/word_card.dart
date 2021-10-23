@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider;
 
 class WordCard extends StatelessWidget {
-  const WordCard({Key key, this.word}) : super(key: key);
-  final Word word;
+  const WordCard({Key? key, this.word}) : super(key: key);
+  final Word? word;
 
   @override
   Widget build(BuildContext context) {
@@ -29,20 +29,20 @@ class WordCard extends StatelessWidget {
                       size: 50,
                       color: AppTheme.accentColor,
                     ),
-                    title: Text(word.word,
+                    title: Text(word!.word!,
                         style: const TextStyle(
                             color: AppTheme.accentColor,
                             fontWeight: FontWeight.bold,
                             fontSize: AppTheme.fontSizeBrand)),
-                    subtitle: Text('${word.lang}: ${word.ipa}')),
+                    subtitle: Text('${word!.lang}: ${word!.ipa}')),
               ],
             ),
           ),
         ),
-        back: _getFullCard(word),
+        back: _getFullCard(word!),
       );
     }
-    return _getFullCard(word);
+    return _getFullCard(word!);
   }
 }
 
@@ -61,7 +61,7 @@ Widget _getFullCard(Word word) {
                 size: 50,
                 color: AppTheme.accentColor,
               ),
-              title: Text(word.word,
+              title: Text(word.word!,
                   style: const TextStyle(
                       color: AppTheme.accentColor,
                       fontWeight: FontWeight.bold)),
@@ -80,7 +80,7 @@ Widget _getFullCard(Word word) {
                 const Text('Number (major system):',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(width: 20),
-                Text(word.number,
+                Text(word.number!,
                     style: const TextStyle(color: AppTheme.accentColor)),
               ],
             ),
@@ -101,7 +101,7 @@ Widget _getFullCard(Word word) {
                 //mainAxisSize: MainAxisSize.min,
                 //crossAxisAlignment: CrossAxisAlignment.start,
                 //shrinkWrap: true,
-                children: word.pos.entries
+                children: word.pos!.entries
                     .map((i) => _buildMapEntry(i))
                     .expand((j) => j)
                     .toList(),

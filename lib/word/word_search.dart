@@ -6,7 +6,7 @@ import 'package:dingn/word/word_card.dart';
 import 'package:dingn/word/word_model.dart';
 import 'package:flutter/material.dart';
 
-class WordSearch extends SearchDelegate<Word> {
+class WordSearch extends SearchDelegate<Word?> {
   WordSearch(this.wordModel);
   final WordModel wordModel;
 
@@ -81,20 +81,20 @@ class WordSearch extends SearchDelegate<Word> {
 class _ResultCard extends StatefulWidget {
   const _ResultCard({this.item, this.searchDelegate});
 
-  final Word item;
-  final SearchDelegate<Word> searchDelegate;
+  final Word? item;
+  final SearchDelegate<Word?>? searchDelegate;
   @override
   _ResultCardState createState() => _ResultCardState(item);
 }
 
 class _ResultCardState extends State<_ResultCard>{
   _ResultCardState(this.item);
-  Word item;
+  Word? item;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        widget.searchDelegate.close(context, item);
+        widget.searchDelegate!.close(context, item);
       },
       child: WordCard(
         word: item

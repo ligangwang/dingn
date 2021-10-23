@@ -22,7 +22,7 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     final accountModel = provider.Provider.of<AccountModel>(context);
-    accountModel.accountChanges.listen((account) {
+    accountModel.accountChanges!.listen((account) {
       if (account == null) {
         Navigator.of(context)
             .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
@@ -31,7 +31,7 @@ class _AccountScreenState extends State<AccountScreen> {
     if (accountModel.account == null) {
       return Container();
     }
-    _controller.text = accountModel.account.userName;
+    _controller.text = accountModel.account!.userName!;
     return MainScreen(
       name: '/account',
       child: Scaffold(
@@ -45,11 +45,11 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: CircleAvatar(
                       backgroundColor: AppTheme.accentColor,
                       radius: 50.0,
-                      backgroundImage: accountModel.account.photoURL == null
+                      backgroundImage: accountModel.account!.photoURL == null
                           ? null
-                          : NetworkImage(accountModel.account.photoURL),
-                      child: accountModel.account.photoURL == null
-                          ? Text(accountModel.account.initials)
+                          : NetworkImage(accountModel.account!.photoURL!),
+                      child: accountModel.account!.photoURL == null
+                          ? Text(accountModel.account!.initials)
                           : null)),
             ]),
             Container(
@@ -125,7 +125,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           title: const Text('One Side - Training'),
                           groupValue: accountModel.cardSide,
                           value: CardSide.OneSide,
-                          onChanged: (value) => accountModel.setCardSide(value),
+                          onChanged: (dynamic value) => accountModel.setCardSide(value),
                         )),
                     Container(
                         constraints:
@@ -134,7 +134,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           title: const Text('Two Sides - Recall'),
                           groupValue: accountModel.cardSide,
                           value: CardSide.TwoSides,
-                          onChanged: (value) => accountModel.setCardSide(value),
+                          onChanged: (dynamic value) => accountModel.setCardSide(value),
                         )),
                   ],
                 )),

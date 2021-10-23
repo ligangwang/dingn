@@ -12,11 +12,11 @@ class MockAuthService extends Mock implements AuthService{
   @override
   Stream<Account> get accountChanges => () async*{
     yield null;
-  }().asBroadcastStream();
+  }().asBroadcastStream() as Stream<Account>;
 }
 
 void main(){
-  Widget app;
+  late Widget app;
   
   setUp((){
     GetIt.I.registerLazySingleton<DBService>(() => MockDBService());

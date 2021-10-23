@@ -27,7 +27,7 @@ class WordScreen extends StatelessWidget{
                   );
                 }
               },
-              itemCount: wordModel.hasMoreData? wordModel.itemCount + 1: wordModel.itemCount,
+              itemCount: wordModel.hasMoreData!? wordModel.itemCount + 1: wordModel.itemCount,
               physics: const ClampingScrollPhysics(),
             ),
           );

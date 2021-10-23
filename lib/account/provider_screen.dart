@@ -8,8 +8,8 @@ import 'package:provider/provider.dart' as provider;
 
 class MainScreen extends StatelessWidget {
   const MainScreen({this.name, this.child});
-  final Widget child;
-  final String name;
+  final Widget? child;
+  final String? name;
 
   @override
   Widget build(BuildContext context) {
@@ -57,16 +57,16 @@ class MainScreen extends StatelessWidget {
 
 class ProviderScreen<T extends ProviderModel> extends StatelessWidget {
   const ProviderScreen({this.name, this.modelBuilder, this.builder});
-  final Widget Function(BuildContext context, T value, Widget child) builder;
-  final T Function() modelBuilder;
-  final String name;
+  final Widget Function(BuildContext context, T value, Widget? child)? builder;
+  final T Function()? modelBuilder;
+  final String? name;
 
   @override
   Widget build(BuildContext context) {
     return provider.ChangeNotifierProvider<T>(
-      create: (context) => modelBuilder(),
+      create: (context) => modelBuilder!(),
       child:
-          MainScreen(name: name, child: provider.Consumer<T>(builder: builder)),
+          MainScreen(name: name, child: provider.Consumer<T>(builder: builder!)),
     );
   }
 }

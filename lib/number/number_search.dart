@@ -6,7 +6,7 @@ import 'package:dingn/number/number_model.dart';
 import 'package:dingn/widgets/loading.dart';
 import 'package:flutter/material.dart';
 
-class NumberSearch extends SearchDelegate<Number> {
+class NumberSearch extends SearchDelegate<Number?> {
   NumberSearch(this.numberModel);
   final NumberModel numberModel;
 
@@ -82,29 +82,29 @@ class NumberSearch extends SearchDelegate<Number> {
 class _ResultCard extends StatefulWidget {
   const _ResultCard({this.numberModel, this.item, this.searchDelegate});
 
-  final Number item;
-  final SearchDelegate<Number> searchDelegate;
-  final NumberModel numberModel;
+  final Number? item;
+  final SearchDelegate<Number?>? searchDelegate;
+  final NumberModel? numberModel;
   @override
   _ResultCardState createState() => _ResultCardState(item);
 }
 
 class _ResultCardState extends State<_ResultCard>{
   _ResultCardState(this.item);
-  Number item;
+  Number? item;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        widget.searchDelegate.close(context, item);
+        widget.searchDelegate!.close(context, item);
       },
       child: NumberCard(
         number: item, 
         onFavorite: (word) async {
           setState(() {
-            item = item.setMyFavoriteWord(word);
+            item = item!.setMyFavoriteWord(word);
           });
-          await widget.numberModel.saveFavoriteWord(item.number, word);
+          await widget.numberModel!.saveFavoriteWord(item!.number, word);
         },
         alwaysShowTwoSides: false,
       ),

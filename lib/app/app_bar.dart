@@ -11,7 +11,7 @@ import 'package:provider/provider.dart' as provider;
 
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MyAppBar(this.name);
-  final String name;
+  final String? name;
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -97,7 +97,7 @@ class NumberSearchButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.search),
       onPressed: () async {
-        await showSearch<Number>(
+        await showSearch<Number?>(
             context: context, delegate: NumberSearch(numberModel));
       },
     );
@@ -110,7 +110,7 @@ class WordSearchButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.search),
       onPressed: () async {
-        await showSearch<Word>(
+        await showSearch<Word?>(
             context: context,
             delegate: WordSearch(provider.Provider.of<WordModel>(context)));
       },
@@ -133,12 +133,12 @@ class AccountButton extends StatelessWidget {
         child: CircleAvatar(
           backgroundColor: AppTheme.accentColor,
           foregroundColor: Colors.white,
-          backgroundImage: accountModel.account.photoURL != null
-              ? NetworkImage(accountModel.account.photoURL)
+          backgroundImage: accountModel.account!.photoURL != null
+              ? NetworkImage(accountModel.account!.photoURL!)
               : null,
-          child: Text(accountModel.account.photoURL != null
+          child: Text(accountModel.account!.photoURL != null
               ? ''
-              : accountModel.account.initials),
+              : accountModel.account!.initials),
         ),
       );
     else

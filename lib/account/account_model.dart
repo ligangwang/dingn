@@ -6,7 +6,7 @@ import 'package:get_it/get_it.dart';
 
 class AccountModel extends ProviderModel {
   AccountModel() {
-    _accountChanges = _auth.accountChanges.asyncMap((Account account) async {
+    _accountChanges = _auth.accountChanges!.asyncMap((Account? account) async {
       if (account == null) {
         return account;
       } else {
@@ -14,7 +14,7 @@ class AccountModel extends ProviderModel {
         return account.changeAccountInfo(accountInfo);
       }
     });
-    _accountChanges.listen((Account account) {
+    _accountChanges!.listen((Account? account) {
       _account = account;
       notifyListeners();
     });
@@ -23,9 +23,9 @@ class AccountModel extends ProviderModel {
   final DBService _db = GetIt.instance.get<DBService>();
   final AuthService _auth = GetIt.instance.get<AuthService>();
 
-  Stream<Account> _accountChanges;
-  Account _account;
-  Stream<Account> get accountChanges => _accountChanges;
+  Stream<Account?>? _accountChanges;
+  Account? _account;
+  Stream<Account?>? get accountChanges => _accountChanges;
   bool editMode = false;
   void setEditMode(bool isEditMode) {
     if (isEditMode != editMode) {
@@ -34,25 +34,25 @@ class AccountModel extends ProviderModel {
     }
   }
 
-  Future<bool> setCardSide(CardSide side) async {
+  Future<bool> setCardSide(CardSide? side) async {
     print('set card side: $cardSide, $side');
     if (cardSide != side) {
-      _account = _account.changeCardSide(side);
+      _account = _account!.changeCardSide(side);
       notifyListeners();
-      await _saveAccount(_account);
+      await _saveAccount(_account!);
     }
     return true;
   }
 
-  Future<Account> signInWithGoogle() async {
+  Future<Account?> signInWithGoogle() async {
     return await _auth.signInWithGoogle();
   }
 
-  Future<Account> signInWithCredentials({String email, String password}) async {
+  Future<Account?> signInWithCredentials({String? email, String? password}) async {
     return await _auth.signInWithCredentials(email, password);
   }
 
-  Future<Account> signUp({String email, String password}) async {
+  Future<Account?> signUp({String? email, String? password}) async {
     return await _auth.signUp(email, password);
   }
 
@@ -66,8 +66,8 @@ class AccountModel extends ProviderModel {
 
   Future<bool> changeUserName(String userName) async {
     try {
-      _account = _account.changeUserName(userName);
-      await _saveAccount(_account);
+      _account = _account!.changeUserName(userName);
+      await _saveAccount(_account!);
       return true;
     } catch (e) {
       print('saved username: $userName error: $e');
@@ -88,11 +88,11 @@ class AccountModel extends ProviderModel {
     }
   }
 
-  Future<Account> getAccountInfo(String uid) async {
+  Future<Account?> getAccountInfo(String? uid) async {
     try {
       final data = await _db.getDoc('accounts', uid);
-      final String side = data != null ? data['card_side'] : null;
-      final CardSide cardSide = side != null
+      final String? side = data != null ? data['card_side'] : null;
+      final CardSide? cardSide = side != null
           ? EnumToString.fromString(CardSide.values, side)
           : CardSide.OneSide;
       return Account(
@@ -109,11 +109,11 @@ class AccountModel extends ProviderModel {
   }
 
   bool get isSignedIn => _account != null;
-  String get displayName => _account?.userName;
-  String get uid => _account?.uid;
-  String get photoURL => _account?.photoURL;
-  String get email => _account?.email;
-  Account get account => _account;
-  String get userName => _account?.userName;
-  CardSide get cardSide => _account?.cardSide;
+  String? get displayName => _account?.userName;
+  String? get uid => _account?.uid;
+  String? get photoURL => _account?.photoURL;
+  String? get email => _account?.email;
+  Account? get account => _account;
+  String? get userName => _account?.userName;
+  CardSide? get cardSide => _account?.cardSide;
 }

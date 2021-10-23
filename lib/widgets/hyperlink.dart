@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 @immutable
 class Hyperlink extends StatelessWidget {
   const Hyperlink({this.text, this.url});
-  final String url;
-  final String text;
+  final String? url;
+  final String? text;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       child: Text(
-        text,
+        text!,
         style: const TextStyle(decoration: TextDecoration.underline),
       ),
-      onTap: ()=> UrlUtil.open(url),
+      onTap: () => UrlUtil.open(url!, name: text!),
     );
   }
 }

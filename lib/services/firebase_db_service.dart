@@ -11,19 +11,20 @@ class FirebaseDBService implements DBService {
   }
 
   final FirebaseFirestore _db;
-  Map<String, DocumentSnapshot> _lastDocs;
+  late Map<String, DocumentSnapshot> _lastDocs;
 
   @override
   Future<bool> setDoc(
-      String collection, String docId, Map<String, dynamic> doc) async {
+      String collection, String? docId, Map<String, dynamic> doc) async {
     final docRef = _db.collection(collection).doc(docId);
     await docRef.set(doc);
     return true;
   }
 
   @override
-  Future<Map<String, dynamic>> getDoc(String collection, String docId) async {
-    final docRef = _db.collection(collection).doc(docId);
+  Future<Map<String, dynamic>?> getDoc(
+      String? collection, String? docId) async {
+    final docRef = _db.collection(collection!).doc(docId);
     final docSnapshot = await docRef.get();
     return docSnapshot.data();
   }
@@ -36,29 +37,34 @@ class FirebaseDBService implements DBService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> query(
-      String collection, String field, dynamic value, int batchSize) async {
+  Future<List<Map<String, dynamic>>> query(String collection, String field,
+      dynamic value, String orderBy, int batchSize) async {
     try {
       QuerySnapshot querySnapshot;
       final lastDockey = '$collection-$field-$value';
-      if (_lastDocs[lastDockey] != null) {
+      if (_lastDocs.containsKey(lastDockey)) {
         querySnapshot = await _db
             .collection(collection)
             .where(field, isEqualTo: value)
-            .startAfter([_lastDocs[lastDockey]])
+            .orderBy(orderBy)
+            .startAfterDocument(_lastDocs[lastDockey]!)
             .limit(batchSize)
             .get();
       } else {
         querySnapshot = await _db
             .collection(collection)
             .where(field, isEqualTo: value)
+            .orderBy(orderBy)
             .limit(batchSize)
             .get();
       }
       if (querySnapshot.docs.isNotEmpty) {
         _lastDocs[lastDockey] =
             querySnapshot.docs[querySnapshot.docs.length - 1];
-        return querySnapshot.docs.map((doc) => doc.data()).toList();
+        final result = querySnapshot.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
+        return result;
       } else {
         return <Map<String, dynamic>>[];
       }
@@ -68,8 +74,8 @@ class FirebaseDBService implements DBService {
     }
   }
 
-  static final int _randMax = pow(2, 32);
-  static final int _negInt64 = pow(2, 63);
+  static final int _randMax = pow(2, 32) as int;
+  static final int _negInt64 = pow(2, 63) as int;
   static final int _compInt64 = 2 * _negInt64;
   int _getRandom() {
     final r =
@@ -79,12 +85,12 @@ class FirebaseDBService implements DBService {
 
   @override
   Future<List<Map<String, dynamic>>> queryBatch(
-      String collection, int batchSize) async {
+      String? collection, int? batchSize) async {
     try {
       final querySnapshot = await _db
-          .collection(collection)
+          .collection(collection!)
           .where('random', isGreaterThanOrEqualTo: _getRandom())
-          .limit(batchSize)
+          .limit(batchSize!)
           .get();
       if (querySnapshot.docs.isNotEmpty) {
         return querySnapshot.docs.map((doc) {

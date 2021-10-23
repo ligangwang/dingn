@@ -3,18 +3,18 @@ class Account{
   Account({this.userName, this.photoURL, this.fullName, this.occupation, this.bio, this.followers, this.following, this.level,
   this.uid, this.email, this.cardSide});
 
-  final String userName;
-  final String fullName;
-  final String photoURL;
-  final String occupation;
-  final String bio;
-  final int followers;
-  final int following;
-  final int level;
-  final String uid;
-  final String email;
-  final CardSide cardSide;
-  String get initials => (userName ?? email).substring(0, 2).toUpperCase();
+  final String? userName;
+  final String? fullName;
+  final String? photoURL;
+  final String? occupation;
+  final String? bio;
+  final int? followers;
+  final int? following;
+  final int? level;
+  final String? uid;
+  final String? email;
+  final CardSide? cardSide;
+  String get initials => (userName ?? email)!.substring(0, 2).toUpperCase();
   Account changeUserName(String userName){
     return Account(
       userName: userName,
@@ -31,7 +31,7 @@ class Account{
     );
   }
 
-  Account changeAccountInfo(Account account){
+  Account changeAccountInfo(Account? account){
     return Account(
       userName: account==null?userName: account.userName,
       photoURL: photoURL,
@@ -47,7 +47,7 @@ class Account{
     );
   }
 
-  Account changeCardSide(CardSide cardSide){
+  Account changeCardSide(CardSide? cardSide){
     return Account(
       userName: userName,
       photoURL: photoURL,

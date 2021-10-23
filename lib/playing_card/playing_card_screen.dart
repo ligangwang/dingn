@@ -1,6 +1,7 @@
 import 'package:dingn/account/account_model.dart';
 import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/number/major_system.dart';
+import 'package:dingn/number/number.dart';
 import 'package:dingn/number/number_card.dart';
 import 'package:dingn/number/number_model.dart';
 import 'package:dingn/playing_card/playing_card_numbers.dart';
@@ -17,7 +18,7 @@ class PlayingCardScreen extends StatefulWidget {
 }
 
 class _PlayingCardState extends State<PlayingCardScreen> {
-  PageController _pageController;
+  PageController? _pageController;
   @override
   void initState() {
     super.initState();
@@ -26,7 +27,7 @@ class _PlayingCardState extends State<PlayingCardScreen> {
 
   void _createController() {
     if (_pageController != null) {
-      _pageController.dispose();
+      _pageController!.dispose();
     }
     _pageController = PageController(initialPage: 0, keepPage: true);
   }
@@ -34,12 +35,12 @@ class _PlayingCardState extends State<PlayingCardScreen> {
   void shuffleItems(NumberModel numberModel) {
     numberModel
         .setPresetItemKeys(shuffle(List<String>.from(playingCardNumbers)));
-    _pageController.jumpToPage(0);
+    _pageController!.jumpToPage(0);
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _pageController!.dispose();
     super.dispose();
   }
 
@@ -74,7 +75,7 @@ class _PlayingCardState extends State<PlayingCardScreen> {
                           numberModel.loadData();
                         return Loading();
                       } else {
-                        final number = numberModel.items[index];
+                        final Number number = numberModel.items[index];
                         return NumberCard(
                           number: number,
                           onFavorite: (item) => numberModel.setMyFavoriteWord(

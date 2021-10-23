@@ -1,6 +1,7 @@
 import 'package:dingn/account/account_model.dart';
 import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/number/major_system.dart';
+import 'package:dingn/number/number.dart';
 import 'package:dingn/number/number_card.dart';
 import 'package:dingn/number/number_model.dart';
 import 'package:dingn/widgets/loading.dart';
@@ -11,7 +12,8 @@ final String majorSystem = majorSystemDigits.join('  ');
 
 class NumberScreen extends StatelessWidget {
   void onAction(BuildContext context, String digits) {
-    final numberModel = provider.Provider.of<NumberModel>(context);
+    final numberModel =
+        provider.Provider.of<NumberModel>(context, listen: false);
     numberModel.setActiveKey(digits);
   }
 
@@ -73,7 +75,7 @@ class NumberScreen extends StatelessWidget {
                         numberModel.loadData();
                         return Loading();
                       } else {
-                        final number = numberModel.items[index];
+                        final Number number = numberModel.items[index];
                         return NumberCard(
                           number: number,
                           onFavorite: (item) => numberModel.setMyFavoriteWord(
@@ -82,7 +84,7 @@ class NumberScreen extends StatelessWidget {
                         );
                       }
                     },
-                    itemCount: numberModel.hasMoreData
+                    itemCount: numberModel.hasMoreData!
                         ? numberModel.itemCount + 1
                         : numberModel.itemCount,
                     physics: const ClampingScrollPhysics(),
