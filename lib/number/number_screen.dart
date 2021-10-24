@@ -10,8 +10,31 @@ import 'package:provider/provider.dart' as provider;
 
 final String majorSystem = majorSystemDigits.join('  ');
 
-class NumberScreen extends StatelessWidget {
-  void onAction(BuildContext context, String digits) {
+class NumberScreen extends StatefulWidget {
+  @override
+  _NumberScreenState createState() => _NumberScreenState();
+}
+
+class _NumberScreenState extends State<NumberScreen> {
+  final PageController _pageController =
+      PageController(initialPage: 0, keepPage: true);
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void prev() {
+    _pageController.previousPage(
+        duration: const Duration(microseconds: 400), curve: Curves.easeInOut);
+  }
+
+  void next() {
+    _pageController.nextPage(
+        duration: const Duration(microseconds: 400), curve: Curves.easeInOut);
+  }
+
+  void clickDigits(BuildContext context, String digits) {
     final numberModel =
         provider.Provider.of<NumberModel>(context, listen: false);
     numberModel.setActiveKey(digits);
@@ -31,9 +54,9 @@ class NumberScreen extends StatelessWidget {
                 Row(children: <Widget>[
                   IconButton(
                       icon: const Icon(Icons.looks_one),
-                      tooltip: '1 digits',
+                      tooltip: '1 digit',
                       onPressed: () {
-                        onAction(context, '1');
+                        clickDigits(context, '1');
                       },
                       color: numberModel.activeKey == '1'
                           ? Colors.grey
@@ -42,7 +65,7 @@ class NumberScreen extends StatelessWidget {
                       icon: const Icon(Icons.looks_two),
                       tooltip: '2 digits',
                       onPressed: () {
-                        onAction(context, '2');
+                        clickDigits(context, '2');
                       },
                       color: numberModel.activeKey == '2'
                           ? Colors.grey
@@ -51,7 +74,7 @@ class NumberScreen extends StatelessWidget {
                       icon: const Icon(Icons.looks_3),
                       tooltip: '3 digits',
                       onPressed: () {
-                        onAction(context, '3');
+                        clickDigits(context, '3');
                       },
                       color: numberModel.activeKey == '3'
                           ? Colors.grey
@@ -60,15 +83,37 @@ class NumberScreen extends StatelessWidget {
                       icon: const Icon(Icons.looks_4),
                       tooltip: '4 digits',
                       onPressed: () {
-                        onAction(context, '4');
+                        clickDigits(context, '4');
                       },
                       color: numberModel.activeKey == '4'
                           ? Colors.grey
                           : Colors.redAccent),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        IconButton(
+                            icon: const Icon(Icons.navigate_before),
+                            tooltip: 'previous',
+                            onPressed: () {
+                              prev();
+                            },
+                            color: Colors.redAccent),
+                        IconButton(
+                            icon: const Icon(Icons.navigate_next),
+                            tooltip: 'next',
+                            onPressed: () {
+                              next();
+                            },
+                            color: Colors.redAccent),
+                      ],
+                    ),
+                  ),
                 ]),
                 Expanded(
                   child: PageView.builder(
                     scrollDirection: Axis.horizontal,
+                    controller: _pageController,
                     itemBuilder: (context, index) {
                       numberModel.activeIndex = index;
                       if (index >= numberModel.itemCount) {
@@ -84,7 +129,7 @@ class NumberScreen extends StatelessWidget {
                         );
                       }
                     },
-                    itemCount: numberModel.hasMoreData!
+                    itemCount: numberModel.hasMoreData
                         ? numberModel.itemCount + 1
                         : numberModel.itemCount,
                     physics: const ClampingScrollPhysics(),

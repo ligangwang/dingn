@@ -28,7 +28,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
               fontSize: AppTheme.fontSizeBrand),
         ),
       ),
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       elevation: 1,
       actions: <Widget>[
         if (name != '/word')

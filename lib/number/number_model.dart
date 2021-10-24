@@ -4,16 +4,16 @@ import 'package:dingn/number/number.dart';
 
 class NumberModel extends ListProviderModel<Number> {
   NumberModel(
-      {this.accountModel,
+      {required this.accountModel,
       int requestBatchSize = 0,
-      List<String>? presetItemKeys})
+      List<String> presetItemKeys = const []})
       : super(
             collectionName: 'numbers',
             requestBatchSize: requestBatchSize,
             presetItemKeys: presetItemKeys);
 
-  final AccountModel? accountModel;
-  Future<void> setMyFavoriteWord(String? number, String favoriteWord) async {
+  final AccountModel accountModel;
+  Future<void> setMyFavoriteWord(String number, String favoriteWord) async {
     try {
       items[activeIndex!] = activeItem.setMyFavoriteWord(favoriteWord);
       notifyListeners();
@@ -24,8 +24,8 @@ class NumberModel extends ListProviderModel<Number> {
     }
   }
 
-  Future<void> saveFavoriteWord(String? number, String favoriteWord) async {
-    final uid = accountModel!.uid;
+  Future<void> saveFavoriteWord(String number, String favoriteWord) async {
+    final uid = accountModel.uid;
     await db.setDoc('number_favorites', '$uid-$number',
         {'number': number, 'favoriteWord': favoriteWord, 'uid': uid});
   }
@@ -34,7 +34,7 @@ class NumberModel extends ListProviderModel<Number> {
     final doc = {
       'digits': number.number.length,
       'number': number.number,
-      'updated_by': accountModel!.uid,
+      'updated_by': accountModel.uid,
       'updated_time': DateTime.now(),
       'most_favorite_word': number.mostFavoriteWord,
       'most_favorite_count': number.mostFavoriteCount,
@@ -44,9 +44,9 @@ class NumberModel extends ListProviderModel<Number> {
     return true;
   }
 
-  Future<String?> getMyFavoriteWord(String? number) async {
+  Future<String?> getMyFavoriteWord(String number) async {
     try {
-      final key = '${accountModel!.uid}-$number';
+      final key = '${accountModel.uid}-$number';
       final doc = await db.getDoc('number_favorites', key);
       return doc == null ? null : doc['favoriteWord'];
     } catch (e) {
@@ -68,7 +68,7 @@ class NumberModel extends ListProviderModel<Number> {
 
   @override
   Future<List<Map<String, dynamic>>> loadDataFromDb() async {
-    return await db.query(collectionName, 'digits', int.tryParse(activeKey!),
+    return await db.query(collectionName, 'digits', int.tryParse(activeKey),
         'number', requestBatchSize);
   }
 

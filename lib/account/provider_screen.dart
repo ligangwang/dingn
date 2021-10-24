@@ -38,13 +38,13 @@ class MainScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const <Widget>[
                     Text(
-                      '© dingn 2020',
+                      '© dingn 2021',
                       style: TextStyle(
                           color: Colors.grey,
                           fontSize: AppTheme.fontSizeFootnote),
                     ),
                     SizedBox(width: 5),
-                    Text('v1.2.12', //v1.2.11: upgrade to flutter 1.24.0
+                    Text('v1.2.13', //v1.2.11: upgrade to flutter 1.24.0
                         style: TextStyle(
                             color: Colors.grey,
                             fontSize: AppTheme.fontSizeTiny)),
@@ -65,8 +65,8 @@ class ProviderScreen<T extends ProviderModel> extends StatelessWidget {
   Widget build(BuildContext context) {
     return provider.ChangeNotifierProvider<T>(
       create: (context) => modelBuilder!(),
-      child:
-          MainScreen(name: name, child: provider.Consumer<T>(builder: builder!)),
+      child: MainScreen(
+          name: name, child: provider.Consumer<T>(builder: builder!)),
     );
   }
 }

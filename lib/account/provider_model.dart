@@ -17,29 +17,32 @@ class ProviderModel extends ChangeNotifier {
 enum ModelState { Progress, Done }
 
 class ItemList<T> {
-  ItemList(this.items) {
-    hasMoreData = true;
-  }
+  ItemList(this.items, {this.hasMoreData = true});
   final List<T> items;
   int? index;
   T get item => items[index!];
   T operator [](int i) => items[i];
-  bool? hasMoreData;
+  bool hasMoreData;
 }
 
 abstract class ListProviderModel<T> extends ProviderModel {
   ListProviderModel(
       {this.collectionName = '',
       this.requestBatchSize = 0,
-      this.presetItemKeys}) {
+      this.presetItemKeys = const []}) {
     setActiveKey('1');
   }
-  List<String>? presetItemKeys;
+  T dictToItem(Map<String, dynamic>? data);
+  Future<List<Map<String, dynamic>>> loadDataFromDb();
+  Future<List<T>> postLoad(List<T> items);
+  Future<T> postFind(T item);
+
+  List<String> presetItemKeys;
   int presetItemIndex = 0;
   final int requestBatchSize;
 
   final DBService db = GetIt.instance.get<DBService>();
-  final Map<String?, ItemList<T>> _items = {};
+  final Map<String, ItemList<T>> _items = {};
   List<T> get items => _items[_activeKey]!.items;
   int get itemCount => items.length;
   T get activeItem => _items[_activeKey]!.item;
@@ -48,10 +51,11 @@ abstract class ListProviderModel<T> extends ProviderModel {
     _items[_activeKey]!.index = index;
   }
 
-  bool? get hasMoreData => _items[_activeKey]!.hasMoreData;
+  bool get hasMoreData => _items[_activeKey]!.hasMoreData;
+
   final String collectionName;
-  String? _activeKey;
-  String? get activeKey => _activeKey;
+  String _activeKey = '';
+  String get activeKey => _activeKey;
 
   void setPresetItemKeys(List<String> itemKeys) {
     presetItemIndex = 0;
@@ -75,16 +79,14 @@ abstract class ListProviderModel<T> extends ProviderModel {
     notifyListeners();
   }
 
-  Future<List<Map<String, dynamic>>> loadDataFromDb();
-
   Future<void> loadData() async {
-    if (!hasMoreData!) {
+    if (!hasMoreData) {
       return;
     }
     List<T> dt = [];
-    if (presetItemKeys != null) {
-      if (presetItemIndex < presetItemKeys!.length) {
-        final nextItem = await find(presetItemKeys![presetItemIndex]);
+    if (presetItemKeys.isNotEmpty) {
+      if (presetItemIndex < presetItemKeys.length) {
+        final nextItem = await find(presetItemKeys[presetItemIndex]);
         dt = [nextItem];
         presetItemIndex++;
       }
@@ -96,16 +98,6 @@ abstract class ListProviderModel<T> extends ProviderModel {
     //  print('loaded items: ${dt.length}, $requestBatchSize');
     _add(dt);
   }
-
-  Future<List<T>> postLoad(List<T> items) async {
-    return items;
-  }
-
-  Future<T> postFind(T item) async {
-    return item;
-  }
-
-  T dictToItem(Map<String, dynamic>? data);
 
   Future<T> find(String key) async {
     final data = await db.getDoc(collectionName, key);

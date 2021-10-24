@@ -18,30 +18,33 @@ class PlayingCardScreen extends StatefulWidget {
 }
 
 class _PlayingCardState extends State<PlayingCardScreen> {
-  PageController? _pageController;
+  final PageController _pageController =
+      PageController(initialPage: 0, keepPage: true);
   @override
-  void initState() {
-    super.initState();
-    _createController();
-  }
-
-  void _createController() {
-    if (_pageController != null) {
-      _pageController!.dispose();
-    }
-    _pageController = PageController(initialPage: 0, keepPage: true);
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   void shuffleItems(NumberModel numberModel) {
     numberModel
         .setPresetItemKeys(shuffle(List<String>.from(playingCardNumbers)));
-    _pageController!.jumpToPage(0);
+    _pageController.jumpToPage(0);
   }
 
-  @override
-  void dispose() {
-    _pageController!.dispose();
-    super.dispose();
+  void unshuffleItems(NumberModel numberModel) {
+    numberModel.setPresetItemKeys(List<String>.from(playingCardNumbers));
+    _pageController.jumpToPage(0);
+  }
+
+  void prev() {
+    _pageController.previousPage(
+        duration: const Duration(microseconds: 400), curve: Curves.easeInOut);
+  }
+
+  void next() {
+    _pageController.nextPage(
+        duration: const Duration(microseconds: 400), curve: Curves.easeInOut);
   }
 
   @override
@@ -58,11 +61,37 @@ class _PlayingCardState extends State<PlayingCardScreen> {
               padding: const EdgeInsets.all(10),
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                 Row(children: <Widget>[
-                  TextButton.icon(
+                  IconButton(
                       icon: const Icon(Icons.shuffle),
-                      label: const Text('shuffle'),
+                      tooltip: 'random shuffle',
                       onPressed: () => shuffleItems(numberModel),
-                      style: TextButton.styleFrom(primary: Colors.redAccent)),
+                      color: Colors.redAccent),
+                  IconButton(
+                      icon: const Icon(Icons.reset_tv),
+                      tooltip: 'unshuffle/reset',
+                      onPressed: () => unshuffleItems(numberModel),
+                      color: Colors.redAccent),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        IconButton(
+                            icon: const Icon(Icons.navigate_before),
+                            tooltip: 'previous',
+                            onPressed: () {
+                              prev();
+                            },
+                            color: Colors.redAccent),
+                        IconButton(
+                            icon: const Icon(Icons.navigate_next),
+                            tooltip: 'next',
+                            onPressed: () {
+                              next();
+                            },
+                            color: Colors.redAccent),
+                      ],
+                    ),
+                  ),
                 ]),
                 Expanded(
                   child: PageView.builder(
