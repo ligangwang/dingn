@@ -14,7 +14,7 @@ class Hyperlink extends StatelessWidget {
         text!,
         style: const TextStyle(decoration: TextDecoration.underline),
       ),
-      onTap: () => UrlUtil.open(url!, name: text!),
+      onTap: () => open(url!, name: text!),
     );
   }
 }
