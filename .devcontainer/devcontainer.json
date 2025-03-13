@@ -6,6 +6,7 @@
     "dart-code.flutter",
     "firebase.firebase-tools"
   ],
+  "runArgs": ["--user", "vscode"],
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash"
   },
