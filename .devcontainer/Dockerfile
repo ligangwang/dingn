@@ -1,10 +1,13 @@
-# Use a base image with Flutter and Firebase pre-installed
-FROM cirrusci/flutter:latest
+# Use a linux as base image
+FROM mcr.microsoft.com/devcontainers/base:jammy
 
-# Create the vscode user
-RUN useradd -ms /bin/bash vscode
+RUN git clone https://github.com/flutter/flutter.git /sdks/flutter
 
-RUN chown -R vscode:vscode /sdks/flutter
+RUN cd /sdks/flutter
+RUN git fetch --all
+
+RUN flutter channel stable
+RUN flutter upgrade
 
 # Install any additional dependencies required for the project
 RUN apt-get update && apt-get install -y \

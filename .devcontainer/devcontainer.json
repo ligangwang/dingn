@@ -6,10 +6,8 @@
     "dart-code.flutter",
     "firebase.firebase-tools"
   ],
-  "runArgs": ["--user", "vscode"],
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash"
   },
-  "postCreateCommand": "flutter doctor",
-  "remoteUser": "vscode"
+  "postCreateCommand": "flutter doctor"
 }
