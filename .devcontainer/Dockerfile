@@ -1,6 +1,11 @@
 # Use a base image with Flutter and Firebase pre-installed
 FROM cirrusci/flutter:latest
 
+# Create the vscode user
+RUN useradd -ms /bin/bash vscode
+
+RUN chown -R vscode:vscode /sdks/flutter
+
 # Install any additional dependencies required for the project
 RUN apt-get update && apt-get install -y \
     lib32stdc++6 \
