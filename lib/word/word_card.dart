@@ -1,4 +1,4 @@
-import 'package:dingn/account/account.dart';
+import 'package:dingn/account/account.dart' as account;
 import 'package:dingn/account/account_model.dart';
 import 'package:dingn/themes.dart';
 import 'package:dingn/word/word.dart';
@@ -13,7 +13,7 @@ class WordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accountModel = provider.Provider.of<AccountModel>(context);
-    if (accountModel.cardSide == CardSide.TwoSides) {
+    if (accountModel.cardSide == account.CardSide.TwoSides) {
       return FlipCard(
         front: Container(
           child: Card(
@@ -27,13 +27,13 @@ class WordCard extends StatelessWidget {
                     leading: const Icon(
                       Icons.bookmark,
                       size: 50,
-                      color: AppTheme.accentColor,
+                      color: accentColor,
                     ),
                     title: Text(word!.word!,
                         style: const TextStyle(
-                            color: AppTheme.accentColor,
+                            color: accentColor,
                             fontWeight: FontWeight.bold,
-                            fontSize: AppTheme.fontSizeBrand)),
+                            fontSize: fontSizeBrand)),
                     subtitle: Text('${word!.lang}: ${word!.ipa}')),
               ],
             ),
@@ -59,12 +59,11 @@ Widget _getFullCard(Word word) {
               leading: const Icon(
                 Icons.bookmark,
                 size: 50,
-                color: AppTheme.accentColor,
+                color: accentColor,
               ),
               title: Text(word.word!,
                   style: const TextStyle(
-                      color: AppTheme.accentColor,
-                      fontWeight: FontWeight.bold)),
+                      color: accentColor, fontWeight: FontWeight.bold)),
               subtitle: Text('${word.lang}: ${word.ipa}')),
           const Divider(
             height: 10,
@@ -80,8 +79,7 @@ Widget _getFullCard(Word word) {
                 const Text('Number (major system):',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(width: 20),
-                Text(word.number!,
-                    style: const TextStyle(color: AppTheme.accentColor)),
+                Text(word.number!, style: const TextStyle(color: accentColor)),
               ],
             ),
           ),

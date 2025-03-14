@@ -44,7 +44,7 @@ class HomeScreen extends StatelessWidget {
 Widget _text(String text, {double size = 15}) {
   return Text(
     text,
-    style: TextStyle(fontSize: size, color: AppTheme.fadedBlackColor),
+    style: TextStyle(fontSize: size, color: fadedBlackColor),
     softWrap: true,
   );
 }

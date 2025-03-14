@@ -11,9 +11,9 @@ class GoogleLoginButton extends StatelessWidget {
       onPressed: () {
         accountModel.signInWithGoogle();
       },
-      child: Row(
+      child: const Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const <Widget>[
+        children: <Widget>[
           Icon(CustomIcons.google),
           SizedBox(
             width: 8,

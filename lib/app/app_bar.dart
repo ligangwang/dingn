@@ -23,9 +23,9 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: const Text(
           'dingn',
           style: TextStyle(
-              color: AppTheme.accentColor,
+              color: accentColor,
               fontWeight: FontWeight.bold,
-              fontSize: AppTheme.fontSizeBrand),
+              fontSize: fontSizeBrand),
         ),
       ),
       backgroundColor: Colors.white,
@@ -39,15 +39,15 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
               child: Container(
                   width: 50,
-                  child: Column(children: const <Widget>[
+                  child: const Column(children: <Widget>[
                     Icon(
                       Icons.library_books,
-                      color: AppTheme.accentColor,
+                      color: accentColor,
                     ),
                     Text('word',
                         style: TextStyle(
-                            color: AppTheme.accentColor,
-                            fontSize: AppTheme.fontSizeIconButtonText)),
+                            color: accentColor,
+                            fontSize: fontSizeIconButtonText)),
                   ]))),
         if (name != '/number')
           InkWell(
@@ -57,12 +57,12 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
               child: Container(
                   width: 50,
-                  child: Column(children: const <Widget>[
-                    Icon(Icons.subject, color: AppTheme.accentColor),
+                  child: const Column(children: <Widget>[
+                    Icon(Icons.subject, color: accentColor),
                     Text('number',
                         style: TextStyle(
-                            color: AppTheme.accentColor,
-                            fontSize: AppTheme.fontSizeIconButtonText)),
+                            color: accentColor,
+                            fontSize: fontSizeIconButtonText)),
                   ]))),
         if (name != '/card')
           InkWell(
@@ -72,12 +72,12 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
               child: Container(
                   width: 50,
-                  child: Column(children: const <Widget>[
-                    Icon(Icons.sd_card, color: AppTheme.accentColor),
+                  child: const Column(children: <Widget>[
+                    Icon(Icons.sd_card, color: accentColor),
                     Text('card',
                         style: TextStyle(
-                            color: AppTheme.accentColor,
-                            fontSize: AppTheme.fontSizeIconButtonText)),
+                            color: accentColor,
+                            fontSize: fontSizeIconButtonText)),
                   ]))),
         if (name == '/number') NumberSearchButton(),
         if (name == '/word') WordSearchButton(),
@@ -132,7 +132,7 @@ class AccountButton extends StatelessWidget {
         style: TextButton.styleFrom(
             shape: const CircleBorder(side: BorderSide.none)),
         child: CircleAvatar(
-          backgroundColor: AppTheme.accentColor,
+          backgroundColor: accentColor,
           foregroundColor: Colors.white,
           backgroundImage: accountModel.account!.photoURL != null
               ? NetworkImage(accountModel.account!.photoURL!)
@@ -149,15 +149,14 @@ class AccountButton extends StatelessWidget {
           },
           child: Container(
               width: 50,
-              child: Column(children: const <Widget>[
+              child: const Column(children: <Widget>[
                 Icon(
                   Icons.account_box,
-                  color: AppTheme.accentColor,
+                  color: accentColor,
                 ),
                 Text('signin',
                     style: TextStyle(
-                        color: AppTheme.accentColor,
-                        fontSize: AppTheme.fontSizeIconButtonText)),
+                        color: accentColor, fontSize: fontSizeIconButtonText)),
               ])));
   }
 }

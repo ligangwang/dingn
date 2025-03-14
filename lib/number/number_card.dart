@@ -1,4 +1,4 @@
-import 'package:dingn/account/account.dart';
+import 'package:dingn/account/account.dart' as account;
 import 'package:dingn/account/account_model.dart';
 import 'package:dingn/number/number.dart';
 import 'package:dingn/themes.dart';
@@ -22,7 +22,8 @@ class NumberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accountModel = provider.Provider.of<AccountModel>(context);
-    if (accountModel.cardSide == CardSide.TwoSides || alwaysShowTwoSides) {
+    if (accountModel.cardSide == account.CardSide.TwoSides ||
+        alwaysShowTwoSides) {
       return FlipCard(
           front: Container(
             child: _getFrontCard(),
@@ -47,12 +48,11 @@ class NumberCard extends StatelessWidget {
               leading: const Icon(
                 Icons.bookmark,
                 size: 50,
-                color: AppTheme.accentColor,
+                color: accentColor,
               ),
               title: Text(number!.number,
                   style: const TextStyle(
-                      color: AppTheme.accentColor,
-                      fontWeight: FontWeight.bold)),
+                      color: accentColor, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -71,11 +71,11 @@ Widget _getFullCard(Number number, Future<void> Function(String)? onFavorite) {
             leading: const Icon(
               Icons.bookmark,
               size: 50,
-              color: AppTheme.accentColor,
+              color: accentColor,
             ),
             title: Text(number.number,
                 style: const TextStyle(
-                    color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
+                    color: accentColor, fontWeight: FontWeight.bold)),
           ),
           const Divider(
             height: 10,
@@ -93,7 +93,7 @@ Widget _getFullCard(Number number, Future<void> Function(String)? onFavorite) {
                 const SizedBox(width: 20),
                 if (number.favoriteWord != null)
                   Text(number.favoriteWord!,
-                      style: const TextStyle(color: AppTheme.accentColor)),
+                      style: const TextStyle(color: accentColor)),
               ],
             ),
           ),

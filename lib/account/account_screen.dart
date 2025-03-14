@@ -43,7 +43,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   height: 100.0,
                   width: 100.0,
                   child: CircleAvatar(
-                      backgroundColor: AppTheme.accentColor,
+                      backgroundColor: accentColor,
                       radius: 50.0,
                       backgroundImage: accountModel.account!.photoURL == null
                           ? null
@@ -66,7 +66,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       child: const Text(
                         'Display Name:',
                         style: TextStyle(
-                            fontSize: AppTheme.fontSizeMedium,
+                            fontSize: fontSizeMedium,
                             fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -95,8 +95,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                 borderRadius: BorderRadius.circular(10)),
                             side: const BorderSide(width: 2)),
                         child: Text(accountModel.editMode ? 'save' : 'edit',
-                            style:
-                                const TextStyle(color: AppTheme.accentColor)),
+                            style: const TextStyle(color: accentColor)),
                         onPressed: () {
                           if (!accountModel.editMode)
                             accountModel.setEditMode(true);
@@ -125,7 +124,8 @@ class _AccountScreenState extends State<AccountScreen> {
                           title: const Text('One Side - Training'),
                           groupValue: accountModel.cardSide,
                           value: CardSide.OneSide,
-                          onChanged: (dynamic value) => accountModel.setCardSide(value),
+                          onChanged: (dynamic value) =>
+                              accountModel.setCardSide(value),
                         )),
                     Container(
                         constraints:
@@ -134,20 +134,21 @@ class _AccountScreenState extends State<AccountScreen> {
                           title: const Text('Two Sides - Recall'),
                           groupValue: accountModel.cardSide,
                           value: CardSide.TwoSides,
-                          onChanged: (dynamic value) => accountModel.setCardSide(value),
+                          onChanged: (dynamic value) =>
+                              accountModel.setCardSide(value),
                         )),
                   ],
                 )),
             Container(
                 padding: const EdgeInsets.all(8),
                 child: TextButton(
-                    child: Column(children: const <Widget>[
-                      Icon(Icons.exit_to_app, color: AppTheme.accentColor),
+                    child: const Column(children: <Widget>[
+                      Icon(Icons.exit_to_app, color: accentColor),
                       Text(
                         'Sign out',
                         style: TextStyle(
-                            color: AppTheme.accentColor,
-                            fontSize: AppTheme.fontSizeIconButtonText),
+                            color: accentColor,
+                            fontSize: fontSizeIconButtonText),
                       )
                     ]),
                     onPressed: () => accountModel.signOut()))

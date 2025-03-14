@@ -32,22 +32,20 @@ class MainScreen extends StatelessWidget {
                   //right panel
                 ]),
           ),
-          Padding(
-              padding: const EdgeInsets.all(10),
+          const Padding(
+              padding: EdgeInsets.all(10),
               child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const <Widget>[
+                  children: <Widget>[
                     Text(
                       '© dingn 2021',
                       style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: AppTheme.fontSizeFootnote),
+                          color: Colors.grey, fontSize: fontSizeFootnote),
                     ),
                     SizedBox(width: 5),
                     Text('v1.2.13', //v1.2.11: upgrade to flutter 1.24.0
                         style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: AppTheme.fontSizeTiny)),
+                            color: Colors.grey, fontSize: fontSizeTiny)),
                   ])),
         ],
       ),
