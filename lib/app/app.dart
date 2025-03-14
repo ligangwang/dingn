@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
         create: (context) => AccountModel(),
         builder: (context, widget) => MaterialApp(
             title: title,
-            theme: AppTheme.theme(),
+            theme: theme(),
             debugShowCheckedModeBanner: false,
             initialRoute: '/',
             onGenerateRoute: (settings) => generateRoute(context, settings)));
