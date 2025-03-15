@@ -3,6 +3,7 @@ import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/interface.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:get_it/get_it.dart';
+import 'package:dingn/payment/payment_service.dart';
 
 class AccountModel extends ProviderModel {
   AccountModel() {
@@ -22,6 +23,7 @@ class AccountModel extends ProviderModel {
 
   final DBService _db = GetIt.instance.get<DBService>();
   final AuthService _auth = GetIt.instance.get<AuthService>();
+  final PaymentService _paymentService = GetIt.instance.get<PaymentService>();
 
   Stream<Account?>? _accountChanges;
   Account? _account;
@@ -45,7 +47,14 @@ class AccountModel extends ProviderModel {
   }
 
   Future<Account?> signInWithGoogle() async {
-    return await _auth.signInWithGoogle();
+    final account = await _auth.signInWithGoogle();
+    if (account != null) {
+      final hasActiveSubscription = await _paymentService.hasActiveSubscription(account.uid);
+      if (!hasActiveSubscription) {
+        // Handle the case where the user does not have an active subscription
+      }
+    }
+    return account;
   }
 
   Future<Account?> signInWithCredentials({String? email, String? password}) async {
@@ -57,6 +66,7 @@ class AccountModel extends ProviderModel {
   }
 
   Future<dynamic> signOut() async {
+    await _paymentService.cancelSubscription(_account!.uid);
     await _auth.signOut();
   }
 
@@ -116,4 +126,16 @@ class AccountModel extends ProviderModel {
   Account? get account => _account;
   String? get userName => _account?.userName;
   CardSide? get cardSide => _account?.cardSide;
+
+  Future<void> createSubscription(String planId) async {
+    await _paymentService.createSubscription(_account!.uid, planId);
+  }
+
+  Future<void> updateSubscription(String subscriptionId, String newPlanId) async {
+    await _paymentService.updateSubscription(subscriptionId, newPlanId);
+  }
+
+  Future<void> cancelSubscription(String subscriptionId) async {
+    await _paymentService.cancelSubscription(subscriptionId);
+  }
 }
