@@ -4,6 +4,7 @@ import 'package:dingn/account/provider_screen.dart';
 import 'package:dingn/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider;
+import 'package:dingn/payment/payment_service.dart';
 
 class AccountScreen extends StatefulWidget {
   @override
@@ -151,7 +152,42 @@ class _AccountScreenState extends State<AccountScreen> {
                             fontSize: fontSizeIconButtonText),
                       )
                     ]),
-                    onPressed: () => accountModel.signOut()))
+                    onPressed: () => accountModel.signOut())),
+            Container(
+                padding: const EdgeInsets.all(8),
+                child: TextButton(
+                    child: const Column(children: <Widget>[
+                      Icon(Icons.payment, color: accentColor),
+                      Text(
+                        'Subscribe',
+                        style: TextStyle(
+                            color: accentColor,
+                            fontSize: fontSizeIconButtonText),
+                      )
+                    ]),
+                    onPressed: () => accountModel.createSubscription('plan_id'))),
+            Container(
+                padding: const EdgeInsets.all(8),
+                child: TextButton(
+                    child: const Column(children: <Widget>[
+                      Icon(Icons.cancel, color: accentColor),
+                      Text(
+                        'Cancel Subscription',
+                        style: TextStyle(
+                            color: accentColor,
+                            fontSize: fontSizeIconButtonText),
+                      )
+                    ]),
+                    onPressed: () => accountModel.cancelSubscription('subscription_id'))),
+            Container(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  accountModel.hasActiveSubscription
+                      ? 'Subscription Active'
+                      : 'No Active Subscription',
+                  style: TextStyle(
+                      color: accentColor, fontSize: fontSizeMedium),
+                )),
           ],
         ),
       ),

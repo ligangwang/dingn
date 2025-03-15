@@ -19,3 +19,11 @@ abstract class AuthService {
   Future<dynamic> signOut();
   Future<void> sendPasswordResetEmail(String email);
 }
+
+abstract class PaymentService {
+  Future<void> createSubscription(String userId, String planId);
+  Future<void> updateSubscription(String subscriptionId, String newPlanId);
+  Future<void> cancelSubscription(String subscriptionId);
+  Future<void> handlePaymentCallback(Map<String, dynamic> paymentData);
+  Future<void> handleWebhook(Map<String, dynamic> webhookData);
+}
