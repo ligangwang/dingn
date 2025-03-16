@@ -1,9 +1,9 @@
 import 'package:dingn/account/account.dart';
 import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/interface.dart';
+import 'package:dingn/payment/payment_service.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:get_it/get_it.dart';
-import 'package:dingn/payment/payment_service.dart';
 
 class AccountModel extends ProviderModel {
   AccountModel() {
