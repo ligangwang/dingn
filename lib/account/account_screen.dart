@@ -140,6 +140,37 @@ class _AccountScreenState extends State<AccountScreen> {
                   ],
                 )),
             Container(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      'Buy Computing Resources:',
+                      style: TextStyle(
+                          fontSize: fontSizeMedium,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    Row(
+                      children: <Widget>[
+                        ElevatedButton(
+                          onPressed: () {
+                            accountModel.initiatePayment('1000', 'usd');
+                          },
+                          child: const Text('Buy 1000 units'),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            accountModel.initiatePayment('5000', 'usd');
+                          },
+                          child: const Text('Buy 5000 units'),
+                        ),
+                      ],
+                    ),
+                  ],
+                )),
+            Container(
                 padding: const EdgeInsets.all(8),
                 child: TextButton(
                     child: const Column(children: <Widget>[
