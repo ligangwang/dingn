@@ -1,6 +1,7 @@
 import 'package:dingn/account/account.dart';
 import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/interface.dart';
+import 'package:dingn/payment/payment_service.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:get_it/get_it.dart';
 
@@ -22,6 +23,7 @@ class AccountModel extends ProviderModel {
 
   final DBService _db = GetIt.instance.get<DBService>();
   final AuthService _auth = GetIt.instance.get<AuthService>();
+  final PaymentService _paymentService = PaymentService();
 
   Stream<Account?>? _accountChanges;
   Account? _account;
@@ -116,4 +118,25 @@ class AccountModel extends ProviderModel {
   Account? get account => _account;
   String? get userName => _account?.userName;
   CardSide? get cardSide => _account?.cardSide;
+
+  Future<void> initiatePayment(String amount, String currency) async {
+    try {
+      await _paymentService.handlePayment(amount, currency);
+      await handlePaymentStatus(true);
+    } catch (e) {
+      await handlePaymentStatus(false);
+    }
+  }
+
+  Future<void> handlePaymentStatus(bool success) async {
+    if (success) {
+      // Update account with new resources
+      // For example, increment a resource counter
+      // _account = _account!.incrementResources();
+      notifyListeners();
+    } else {
+      // Handle payment failure
+      // For example, show an error message
+    }
+  }
 }
