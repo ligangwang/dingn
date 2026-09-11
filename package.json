@@ -9,7 +9,7 @@
     "dev": "next dev --hostname 127.0.0.1 --port 3001",
     "build": "next build",
     "preview": "node scripts/preview.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "tsx --test tests/*.test.ts && vitest run",
     "verify": "npm run typecheck && npm test && npm run build",
     "format": "prettier --write src tests scripts *.json *.ts *.md",
