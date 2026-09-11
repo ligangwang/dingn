@@ -1,0 +1,75 @@
+name: Website
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate website
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+
+  deploy:
+    name: Deploy Cloud Run
+    needs: validate
+    if: github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: dingn-cloud-run-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PROJECT: dingn-193716
+      REGION: us-central1
+      SERVICE: dingn-web
+      IMAGE: us-central1-docker.pkg.dev/dingn-193716/dingn-web/website
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build production container
+        run: docker build --tag "$IMAGE:$GITHUB_SHA" .
+      - name: Authenticate with GitHub OIDC
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: dingn-193716
+          workload_identity_provider: projects/211238433635/locations/global/workloadIdentityPools/dingn-github/providers/github
+          service_account: dingn-github-deploy@dingn-193716.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+      - name: Push image
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker push "$IMAGE:$GITHUB_SHA"
+      - name: Deploy immutable image
+        run: |
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA")
+          gcloud run deploy "$SERVICE" \
+            --image "$digest" --project "$PROJECT" --region "$REGION" \
+            --service-account "dingn-web-runtime@$PROJECT.iam.gserviceaccount.com" \
+            --port 8080 --memory 256Mi --cpu 1 --min-instances 0 --max-instances 2 \
+            --timeout 60 --quiet
+          gcloud run services update-traffic "$SERVICE" --to-latest \
+            --project "$PROJECT" --region "$REGION" --quiet
+      - name: Check deployed website
+        run: |
+          url=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)')
+          for path in / /signin/ /account/ /word/ /number/ /card/; do
+            curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "$url$path" --output /dev/null
+          done
+          printf 'Deployed commit `%s` to [dingn](%s).\n' "$GITHUB_SHA" "$url" >> "$GITHUB_STEP_SUMMARY"

@@ -18,7 +18,9 @@ class GoogleLoginButton extends StatelessWidget {
           SizedBox(
             width: 8,
           ),
-          Text('LOGIN WITH GOOGLE'),
+          Flexible(
+              child: Text('Continue with Google',
+                  textAlign: TextAlign.center, style: TextStyle(fontSize: 14))),
         ],
       ),
     );

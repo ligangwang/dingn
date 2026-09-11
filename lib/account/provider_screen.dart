@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:dingn/account/provider_model.dart';
 import 'package:dingn/app/app_bar.dart';
 import 'package:dingn/themes.dart';
@@ -10,47 +8,24 @@ class MainScreen extends StatelessWidget {
   const MainScreen({this.name, this.child});
   final Widget? child;
   final String? name;
-
   @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: MyAppBar(name),
-      body: Column(
-        children: <Widget>[
+  Widget build(BuildContext context) => Scaffold(
+        appBar: MyAppBar(name),
+        body: SafeArea(
+            child: Column(children: [
           Expanded(
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  //left panel
-                  Container(
-                    width: min(size.width, 800),
-                    height: min(size.height, 600),
-                    child: child,
-                  ),
-                  //right panel
-                ]),
-          ),
-          const Padding(
-              padding: EdgeInsets.all(10),
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(
-                      '© dingn 2021',
-                      style: TextStyle(
-                          color: Colors.grey, fontSize: fontSizeFootnote),
-                    ),
-                    SizedBox(width: 5),
-                    Text('v1.2.13', //v1.2.11: upgrade to flutter 1.24.0
-                        style: TextStyle(
-                            color: Colors.grey, fontSize: fontSizeTiny)),
-                  ])),
-        ],
-      ),
-    );
-  }
+              child: Center(
+                  child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: name == '/' ? 1120 : 800),
+            child: SizedBox(
+                width: double.infinity, height: double.infinity, child: child),
+          ))),
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              child: Text('dingn · A little practice, every day.',
+                  style: const TextStyle(color: mutedColor, fontSize: 11))),
+        ])),
+      );
 }
 
 class ProviderScreen<T extends ProviderModel> extends StatelessWidget {
@@ -58,13 +33,10 @@ class ProviderScreen<T extends ProviderModel> extends StatelessWidget {
   final Widget Function(BuildContext context, T value, Widget? child)? builder;
   final T Function()? modelBuilder;
   final String? name;
-
   @override
-  Widget build(BuildContext context) {
-    return provider.ChangeNotifierProvider<T>(
-      create: (context) => modelBuilder!(),
-      child: MainScreen(
-          name: name, child: provider.Consumer<T>(builder: builder!)),
-    );
-  }
+  Widget build(BuildContext context) => provider.ChangeNotifierProvider<T>(
+        create: (context) => modelBuilder!(),
+        child: MainScreen(
+            name: name, child: provider.Consumer<T>(builder: builder!)),
+      );
 }

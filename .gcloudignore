@@ -1,0 +1,13 @@
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!next.config.ts
+!tsconfig.json
+!next-env.d.ts
+!src/
+!src/**
+!public/
+!public/**
+!scripts/
+!scripts/preview.mjs

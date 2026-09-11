@@ -14,149 +14,121 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? name;
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 600;
     return AppBar(
-      title: InkWell(
-        onTap: () {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-        },
-        child: const Text(
-          'dingn',
-          style: TextStyle(
-              color: accentColor,
-              fontWeight: FontWeight.bold,
-              fontSize: fontSizeBrand),
-        ),
+      toolbarHeight: 76,
+      automaticallyImplyLeading: false,
+      titleSpacing: compact ? 12 : 28,
+      title: TextButton(
+        onPressed: () => Navigator.of(context)
+            .pushNamedAndRemoveUntil('/', (route) => false),
+        child: const Text('dingn',
+            style: TextStyle(
+                color: accentColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 28,
+                letterSpacing: -1.5)),
       ),
-      backgroundColor: Colors.white,
-      elevation: 1,
-      actions: <Widget>[
-        if (name != '/word')
-          InkWell(
-              onTap: () {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/word', (Route<dynamic> route) => false);
-              },
-              child: Container(
-                  width: 50,
-                  child: const Column(children: <Widget>[
-                    Icon(
-                      Icons.library_books,
-                      color: accentColor,
-                    ),
-                    Text('word',
-                        style: TextStyle(
-                            color: accentColor,
-                            fontSize: fontSizeIconButtonText)),
-                  ]))),
-        if (name != '/number')
-          InkWell(
-              onTap: () {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/number', (Route<dynamic> route) => false);
-              },
-              child: Container(
-                  width: 50,
-                  child: const Column(children: <Widget>[
-                    Icon(Icons.subject, color: accentColor),
-                    Text('number',
-                        style: TextStyle(
-                            color: accentColor,
-                            fontSize: fontSizeIconButtonText)),
-                  ]))),
-        if (name != '/card')
-          InkWell(
-              onTap: () {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/card', (Route<dynamic> route) => false);
-              },
-              child: Container(
-                  width: 50,
-                  child: const Column(children: <Widget>[
-                    Icon(Icons.sd_card, color: accentColor),
-                    Text('card',
-                        style: TextStyle(
-                            color: accentColor,
-                            fontSize: fontSizeIconButtonText)),
-                  ]))),
+      shape: const Border(bottom: BorderSide(color: borderColor)),
+      actions: [
+        _nav(context, '/word', 'Words', Icons.text_fields_rounded, compact),
+        _nav(context, '/number', 'Numbers', Icons.tag_rounded, compact),
+        _nav(context, '/card', 'Cards', Icons.style_outlined, compact),
         if (name == '/number') NumberSearchButton(),
         if (name == '/word') WordSearchButton(),
+        const SizedBox(width: 8),
         AccountButton(),
+        SizedBox(width: compact ? 8 : 28),
       ],
     );
   }
 
+  Widget _nav(BuildContext context, String route, String label, IconData icon,
+      bool compact) {
+    void open() =>
+        Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
+    if (compact)
+      return IconButton(
+          tooltip: label,
+          onPressed: open,
+          icon: Icon(icon, color: name == route ? accentColor : mutedColor),
+          style: IconButton.styleFrom(
+              backgroundColor:
+                  name == route ? alternateColor : Colors.transparent));
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: TextButton(
+          onPressed: open,
+          style: TextButton.styleFrom(
+              foregroundColor: name == route ? accentColor : mutedColor,
+              backgroundColor:
+                  name == route ? alternateColor : Colors.transparent,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 18)),
+          child: Text(label,
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        ));
+  }
+
   @override
-  Size get preferredSize => const Size.fromHeight(56.0);
+  Size get preferredSize => const Size.fromHeight(76);
 }
 
 class NumberSearchButton extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    final numberModel =
-        provider.Provider.of<NumberModel>(context, listen: false);
-    return IconButton(
-      icon: const Icon(Icons.search),
-      onPressed: () async {
-        await showSearch<Number?>(
-            context: context, delegate: NumberSearch(numberModel));
-      },
-    );
-  }
+  Widget build(BuildContext context) => IconButton(
+        tooltip: 'Search numbers',
+        icon: const Icon(Icons.search),
+        onPressed: () async => showSearch<Number?>(
+            context: context,
+            delegate: NumberSearch(
+                provider.Provider.of<NumberModel>(context, listen: false))),
+      );
 }
 
 class WordSearchButton extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.search),
-      onPressed: () async {
-        await showSearch<Word?>(
+  Widget build(BuildContext context) => IconButton(
+        tooltip: 'Search words',
+        icon: const Icon(Icons.search),
+        onPressed: () async => showSearch<Word?>(
             context: context,
-            delegate: WordSearch(provider.Provider.of<WordModel>(context)));
-      },
-    );
-  }
+            delegate: WordSearch(
+                provider.Provider.of<WordModel>(context, listen: false))),
+      );
 }
 
 class AccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accountModel = provider.Provider.of<AccountModel>(context);
-    if (accountModel.isSignedIn)
-      return TextButton(
-        onPressed: () {
-          Navigator.of(context).pushNamedAndRemoveUntil(
-              '/account', (Route<dynamic> route) => false);
-        },
-        style: TextButton.styleFrom(
-            shape: const CircleBorder(side: BorderSide.none)),
-        child: CircleAvatar(
+    if (accountModel.isSignedIn) {
+      return IconButton(
+        tooltip: 'Your account',
+        onPressed: () => Navigator.of(context)
+            .pushNamedAndRemoveUntil('/account', (route) => false),
+        icon: CircleAvatar(
+          radius: 17,
           backgroundColor: accentColor,
           foregroundColor: Colors.white,
           backgroundImage: accountModel.account!.photoURL != null
               ? NetworkImage(accountModel.account!.photoURL!)
               : null,
-          child: Text(accountModel.account!.photoURL != null
-              ? ''
-              : accountModel.account!.initials),
+          child: Text(
+              accountModel.account!.photoURL != null
+                  ? ''
+                  : accountModel.account!.initials,
+              style: const TextStyle(fontSize: 12)),
         ),
       );
-    else
-      return InkWell(
-          onTap: () {
-            Navigator.of(context).pushNamed('/signin');
-          },
-          child: Container(
-              width: 50,
-              child: const Column(children: <Widget>[
-                Icon(
-                  Icons.account_box,
-                  color: accentColor,
-                ),
-                Text('signin',
-                    style: TextStyle(
-                        color: accentColor, fontSize: fontSizeIconButtonText)),
-              ])));
+    }
+    return Center(
+        child: FilledButton(
+      onPressed: () => Navigator.of(context).pushNamed('/signin'),
+      style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+      child: const Text('Sign in', style: TextStyle(fontSize: 12)),
+    ));
   }
 }
