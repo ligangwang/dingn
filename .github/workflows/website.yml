@@ -69,7 +69,7 @@ jobs:
       - name: Check deployed website
         run: |
           url=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)')
-          for path in / /signin/ /account/ /word/ /number/ /card/ /feedback/; do
+          for path in / /signin/ /account/ /word/ /number/ /card/ /feedback/ /admin/feedback/; do
             curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "$url$path" --output /dev/null
           done
           printf 'Deployed commit `%s` to [dingn](%s).\n' "$GITHUB_SHA" "$url" >> "$GITHUB_STEP_SUMMARY"

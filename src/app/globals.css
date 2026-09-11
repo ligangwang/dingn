@@ -833,6 +833,29 @@ input[type="radio"] {
 .feedback-page {
   max-width: 720px;
 }
+.admin-feedback {
+  max-width: 960px;
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+.feedback-list {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.feedback-list .panel {
+  padding: 24px;
+}
+.feedback-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.feedback-author {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  margin-bottom: 0;
+}
 .feedback-page textarea {
   width: 100%;
   padding: 14px;
