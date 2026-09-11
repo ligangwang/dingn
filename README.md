@@ -46,7 +46,15 @@ firebase deploy --only hosting --project dingn-193716
 
 The cutover includes a retirement worker at the old `flutter_service_worker.js` path. It clears only Flutter's three named caches, unregisters itself, and refreshes controlled windows to avoid leaving returning visitors on the old app. Old `/#/word` and similar Flutter links forward to the corresponding new page.
 
-No live deployment is performed by `npm run build` or the preview command. Google Analytics is not enabled yet; its measurement ID is still needed.
+No live deployment is performed by `npm run build` or the preview command.
+
+## Google Analytics
+
+The existing GA4 property `dingn` (168897915), web stream `dingn-web` (1727160566), uses measurement ID `G-QDV6QLR932`. View reports at https://analytics.google.com/analytics/web/#/p168897915/.
+
+Analytics loads only after a visitor allows it through the footer preferences, and only on `dingn.com` or `www.dingn.com`. Declining stops collection and clears Analytics cookies. Local previews and Cloud Run URLs do not collect visits. Public home, practice, sign-in, and feedback page views use fixed titles and paths without query strings or fragments. Account and admin pages are excluded; names, emails, user IDs, searches, and feedback contents are never included in event parameters. Advertising signals are disabled. Enhanced measurement is disabled in the stream to avoid duplicate history events and automatic form/search collection.
+
+After deployment, allow Analytics on dingn.com and open GA's Realtime report to verify page views. Counts cover consenting visitors whose browsers allow Analytics, not all registered users.
 
 ## Flutter reference and rollback
 
