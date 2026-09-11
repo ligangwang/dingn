@@ -19,7 +19,8 @@ def call(method, payload):
     request = urllib.request.Request(
         f"https://identitytoolkit.googleapis.com/v1/projects/{project}/accounts:{method}",
         data=json.dumps(payload).encode(),
-        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json",
+                 "x-goog-user-project": project},
     )
     with urllib.request.urlopen(request) as response:
         return json.load(response)
