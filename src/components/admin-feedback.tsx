@@ -38,6 +38,7 @@ export function AdminFeedback() {
 }
 
 function Inbox() {
+  const { user, profile } = useSession();
   const [cursors, setCursors] = useState<(FeedbackCursor | undefined)[]>([
     undefined,
   ]);
@@ -104,7 +105,13 @@ function Inbox() {
                 )}
               </p>
               <p className="feedback-message">{item.message}</p>
-              <p className="feedback-author">User ID: {item.uid}</p>
+              <p className="feedback-author">
+                {item.authorName ||
+                  (item.uid === user?.uid
+                    ? profile?.userName || user.displayName || user.email
+                    : "") ||
+                  "Name not set"}
+              </p>
             </article>
           ))}
         </div>
