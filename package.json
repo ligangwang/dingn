@@ -11,6 +11,7 @@
     "preview": "node scripts/preview.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "tsx --test tests/*.test.ts && vitest run",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-dingn-feedback \"node --test tests/feedback-rules.test.mjs\"",
     "verify": "npm run typecheck && npm test && npm run build",
     "format": "prettier --write src tests scripts *.json *.ts *.md",
     "deploy:cloud-run": "powershell -NoProfile -File scripts/deploy-cloud-run.ps1"
@@ -22,6 +23,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/node": "^24",

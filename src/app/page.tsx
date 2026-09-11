@@ -77,9 +77,9 @@ export default function Home() {
         </p>
       </section>
       <p className="support">
-        <a href="mailto:support@dingn.com?subject=Issues%20or%20Suggestions">
+        <Link href="/feedback/">
           Have an idea? We’d love to hear it.
-        </a>
+        </Link>
       </p>
     </div>
   );

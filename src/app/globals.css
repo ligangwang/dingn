@@ -830,6 +830,32 @@ input[type="radio"] {
     padding: 12px 16px;
   }
 }
+.feedback-page {
+  max-width: 720px;
+}
+.feedback-page textarea {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--canvas);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+.feedback-page textarea:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+}
+.feedback-page #feedback-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 10px;
+}
+.feedback-page .quiet-link {
+  display: inline-block;
+  margin-top: 24px;
+}
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

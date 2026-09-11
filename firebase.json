@@ -1,4 +1,6 @@
 {
+  "firestore": { "rules": "firestore.rules" },
+  "emulators": { "firestore": { "port": 8088 }, "ui": { "enabled": false } },
   "hosting": {
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "trailingSlash": true,
