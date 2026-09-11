@@ -1,8 +1,13 @@
 {
   "hosting": {
-    "public": "out",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "trailingSlash": true,
+    "rewrites": [
+      {
+        "source": "**",
+        "run": { "serviceId": "dingn-web", "region": "us-central1" }
+      }
+    ],
     "headers": [
       {
         "source": "/_next/static/**",
