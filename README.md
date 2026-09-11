@@ -24,6 +24,10 @@ npm run preview
 
 ## Existing behavior and data
 
+The homepage feedback link opens `/feedback/`. Signed-in users can submit up to 5,000 characters to the `feedback` Firestore collection. Each record contains the authenticated `uid`, message, server `createdAt`, and `status: new`. Submissions can only be created by clients, not read, edited, or deleted. Project administrators review them in Firebase Console → Firestore → Data → feedback, using their existing Google Cloud IAM access. No separate admin website or email delivery is required.
+
+Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project dingn-193716` before releasing the form. These rules preserve legacy collection access but exclude feedback from the old catch-all permission. Test with `npm run test:rules` in an environment with Firebase CLI and Java 21; the tests use only the `demo-dingn-feedback` emulator project.
+
 - `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
 - `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
 - `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.

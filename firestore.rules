@@ -1,0 +1,22 @@
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Preserve existing collection access, excluding private feedback.
+    match /{collection}/{document=**} {
+      allow read, write: if request.auth != null && collection != 'feedback';
+    }
+    match /feedback/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['uid', 'message', 'createdAt', 'status'])
+        && request.resource.data.keys().hasOnly(['uid', 'message', 'createdAt', 'status'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 5000
+        && request.resource.data.message.matches('(?s).*[^\\s].*')
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'new';
+      // Admins manage submissions through Firebase Console using Google Cloud IAM.
+      allow read, update, delete: if false;
+    }
+  }
+}
