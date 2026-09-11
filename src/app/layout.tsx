@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SessionProvider } from "@/components/session";
 import { Header } from "@/components/header";
 import { LegacyRoutes } from "@/components/legacy-routes";
+import { Analytics } from "@/components/analytics";
 import "./globals.css";
 export const metadata: Metadata = {
   title: {
@@ -24,6 +25,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <Header />
           <main id="main">{children}</main>
           <footer>dingn · A little practice, every day.</footer>
+          <Analytics />
         </SessionProvider>
       </body>
     </html>
