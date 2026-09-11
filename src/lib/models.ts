@@ -114,9 +114,14 @@ export function shuffle<T>(items: readonly T[], random = Math.random): T[] {
   return copy;
 }
 export function safeDestination(value: string | null) {
-  return ["/word/", "/number/", "/card/", "/account/", "/"].includes(
-    value ?? "",
-  )
+  return [
+    "/word/",
+    "/number/",
+    "/card/",
+    "/account/",
+    "/",
+    "/admin/feedback/",
+  ].includes(value ?? "")
     ? value!
     : "/";
 }

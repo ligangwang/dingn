@@ -8,7 +8,7 @@ import {
 } from "react";
 import {
   GoogleAuthProvider,
-  onAuthStateChanged,
+  onIdTokenChanged,
   signInWithPopup,
   signOut,
   type User,
@@ -20,6 +20,7 @@ import { readProfile, saveProfile } from "@/lib/repository";
 type Session = {
   user: User | null;
   ready: boolean;
+  isAdmin: boolean;
   profile: Profile;
   profileError: string;
   login: () => Promise<void>;
@@ -30,21 +31,26 @@ const SessionContext = createContext<Session | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState(defaultProfile);
   const [profileError, setProfileError] = useState("");
   useEffect(() => {
     let active = true,
       generation = 0;
-    const stop = onAuthStateChanged(
+    const stop = onIdTokenChanged(
       firebase().auth,
       async (next) => {
         const ticket = ++generation;
         setReady(false);
         setUser(next);
+        setIsAdmin(false);
         setProfile(defaultProfile);
         setProfileError("");
         try {
           if (next) {
+            const token = await next.getIdTokenResult();
+            if (active && ticket === generation)
+              setIsAdmin(token.claims.admin === true);
             const value = await readProfile(next.uid);
             if (active && ticket === generation) setProfile(value);
           }
@@ -57,6 +63,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       },
       (e) => {
         if (active) {
+          setIsAdmin(false);
           setProfileError(friendlyError(e));
           setReady(true);
         }
@@ -72,6 +79,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         ready,
+        isAdmin,
         profile,
         profileError,
         login: async () => {

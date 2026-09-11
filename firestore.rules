@@ -15,8 +15,8 @@ service cloud.firestore {
         && request.resource.data.message.matches('(?s).*[^\\s].*')
         && request.resource.data.createdAt == request.time
         && request.resource.data.status == 'new';
-      // Admins manage submissions through Firebase Console using Google Cloud IAM.
-      allow read, update, delete: if false;
+      allow read: if request.auth != null && request.auth.token.admin == true;
+      allow update, delete: if false;
     }
   }
 }

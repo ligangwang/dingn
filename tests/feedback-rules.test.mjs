@@ -33,6 +33,33 @@ const data = () => ({
   createdAt: serverTimestamp(),
   status: "new",
 });
+it("allows only a boolean admin token claim to read and list feedback", async () => {
+  const admin = env
+    .authenticatedContext("admin-user", { admin: true })
+    .firestore();
+  await assertSucceeds(getDocs(collection(admin, "feedback")));
+  await assertSucceeds(getDoc(doc(admin, "feedback", "valid")));
+  await assertFails(
+    setDoc(doc(admin, "feedback", "fake"), {
+      ...data(),
+      uid: "admin-user",
+      status: "reviewed",
+    }),
+  );
+  const ordinary = env.authenticatedContext("ordinary").firestore();
+  await setDoc(doc(ordinary, "accounts", "ordinary"), { admin: true });
+  await assertFails(getDocs(collection(ordinary, "feedback")));
+  for (const value of [false, "true", 1]) {
+    await assertFails(
+      getDocs(
+        collection(
+          env.authenticatedContext("not-admin", { admin: value }).firestore(),
+          "feedback",
+        ),
+      ),
+    );
+  }
+});
 it("allows valid signed-in submissions and admin console-style access", async () => {
   const db = env.authenticatedContext("alice").firestore();
   await assertSucceeds(setDoc(doc(db, "feedback", "valid"), data()));

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "./session";
 export function Header() {
   const path = usePathname();
-  const { user, ready, profile } = useSession();
+  const { user, ready, profile, isAdmin } = useSession();
   return (
     <header className="site-header">
       <Link className="brand" href="/" aria-label="dingn home">
@@ -15,6 +15,7 @@ export function Header() {
           ["/word/", "Words", "Aa"],
           ["/number/", "Numbers", "#"],
           ["/card/", "Cards", "♧"],
+          ...(ready && isAdmin ? [["/admin/feedback/", "Feedback", "✉"]] : []),
         ].map(([href, label, icon]) => (
           <Link
             key={href}
