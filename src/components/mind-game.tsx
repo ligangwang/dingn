@@ -1,91 +1,41 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-const games = {
-  logic: [
-    {
-      title: "Double take",
-      prompt: "Follow the doubling rule: 3, 6, 12, 24, … What comes next?",
-      options: ["30", "36", "48"],
-      answer: 2,
-      why: "Each number is twice the previous one. 24 × 2 = 48.",
-    },
-    {
-      title: "Read the clues",
-      prompt:
-        "Every comet in this puzzle is blue. No blue object is a cube. Can a comet be a cube?",
-      options: ["Yes", "No", "Not enough information"],
-      answer: 1,
-      why: "A comet must be blue, and blue objects cannot be cubes. So no comet can be a cube.",
-    },
-    {
-      title: "Order matters",
-      prompt:
-        "Mia finishes before Leo. Leo finishes before Sam. Who finishes first?",
-      options: ["Mia", "Leo", "Sam"],
-      answer: 0,
-      why: "The clues give one order: Mia → Leo → Sam.",
-    },
-    {
-      title: "Growing gaps",
-      prompt: "Add successive odd numbers: 1, 4, 9, 16, … What comes next?",
-      options: ["23", "25", "32"],
-      answer: 1,
-      why: "The gaps are 3, 5, 7, then 9. 16 + 9 = 25.",
-    },
-  ],
-  decisions: [
-    {
-      title: "Choose the average",
-      prompt:
-        "Your goal is the highest average score over many rounds. Route A always gives 4 points. Route B gives 10 points half the time and 0 otherwise. Choose a route.",
-      options: ["Route A", "Route B"],
-      answer: 1,
-      why: "B averages 0.5 × 10 + 0.5 × 0 = 5 points, versus 4 for A. A is more predictable; B fits this round’s average-score goal.",
-    },
-    {
-      title: "Protect the mission",
-      prompt:
-        "You need at least 4 energy to finish this one mission. Route A guarantees 4. Route B gives 10 with a 50% chance, otherwise 0. Which maximizes your chance of finishing?",
-      options: ["Route A", "Route B"],
-      answer: 0,
-      why: "A finishes the mission 100% of the time. B finishes only 50%. A different goal changes the best choice.",
-    },
-    {
-      title: "Spend your budget",
-      prompt:
-        "You have 6 energy. A shield costs 4 and earns 7 points. A scanner costs 3 and earns 6 points. You can buy multiples. What earns the most points within your budget?",
-      options: ["One shield", "Two scanners", "One of each"],
-      answer: 1,
-      why: "Two scanners cost 6 and earn 12. One shield earns 7. One of each costs 7, over your budget.",
-    },
-    {
-      title: "Fresh start",
-      prompt:
-        "You already spent 3 energy on a blocked path; it cannot be recovered. From here, finishing it costs 5 more energy. A new path costs 2 and reaches the same goal with certainty. What uses the least additional energy?",
-      options: ["Finish the old path", "Take the new path"],
-      answer: 1,
-      why: "Compare the costs from this point: 5 versus 2. The 3 energy already spent is gone either way.",
-    },
-  ],
+import mindGames from "@/data/mind-games.json";
+import { Leaderboard, useXpPlay, XpSummary } from "./xp";
+type MindRound = {
+  title: string;
+  prompt: string;
+  options: string[];
+  answer: number;
+  why: string;
 };
+const games = mindGames as Record<"logic" | "decisions", MindRound[]>;
+
 export function MindGame({ mode }: { mode: keyof typeof games }) {
   const rounds = games[mode];
   const [round, setRound] = useState(0),
     [choice, setChoice] = useState<number | null>(null),
-    [results, setResults] = useState<boolean[]>([]);
+    [answers, setAnswers] = useState<number[]>([]);
+  const xp = useXpPlay(mode);
+  const { begin, submit } = xp;
+  const results = answers.map((a, i) => a === rounds[i].answer);
+  useEffect(() => {
+    void begin();
+  }, [begin]);
   const score = results.filter(Boolean).length;
   const done = round === rounds.length;
   const game = rounds[Math.min(round, rounds.length - 1)];
   function choose(index: number) {
     if (choice !== null) return;
     setChoice(index);
-    setResults((r) => [...r, index === game.answer]);
+    setAnswers((a) => [...a, index]);
   }
   function restart() {
     setRound(0);
     setChoice(null);
-    setResults([]);
+    setAnswers([]);
+    void begin();
   }
   const stars = starsFor(score, rounds.length);
   const next =
@@ -126,9 +76,11 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
               <p role="status">
                 {score} of {rounds.length} answers matched the goal.
               </p>
-              <p className="end-hint">
-                Explore the explanations and try a different approach next time.
-              </p>
+              <XpSummary
+                outcome={xp.outcome}
+                signedIn={xp.signedIn}
+                returnTo={`/${mode}/`}
+              />
               <div className="end-actions">
                 <button className="button" onClick={restart}>
                   Play again
@@ -198,6 +150,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
                 <button
                   className="button"
                   onClick={() => {
+                    if (round === rounds.length - 1) void submit(answers);
                     setRound((r) => r + 1);
                     setChoice(null);
                   }}
@@ -209,9 +162,10 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
           </>
         )}
       </section>
+      {done && <Leaderboard />}
       <p className="game-note">
-        Play for curiosity. These games are not an IQ test. Scores last for this
-        session only.
+        Play for curiosity. These games are not an IQ test. Signed-in players
+        earn XP; every score is checked by the dingn server.
       </p>
     </div>
   );

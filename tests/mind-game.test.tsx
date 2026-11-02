@@ -1,8 +1,38 @@
 import React from "react";
-import { afterEach, expect, test } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MindGame, starsFor } from "../src/components/mind-game";
+const mocks = vi.hoisted(() => ({
+  user: null as null | { uid: string },
+  startPlay: vi.fn(),
+  finishPlay: vi.fn(),
+  setStats: vi.fn(),
+  fetchLeaderboard: vi.fn(),
+}));
+vi.mock("../src/components/session", () => ({
+  useSession: () => ({
+    user: mocks.user,
+    stats: null,
+    setStats: mocks.setStats,
+  }),
+}));
+vi.mock("../src/lib/xp", async (real) => ({
+  ...(await real<typeof import("../src/lib/xp")>()),
+  startPlay: mocks.startPlay,
+  finishPlay: mocks.finishPlay,
+  fetchLeaderboard: mocks.fetchLeaderboard,
+  MIN_PLAY_MS: { warmup: 0, logic: 0, decisions: 0 },
+}));
+beforeEach(() => {
+  mocks.user = null;
+  mocks.startPlay.mockReset();
+  mocks.finishPlay.mockReset();
+  mocks.fetchLeaderboard.mockReset();
+  mocks.fetchLeaderboard.mockResolvedValue([
+    { name: "Ada", xp: 120, level: 2 },
+  ]);
+});
 afterEach(cleanup);
 test("logic rounds lock answers, explain mistakes, and reset the score", async () => {
   const user = userEvent.setup();
@@ -49,4 +79,44 @@ test("the score label is singular for one point", async () => {
 });
 test("stars reward near-perfect and perfect runs", () => {
   expect([0, 1, 2, 3, 4].map((n) => starsFor(n, 4))).toEqual([0, 1, 1, 2, 3]);
+});
+
+test("guests play without XP calls and are invited to sign in", async () => {
+  const user = userEvent.setup();
+  render(<MindGame mode="logic" />);
+  for (const [i, answer] of ["48", "No", "Mia", "25"].entries()) {
+    if (i) await user.click(screen.getByRole("button", { name: /Next round/ }));
+    await user.click(screen.getByRole("button", { name: answer }));
+  }
+  await user.click(screen.getByRole("button", { name: /See results/ }));
+  expect(mocks.startPlay).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
+  expect(await screen.findByText("Ada")).toBeTruthy();
+});
+test("signed-in players send raw answers and get the server's XP", async () => {
+  mocks.user = { uid: "alice" };
+  mocks.startPlay.mockResolvedValue({ playId: "play123456", challenge: {} });
+  mocks.finishPlay.mockResolvedValue({
+    score: 3,
+    max: 4,
+    xpGained: 30,
+    capped: false,
+    newBest: true,
+    streak: 2,
+    level: 1,
+    xp: 30,
+    floor: 0,
+    next: 100,
+  });
+  const user = userEvent.setup();
+  render(<MindGame mode="logic" />);
+  await waitFor(() => expect(mocks.startPlay).toHaveBeenCalledWith("logic"));
+  for (const [i, answer] of ["30", "No", "Mia", "25"].entries()) {
+    if (i) await user.click(screen.getByRole("button", { name: /Next round/ }));
+    await user.click(screen.getByRole("button", { name: answer }));
+  }
+  await user.click(screen.getByRole("button", { name: /See results/ }));
+  expect(mocks.finishPlay).toHaveBeenCalledWith("play123456", [0, 1, 0, 1]);
+  expect(await screen.findByText("+30 XP")).toBeTruthy();
+  expect(screen.getByText(/2-day streak/)).toBeTruthy();
 });

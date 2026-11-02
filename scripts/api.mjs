@@ -6,7 +6,7 @@ const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/
 const secure = process.env.NODE_ENV === "production";
 const cookieName = secure ? "__Host-dingn-session" : "dingn-session";
 const buckets = new Map();
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(status, code) {
     super(code);
     this.status = status;
@@ -59,7 +59,7 @@ function readCookie(req) {
     return "";
   }
 }
-async function refresh(req, res) {
+export async function refresh(req, res) {
   const token = readCookie(req);
   if (!token) throw new ApiError(401, "sign-in-required");
   try {
@@ -105,7 +105,7 @@ async function readBody(req) {
     throw new ApiError(400, "invalid-request");
   }
 }
-function validateOrigin(req) {
+export function validateOrigin(req) {
   const allowed = secure
     ? [
         "https://dingn.com",

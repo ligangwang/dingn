@@ -1,4 +1,10 @@
 import { handleApi } from "./api.mjs";
+import { gameRoutes, handleGameApi } from "./game-api.mjs";
+// A failed background call in the XP API (for example missing Google
+// credentials) must never take the website down with it.
+process.on("unhandledRejection", (error) => {
+  console.error("unhandled rejection", error);
+});
 import http from "node:http";
 import https from "node:https";
 import { createReadStream, existsSync, statSync } from "node:fs";
@@ -20,6 +26,10 @@ const types = {
 http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
+    if (gameRoutes.includes(pathname)) {
+      void handleGameApi(req, res, pathname);
+      return;
+    }
     if (pathname.startsWith("/api/")) {
       void handleApi(req, res);
       return;
