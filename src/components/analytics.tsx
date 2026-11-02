@@ -11,8 +11,15 @@ export function Analytics() {
   const pathname = usePathname();
   const [choice, setChoice] = useState<AnalyticsConsent>(null);
   const [ready, setReady] = useState(false);
-  const [editing, setEditing] = useState(false);
   useEffect(() => {
+    if (window.location.pathname.replace(/\/$/, "") === "/opt-out") {
+      try { localStorage.setItem(consentKey, "denied"); } catch {}
+      setChoice("denied");
+      syncAnalytics("denied", "/opt-out/");
+      clearAnalyticsCookies();
+      setReady(true);
+      return;
+    }
     try {
       const saved = localStorage.getItem(consentKey);
       if (saved === "granted" || saved === "denied") setChoice(saved);
@@ -27,7 +34,7 @@ export function Analytics() {
   }, []);
   useEffect(() => {
     if (ready) {
-      syncAnalytics(choice, pathname);
+      syncAnalytics(pathname.replace(/\/$/, "") === "/opt-out" ? "denied" : choice, pathname);
       if (choice === "denied") clearAnalyticsCookies();
     }
   }, [choice, pathname, ready]);
@@ -38,14 +45,10 @@ export function Analytics() {
       localStorage.setItem(consentKey, value);
     } catch {}
     setChoice(value);
-    setEditing(false);
   }
   return (
     <>
-      <button className="analytics-settings" onClick={() => setEditing(true)}>
-        Analytics preferences
-      </button>
-      {ready && (choice === null || editing) && (
+      {ready && choice === null && pathname.replace(/\/$/, "") !== "/opt-out" && (
         <section
           className="analytics-choice"
           aria-label="Analytics preferences"
