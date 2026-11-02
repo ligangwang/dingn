@@ -2,7 +2,7 @@ import React from "react";
 import { afterEach, expect, test } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MindGame } from "../src/components/mind-game";
+import { MindGame, starsFor } from "../src/components/mind-game";
 afterEach(cleanup);
 test("logic rounds lock answers, explain mistakes, and reset the score", async () => {
   const user = userEvent.setup();
@@ -19,8 +19,9 @@ test("logic rounds lock answers, explain mistakes, and reset the score", async (
   }
   await user.click(screen.getByRole("button", { name: /See results/ }));
   expect(screen.getByRole("status").textContent).toContain("3 of 4");
+  expect(screen.getByRole("img", { name: "2 of 3 stars" })).toBeTruthy();
   await user.click(screen.getByRole("button", { name: "Play again" }));
-  expect(screen.getByText("0 POINTS")).toBeTruthy();
+  expect(screen.getByText("0 points")).toBeTruthy();
 });
 test("decision answers change with the objective and complete a session", async () => {
   const user = userEvent.setup();
@@ -36,4 +37,13 @@ test("decision answers change with the objective and complete a session", async 
     );
   }
   expect(screen.getByRole("status").textContent).toContain("4 of 4");
+  expect(screen.getByText("Flawless run!")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Try logic lab/ })).toBeTruthy();
+});
+test("score labels are singular for one point and stars reward accuracy", async () => {
+  const user = userEvent.setup();
+  render(<MindGame mode="logic" />);
+  await user.click(screen.getByRole("button", { name: "48" }));
+  expect(screen.getByText("1 point")).toBeTruthy();
+  expect([4, 3, 2, 1, 0].map((n) => starsFor(n, 4))).toEqual([3, 2, 1, 1, 0]);
 });

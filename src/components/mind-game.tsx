@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { StarIcon } from "./icons";
 const games = {
   logic: [
     {
@@ -69,23 +70,31 @@ const games = {
     },
   ],
 };
+const points = (n: number) => `${n} ${n === 1 ? "point" : "points"}`;
+// Three stars for a perfect run, two for one miss, one for any correct answer.
+export function starsFor(score: number, total: number) {
+  return score === total ? 3 : score === total - 1 ? 2 : score > 0 ? 1 : 0;
+}
 export function MindGame({ mode }: { mode: keyof typeof games }) {
   const rounds = games[mode];
   const [round, setRound] = useState(0),
     [choice, setChoice] = useState<number | null>(null),
-    [score, setScore] = useState(0);
+    [results, setResults] = useState<boolean[]>([]);
+  const score = results.filter(Boolean).length;
   const done = round === rounds.length;
   const game = rounds[Math.min(round, rounds.length - 1)];
   function choose(index: number) {
     if (choice !== null) return;
     setChoice(index);
-    if (index === game.answer) setScore((s) => s + 1);
+    setResults((r) => [...r, index === game.answer]);
   }
   function restart() {
     setRound(0);
     setChoice(null);
-    setScore(0);
+    setResults([]);
   }
+  const stars = starsFor(score, rounds.length);
+  const other = mode === "logic" ? "decisions" : "logic";
   return (
     <div className="mind-page container">
       <Link href="/">← All games</Link>
@@ -102,32 +111,81 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
       </p>
       <section className="mind-panel" aria-label="Game round">
         {done ? (
-          <>
-            <span className="arena-symbol">✦</span>
-            <h2>Round complete!</h2>
+          <div className="game-over">
+            <div
+              className="star-row"
+              role="img"
+              aria-label={`${stars} of 3 stars`}
+            >
+              {[0, 1, 2].map((i) => (
+                <StarIcon
+                  key={i}
+                  className={`star ${i < stars ? "earned" : ""}`}
+                />
+              ))}
+            </div>
+            <p className="final-score">
+              {score}
+              <span>/{rounds.length}</span>
+            </p>
+            <h2>
+              {stars === 3
+                ? "Flawless run!"
+                : stars === 2
+                  ? "Sharp thinking!"
+                  : "Round complete!"}
+            </h2>
             <p role="status">
               {score} of {rounds.length} answers matched the goal.
             </p>
-            <p>
+            <p className="game-over-hint">
               Explore the explanations and try a different approach next time.
             </p>
-            <button className="button" onClick={restart}>
-              Play again
-            </button>
-          </>
+            <div className="game-over-actions">
+              <button className="button" onClick={restart}>
+                Play again
+              </button>
+              <Link className="secondary-button" href={`/${other}/`}>
+                Try {other === "logic" ? "logic lab" : "decision room"} →
+              </Link>
+            </div>
+          </div>
         ) : (
           <>
-            <div className="round-meta">
-              <span>
-                ROUND {round + 1} / {rounds.length}
-              </span>
-              <span>{score} POINTS</span>
+            <div className="game-hud">
+              <div className="round-pips">
+                <span className="hud-label">
+                  Round {round + 1} of {rounds.length}
+                </span>
+                <ol aria-hidden="true">
+                  {rounds.map((_, i) => (
+                    <li
+                      key={i}
+                      className={
+                        i < results.length
+                          ? results[i]
+                            ? "hit"
+                            : "miss"
+                          : i === round
+                            ? "current"
+                            : ""
+                      }
+                    />
+                  ))}
+                </ol>
+              </div>
+              <p className="hud-score">
+                <strong key={score} aria-hidden="true">
+                  {score}
+                </strong>
+                <span aria-hidden="true">
+                  {score === 1 ? "point" : "points"}
+                </span>
+                <span className="sr-only" aria-live="polite">
+                  {points(score)}
+                </span>
+              </p>
             </div>
-            <progress
-              value={round}
-              max={rounds.length}
-              aria-label="Rounds completed"
-            />
             <h2>{game.title}</h2>
             <p className="round-prompt">{game.prompt}</p>
             <div className="round-options">
@@ -135,7 +193,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
                 <button
                   key={option}
                   disabled={choice !== null}
-                  className={`round-option ${choice === i ? "picked" : ""} ${choice !== null && i === game.answer ? "correct" : ""}`}
+                  className={`round-option ${choice === i ? "picked" : ""} ${choice !== null && i === game.answer ? "correct" : ""} ${choice === i && i !== game.answer ? "wrong" : ""}`}
                   onClick={() => choose(i)}
                 >
                   {option}

@@ -30,7 +30,7 @@ export function AdminFeedback() {
         <section className="panel signin-panel">
           <h1>Admin access required</h1>
           <p>Your account does not have permission to view feedback.</p>
-          <Link href="/">Back to practices</Link>
+          <Link href="/">Back to games</Link>
         </section>
       </div>
     );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { WarmUp } from "@/components/warm-up";
+import { DecisionIcon, LogicIcon, MemoryIcon } from "@/components/icons";
 export default function Home() {
   return (
     <div className="mind-home container">
@@ -41,34 +42,34 @@ export default function Home() {
         </div>
         <div className="arena-grid">
           <a href="#warm-up" className="arena memory-arena">
-            <span className="arena-symbol">✦</span>
+            <MemoryIcon className="arena-symbol" />
             <p className="eyebrow">01 / MEMORY</p>
             <h2>Make it stick.</h2>
             <p>
               Catch a sequence. Hold it in your head. Recall it before it slips
               away.
             </p>
-            <strong>Play memory sprint ↗</strong>
+            <strong>Try the 3-second warm-up ↓</strong>
           </a>
           <Link href="/logic/" className="arena logic-arena">
-            <span className="arena-symbol">◈</span>
+            <LogicIcon className="arena-symbol" />
             <p className="eyebrow">02 / LOGIC</p>
             <h2>Crack the pattern.</h2>
             <p>
               Connect the clues and put your reasoning to work in four quick
               puzzles.
             </p>
-            <strong>Enter logic lab ↗</strong>
+            <strong>Play logic lab →</strong>
           </Link>
           <Link href="/decisions/" className="arena decision-arena">
-            <span className="arena-symbol">↗</span>
+            <DecisionIcon className="arena-symbol" />
             <p className="eyebrow">03 / DECISIONS</p>
             <h2>Choose your move.</h2>
             <p>
               Weigh the odds, work with a budget, and discover why the goal
               matters.
             </p>
-            <strong>Play decision room ↗</strong>
+            <strong>Play decision room →</strong>
           </Link>
         </div>
       </section>

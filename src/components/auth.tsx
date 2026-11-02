@@ -35,11 +35,14 @@ export function SignIn() {
           ✦
         </div>
         <h1>
-          A little practice
+          Save your progress.
           <br />
-          starts here.
+          Unlock the memory labs.
         </h1>
-        <p>Sign in to explore words, numbers, and playing cards with dingn.</p>
+        <p>
+          Sign in to play the number, word, and card labs and keep your favorite
+          associations.
+        </p>
         <button
           className="google-button"
           onClick={submit}
@@ -56,7 +59,7 @@ export function SignIn() {
           </p>
         )}
         <Link className="quiet-link" href="/">
-          Back to practices
+          Back to games
         </Link>
       </section>
     </div>
@@ -73,7 +76,7 @@ export function AuthGate({
   if (!ready)
     return (
       <div className="center-page">
-        <p role="status">Getting your practice ready…</p>
+        <p role="status">Getting your game ready…</p>
       </div>
     );
   if (!user)
@@ -83,16 +86,18 @@ export function AuthGate({
           <div className="round-icon" aria-hidden="true">
             ✦
           </div>
-          <h1>Your next practice awaits.</h1>
-          <p>Sign in with your existing dingn account to continue.</p>
+          <h1>This lab saves your progress.</h1>
+          <p>
+            Sign in with Google to play and keep your favorite associations.
+          </p>
           <Link
             className="button"
             href={`/signin/?next=${encodeURIComponent(returnTo)}`}
           >
-            Sign in to practice
+            Sign in to play
           </Link>
           <Link className="quiet-link" href="/">
-            Back to practices
+            Back to games
           </Link>
         </section>
       </div>

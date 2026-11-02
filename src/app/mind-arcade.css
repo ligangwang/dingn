@@ -8,6 +8,21 @@
   --sage: #202b20;
   --peach: #36291f;
   --lavender: #29233d;
+  --success: #3ddc97;
+  --danger: #ff7a6b;
+  --display: var(--font-display), "Open Sans", Arial, sans-serif;
+}
+h1,
+h2,
+h3,
+.brand,
+.final-score,
+.hud-score strong {
+  font-family: var(--display);
+}
+h1,
+h2 {
+  letter-spacing: -0.03em;
 }
 body {
   background:
@@ -49,10 +64,8 @@ select {
   padding: 75px 0 64px;
 }
 .mind-hero h1 {
-  font:
-    800 clamp(38px, 4.8vw, 68px)/1.06 Arial,
-    sans-serif;
-  letter-spacing: -2.5px;
+  font: 700 clamp(38px, 4.8vw, 68px)/1.06 var(--display);
+  letter-spacing: -0.04em;
 }
 .mind-hero h1 span {
   color: #d5ff58;
@@ -63,9 +76,10 @@ select {
   color: #b7bdd1;
 }
 .eyebrow {
-  font-size: 11px;
-  letter-spacing: 2px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
   font-weight: 700;
+  color: #c5cadb;
 }
 .hero-caption {
   color: #a0a6b9;
@@ -84,6 +98,17 @@ select {
 .mind-art img {
   width: 65%;
   filter: drop-shadow(0 20px 35px #b5ed4930);
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes float {
+  50% {
+    translate: 0 -10px;
+  }
+}
+@keyframes bob {
+  50% {
+    translate: 0 -6px;
+  }
 }
 .orbit-label {
   position: absolute;
@@ -106,6 +131,7 @@ select {
   background: #d5ff58;
   transform: rotate(-12deg);
   font-size: 24px;
+  animation: bob 5s ease-in-out infinite;
 }
 .chip-two {
   right: -10px;
@@ -113,6 +139,7 @@ select {
   background: #bdaaff;
   transform: rotate(9deg);
   font-size: 12px;
+  animation: bob 5s ease-in-out 1.2s infinite;
 }
 .chip-three {
   bottom: 30px;
@@ -120,6 +147,7 @@ select {
   background: #ffc49d;
   transform: rotate(-6deg);
   font-size: 12px;
+  animation: bob 5s ease-in-out 2.4s infinite;
 }
 .mind-heading {
   display: flex;
@@ -150,17 +178,24 @@ select {
   flex-direction: column;
   transition:
     transform 0.2s,
-    border-color 0.2s;
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 .arena:hover {
   transform: translateY(-5px);
   border-color: #d5ff58;
+  box-shadow:
+    0 18px 40px #0006,
+    0 0 32px #d5ff5822;
 }
 .arena-symbol {
-  font-size: 55px;
-  line-height: 1.2;
+  font-size: 48px;
   display: block;
   margin-bottom: 28px;
+  transition: transform 0.25s;
+}
+.arena:hover .arena-symbol {
+  transform: scale(1.1) rotate(-6deg);
 }
 .arena h2 {
   font-size: 26px;
@@ -292,18 +327,69 @@ select {
   padding: 32px;
   margin-top: 28px;
 }
-.round-meta {
+.game-hud {
   display: flex;
   justify-content: space-between;
-  color: #b8c0d7;
-  font-size: 11px;
-  letter-spacing: 2px;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 22px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid #343b50;
 }
-.mind-panel progress {
-  width: 100%;
-  height: 5px;
-  accent-color: #d5ff58;
-  margin: 18px 0 30px;
+.hud-label {
+  display: block;
+  color: #c5cadb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.round-pips ol {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.round-pips li {
+  width: 34px;
+  height: 8px;
+  border-radius: 8px;
+  background: #343b50;
+  transition: background 0.3s;
+}
+.round-pips li.current {
+  background: #6d7590;
+  box-shadow: 0 0 0 2px #d5ff5855;
+}
+.round-pips li.hit {
+  background: var(--success);
+}
+.round-pips li.miss {
+  background: var(--danger);
+}
+.hud-score {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #c5cadb;
+  font-size: 13px;
+}
+.hud-score strong {
+  font-size: 40px;
+  line-height: 1;
+  color: #d5ff58;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+  animation: pop 0.45s ease-out;
+}
+@keyframes pop {
+  0% {
+    transform: scale(1.6);
+    text-shadow: 0 0 24px #d5ff58;
+  }
 }
 .round-prompt {
   font-size: 18px;
@@ -321,9 +407,16 @@ select {
   color: #f3f4f8;
   border: 1px solid #59627a;
   border-radius: 12px;
+  font-size: 15px;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    background 0.15s;
 }
 .round-option:hover:not(:disabled) {
   border-color: #d5ff58;
+  transform: translateX(4px);
+  background: #2f364c;
 }
 .round-option:disabled {
   opacity: 1;
@@ -332,8 +425,103 @@ select {
   outline: 2px solid #bdaaff;
 }
 .round-option.correct {
-  border-color: #d5ff58;
-  background: #293b26;
+  border-color: var(--success);
+  background: #193a31;
+  outline-color: var(--success);
+  box-shadow: 0 0 24px #3ddc9733;
+  animation: correct 0.5s ease-out;
+}
+.round-option.wrong {
+  border-color: var(--danger);
+  background: #3a2226;
+  outline-color: var(--danger);
+  animation: shake 0.4s;
+}
+@keyframes correct {
+  40% {
+    transform: scale(1.025);
+  }
+}
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+.round-explanation {
+  animation: rise 0.3s ease-out;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+.game-over {
+  text-align: center;
+  padding: 12px 0;
+  animation: rise 0.4s ease-out;
+}
+.star-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-size: 44px;
+  color: #3d445a;
+}
+.star.earned {
+  color: #d5ff58;
+  fill: #d5ff58;
+  animation: star-in 0.5s ease-out backwards;
+}
+.star.earned:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.star.earned:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes star-in {
+  from {
+    transform: scale(0) rotate(-90deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.25);
+  }
+}
+.final-score {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  margin: 18px 0 6px;
+  color: #f3f4f8;
+}
+.final-score span {
+  font-size: 30px;
+  color: #8b92a8;
+}
+.game-over-hint {
+  color: #b8c0d7;
+}
+.game-over-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.game-over-actions .secondary-button {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+nav .nav-icon {
+  width: 18px;
+  height: 18px;
 }
 .round-explanation {
   border-top: 1px solid #48526a;
@@ -391,6 +579,62 @@ select {
     padding-right: 18px;
   }
 }
+@media (max-width: 760px) {
+  .mind-art {
+    min-height: 200px;
+    width: min(240px, 70%);
+  }
+  .mind-art .orbit-label {
+    display: none;
+  }
+  .art-chip {
+    padding: 8px 12px;
+  }
+  .chip-one {
+    font-size: 18px;
+    top: 30px;
+  }
+  .chip-two {
+    top: 70px;
+  }
+  .chip-three {
+    bottom: 10px;
+  }
+  .final-score {
+    font-size: 56px;
+  }
+}
+@media (max-width: 520px) {
+  nav > a:not(.button):not(.account-link) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 8px;
+  }
+  nav .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+  nav .nav-label {
+    display: block;
+    font-size: 10px;
+    line-height: 1;
+  }
+  nav .button.small {
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+  .game-hud {
+    align-items: flex-end;
+  }
+  .round-pips li {
+    width: 24px;
+  }
+  .hud-score strong {
+    font-size: 32px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -400,6 +644,15 @@ select {
   }
   .arena:hover {
     transform: none;
+  }
+  .mind-art img,
+  .art-chip,
+  .hud-score strong,
+  .round-option,
+  .star.earned,
+  .game-over,
+  .round-explanation {
+    animation: none;
   }
 }
 .google-button {
