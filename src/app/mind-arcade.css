@@ -402,3 +402,24 @@ select {
     transform: none;
   }
 }
+.google-button {
+  background: #f3f4f8;
+  color: #202735;
+}
+input:not([type="radio"]),
+.word-choices button,
+.practice-link {
+  background: #1b2030;
+  color: #f3f4f8;
+}
+.tile,
+.skip-link {
+  color: #202735;
+}
+.button:hover {
+  background: #bedf58;
+  color: #172013;
+}
+.account-link {
+  color: #172013;
+}

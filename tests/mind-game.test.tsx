@@ -27,9 +27,7 @@ test("decision answers change with the objective and complete a session", async 
   render(<MindGame mode="decisions" />);
   const answers = ["Route B", "Route A", "Two scanners", "Take the new path"];
   for (let i = 0; i < answers.length; i++) {
-    await user.click(
-      screen.getByRole("button", { name: answers[i] }),
-    );
+    await user.click(screen.getByRole("button", { name: answers[i] }));
     expect(screen.getByRole("status").textContent).toContain("You found it.");
     await user.click(
       screen.getByRole("button", {
