@@ -31,10 +31,29 @@ Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project 
 - `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
 - `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
 - `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.
-- `/account/`: display name, training/recall preference, and sign-out.
+- `/account/`: display name, training/recall preference, Dingn Premium, and sign-out.
 - `/signin/`: Google sign-in with a validated return destination.
 
 The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_favorites/{uid}-{number}` collections and field names are preserved. Writes merge only the supported fields. User accounts do not need to be imported or recreated. Security remains enforced by the existing Firebase Authentication and Firestore rules; no rules or indexes were changed by the migration.
+
+## Premium payments (Stripe)
+
+`/account/` shows a Dingn Premium panel. Players upgrade through Stripe Checkout and manage or cancel through the Stripe customer portal. Billing runs through Firebase's official [Run Payments with Stripe](https://extensions.dev/extensions/invertase/firestore-stripe-payments) extension, so the website holds no Stripe keys.
+
+- `scripts/billing.mjs` serves `/api/billing/prices`, `/checkout`, `/portal` and `/status` on the same Node server as `/api/auth/*`, with the same origin, cookie and size checks. Like `/api/data`, it calls Firestore and the extension with the player's own ID token, so `firestore.rules` still decide access.
+- The extension syncs Stripe products and prices into `products`. The panel offers the active recurring prices of the active product whose Stripe metadata has `firebaseRole: premium`. One-time prices are ignored, because the extension only sets the premium claim for subscriptions. Checkout also rejects any price outside that list.
+- Checkout creates `customers/{uid}/checkout_sessions/{id}` and waits up to 20 seconds for the extension to write back the Stripe URL.
+- For subscriptions, the extension sets the custom claim `stripeRole: "premium"`. The session's `user.isPremium` reads that claim; use it to unlock premium features. Players cannot set custom claims or write their billing records (see `firestore.rules`; tests in `tests/billing-rules.test.mjs`).
+- If no premium product is active, the panel says Premium isn't available yet, so this code can ship before Stripe is set up.
+
+One-time setup (project owner):
+
+1. In Stripe, create the product **Dingn Premium** with metadata `firebaseRole` = `premium`, and add its prices. Enable the [customer portal](https://dashboard.stripe.com/settings/billing/portal) with cancellation allowed.
+2. Create a Stripe restricted key with the permissions listed by the extension, then install the extension in `dingn-193716`: `firebase ext:install invertase/firestore-stripe-payments --project dingn-193716`. Use location `us-central1`, products collection `products`, customer collection `customers`, and sync new users `Do not sync`.
+3. Add the extension's `ext-firestore-stripe-payments-handleWebhookEvents` URL as a Stripe webhook endpoint with the events the extension lists, then reconfigure the extension with the webhook signing secret. Both keys are stored in Secret Manager by the extension, never in this repository.
+4. Deploy rules: `firebase deploy --only firestore:rules --project dingn-193716`.
+
+Test end to end with Stripe test-mode keys and card `4242 4242 4242 4242` before switching the extension to live keys.
 
 ## Hosting and cutover
 
