@@ -4,7 +4,7 @@ export default function NotFound() {
     <div className="center-page">
       <section className="signin-panel panel">
         <h1>This page wandered off.</h1>
-        <p>Let’s get back to your memory practice.</p>
+        <p>Let’s get you back to the games.</p>
         <Link className="button" href="/">
           Back to dingn
         </Link>

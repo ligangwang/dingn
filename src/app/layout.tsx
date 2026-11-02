@@ -3,15 +3,16 @@ import { SessionProvider } from "@/components/session";
 import { Header } from "@/components/header";
 import { LegacyRoutes } from "@/components/legacy-routes";
 import { Analytics } from "@/components/analytics";
+import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import "./mind-arcade.css";
 export const metadata: Metadata = {
   title: {
-    default: "Dingn — Memory, Logic & Decisions",
+    default: "dingn — Memory, Logic & Decisions",
     template: "%s · dingn",
   },
   description:
-    "Play memory challenges, logic puzzles, and decision-making games in the Dingn mind arcade.",
+    "Play memory challenges, logic puzzles, and decision-making games in the dingn mind arcade.",
   icons: { icon: "/dingn-mark.svg" },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {

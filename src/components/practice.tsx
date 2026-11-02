@@ -35,7 +35,7 @@ export function Practice({ mode }: { mode: Mode }) {
         <div className="practice-heading">
           <div>
             <Link className="back-link" href="/">
-              ← All practices
+              ← All games
             </Link>
             <h1>{titles[mode]}</h1>
             <p className="lede">
