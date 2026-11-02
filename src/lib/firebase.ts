@@ -1,6 +1,5 @@
 import { getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 // Public web configuration for the existing dingn project. Access is enforced by Firebase rules.
 export function firebase() {
   const app =
@@ -21,5 +20,5 @@ export function firebase() {
       },
       "dingn",
     );
-  return { auth: getAuth(app), db: getFirestore(app) };
+  return { auth: getAuth(app) };
 }

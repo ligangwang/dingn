@@ -6,7 +6,8 @@ const sdk = vi.hoisted(() => ({
   getDoc: vi.fn(),
 }));
 vi.mock("../src/lib/firebase", () => ({ firebase: () => ({ db: {} }) }));
-vi.mock("firebase/firestore", () => ({
+vi.mock("../src/lib/database", () => ({
+  database: {},
   ...sdk,
   collection: (_db: unknown, name: string) => name,
   doc: (_db: unknown, name: string, id: string) => `${name}/${id}`,
