@@ -932,3 +932,34 @@ input[type="radio"] {
     animation: none !important;
   }
 }
+.email-signin {
+  display: grid;
+  gap: 0.8rem;
+  text-align: left;
+  margin-top: 1.5rem;
+}
+.email-signin input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border, #36404e);
+  border-radius: 10px;
+  background: #151b25;
+  color: #f5f7fa;
+  font: inherit;
+}
+.email-signin input:focus-visible {
+  outline: 2px solid #d6ff52;
+  outline-offset: 2px;
+}
+.email-signin .quiet-link {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+}
+.signin-divider {
+  text-align: center;
+  margin: 1rem 0;
+}

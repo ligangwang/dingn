@@ -94,3 +94,35 @@ Production uses Cloud Run. `scripts/preview.mjs` transparently forwards GET/POST
 Visit `/opt-out/` to persist analytics denial, including after consent was previously granted. There is no footer analytics-preferences link.
 
 Make production changes on a branch and open a PR against `main` (the repository’s main/default branch). The Website workflow validates PRs. Merging to `main` runs validation and deploys an immutable container image to `dingn-web` through GitHub OIDC. Do not deploy local source directly as the normal release workflow.
+
+## Email/password authentication
+
+The production Node server (`scripts/preview.mjs` + `scripts/api.mjs`) handles
+same-origin `/api/auth/*` and `/api/data` requests. Email/password signup, login,
+session restore/renewal, and Firestore access never initialize the browser Firebase
+SDK. The SDK is dynamically loaded only after an explicit Google sign-in click.
+Google sign-in still requires Google access.
+
+Firebase remains the backend identity and data provider. The server exchanges
+passwords and refresh tokens with Firebase over TLS. A seven-day rolling,
+HttpOnly, Secure, SameSite=Lax, host-only cookie holds the refresh token in
+production; tokens are not returned to browser JavaScript or stored in localStorage.
+All API calls require POST, an allowlisted Origin, JSON, and a custom header.
+Requests are size-limited and upstream calls time out. Auth has a per-instance
+burst cap in addition to Firebase account/project quotas; it is not a distributed
+rate limiter. Firestore receives the user's ID token, not a service-account token,
+so existing Firestore rules continue to apply, including private admin feedback.
+No new runtime IAM permissions or service-account keys are needed.
+
+Use `npm run build` then `npm run preview` on `http://127.0.0.1:3001` to test
+end-to-end auth locally. `next dev` alone serves the UI but not the Node API.
+Production uses the Dockerfile and the PR → main → Cloud Run workflow.
+Previously persisted Firebase browser sessions require one new sign-in when
+switching to this server-session implementation. Accounts that only have Google
+credentials still need Google sign-in; this change does not assign them passwords.
+Password recovery and email verification screens are not part of this change.
+
+GA4 remains opt-in and independent of authentication. Use `/opt-out/` when testing.
+Removing direct browser calls to Google/Firebase does not establish that Cloud Run
+itself is reachable from every mainland China network; test that from the target
+networks separately.

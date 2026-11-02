@@ -130,6 +130,14 @@ export function friendlyError(error: unknown): string {
     error && typeof error === "object" && "code" in error
       ? String(error.code)
       : "";
+  if (code.includes("invalid-credential") || code.includes("sign-in-required"))
+    return "Check your email and password, then try signing in again.";
+  if (code.includes("email-already-in-use"))
+    return "Unable to create this account. Try signing in instead.";
+  if (code.includes("weak-password"))
+    return "Choose a stronger password with at least 8 characters.";
+  if (code.includes("too-many-requests"))
+    return "Too many attempts. Please wait a minute and try again.";
   if (code.includes("popup-closed") || code.includes("cancelled-popup"))
     return "Sign-in was cancelled. You can try again when you’re ready.";
   if (code.includes("popup-blocked"))
