@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useXpPlay, XpSummary } from "./xp";
 
 export function WarmUp() {
   const [phase, setPhase] = useState<
@@ -8,6 +9,8 @@ export function WarmUp() {
   const [sequence, setSequence] = useState("");
   const [answer, setAnswer] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  const xp = useXpPlay<{ digits: string }>("warmup");
+  const [starting, setStarting] = useState(false);
   useEffect(() => {
     if (phase !== "memorize") return;
     const timer = window.setTimeout(() => setPhase("recall"), 3000);
@@ -16,15 +19,22 @@ export function WarmUp() {
   useEffect(() => {
     if (phase === "recall") input.current?.focus();
   }, [phase]);
-  function start() {
+  async function start() {
+    setStarting(true);
+    // Signed-in players get digits from the server, which scores the answer.
+    const challenge = await xp.begin();
+    setStarting(false);
     const values = crypto.getRandomValues(new Uint32Array(3));
-    setSequence(Array.from(values, (n) => n % 10).join(""));
+    setSequence(
+      challenge?.digits ?? Array.from(values, (n) => n % 10).join(""),
+    );
     setAnswer("");
     setPhase("memorize");
   }
   function submit(event: FormEvent) {
     event.preventDefault();
     setPhase("result");
+    void xp.submit(answer);
   }
   return (
     <section className="warmup" aria-label="Quick memory warm-up">
@@ -78,6 +88,11 @@ export function WarmUp() {
                     ? "That’s a good memory moment."
                     : `The sequence was ${sequence}. You entered ${answer}.`}
                 </p>
+                <XpSummary
+                  outcome={xp.outcome}
+                  signedIn={xp.signedIn}
+                  returnTo="/"
+                />
               </>
             )}
           </div>
@@ -103,7 +118,7 @@ export function WarmUp() {
             </form>
           )}
           {(phase === "ready" || phase === "result") && (
-            <button className="button" onClick={start}>
+            <button className="button" onClick={start} disabled={starting}>
               {phase === "ready" ? "Let’s play" : "Play again"}{" "}
               <span aria-hidden="true">→</span>
             </button>

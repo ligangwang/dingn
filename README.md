@@ -73,7 +73,7 @@ The existing GA4 property `dingn` (168897915), web stream `dingn-web` (172716056
 
 Analytics loads only after a visitor allows it through the footer preferences, and only on `dingn.com` or `www.dingn.com`. Declining stops collection and clears Analytics cookies. Local previews and Cloud Run URLs do not collect visits. Public home, practice, sign-in, and feedback page views use fixed titles and paths without query strings or fragments. Account and admin pages are excluded; names, emails, user IDs, searches, and feedback contents are never included in event parameters. Advertising signals are disabled. Enhanced measurement is disabled in the stream to avoid duplicate history events and automatic form/search collection.
 
-After deployment, allow Analytics on dingn.com and open GA's Realtime report to verify page views. Counts cover consenting visitors whose browsers allow Analytics, not all registered users.
+Analytics runs by default with no consent banner. After deployment, open GA's Realtime report to verify page views. Counts cover visitors who have not opted out and whose browsers allow Analytics.
 
 ## Flutter reference and rollback
 
@@ -110,7 +110,7 @@ Memory Sprint, Logic Lab (`/logic/`), and Decision Room (`/decisions/`) are publ
 
 Production uses Cloud Run. `scripts/preview.mjs` transparently forwards GET/POST/HEAD requests under `/__/auth/` to the fixed Firebase Authentication helper host with HTTPS verification, while the client retains `authDomain: dingn.com`. Google OAuth must authorize `https://dingn.com/__/auth/handler`. Firebase Hosting stays disabled; reserved authentication helper endpoints still work.
 
-Visit `/opt-out/` to persist analytics denial, including after consent was previously granted. There is no footer analytics-preferences link.
+Visit `/opt-out/` to persist analytics denial in that browser. There is no consent banner and no footer analytics-preferences link.
 
 Make production changes on a branch and open a PR against `main` (the repository’s main/default branch). The Website workflow validates PRs. Merging to `main` runs validation and deploys an immutable container image to `dingn-web` through GitHub OIDC. Do not deploy local source directly as the normal release workflow.
 
@@ -145,3 +145,27 @@ GA4 remains opt-in and independent of authentication. Use `/opt-out/` when testi
 Removing direct browser calls to Google/Firebase does not establish that Cloud Run
 itself is reachable from every mainland China network; test that from the target
 networks separately.
+
+## XP and leaderboard
+
+Signed-in players earn XP for the warm-up, Logic and Decisions games. The browser never writes XP. Instead, `scripts/game-api.mjs` runs inside the website server and uses the Firebase Admin SDK:
+
+- `POST /api/play/start` reads the player from the dingn session cookie (verified with the Admin SDK) and creates a single-use `plays/{id}` record. The server generates the warm-up digits.
+- `POST /api/play/finish` grades the raw answers against the server's own answer key (`src/data/mind-games.json`). Before it awards XP in a transaction, it checks:
+  - that the play belongs to this player and hasn't already been scored
+  - the minimum play time and the 30-minute expiry
+  - the hourly start limit and the daily XP cap
+- `POST /api/me` and `POST /api/leaderboard` return a player's level and the top 10. The leaderboard shows nicknames or first names only.
+
+`firestore.rules` denies all browser access to `players` and `plays`. The scoring rules live in `scripts/game-core.mjs` and are covered by `tests/game-core.test.ts`.
+
+One-time setup as the project owner, before the first release that includes XP:
+
+```sh
+firebase deploy --only firestore:rules --project dingn-193716
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member serviceAccount:dingn-web-runtime@dingn-193716.iam.gserviceaccount.com \
+  --role roles/datastore.user
+```
+
+Until the IAM binding exists, the games still work, but XP reports "unavailable".

@@ -11,3 +11,9 @@
 !public/**
 !scripts/
 !scripts/preview.mjs
+!scripts/game-api.mjs
+!scripts/game-core.mjs
+!server/
+!server/package.json
+!server/package-lock.json
+!scripts/api.mjs

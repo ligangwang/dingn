@@ -36,3 +36,20 @@ test("client navigation to opt-out persists denial before tracking that route", 
     screen.queryByRole("button", { name: "Analytics preferences" }),
   ).toBeNull();
 });
+
+test("analytics runs by default with no consent banner", async () => {
+  mock.pathname = "/";
+  render(<Analytics />);
+  await waitFor(() => expect(mock.sync).toHaveBeenCalledWith("granted", "/"));
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(screen.queryByLabelText("Analytics preferences")).toBeNull();
+});
+
+test("a browser that opted out stays opted out", async () => {
+  localStorage.setItem("dingn.analytics-consent.v1", "denied");
+  mock.pathname = "/";
+  render(<Analytics />);
+  await waitFor(() => expect(mock.sync).toHaveBeenCalledWith("denied", "/"));
+  expect(mock.sync).not.toHaveBeenCalledWith("granted", "/");
+  expect(mock.clear).toHaveBeenCalled();
+});

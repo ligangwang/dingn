@@ -1,0 +1,9 @@
+{
+  "name": "dingn-web-server",
+  "private": true,
+  "description": "Runtime dependencies for scripts/preview.mjs and the XP API (installed in the Docker runtime image).",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "14.5.0"
+  }
+}

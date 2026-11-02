@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
 import { DecisionIcon, LogicIcon, MailIcon, MemoryIcon } from "./icons";
+import { LevelBadge } from "./xp";
 export function Header() {
   const path = usePathname();
   const { user, ready, profile, isAdmin } = useSession();
@@ -34,6 +35,7 @@ export function Header() {
             <span className="nav-label">{label}</span>
           </Link>
         ))}
+        {ready && user && <LevelBadge />}
         {ready && user ? (
           <Link
             className="account-link"

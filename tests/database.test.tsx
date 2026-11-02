@@ -18,10 +18,12 @@ it("keeps Firestore cursor wire types, document tiebreaker and timestamp decodin
     createdAt: { timestampValue: "2026-11-02T10:00:00Z" },
     message: { stringValue: "Hello" },
   };
-  const fetcher = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => [{ document: { name, fields } }],
-  });
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue({
+      ok: true,
+      json: async () => [{ document: { name, fields } }],
+    });
   vi.stubGlobal("fetch", fetcher);
   const first = await getDocs(
     query(

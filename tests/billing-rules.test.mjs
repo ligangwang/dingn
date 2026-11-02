@@ -121,3 +121,10 @@ it("keeps legacy collections writable by signed-in players", async () => {
     setDoc(doc(alice, "accounts", "alice"), { user_name: "A" }),
   );
 });
+
+it("keeps server-owned XP collections closed to players", async () => {
+  const alice = env.authenticatedContext("alice").firestore();
+  await assertFails(setDoc(doc(alice, "players", "alice"), { xp: 999999 }));
+  await assertFails(getDoc(doc(alice, "players", "alice")));
+  await assertFails(setDoc(doc(alice, "plays", "p1"), { uid: "alice" }));
+});

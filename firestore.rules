@@ -1,10 +1,11 @@
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Preserve existing collection access, excluding private feedback and
-    // the Stripe billing collections managed by the payments extension.
+    // Preserve existing collection access, excluding private feedback,
+    // server-owned game data, and the Stripe billing collections managed by
+    // the payments extension.
     match /{collection}/{document=**} {
       allow read, write: if request.auth != null
-        && !(collection in ['feedback', 'customers', 'products']);
+        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products']);
     }
     // Run Payments with Stripe: players read their own billing records and may
     // only create checkout sessions. Everything else is written by the extension.
@@ -33,6 +34,14 @@ service cloud.firestore {
       match /tax_rates/{rate} {
         allow read: if true;
       }
+    }
+    // XP, levels and plays are written only by the dingn server (Admin SDK),
+    // which scores every game itself. Browsers cannot read or write them.
+    match /players/{id} {
+      allow read, write: if false;
+    }
+    match /plays/{id} {
+      allow read, write: if false;
     }
     match /feedback/{id} {
       allow create: if request.auth != null

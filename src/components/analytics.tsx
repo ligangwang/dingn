@@ -7,79 +7,42 @@ import {
   syncAnalytics,
   type AnalyticsConsent,
 } from "@/lib/analytics";
+
+const isOptOut = (path: string) => path.replace(/\/$/, "") === "/opt-out";
+
+/**
+ * Google Analytics runs by default. Visiting /opt-out stores a denial in this
+ * browser, which turns it off and clears the GA cookies from then on.
+ */
 export function Analytics() {
   const pathname = usePathname();
   const [choice, setChoice] = useState<AnalyticsConsent>(null);
-  const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (window.location.pathname.replace(/\/$/, "") === "/opt-out") {
+    if (isOptOut(window.location.pathname)) {
       try {
         localStorage.setItem(consentKey, "denied");
       } catch {}
       setChoice("denied");
       syncAnalytics("denied", "/opt-out/");
       clearAnalyticsCookies();
-      setReady(true);
       return;
     }
+    let saved: string | null = null;
     try {
-      const saved = localStorage.getItem(consentKey);
-      if (saved === "granted" || saved === "denied") setChoice(saved);
+      saved = localStorage.getItem(consentKey);
     } catch {}
-    setReady(true);
+    setChoice(saved === "denied" ? "denied" : "granted");
     const changed = (event: StorageEvent) => {
       if (event.key === consentKey)
-        setChoice(event.newValue === "granted" ? "granted" : "denied");
+        setChoice(event.newValue === "denied" ? "denied" : "granted");
     };
     window.addEventListener("storage", changed);
     return () => window.removeEventListener("storage", changed);
   }, [pathname]);
   useEffect(() => {
-    if (ready) {
-      syncAnalytics(
-        pathname.replace(/\/$/, "") === "/opt-out" ? "denied" : choice,
-        pathname,
-      );
-      if (choice === "denied") clearAnalyticsCookies();
-    }
-  }, [choice, pathname, ready]);
-  function choose(value: "granted" | "denied") {
-    syncAnalytics(value, pathname);
-    if (value === "denied") clearAnalyticsCookies();
-    try {
-      localStorage.setItem(consentKey, value);
-    } catch {}
-    setChoice(value);
-  }
-  return (
-    <>
-      {ready &&
-        choice === null &&
-        pathname.replace(/\/$/, "") !== "/opt-out" && (
-          <section
-            className="analytics-choice"
-            aria-label="Analytics preferences"
-          >
-            <div>
-              <strong>Help us improve dingn</strong>
-              <p>
-                Allow Google Analytics cookies to measure page visits? Your
-                feedback, email, and account details are not sent.
-              </p>
-            </div>
-            <div className="analytics-actions">
-              <button
-                className="secondary-button"
-                onClick={() => choose("denied")}
-              >
-                Decline
-              </button>
-              <button className="button" onClick={() => choose("granted")}>
-                Allow analytics
-              </button>
-            </div>
-          </section>
-        )}
-    </>
-  );
+    if (choice === null) return;
+    syncAnalytics(isOptOut(pathname) ? "denied" : choice, pathname);
+    if (choice === "denied") clearAnalyticsCookies();
+  }, [choice, pathname]);
+  return null;
 }

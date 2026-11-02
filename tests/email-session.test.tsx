@@ -69,7 +69,9 @@ it("email login, session restore, profile and games use only same-origin request
   await userEvent.click(screen.getByText("Load game"));
   await userEvent.click(screen.getByText("Logout"));
   await screen.findByText("signed out");
-  expect(requests).toEqual([
+  // The XP stats load (/api/me) runs alongside the profile read after login.
+  expect(requests.filter((r) => r === "/api/me")).toHaveLength(1);
+  expect(requests.filter((r) => r !== "/api/me")).toEqual([
     "/api/auth/session",
     "/api/auth/login",
     "/api/data",
