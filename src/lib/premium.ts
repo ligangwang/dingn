@@ -30,10 +30,13 @@ export function isPremiumClaim(claims: Record<string, unknown>) {
 }
 
 export function formatPrice(price: PremiumPrice) {
-  const amount = new Intl.NumberFormat("en-US", {
+  const format = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: price.currency.toUpperCase(),
-  }).format(price.unitAmount / 100);
+  });
+  // Stripe amounts are in the currency's minor unit (cents, but whole yen).
+  const digits = format.resolvedOptions().maximumFractionDigits ?? 2;
+  const amount = format.format(price.unitAmount / 10 ** digits);
   return price.interval ? `${amount} / ${price.interval}` : amount;
 }
 
@@ -55,12 +58,15 @@ export async function readPremiumPrices(): Promise<PremiumPrice[]> {
     for (const item of result.docs) {
       const data = item.data();
       if (typeof data.unit_amount !== "number" || !data.currency) continue;
+      // Only subscriptions grant the stripeRole claim; a one-time payment
+      // would charge the player without activating Premium.
+      if (data.type !== "recurring") continue;
       prices.push({
         id: item.id,
         currency: String(data.currency),
         unitAmount: data.unit_amount,
         interval: typeof data.interval === "string" ? data.interval : null,
-        recurring: data.type === "recurring",
+        recurring: true,
       });
     }
   }

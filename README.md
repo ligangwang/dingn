@@ -40,7 +40,7 @@ The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_f
 
 `/account/` shows a Dingn Premium panel. Players upgrade through Stripe Checkout and manage or cancel through the Stripe customer portal. Billing runs through Firebase's official [Run Payments with Stripe](https://extensions.dev/extensions/invertase/firestore-stripe-payments) extension, so the website holds no Stripe keys and has no billing server code.
 
-- The extension syncs Stripe products and prices into `products`. The panel offers the active prices of the active product whose Stripe metadata has `firebaseRole: premium`. Recurring prices open a subscription checkout; one-time prices open a payment checkout.
+- The extension syncs Stripe products and prices into `products`. The panel offers the active recurring prices of the active product whose Stripe metadata has `firebaseRole: premium`. One-time prices are ignored, because the extension only sets the premium claim for subscriptions.
 - Checkout starts by creating `customers/{uid}/checkout_sessions/{id}`; the extension writes back the Stripe URL. Subscriptions and payments land in `customers/{uid}/subscriptions` and `payments`.
 - For subscriptions, the extension sets the custom claim `stripeRole: "premium"`. `useSession().isPremium` reads that claim; use it to unlock premium features. Players cannot set custom claims or write their billing records (see `firestore.rules`; tests in `tests/billing-rules.test.mjs`).
 - If no premium product is active, the panel says Premium isn't available yet, so this code can ship before Stripe is set up.

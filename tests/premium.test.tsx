@@ -106,3 +106,14 @@ it("refreshes the sign-in token once a new subscription appears", async () => {
   await waitFor(() => expect(mocks.refreshClaims).toHaveBeenCalled());
   expect(screen.getByText("Active")).toBeTruthy();
 });
+
+it("formats prices in the currency's minor unit", async () => {
+  const { formatPrice } =
+    await vi.importActual<typeof import("../src/lib/premium")>(
+      "../src/lib/premium",
+    );
+  expect(formatPrice(monthly)).toBe("$2.99 / month");
+  expect(formatPrice({ ...monthly, currency: "jpy", unitAmount: 1000 })).toBe(
+    "¥1,000 / month",
+  );
+});
