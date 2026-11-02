@@ -681,7 +681,10 @@ nav > a {
     opacity: 0;
   }
 }
-@media (max-width: 520px) {
+@media (max-width: 620px) {
+  nav {
+    gap: 3px;
+  }
   .nav-label {
     display: inline;
     font-size: 12px;
@@ -692,6 +695,8 @@ nav > a {
     padding: 6px 8px;
     line-height: 1.1;
   }
+}
+@media (max-width: 520px) {
   .score-value {
     font-size: 36px;
   }
@@ -705,6 +710,14 @@ nav > a {
   }
   nav > a {
     padding: 6px 5px;
+  }
+}
+@media (max-width: 350px) {
+  .nav-label {
+    display: none;
+  }
+  nav > a {
+    padding: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
