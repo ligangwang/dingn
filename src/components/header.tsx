@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
+import { DecisionIcon, LogicIcon, MailIcon, MemoryIcon } from "./icons";
 export function Header() {
   const path = usePathname();
   const { user, ready, profile, isAdmin } = useSession();
@@ -12,11 +13,13 @@ export function Header() {
       </Link>
       <nav aria-label="Main navigation">
         {[
-          ["/logic/", "Logic", "◈"],
-          ["/number/", "Memory", "✦"],
-          ["/decisions/", "Decisions", "↗"],
-          ...(ready && isAdmin ? [["/admin/feedback/", "Feedback", "✉"]] : []),
-        ].map(([href, label, icon]) => (
+          ["/logic/", "Logic", LogicIcon] as const,
+          ["/number/", "Memory", MemoryIcon] as const,
+          ["/decisions/", "Decisions", DecisionIcon] as const,
+          ...(ready && isAdmin
+            ? [["/admin/feedback/", "Feedback", MailIcon] as const]
+            : []),
+        ].map(([href, label, Icon]) => (
           <Link
             key={href}
             href={href}
@@ -27,10 +30,8 @@ export function Header() {
                 : undefined
             }
           >
+            <Icon className="nav-icon" size={18} />
             <span className="nav-label">{label}</span>
-            <span className="nav-icon" aria-hidden="true">
-              {icon}
-            </span>
           </Link>
         ))}
         {ready && user ? (

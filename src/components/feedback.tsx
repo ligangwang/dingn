@@ -106,7 +106,7 @@ export function Feedback() {
         )}
       </section>
       <Link className="quiet-link" href="/">
-        Back to practices
+        Back to games
       </Link>
     </div>
   );

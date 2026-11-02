@@ -73,19 +73,25 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
   const rounds = games[mode];
   const [round, setRound] = useState(0),
     [choice, setChoice] = useState<number | null>(null),
-    [score, setScore] = useState(0);
+    [results, setResults] = useState<boolean[]>([]);
+  const score = results.filter(Boolean).length;
   const done = round === rounds.length;
   const game = rounds[Math.min(round, rounds.length - 1)];
   function choose(index: number) {
     if (choice !== null) return;
     setChoice(index);
-    if (index === game.answer) setScore((s) => s + 1);
+    setResults((r) => [...r, index === game.answer]);
   }
   function restart() {
     setRound(0);
     setChoice(null);
-    setScore(0);
+    setResults([]);
   }
+  const stars = starsFor(score, rounds.length);
+  const next =
+    mode === "logic"
+      ? { href: "/decisions/", label: "Next game: Decisions" }
+      : { href: "/logic/", label: "Next game: Logic" };
   return (
     <div className="mind-page container">
       <Link href="/">← All games</Link>
@@ -103,31 +109,69 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
       <section className="mind-panel" aria-label="Game round">
         {done ? (
           <>
-            <span className="arena-symbol">✦</span>
-            <h2>Round complete!</h2>
-            <p role="status">
-              {score} of {rounds.length} answers matched the goal.
-            </p>
-            <p>
-              Explore the explanations and try a different approach next time.
-            </p>
-            <button className="button" onClick={restart}>
-              Play again
-            </button>
+            <div className="end-screen">
+              <p className="eyebrow">Round complete</p>
+              <div className="end-stars" aria-label={`${stars} of 3 stars`}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className={i < stars ? "on" : ""}>
+                    ★
+                  </span>
+                ))}
+              </div>
+              <div className="end-score">
+                {score}
+                <small>/{rounds.length}</small>
+              </div>
+              <h2>{endTitle(score, rounds.length)}</h2>
+              <p role="status">
+                {score} of {rounds.length} answers matched the goal.
+              </p>
+              <p className="end-hint">
+                Explore the explanations and try a different approach next time.
+              </p>
+              <div className="end-actions">
+                <button className="button" onClick={restart}>
+                  Play again
+                </button>
+                <Link className="secondary-button" href={next.href}>
+                  {next.label} →
+                </Link>
+              </div>
+            </div>
           </>
         ) : (
           <>
-            <div className="round-meta">
-              <span>
-                ROUND {round + 1} / {rounds.length}
-              </span>
-              <span>{score} POINTS</span>
+            <div className="game-hud">
+              <div>
+                <span className="hud-label">
+                  Round {round + 1} of {rounds.length}
+                </span>
+                <ol className="round-pips" aria-hidden="true">
+                  {rounds.map((_, i) => (
+                    <li
+                      key={i}
+                      className={
+                        i < results.length
+                          ? results[i]
+                            ? "hit"
+                            : "miss"
+                          : i === round
+                            ? "current"
+                            : ""
+                      }
+                    />
+                  ))}
+                </ol>
+              </div>
+              <div className="hud-score">
+                <span key={score} className="score-value">
+                  {score}
+                </span>
+                <span className="hud-label">
+                  {score === 1 ? "point" : "points"}
+                </span>
+              </div>
             </div>
-            <progress
-              value={round}
-              max={rounds.length}
-              aria-label="Rounds completed"
-            />
             <h2>{game.title}</h2>
             <p className="round-prompt">{game.prompt}</p>
             <div className="round-options">
@@ -135,7 +179,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
                 <button
                   key={option}
                   disabled={choice !== null}
-                  className={`round-option ${choice === i ? "picked" : ""} ${choice !== null && i === game.answer ? "correct" : ""}`}
+                  className={`round-option ${choice === i ? "picked" : ""} ${choice !== null && i === game.answer ? "correct" : ""} ${choice === i && i !== game.answer ? "wrong" : ""}`}
                   onClick={() => choose(i)}
                 >
                   {option}
@@ -171,4 +215,16 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
       </p>
     </div>
   );
+}
+
+export function starsFor(score: number, total: number) {
+  if (score === total) return 3;
+  if (score >= total - 1) return 2;
+  return score > 0 ? 1 : 0;
+}
+function endTitle(score: number, total: number) {
+  if (score === total) return "Flawless run!";
+  if (score >= total - 1) return "Sharp thinking.";
+  if (score > 0) return "Good start.";
+  return "Warm-up complete.";
 }

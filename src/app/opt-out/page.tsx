@@ -5,7 +5,7 @@ export default function OptOut() {
       <p className="eyebrow">YOUR PRIVACY</p>
       <h1>Analytics is off.</h1>
       <p>
-        This page opts this browser out of Dingn analytics. Sign-in and games
+        This page opts this browser out of dingn analytics. Sign-in and games
         work as usual.
       </p>
       <p>
@@ -13,7 +13,7 @@ export default function OptOut() {
         https://dingn.com/opt-out
       </p>
       <Link className="button" href="/">
-        Back to Dingn
+        Back to dingn
       </Link>
     </div>
   );
