@@ -361,10 +361,6 @@ select {
   color: #aeb8cf;
   margin-top: 24px;
 }
-.analytics-choice {
-  background: #1b2030;
-  color: #f3f4f8;
-}
 @media (max-width: 760px) {
   .mind-hero {
     grid-template-columns: 1fr;
