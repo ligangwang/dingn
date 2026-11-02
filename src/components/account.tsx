@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "./auth";
 import { useSession } from "./session";
+import { PremiumPanel } from "./premium";
 import { friendlyError, type CardSide } from "@/lib/models";
 function Settings() {
   const { user, profile, profileError, updateProfile, logout } = useSession();
@@ -96,6 +97,7 @@ function Settings() {
           </p>
         )}
       </form>
+      <PremiumPanel />
       <button className="text-button" onClick={leave} disabled={busy}>
         Sign out
       </button>

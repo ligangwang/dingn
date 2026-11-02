@@ -1,8 +1,38 @@
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Preserve existing collection access, excluding private feedback.
+    // Preserve existing collection access, excluding private feedback and
+    // the Stripe billing collections managed by the payments extension.
     match /{collection}/{document=**} {
-      allow read, write: if request.auth != null && collection != 'feedback';
+      allow read, write: if request.auth != null
+        && !(collection in ['feedback', 'customers', 'products']);
+    }
+    // Run Payments with Stripe: players read their own billing records and may
+    // only create checkout sessions. Everything else is written by the extension.
+    match /customers/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      match /checkout_sessions/{id} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['price', 'mode',
+               'allow_promotion_codes', 'success_url', 'cancel_url'])
+          && request.resource.data.price is string
+          && request.resource.data.mode in ['subscription', 'payment'];
+      }
+      match /subscriptions/{id} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+      }
+      match /payments/{id} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+    match /products/{id} {
+      allow read: if true;
+      match /prices/{price} {
+        allow read: if true;
+      }
+      match /tax_rates/{rate} {
+        allow read: if true;
+      }
     }
     match /feedback/{id} {
       allow create: if request.auth != null

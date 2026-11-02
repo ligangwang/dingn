@@ -85,9 +85,7 @@ describe("migrated practice behavior", () => {
       screen.getByRole("textbox", { name: "Search numbers" }),
       "02",
     );
-    await user.click(
-      screen.getByRole("button", { name: "Search" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Search" }));
     await screen.findByRole("heading", { name: "02" });
     await user.click(screen.getByRole("button", { name: "son" }));
     await waitFor(() =>
@@ -166,4 +164,3 @@ describe("migrated practice behavior", () => {
     });
   });
 });
-
