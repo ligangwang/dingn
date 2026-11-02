@@ -1240,3 +1240,13 @@ nav > a.account-link:hover {
     transform: none;
   }
 }
+@media (max-width: 420px) {
+  .game-hud {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .combo-chip {
+    order: 3;
+    margin-left: 0;
+  }
+}
