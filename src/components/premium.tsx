@@ -6,8 +6,8 @@ import {
   formatPrice,
   openBillingPortal,
   readPremiumPrices,
+  readPremiumStatus,
   startCheckout,
-  watchActiveSubscription,
   type PremiumPrice,
 } from "@/lib/premium";
 
@@ -15,17 +15,19 @@ function checkoutResult() {
   if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("checkout") || "";
 }
+// Stripe's webhook sets the premium claim a few seconds after checkout.
+export const ACTIVATION_CHECKS_MS = [0, 2000, 4000, 8000, 15000];
 
 export function PremiumPanel() {
-  const { user, isPremium, refreshClaims } = useSession();
+  const { user } = useSession();
+  const [premium, setPremium] = useState(user?.isPremium === true);
   const [prices, setPrices] = useState<PremiumPrice[] | null>(null);
-  const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result] = useState(checkoutResult);
-  const uid = user?.uid;
 
   useEffect(() => {
+    if (premium) return;
     let active = true;
     readPremiumPrices()
       .then((value) => active && setPrices(value))
@@ -33,48 +35,35 @@ export function PremiumPanel() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [premium]);
 
-  // Stripe's webhook records the subscription moments after checkout; once it
-  // appears, refresh the sign-in token so the premium claim takes effect.
   useEffect(() => {
-    if (!uid) return;
-    return watchActiveSubscription(uid, setSubscribed);
-  }, [uid]);
-  const needsClaim = subscribed && !isPremium;
-  useEffect(() => {
-    if (!needsClaim) return;
-    const refresh = () => refreshClaims().catch(() => {});
-    refresh();
-    const timers = [3000, 10000].map((ms) => setTimeout(refresh, ms));
-    return () => timers.forEach(clearTimeout);
-    // refreshClaims is recreated each render; only react to the state change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [needsClaim]);
+    if (result !== "success" || premium) return;
+    let active = true;
+    const timers = ACTIVATION_CHECKS_MS.map((ms) =>
+      setTimeout(() => {
+        readPremiumStatus()
+          .then((value) => active && value && setPremium(true))
+          .catch(() => {});
+      }, ms),
+    );
+    return () => {
+      active = false;
+      timers.forEach(clearTimeout);
+    };
+  }, [result, premium]);
 
-  async function upgrade(price: PremiumPrice) {
-    if (!uid) return;
+  async function go(next: () => Promise<string>) {
     setBusy(true);
     setError("");
     try {
-      window.location.assign(await startCheckout(uid, price));
-    } catch (e) {
-      setError(friendlyError(e));
-      setBusy(false);
-    }
-  }
-  async function manage() {
-    setBusy(true);
-    setError("");
-    try {
-      window.location.assign(await openBillingPortal());
+      window.location.assign(await next());
     } catch (e) {
       setError(friendlyError(e));
       setBusy(false);
     }
   }
 
-  const premium = isPremium || subscribed;
   return (
     <section className="panel premium-panel" aria-labelledby="premium-title">
       <h2 id="premium-title">
@@ -84,7 +73,11 @@ export function PremiumPanel() {
       {premium ? (
         <>
           <p>Thanks for supporting Dingn. Premium is active on this account.</p>
-          <button className="button" onClick={manage} disabled={busy}>
+          <button
+            className="button"
+            onClick={() => go(openBillingPortal)}
+            disabled={busy}
+          >
             {busy ? "Opening…" : "Manage subscription"}
           </button>
         </>
@@ -110,7 +103,7 @@ export function PremiumPanel() {
                 <button
                   key={price.id}
                   className="button"
-                  onClick={() => upgrade(price)}
+                  onClick={() => go(() => startCheckout(price))}
                   disabled={busy}
                 >
                   {busy ? "Please wait…" : `Upgrade · ${formatPrice(price)}`}

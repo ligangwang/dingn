@@ -87,6 +87,9 @@ export function Feedback() {
             ) : (
               <>
                 <p>Sign in to submit. Your draft will stay here.</p>
+                <Link className="button" href="/signin/">
+                  Sign in with email
+                </Link>
                 <button
                   className="google-button"
                   type="button"

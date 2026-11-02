@@ -1,3 +1,5 @@
+import { handleApi } from "./api.mjs";
+import { handleBilling } from "./billing.mjs";
 import http from "node:http";
 import https from "node:https";
 import { createReadStream, existsSync, statSync } from "node:fs";
@@ -19,6 +21,14 @@ const types = {
 http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
+    if (pathname.startsWith("/api/billing/")) {
+      void handleBilling(req, res);
+      return;
+    }
+    if (pathname.startsWith("/api/")) {
+      void handleApi(req, res);
+      return;
+    }
     if (pathname === "/health") {
       res.writeHead(200, {
         "Content-Type": "text/plain",

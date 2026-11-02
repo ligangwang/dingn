@@ -11,8 +11,8 @@ import {
   where,
   type QueryDocumentSnapshot,
   type DocumentData,
-} from "firebase/firestore";
-import { firebase } from "./firebase";
+} from "./database";
+import { database } from "./database";
 import {
   favoriteRecord,
   numberFromData,
@@ -23,11 +23,11 @@ import {
 } from "./models";
 export type Cursor = QueryDocumentSnapshot<DocumentData>;
 export async function readProfile(uid: string) {
-  const snap = await getDoc(doc(firebase().db, "accounts", uid));
+  const snap = await getDoc(doc(database, "accounts", uid));
   return profileFromData(snap.data());
 }
 export async function saveProfile(uid: string, profile: Profile) {
-  await setDoc(doc(firebase().db, "accounts", uid), profileRecord(profile), {
+  await setDoc(doc(database, "accounts", uid), profileRecord(profile), {
     merge: true,
   });
 }
@@ -39,7 +39,7 @@ export async function readNumbers(digits: number, cursor?: Cursor) {
     limit(20),
   ];
   const snap = await getDocs(
-    query(collection(firebase().db, "numbers"), ...constraints),
+    query(collection(database, "numbers"), ...constraints),
   );
   return {
     items: snap.docs.map((d) => numberFromData(d.id, d.data())),
@@ -48,17 +48,17 @@ export async function readNumbers(digits: number, cursor?: Cursor) {
   };
 }
 export async function readNumber(number: string) {
-  const snap = await getDoc(doc(firebase().db, "numbers", number));
+  const snap = await getDoc(doc(database, "numbers", number));
   return snap.exists() ? numberFromData(snap.id, snap.data()) : null;
 }
 export async function readWord(word: string) {
-  const snap = await getDoc(doc(firebase().db, "words", word));
+  const snap = await getDoc(doc(database, "words", word));
   return snap.exists() ? wordFromData(snap.id, snap.data()) : null;
 }
 export async function randomWord() {
   // Match the signed 64-bit random field used by the existing Flutter app.
   const pivot = (Math.random() * 2 - 1) * 2 ** 63;
-  const words = collection(firebase().db, "words");
+  const words = collection(database, "words");
   let snap = await getDocs(
     query(words, where("random", ">=", pivot), orderBy("random"), limit(1)),
   );
@@ -68,7 +68,7 @@ export async function randomWord() {
 }
 export async function readFavorite(uid: string, number: string) {
   const snap = await getDoc(
-    doc(firebase().db, "number_favorites", `${uid}-${number}`),
+    doc(database, "number_favorites", `${uid}-${number}`),
   );
   return typeof snap.data()?.favoriteWord === "string"
     ? (snap.data()!.favoriteWord as string)
@@ -76,7 +76,7 @@ export async function readFavorite(uid: string, number: string) {
 }
 export async function saveFavorite(uid: string, number: string, word: string) {
   const record = favoriteRecord(uid, number, word);
-  await setDoc(doc(firebase().db, "number_favorites", record.id), record.data, {
+  await setDoc(doc(database, "number_favorites", record.id), record.data, {
     merge: true,
   });
 }

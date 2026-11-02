@@ -3,69 +3,75 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PremiumPanel } from "../src/components/premium";
+import { formatPrice } from "../src/lib/premium";
 
 const monthly = {
   id: "price_month",
   currency: "usd",
   unitAmount: 299,
   interval: "month",
-  recurring: true,
 };
 const mocks = vi.hoisted(() => ({
-  readPremiumPrices: vi.fn(),
-  startCheckout: vi.fn(),
-  openBillingPortal: vi.fn(),
-  watchActiveSubscription: vi.fn(),
-  refreshClaims: vi.fn(),
-  session: { isPremium: false } as { isPremium: boolean },
+  api: vi.fn(),
+  user: { uid: "player1", isPremium: false } as {
+    uid: string;
+    isPremium?: boolean;
+  },
   assign: vi.fn(),
+  search: "",
 }));
-vi.mock("../src/lib/premium", async (original) => ({
-  ...(await original<typeof import("../src/lib/premium")>()),
-  readPremiumPrices: mocks.readPremiumPrices,
-  startCheckout: mocks.startCheckout,
-  openBillingPortal: mocks.openBillingPortal,
-  watchActiveSubscription: mocks.watchActiveSubscription,
-}));
+vi.mock("../src/lib/api", () => ({ api: mocks.api }));
 vi.mock("../src/components/session", () => ({
-  useSession: () => ({
-    user: { uid: "player1" },
-    isPremium: mocks.session.isPremium,
-    refreshClaims: mocks.refreshClaims,
-  }),
+  useSession: () => ({ user: mocks.user }),
 }));
+function route(table: Record<string, unknown>) {
+  mocks.api.mockImplementation(async (path: string) => {
+    const value = table[path];
+    if (value instanceof Error) throw value;
+    if (typeof value === "function") return value();
+    return value;
+  });
+}
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.session.isPremium = false;
-  mocks.readPremiumPrices.mockResolvedValue([monthly]);
-  mocks.watchActiveSubscription.mockReturnValue(() => {});
-  mocks.refreshClaims.mockResolvedValue(undefined);
+  mocks.user = { uid: "player1", isPremium: false };
+  mocks.search = "";
+  route({ "/api/billing/prices": [monthly] });
   Object.defineProperty(window, "location", {
     configurable: true,
-    value: { ...window.location, assign: mocks.assign, search: "" },
+    get: () => ({ assign: mocks.assign, search: mocks.search }),
   });
 });
 afterEach(cleanup);
 
 it("offers the premium price and sends the player to Stripe Checkout", async () => {
-  mocks.startCheckout.mockResolvedValue("https://checkout.stripe.com/c/abc");
+  route({
+    "/api/billing/prices": [monthly],
+    "/api/billing/checkout": { url: "https://checkout.stripe.com/c/abc" },
+  });
   render(<PremiumPanel />);
   const user = userEvent.setup();
-  const button = await screen.findByRole("button", {
-    name: "Upgrade · $2.99 / month",
-  });
-  await user.dblClick(button);
-  expect(mocks.startCheckout).toHaveBeenCalledTimes(1);
-  expect(mocks.startCheckout).toHaveBeenCalledWith("player1", monthly);
+  await user.dblClick(
+    await screen.findByRole("button", { name: "Upgrade · $2.99 / month" }),
+  );
   await waitFor(() =>
     expect(mocks.assign).toHaveBeenCalledWith(
       "https://checkout.stripe.com/c/abc",
     ),
   );
+  const checkouts = mocks.api.mock.calls.filter(
+    ([path]) => path === "/api/billing/checkout",
+  );
+  expect(checkouts).toEqual([
+    ["/api/billing/checkout", { price: "price_month" }],
+  ]);
 });
 
 it("shows an error and re-enables upgrading when checkout fails", async () => {
-  mocks.startCheckout.mockRejectedValue(new Error("boom"));
+  route({
+    "/api/billing/prices": [monthly],
+    "/api/billing/checkout": new Error("checkout-timeout"),
+  });
   render(<PremiumPanel />);
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: /Upgrade/ }));
@@ -78,15 +84,15 @@ it("shows an error and re-enables upgrading when checkout fails", async () => {
 });
 
 it("says premium is unavailable when no plan is configured", async () => {
-  mocks.readPremiumPrices.mockResolvedValue([]);
+  route({ "/api/billing/prices": [] });
   render(<PremiumPanel />);
   expect(await screen.findByText(/isn’t available yet/)).toBeTruthy();
   expect(screen.queryByRole("button")).toBeNull();
 });
 
 it("lets premium players manage their subscription", async () => {
-  mocks.session.isPremium = true;
-  mocks.openBillingPortal.mockResolvedValue("https://billing.stripe.com/p/x");
+  mocks.user = { uid: "player1", isPremium: true };
+  route({ "/api/billing/portal": { url: "https://billing.stripe.com/p/x" } });
   render(<PremiumPanel />);
   expect(screen.getByText("Active")).toBeTruthy();
   await userEvent
@@ -95,23 +101,20 @@ it("lets premium players manage their subscription", async () => {
   await waitFor(() =>
     expect(mocks.assign).toHaveBeenCalledWith("https://billing.stripe.com/p/x"),
   );
+  expect(mocks.api).not.toHaveBeenCalledWith("/api/billing/prices");
 });
 
-it("refreshes the sign-in token once a new subscription appears", async () => {
-  mocks.watchActiveSubscription.mockImplementation((_uid, onChange) => {
-    onChange(true);
-    return () => {};
+it("activates premium after checkout once the server reports it", async () => {
+  mocks.search = "?checkout=success";
+  route({
+    "/api/billing/prices": [monthly],
+    "/api/billing/status": { isPremium: true },
   });
   render(<PremiumPanel />);
-  await waitFor(() => expect(mocks.refreshClaims).toHaveBeenCalled());
-  expect(screen.getByText("Active")).toBeTruthy();
+  expect(await screen.findByText("Active")).toBeTruthy();
 });
 
-it("formats prices in the currency's minor unit", async () => {
-  const { formatPrice } =
-    await vi.importActual<typeof import("../src/lib/premium")>(
-      "../src/lib/premium",
-    );
+it("formats prices in the currency's minor unit", () => {
   expect(formatPrice(monthly)).toBe("$2.99 / month");
   expect(formatPrice({ ...monthly, currency: "jpy", unitAmount: 1000 })).toBe(
     "¥1,000 / month",

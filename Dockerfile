@@ -13,7 +13,7 @@ FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080
 COPY --from=build --chown=node:node /app/out ./out
-COPY --chown=node:node scripts/preview.mjs ./scripts/preview.mjs
+COPY --chown=node:node scripts/preview.mjs scripts/api.mjs scripts/billing.mjs ./scripts/
 USER node
 EXPOSE 8080
 CMD ["node", "scripts/preview.mjs"]

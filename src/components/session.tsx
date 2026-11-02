@@ -3,102 +3,72 @@ import {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
-import {
-  GoogleAuthProvider,
-  onIdTokenChanged,
-  signInWithPopup,
-  signOut,
-  type User,
-} from "firebase/auth";
-import { firebase } from "@/lib/firebase";
+import { api } from "@/lib/api";
 import { defaultProfile, friendlyError, type Profile } from "@/lib/models";
 import { readProfile, saveProfile } from "@/lib/repository";
-import { isPremiumClaim } from "@/lib/premium";
-
+type Account = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  isAdmin: boolean;
+  // Set by the Stripe payments extension's stripeRole claim.
+  isPremium?: boolean;
+};
 type Session = {
-  user: User | null;
+  user: Account | null;
   ready: boolean;
   isAdmin: boolean;
-  isPremium: boolean;
-  refreshClaims: () => Promise<void>;
   profile: Profile;
   profileError: string;
   login: () => Promise<void>;
+  loginEmail: (
+    email: string,
+    password: string,
+    create: boolean,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: Profile) => Promise<void>;
 };
 const SessionContext = createContext<Session | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Account | null>(null);
   const [ready, setReady] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
-  const loadedUid = useRef<string | null>(null);
   const [profile, setProfile] = useState(defaultProfile);
   const [profileError, setProfileError] = useState("");
+  async function accept(account: Account | null) {
+    setUser(account);
+    setProfile(defaultProfile);
+    setProfileError("");
+    if (account) {
+      try {
+        setProfile(await readProfile(account.uid));
+      } catch (error) {
+        setProfileError(friendlyError(error));
+      }
+    }
+  }
   useEffect(() => {
-    let active = true,
-      generation = 0;
-    const stop = onIdTokenChanged(
-      firebase().auth,
-      async (next) => {
-        const ticket = ++generation;
-        // A refreshed token for the same player only updates their claims.
-        if (next && next.uid === loadedUid.current) {
-          try {
-            const token = await next.getIdTokenResult();
-            if (active && ticket === generation) {
-              setIsAdmin(token.claims.admin === true);
-              setIsPremium(isPremiumClaim(token.claims));
-            }
-          } catch {
-            // Keep the claims already shown.
-          }
-          return;
+    let active = true;
+    void (async () => {
+      try {
+        const account = await api<Account | null>("/api/auth/session");
+        if (!active) return;
+        setUser(account);
+        if (account) {
+          const value = await readProfile(account.uid);
+          if (active) setProfile(value);
         }
-        loadedUid.current = null;
-        setReady(false);
-        setUser(next);
-        setIsAdmin(false);
-        setIsPremium(false);
-        setProfile(defaultProfile);
-        setProfileError("");
-        try {
-          if (next) {
-            const token = await next.getIdTokenResult();
-            if (active && ticket === generation) {
-              setIsAdmin(token.claims.admin === true);
-              setIsPremium(isPremiumClaim(token.claims));
-            }
-            const value = await readProfile(next.uid);
-            if (active && ticket === generation) setProfile(value);
-          }
-        } catch (e) {
-          if (active && ticket === generation)
-            setProfileError(friendlyError(e));
-        } finally {
-          if (active && ticket === generation) {
-            loadedUid.current = next?.uid ?? null;
-            setReady(true);
-          }
-        }
-      },
-      (e) => {
-        if (active) {
-          setIsAdmin(false);
-          setIsPremium(false);
-          setProfileError(friendlyError(e));
-          setReady(true);
-        }
-      },
-    );
+      } catch (error) {
+        if (active) setProfileError(friendlyError(error));
+      } finally {
+        if (active) setReady(true);
+      }
+    })();
     return () => {
       active = false;
-      stop();
     };
   }, []);
   return (
@@ -106,19 +76,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         ready,
-        isAdmin,
-        isPremium,
-        refreshClaims: async () => {
-          // Forces a new ID token; onIdTokenChanged applies the new claims.
-          if (user) await user.getIdToken(true);
-        },
+        isAdmin: user?.isAdmin === true,
         profile,
         profileError,
         login: async () => {
-          await signInWithPopup(firebase().auth, new GoogleAuthProvider());
+          // Loaded only after an explicit Google button click. Email sessions never initialize Firebase JS.
+          const [{ firebase }, sdk] = await Promise.all([
+            import("@/lib/firebase"),
+            import("firebase/auth"),
+          ]);
+          const auth = firebase().auth;
+          await sdk.setPersistence(auth, sdk.inMemoryPersistence);
+          try {
+            const result = await sdk.signInWithPopup(
+              auth,
+              new sdk.GoogleAuthProvider(),
+            );
+            const account = await api<Account>("/api/auth/google", {
+              refreshToken: result.user.refreshToken,
+            });
+            await accept(account);
+          } finally {
+            await sdk.signOut(auth);
+          }
+        },
+        loginEmail: async (email, password, create) => {
+          await accept(
+            await api<Account>(
+              create ? "/api/auth/signup" : "/api/auth/login",
+              { email, password },
+            ),
+          );
         },
         logout: async () => {
-          await signOut(firebase().auth);
+          await api("/api/auth/logout");
+          await accept(null);
         },
         updateProfile: async (value) => {
           if (!user) throw new Error("Sign in required");

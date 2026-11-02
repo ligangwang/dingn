@@ -9,13 +9,13 @@ import {
   startAfter,
   type QueryDocumentSnapshot,
   type DocumentData,
-} from "firebase/firestore";
-import { firebase } from "./firebase";
+} from "./database";
+import { database } from "./database";
 export type FeedbackCursor = QueryDocumentSnapshot<DocumentData>;
 export async function readFeedbackPage(cursor?: FeedbackCursor) {
   const result = await getDocs(
     query(
-      collection(firebase().db, "feedback"),
+      collection(database, "feedback"),
       orderBy("createdAt", "desc"),
       ...(cursor ? [startAfter(cursor)] : []),
       limit(25),
@@ -31,7 +31,7 @@ export async function readFeedbackPage(cursor?: FeedbackCursor) {
       .filter((uid) => uid && !uid.includes("/"))
       .map(async (uid) => {
         try {
-          const profile = await getDoc(doc(firebase().db, "accounts", uid));
+          const profile = await getDoc(doc(database, "accounts", uid));
           const name = profile.data()?.user_name;
           if (typeof name === "string" && name.trim())
             names.set(uid, name.trim());
