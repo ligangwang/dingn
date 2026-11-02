@@ -2,9 +2,9 @@ name: Website
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
   deploy:
     name: Deploy Cloud Run
     needs: validate
-    if: github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    if: github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
