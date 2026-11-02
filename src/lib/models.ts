@@ -121,6 +121,8 @@ export function safeDestination(value: string | null) {
     "/account/",
     "/",
     "/admin/feedback/",
+    "/logic/",
+    "/decisions/",
   ].includes(value ?? "")
     ? value!
     : "/";

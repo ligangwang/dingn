@@ -118,3 +118,13 @@ it("preserves legacy collection access and excludes nested feedback paths", asyn
     setDoc(doc(db, "feedback/valid/private/nested"), { leak: true }),
   );
 });
+it("keeps XP and plays server-only, even for their owner", async () => {
+  const db = env.authenticatedContext("alice").firestore();
+  for (const path of ["players/alice", "plays/p1", "players/alice/x/y"]) {
+    await assertFails(setDoc(doc(db, path), { xp: 999999 }));
+    await assertFails(getDoc(doc(db, path)));
+  }
+  await assertFails(updateDoc(doc(db, "players/alice"), { xp: 1 }));
+  await assertFails(deleteDoc(doc(db, "plays/p1")));
+  await assertFails(getDocs(collection(db, "players")));
+});

@@ -9,6 +9,7 @@ import {
 import { api } from "@/lib/api";
 import { defaultProfile, friendlyError, type Profile } from "@/lib/models";
 import { readProfile, saveProfile } from "@/lib/repository";
+import { fetchStats, type PlayerStats } from "@/lib/xp";
 type Account = {
   uid: string;
   email: string | null;
@@ -21,6 +22,8 @@ type Session = {
   isAdmin: boolean;
   profile: Profile;
   profileError: string;
+  stats: PlayerStats | null;
+  setStats: (stats: PlayerStats | null) => void;
   login: () => Promise<void>;
   loginEmail: (
     email: string,
@@ -36,6 +39,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState(defaultProfile);
   const [profileError, setProfileError] = useState("");
+  const [stats, setStats] = useState<PlayerStats | null>(null);
+  useEffect(() => {
+    let active = true;
+    setStats(null);
+    if (user)
+      fetchStats()
+        .then((value) => {
+          if (active) setStats(value);
+        })
+        .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [user?.uid]);
   async function accept(account: Account | null) {
     setUser(account);
     setProfile(defaultProfile);
@@ -77,6 +94,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         isAdmin: user?.isAdmin === true,
         profile,
         profileError,
+        stats,
+        setStats,
         login: async () => {
           // Loaded only after an explicit Google button click. Email sessions never initialize Firebase JS.
           const [{ firebase }, sdk] = await Promise.all([

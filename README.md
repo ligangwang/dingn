@@ -126,3 +126,27 @@ GA4 remains opt-in and independent of authentication. Use `/opt-out/` when testi
 Removing direct browser calls to Google/Firebase does not establish that Cloud Run
 itself is reachable from every mainland China network; test that from the target
 networks separately.
+
+## XP and leaderboard
+
+Signed-in players earn XP for the warm-up, Logic and Decisions games. The browser never writes XP. Instead, `scripts/game-api.mjs` runs inside the website server and uses the Firebase Admin SDK:
+
+- `POST /api/play/start` reads the player from the dingn session cookie (verified with the Admin SDK) and creates a single-use `plays/{id}` record. The server generates the warm-up digits.
+- `POST /api/play/finish` grades the raw answers against the server's own answer key (`src/data/mind-games.json`). Before it awards XP in a transaction, it checks:
+  - that the play belongs to this player and hasn't already been scored
+  - the minimum play time and the 30-minute expiry
+  - the hourly start limit and the daily XP cap
+- `POST /api/me` and `POST /api/leaderboard` return a player's level and the top 10. The leaderboard shows nicknames or first names only.
+
+`firestore.rules` denies all browser access to `players` and `plays`. The scoring rules live in `scripts/game-core.mjs` and are covered by `tests/game-core.test.ts`.
+
+One-time setup as the project owner, before the first release that includes XP:
+
+```sh
+firebase deploy --only firestore:rules --project dingn-193716
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member serviceAccount:dingn-web-runtime@dingn-193716.iam.gserviceaccount.com \
+  --role roles/datastore.user
+```
+
+Until the IAM binding exists, the games still work, but XP reports "unavailable".

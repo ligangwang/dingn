@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { WarmUp } from "@/components/warm-up";
 import { DecisionIcon, LogicIcon, MemoryIcon } from "@/components/icons";
+import { Leaderboard } from "@/components/xp";
 export default function Home() {
   return (
     <div className="mind-home container">
@@ -76,6 +77,7 @@ export default function Home() {
       <div id="warm-up">
         <WarmUp />
       </div>
+      <Leaderboard />
       <section className="memory-library">
         <p className="eyebrow">GO DEEPER WITH MEMORY</p>
         <h2>Build connections that stick.</h2>
