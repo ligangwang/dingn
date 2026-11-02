@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Confetti } from "./fx";
 import { useXpPlay, XpSummary } from "./xp";
 
 export function WarmUp() {
@@ -11,10 +12,19 @@ export function WarmUp() {
   const input = useRef<HTMLInputElement>(null);
   const xp = useXpPlay<{ digits: string }>("warmup");
   const [starting, setStarting] = useState(false);
+  const [left, setLeft] = useState(3);
   useEffect(() => {
     if (phase !== "memorize") return;
+    setLeft(3);
+    const tick = window.setInterval(
+      () => setLeft((n) => Math.max(1, n - 1)),
+      1000,
+    );
     const timer = window.setTimeout(() => setPhase("recall"), 3000);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(tick);
+    };
   }, [phase]);
   useEffect(() => {
     if (phase === "recall") input.current?.focus();
@@ -72,12 +82,27 @@ export function WarmUp() {
                     <span key={i}>{n}</span>
                   ))}
                 </div>
+                <div className="countdown" aria-hidden="true">
+                  <svg viewBox="0 0 40 40">
+                    <circle className="ring-track" cx="20" cy="20" r="16" />
+                    <circle className="countdown-fill" cx="20" cy="20" r="16" />
+                  </svg>
+                  <span key={left}>{left}</span>
+                </div>
                 <p>Lock them in. You have 3 seconds.</p>
-                <div className="memory-timer" />
               </>
             )}
             {phase === "result" && (
               <>
+                {answer === sequence && <Confetti pieces={28} />}
+                <div className="digit-slots compare" aria-hidden="true">
+                  {sequence.split("").map((n, i) => (
+                    <span key={i} className={answer[i] === n ? "hit" : "miss"}>
+                      {answer[i] ?? "·"}
+                      {answer[i] !== n && <small>{n}</small>}
+                    </span>
+                  ))}
+                </div>
                 <div
                   className={`round-result ${answer === sequence ? "win" : ""}`}
                 >
@@ -98,6 +123,13 @@ export function WarmUp() {
           </div>
           {phase === "recall" && (
             <form onSubmit={submit}>
+              <div className="digit-slots typing" aria-hidden="true">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className={answer[i] ? "filled" : ""}>
+                    {answer[i] ?? ""}
+                  </span>
+                ))}
+              </div>
               <label htmlFor="warmup-answer">What were the three digits?</label>
               <input
                 ref={input}

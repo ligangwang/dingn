@@ -120,3 +120,14 @@ test("signed-in players send raw answers and get the server's XP", async () => {
   expect(await screen.findByText("+30 XP")).toBeTruthy();
   expect(screen.getByText(/2-day streak/)).toBeTruthy();
 });
+test("answers with letter keys and moves on with Enter", async () => {
+  const user = userEvent.setup();
+  render(<MindGame mode="logic" />);
+  await user.keyboard("c");
+  expect(screen.getByRole("status").textContent).toContain("You found it.");
+  expect(screen.getByRole("button", { name: "48 ✓" })).toBeTruthy();
+  await user.keyboard("{Enter}");
+  expect(screen.getByText("Round 2 of 4")).toBeTruthy();
+  await user.keyboard("2");
+  expect(screen.getByRole("status")).toBeTruthy();
+});

@@ -56,7 +56,6 @@ beforeEach(() => {
 afterEach(cleanup);
 describe("migrated practice behavior", () => {
   it("does not expose answer before recall and preserves leading-zero favorite IDs", async () => {
-    mocks.session.profile.cardSide = "TwoSides";
     mocks.readNumbers.mockResolvedValue({ items: [number("02")], more: false });
     const user = userEvent.setup();
     render(<Practice mode="number" />);
@@ -85,10 +84,9 @@ describe("migrated practice behavior", () => {
       screen.getByRole("textbox", { name: "Search numbers" }),
       "02",
     );
-    await user.click(
-      screen.getByRole("button", { name: "Search" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Search" }));
     await screen.findByRole("heading", { name: "02" });
+    await user.click(screen.getByRole("button", { name: /Reveal answer/ }));
     await user.click(screen.getByRole("button", { name: "son" }));
     await waitFor(() =>
       expect(mocks.saveFavorite).toHaveBeenCalledWith(
@@ -105,6 +103,7 @@ describe("migrated practice behavior", () => {
     const user = userEvent.setup();
     render(<Practice mode="number" />);
     await screen.findByRole("heading", { name: "0" });
+    await user.click(screen.getByRole("button", { name: /Reveal answer/ }));
     await user.click(screen.getByRole("button", { name: "sun" }));
     await screen.findByRole("alert");
     expect(
@@ -157,13 +156,12 @@ describe("migrated practice behavior", () => {
       screen.getByRole("textbox", { name: "Display name" }),
       "New name",
     );
-    await user.click(screen.getByRole("radio", { name: /Recall/ }));
-    await user.click(screen.getByRole("button", { name: "Save preferences" }));
+    expect(screen.queryByRole("radio")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByRole("status");
     expect(mocks.session.updateProfile).toHaveBeenCalledWith({
       userName: "New name",
-      cardSide: "TwoSides",
+      cardSide: "OneSide",
     });
   });
 });
-

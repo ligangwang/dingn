@@ -46,10 +46,6 @@ export function Practice({ mode }: { mode: Mode }) {
                   : "Turn a number into an image you can remember."}
             </p>
           </div>
-          <Link className="mode-link" href="/account/">
-            {profile.cardSide === "TwoSides" ? "Recall mode" : "Training mode"}{" "}
-            <span aria-hidden="true">↗</span>
-          </Link>
         </div>
         {profileError && (
           <p role="alert" className="error">
@@ -90,7 +86,7 @@ export function Practice({ mode }: { mode: Mode }) {
   );
 }
 function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
-  const { user, profile } = useSession();
+  const { user } = useSession();
   const [numbers, setNumbers] = useState<NumberEntry[]>([]),
     [words, setWords] = useState<WordEntry[]>([]);
   const [cards, setCards] = useState(deck),
@@ -313,8 +309,8 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
       if (mounted.current) setSaving(false);
     }
   }
-  const hideAnswer = mode === "card" || profile.cardSide === "TwoSides";
-  const showAnswer = !hideAnswer || revealed;
+  // Every practice is a recall round: think of the answer, then flip.
+  const showAnswer = revealed;
   return (
     <>
       <div className="practice-toolbar">
@@ -434,7 +430,7 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
                   : "Nothing to show yet. Try searching or choose another practice."}
               </p>
             )}
-            {hideAnswer && (current || mode === "card") && (
+            {(current || mode === "card") && (
               <button
                 className="reveal-button"
                 aria-expanded={revealed}

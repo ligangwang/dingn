@@ -31,7 +31,7 @@ Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project 
 - `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
 - `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
 - `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.
-- `/account/`: display name, training/recall preference, and sign-out.
+- `/account/`: display name and sign-out. Practice is always recall-style: think of the answer, then flip to reveal it. The legacy `card_side` field is kept but no longer used.
 - `/signin/`: Google sign-in with a validated return destination.
 
 The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_favorites/{uid}-{number}` collections and field names are preserved. Writes merge only the supported fields. User accounts do not need to be imported or recreated. Security remains enforced by the existing Firebase Authentication and Firestore rules; no rules or indexes were changed by the migration.
@@ -52,7 +52,7 @@ No live deployment is performed by `npm run build` or the preview command.
 
 The existing GA4 property `dingn` (168897915), web stream `dingn-web` (1727160566), uses measurement ID `G-QDV6QLR932`. View reports at https://analytics.google.com/analytics/web/#/p168897915/.
 
-Analytics loads only after a visitor allows it through the footer preferences, and only on `dingn.com` or `www.dingn.com`. Declining stops collection and clears Analytics cookies. Local previews and Cloud Run URLs do not collect visits. Public home, practice, sign-in, and feedback page views use fixed titles and paths without query strings or fragments. Account and admin pages are excluded; names, emails, user IDs, searches, and feedback contents are never included in event parameters. Advertising signals are disabled. Enhanced measurement is disabled in the stream to avoid duplicate history events and automatic form/search collection.
+Analytics runs by default, only on `dingn.com` or `www.dingn.com`. Visiting `/opt-out/` stops collection in that browser and clears Analytics cookies. Local previews and Cloud Run URLs do not collect visits. Public home, practice, sign-in, and feedback page views use fixed titles and paths without query strings or fragments. Account and admin pages are excluded; names, emails, user IDs, searches, and feedback contents are never included in event parameters. Advertising signals are disabled. Enhanced measurement is disabled in the stream to avoid duplicate history events and automatic form/search collection.
 
 Analytics runs by default with no consent banner. After deployment, open GA's Realtime report to verify page views. Counts cover visitors who have not opted out and whose browsers allow Analytics.
 
