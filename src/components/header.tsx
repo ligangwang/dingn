@@ -5,11 +5,6 @@ import { useSession } from "./session";
 export function Header() {
   const path = usePathname();
   const { user, ready, profile, isAdmin } = useSession();
-  const accountName =
-    profile.userName?.trim() ||
-    user?.displayName?.trim() ||
-    user?.email ||
-    "My account";
   return (
     <header className="site-header">
       <Link className="brand" href="/" aria-label="dingn home">
@@ -42,10 +37,11 @@ export function Header() {
           <Link
             className="account-link"
             href="/account/"
-            aria-label={`Your account: ${accountName}`}
-            title={accountName}
+            aria-label="Your account"
           >
-            <span className="account-name">{accountName}</span>
+            {(profile.userName || user.displayName || user.email || "Me")
+              .slice(0, 2)
+              .toUpperCase()}
           </Link>
         ) : (
           <Link className="button small" href="/signin/">
