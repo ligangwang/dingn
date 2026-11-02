@@ -20,30 +20,42 @@ http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
     if (pathname === "/health") {
-      res.writeHead(200, {"Content-Type":"text/plain", "Cache-Control":"no-store"});
+      res.writeHead(200, {
+        "Content-Type": "text/plain",
+        "Cache-Control": "no-store",
+      });
       res.end("ok\n");
       return;
     }
     if (pathname.startsWith("/__/auth/")) {
       if (!["GET", "POST", "HEAD"].includes(req.method)) {
-        res.writeHead(405); res.end(); return;
+        res.writeHead(405);
+        res.end();
+        return;
       }
-      const upstream = https.request({
-        hostname: "dingn-193716.firebaseapp.com",
-        path: req.url,
-        method: req.method,
-        headers: {
-          "content-type": req.headers["content-type"] || "application/octet-stream",
-          "user-agent": req.headers["user-agent"] || "dingn-auth-proxy",
+      const upstream = https.request(
+        {
+          hostname: "dingn-193716.firebaseapp.com",
+          path: req.url,
+          method: req.method,
+          headers: {
+            "content-type":
+              req.headers["content-type"] || "application/octet-stream",
+            "user-agent": req.headers["user-agent"] || "dingn-auth-proxy",
+          },
         },
-      }, (response) => {
-        res.writeHead(response.statusCode || 502, {
-          ...response.headers, "cache-control": "no-store",
-        });
-        response.on("error", () => res.destroy());
-        response.pipe(res);
-      });
-      upstream.setTimeout(15000, () => upstream.destroy(new Error("Upstream timeout")));
+        (response) => {
+          res.writeHead(response.statusCode || 502, {
+            ...response.headers,
+            "cache-control": "no-store",
+          });
+          response.on("error", () => res.destroy());
+          response.pipe(res);
+        },
+      );
+      upstream.setTimeout(15000, () =>
+        upstream.destroy(new Error("Upstream timeout")),
+      );
       upstream.on("error", () => {
         if (!res.headersSent) res.writeHead(502);
         res.end("Sign-in helper temporarily unavailable");
