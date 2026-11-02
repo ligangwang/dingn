@@ -738,3 +738,22 @@ nav > a {
     padding: 8px 12px;
   }
 }
+
+/* Signed-in avatar: dark initials on the lime circle (overrides the old
+   white-on-green `nav .account-link` rule). */
+nav > a.account-link,
+nav > a.account-link:hover,
+nav > a.account-link[aria-current="page"] {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  background: #d5ff58;
+  color: #10131c;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+nav > a.account-link:hover {
+  box-shadow: 0 0 0 3px #d5ff5840;
+}
