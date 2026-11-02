@@ -31,7 +31,7 @@ Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project 
 - `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
 - `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
 - `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.
-- `/account/`: display name, training/recall preference, and sign-out.
+- `/account/`: player display name, a link to the games, and sign-out. Legacy practice pages start with answers hidden and let players reveal them when ready; there is no account-level mode selector.
 - `/signin/`: Google sign-in with a validated return destination.
 
 The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_favorites/{uid}-{number}` collections and field names are preserved. Writes merge only the supported fields. User accounts do not need to be imported or recreated. Security remains enforced by the existing Firebase Authentication and Firestore rules; no rules or indexes were changed by the migration.

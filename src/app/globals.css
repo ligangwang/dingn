@@ -450,6 +450,12 @@ input:not([type="radio"]) {
 .settings input:not([type="radio"]) {
   width: 100%;
 }
+.settings .panel > .button {
+  margin-top: 24px;
+}
+.settings > .button {
+  margin-top: 24px;
+}
 fieldset {
   border: 0;
   margin: 28px 0;
