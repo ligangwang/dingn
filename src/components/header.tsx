@@ -8,13 +8,13 @@ export function Header() {
   return (
     <header className="site-header">
       <Link className="brand" href="/" aria-label="dingn home">
-        dingn
+        <img src="/dingn-mark.svg" width="34" height="34" alt="" /> dingn
       </Link>
       <nav aria-label="Main navigation">
         {[
-          ["/word/", "Words", "Aa"],
-          ["/number/", "Numbers", "#"],
-          ["/card/", "Cards", "♧"],
+          ["/logic/", "Logic", "◈"],
+          ["/number/", "Memory", "✦"],
+          ["/decisions/", "Decisions", "↗"],
           ...(ready && isAdmin ? [["/admin/feedback/", "Feedback", "✉"]] : []),
         ].map(([href, label, icon]) => (
           <Link

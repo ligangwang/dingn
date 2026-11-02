@@ -4,14 +4,15 @@ import { Header } from "@/components/header";
 import { LegacyRoutes } from "@/components/legacy-routes";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
+import "./mind-arcade.css";
 export const metadata: Metadata = {
   title: {
-    default: "dingn — Make room for remarkable recall",
+    default: "Dingn — Memory, Logic & Decisions",
     template: "%s · dingn",
   },
   description:
-    "Practice remembering numbers, words, and playing cards with the Major System.",
-  icons: { icon: "/favicon.svg" },
+    "Play memory challenges, logic puzzles, and decision-making games in the Dingn mind arcade.",
+  icons: { icon: "/dingn-mark.svg" },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,7 +25,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <LegacyRoutes />
           <Header />
           <main id="main">{children}</main>
-          <footer>dingn · A little practice, every day.</footer>
+          <footer>dingn · Remember. Reason. Decide.</footer>
           <Analytics />
         </SessionProvider>
       </body>

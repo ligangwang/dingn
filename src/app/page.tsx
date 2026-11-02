@@ -1,85 +1,95 @@
 import Link from "next/link";
-import { soundGuide } from "@/lib/models";
+import { WarmUp } from "@/components/warm-up";
 export default function Home() {
   return (
-    <div className="home container">
-      <section className="intro">
-        <p className="eyebrow">A little practice. A more vivid memory.</p>
-        <h1>
-          Make room for
-          <br />
-          remarkable recall.
-        </h1>
-        <p className="lede">
-          Turn numbers, words, and playing cards into things you remember.
-          <br className="desktop-break" /> Choose a practice to get started.
-        </p>
+    <div className="mind-home container">
+      <section className="mind-hero">
+        <div>
+          <p className="eyebrow">MEMORY · LOGIC · DECISIONS</p>
+          <h1>
+            Play with purpose.
+            <br />
+            <span>Think one move ahead.</span>
+          </h1>
+          <p className="lede">
+            Remember the details. Connect the clues. Make your move.
+            <br />
+            Welcome to your mind arcade.
+          </p>
+          <a className="button" href="#games">
+            Find your next game ↗
+          </a>
+          <p className="hero-caption">
+            Short rounds. Fresh perspectives. Your pace.
+          </p>
+        </div>
+        <div className="mind-art" aria-hidden="true">
+          <span className="orbit-label">THINK / PLAY / REPEAT</span>
+          <img src="/dingn-mark.svg" alt="" />
+          <span className="art-chip chip-one">32 → ☾</span>
+          <span className="art-chip chip-two">WHAT’S NEXT?</span>
+          <span className="art-chip chip-three">YOUR MOVE ↗</span>
+        </div>
       </section>
-      <section className="practice-grid" aria-label="Choose a practice">
-        {[
-          {
-            name: "Numbers",
-            text: "Give every number a picture.",
-            href: "/number/",
-            art: ["2", "7"],
-            kind: "numbers",
-          },
-          {
-            name: "Words",
-            text: "Build connections that stick.",
-            href: "/word/",
-            art: ["a", "b"],
-            kind: "words",
-          },
-          {
-            name: "Playing cards",
-            text: "Make every card memorable.",
-            href: "/card/",
-            art: ["♠", "♥"],
-            kind: "cards",
-          },
-        ].map((item) => (
-          <Link className="practice-link" key={item.href} href={item.href}>
-            <div className={`practice-art ${item.kind}`} aria-hidden="true">
-              <div className="tile left">{item.art[0]}</div>
-              <div className="tile right">{item.art[1]}</div>
-              <span className="spark">✦</span>
-            </div>
-            <div className="practice-copy">
-              <h2>
-                {item.name}
-                <span aria-hidden="true">↗</span>
-              </h2>
-              <p>{item.text}</p>
-              <span className="start">Start practicing</span>
-            </div>
+      <section id="games">
+        <div className="mind-heading">
+          <div>
+            <p className="eyebrow">THREE WAYS TO PLAY</p>
+            <h2>Your mind. Your playground.</h2>
+          </div>
+          <span>No sign-in needed</span>
+        </div>
+        <div className="arena-grid">
+          <a href="#warm-up" className="arena memory-arena">
+            <span className="arena-symbol">✦</span>
+            <p className="eyebrow">01 / MEMORY</p>
+            <h2>Make it stick.</h2>
+            <p>
+              Catch a sequence. Hold it in your head. Recall it before it slips
+              away.
+            </p>
+            <strong>Play memory sprint ↗</strong>
+          </a>
+          <Link href="/logic/" className="arena logic-arena">
+            <span className="arena-symbol">◈</span>
+            <p className="eyebrow">02 / LOGIC</p>
+            <h2>Crack the pattern.</h2>
+            <p>
+              Connect the clues and put your reasoning to work in four quick
+              puzzles.
+            </p>
+            <strong>Enter logic lab ↗</strong>
           </Link>
-        ))}
+          <Link href="/decisions/" className="arena decision-arena">
+            <span className="arena-symbol">↗</span>
+            <p className="eyebrow">03 / DECISIONS</p>
+            <h2>Choose your move.</h2>
+            <p>
+              Weigh the odds, work with a budget, and discover why the goal
+              matters.
+            </p>
+            <strong>Play decision room ↗</strong>
+          </Link>
+        </div>
       </section>
-      <section className="guide panel">
-        <h2>A simple trick for a lasting memory</h2>
+      <div id="warm-up">
+        <WarmUp />
+      </div>
+      <section className="memory-library">
+        <p className="eyebrow">GO DEEPER WITH MEMORY</p>
+        <h2>Build connections that stick.</h2>
         <p>
-          The Major System turns numbers into consonant sounds. Add vowels to
-          make words, then picture them. An image is easier to recall than a
-          string of digits.
+          Explore the Major System: turn numbers into sounds, words, and
+          pictures you can remember.
         </p>
-        <h3 className="eyebrow">Your number–sound guide</h3>
-        <dl className="sound-grid">
-          {soundGuide.map((sound, i) => (
-            <div key={i}>
-              <dt>{i}</dt>
-              <dd>{sound}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="example">
-          Try it: <strong>2 → n + 3 → m → name</strong>
-        </p>
+        <div className="library-links">
+          <Link href="/number/">Number lab ↗</Link>
+          <Link href="/word/">Word universe ↗</Link>
+          <Link href="/card/">Deck quest ↗</Link>
+        </div>
       </section>
       <p className="support">
-        <Link href="/feedback/">
-          Have an idea? We’d love to hear it.
-        </Link>
+        <Link href="/feedback/">Have a game idea? Help shape Dingn ↗</Link>
       </p>
     </div>
   );
