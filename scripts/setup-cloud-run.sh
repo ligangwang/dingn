@@ -30,7 +30,7 @@ gcloud run deploy dingn-web --image "$image" --project "$project" --region "$reg
 if ! gcloud iam workload-identity-pools describe dingn-github --location global --project "$project" >/dev/null 2>&1; then
   gcloud iam workload-identity-pools create dingn-github --location global --project "$project" --display-name 'dingn GitHub deployments' --quiet
 fi
-condition="assertion.repository_id == '227018999' && assertion.repository_owner_id == '6968989' && assertion.ref == 'refs/heads/master' && assertion.workflow_ref == 'ligangwang/dingn/.github/workflows/website.yml@refs/heads/master' && (assertion.event_name == 'push' || assertion.event_name == 'workflow_dispatch')"
+condition="assertion.repository_id == '227018999' && assertion.repository_owner_id == '6968989' && assertion.ref == 'refs/heads/main' && assertion.workflow_ref == 'ligangwang/dingn/.github/workflows/website.yml@refs/heads/main' && (assertion.event_name == 'push' || assertion.event_name == 'workflow_dispatch')"
 if gcloud iam workload-identity-pools providers describe github --workload-identity-pool dingn-github --location global --project "$project" >/dev/null 2>&1; then
   provider_command=update-oidc
 else
