@@ -50,7 +50,7 @@ export default function Home() {
               Catch a sequence. Hold it in your head. Recall it before it slips
               away.
             </p>
-            <strong>Try the 3-digit warm-up ↓</strong>
+            <strong>Play Memory Ladder ↓</strong>
           </a>
           <Link href="/logic/" className="arena logic-arena">
             <LogicIcon className="arena-symbol" size={52} />

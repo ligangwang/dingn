@@ -877,3 +877,74 @@ nav > a.account-link:hover {
     display: none;
   }
 }
+
+/* Memory Ladder keeps eight digits readable on narrow screens. */
+.ladder .warmup-play {
+  min-width: 0;
+  flex: 1;
+}
+.ladder .digit-slots {
+  gap: clamp(3px, 1vw, 10px);
+}
+.ladder .digit-slots > span {
+  width: clamp(24px, 4vw, 48px);
+  height: 60px;
+  font-size: clamp(20px, 3vw, 32px);
+}
+.ladder-hud {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.ladder-hud [role="timer"] {
+  color: #d5ff58;
+}
+.ladder-steps {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  margin-top: 24px;
+}
+.ladder-steps li {
+  border: 1px solid #667188;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.ladder-steps .cleared {
+  background: #d5ff58;
+  color: #192119;
+}
+.ladder-review small {
+  font-size: 14px;
+}
+.ladder-review .missed {
+  background: #ffb4a5;
+}
+.ladder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+.ladder .warmup-play input {
+  width: 100%;
+  max-width: 300px;
+  letter-spacing: 0.15em;
+}
+.ladder .ladder-best {
+  color: #d5ff58;
+}
+@media (max-width: 700px) {
+  .ladder-steps {
+    justify-content: center;
+  }
+  .ladder-steps li {
+    padding: 8px 12px;
+  }
+}
+.ladder .digit-slots > span {
+  animation: none;
+}
