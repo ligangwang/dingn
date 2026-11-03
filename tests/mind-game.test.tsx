@@ -120,3 +120,30 @@ test("signed-in players send raw answers and get the server's XP", async () => {
   expect(await screen.findByText("+30 XP")).toBeTruthy();
   expect(screen.getByText(/2-day streak/)).toBeTruthy();
 });
+
+import { LocaleProvider, LanguageSwitcher } from "../src/components/locale";
+import { translate } from "../src/lib/i18n";
+test("language changes preserve locked answers and round progress", async () => {
+  localStorage.setItem("dingn.locale", "en");
+  const user = userEvent.setup();
+  render(
+    <LocaleProvider>
+      <LanguageSwitcher />
+      <MindGame mode="logic" />
+    </LocaleProvider>,
+  );
+  await user.click(screen.getByRole("button", { name: "48" }));
+  await user.selectOptions(screen.getByRole("combobox"), "zh-CN");
+  expect(
+    (screen.getByRole("button", { name: "48 ✓" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+  expect(screen.getByRole("status").textContent).toContain(
+    translate("Each number is twice the previous one. 24 × 2 = 48.", "zh-CN"),
+  );
+  await user.click(
+    screen.getByRole("button", { name: translate("Next round →", "zh-CN") }),
+  );
+  expect(screen.getByText(translate("Round 2 of 4", "zh-CN"))).toBeTruthy();
+  localStorage.clear();
+});

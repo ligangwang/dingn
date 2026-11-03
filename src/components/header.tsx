@@ -1,21 +1,27 @@
 "use client";
+import { LanguageSwitcher, useLocale } from "@/components/locale";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
 import { DecisionIcon, LogicIcon, MailIcon, MemoryIcon } from "./icons";
 import { LevelBadge } from "./xp";
 export function Header() {
+  const { t, locale } = useLocale();
+
   const path = usePathname();
   const { user, ready, profile, isAdmin } = useSession();
   return (
     <header className="site-header">
-      <Link className="brand" href="/" aria-label="dingn home">
-        <img src="/dingn-mark.svg" width="34" height="34" alt="" /> dingn
+      <Link className="brand" href="/" aria-label={t("dingn home")}>
+        <img src="/dingn-mark.svg" width="34" height="34" alt="" />
+        {t("dingn")}
       </Link>
-      <nav aria-label="Main navigation">
+      <LanguageSwitcher />
+      <nav aria-label={t("Main navigation")}>
         {[
           ["/logic/", "Logic", LogicIcon] as const,
-          ["/number/", "Memory", MemoryIcon] as const,
+          ["/memory-ladder/", "Memory", MemoryIcon] as const,
           ["/decisions/", "Decisions", DecisionIcon] as const,
           ...(ready && isAdmin
             ? [["/admin/feedback/", "Feedback", MailIcon] as const]
@@ -24,7 +30,7 @@ export function Header() {
           <Link
             key={href}
             href={href}
-            aria-label={label}
+            aria-label={t(label)}
             aria-current={
               path.replace(/\/$/, "") === href.replace(/\/$/, "")
                 ? "page"
@@ -32,7 +38,7 @@ export function Header() {
             }
           >
             <Icon className="nav-icon" size={18} />
-            <span className="nav-label">{label}</span>
+            <span className="nav-label">{t(label)}</span>
           </Link>
         ))}
         {ready && user && <LevelBadge />}
@@ -40,7 +46,7 @@ export function Header() {
           <Link
             className="account-link"
             href="/account/"
-            aria-label="Your account"
+            aria-label={t("Your account")}
           >
             {(profile.userName || user.displayName || user.email || "Me")
               .slice(0, 2)
@@ -48,7 +54,7 @@ export function Header() {
           </Link>
         ) : (
           <Link className="button small" href="/signin/">
-            Sign in
+            {t("Sign in")}
           </Link>
         )}
       </nav>

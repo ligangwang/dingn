@@ -154,3 +154,13 @@ Until the IAM binding exists, the games still work, but XP reports "unavailable"
 ## Memory Ladder
 
 The homepage memory game has six rounds, beginning with three digits. Correct answers add a digit; mistakes keep the same difficulty with a fresh sequence. Memorization lasts one second per digit, then recall lasts 15 seconds. Free play generates fresh sequences. Daily challenges use a shared UTC date seed and allow replays. Personal longest recall is saved on the device; signed-in completed games receive server-graded XP under the existing daily cap. Shared results contain no sequence answers. This is a casual challenge, not a tamper-proof competition: the browser receives the sequence bank to display it.
+
+## Platform brand and languages
+
+dingn is the game platform. Morrowglint (拾光幻境) is its planned 3D fantasy title, introduced at `/morrowglint/` and clearly marked as in development. Memory Ladder is playable at `/memory-ladder/` and on the homepage; existing practice and game links remain supported.
+
+The shared `LocaleProvider` supports English (`en`) and Simplified Chinese (`zh-CN`). The header selector remembers the choice under `dingn.locale`. On first load, `?lang=` takes priority over a saved preference, followed by the browser language. The document language updates for assistive technology. Language changes do not remount games or reset progress.
+
+All new platform and game UI copy must support both languages. English source strings map to `src/data/zh-CN.json`; dynamic sentences use numbered placeholders and are translated as complete sentences. Keep IDs, answer indexes, server scoring, and stored user content independent of presentation language. The question catalog is shared with server grading; translations change presentation only. Tests verify translated questions and switching language mid-round.
+
+Names, feedback, saved associations, and English dictionary learning material retain their original content. The practice interface explains the English-learning context. Future Morrowglint dialogue, tutorials, item descriptions, quests, shop copy, and accessibility labels must ship with both languages; this change introduces its brand page, not the 3D game itself.
