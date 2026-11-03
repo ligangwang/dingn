@@ -1,3 +1,4 @@
+import { LocaleProvider, Text } from "@/components/locale";
 import type { Metadata } from "next";
 import { SessionProvider } from "@/components/session";
 import { Header } from "@/components/header";
@@ -8,27 +9,31 @@ import "./globals.css";
 import "./mind-arcade.css";
 export const metadata: Metadata = {
   title: {
-    default: "dingn — Memory, Logic & Decisions",
+    default: "dingn — Games & Adventures | 游戏与冒险",
     template: "%s · dingn",
   },
   description:
-    "Play memory challenges, logic puzzles, and decision-making games in the dingn mind arcade.",
+    "Discover games on dingn, home of Memory Ladder and the upcoming Morrowglint. 探索 dingn 游戏平台，畅玩记忆阶梯，了解开发中的《拾光幻境》。",
   icons: { icon: "/dingn-mark.svg" },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <a className="skip-link" href="#main">
-          Skip to content
-        </a>
-        <SessionProvider>
-          <LegacyRoutes />
-          <Header />
-          <main id="main">{children}</main>
-          <footer>dingn · Remember. Reason. Decide.</footer>
-          <Analytics />
-        </SessionProvider>
+        <LocaleProvider>
+          <a className="skip-link" href="#main">
+            <Text>Skip to content</Text>
+          </a>
+          <SessionProvider>
+            <LegacyRoutes />
+            <Header />
+            <main id="main">{children}</main>
+            <footer>
+              <Text>dingn · A world of games. A spark of adventure.</Text>
+            </footer>
+            <Analytics />
+          </SessionProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

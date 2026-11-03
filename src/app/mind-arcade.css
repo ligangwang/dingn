@@ -878,6 +878,211 @@ nav > a.account-link:hover {
   }
 }
 
+/* Memory Ladder keeps eight digits readable on narrow screens. */
+.ladder .warmup-play {
+  min-width: 0;
+  flex: 1;
+}
+.ladder .digit-slots {
+  gap: clamp(3px, 1vw, 10px);
+}
+.ladder .digit-slots > span {
+  width: clamp(24px, 4vw, 48px);
+  height: 60px;
+  font-size: clamp(20px, 3vw, 32px);
+}
+.ladder-hud {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.ladder-hud [role="timer"] {
+  color: #d5ff58;
+}
+.ladder-steps {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  margin-top: 24px;
+}
+.ladder-steps li {
+  border: 1px solid #667188;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.ladder-steps .cleared {
+  background: #d5ff58;
+  color: #192119;
+}
+.ladder-review small {
+  font-size: 14px;
+}
+.ladder-review .missed {
+  background: #ffb4a5;
+}
+.ladder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+.ladder .warmup-play input {
+  width: 100%;
+  max-width: 300px;
+  letter-spacing: 0.15em;
+}
+.ladder .ladder-best {
+  color: #d5ff58;
+}
+@media (max-width: 700px) {
+  .ladder-steps {
+    justify-content: center;
+  }
+  .ladder-steps li {
+    padding: 8px 12px;
+  }
+}
+.ladder .digit-slots > span {
+  animation: none;
+}
+.account-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.language-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--canvas);
+}
+.language-switch:hover {
+  background: #283243;
+}
+.language-switch:focus-within {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+.language-switch select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.morrow-feature {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  padding: 48px;
+  margin: 0 0 64px;
+  border-radius: 28px;
+  border: 1px solid #445065;
+  background: radial-gradient(ellipse at 10% 50%, #283c41, #171d2b 65%);
+}
+.morrow-emblem {
+  width: 160px;
+  height: 200px;
+  flex-shrink: 0;
+  border: 1px solid #86b9a7;
+  border-radius: 80px 80px 24px 24px;
+  display: grid;
+  place-items: center;
+  box-shadow:
+    inset 0 0 60px #87cfaa22,
+    0 0 80px #87cfaa11;
+}
+.morrow-emblem span {
+  font-size: 76px;
+  color: #e4efb3;
+  text-shadow: 0 0 35px #c5ff9c;
+}
+.morrow-copy {
+  min-width: 0;
+}
+.morrow-copy h1,
+.morrow-copy h2 {
+  margin: 12px 0;
+}
+.morrow-copy h1 {
+  font-size: clamp(36px, 6vw, 64px);
+}
+.morrow-copy h2 {
+  font-size: 36px;
+}
+.morrow-copy .morrow-subtitle {
+  margin-top: 0;
+  color: #acbcb9;
+  letter-spacing: 0.12em;
+}
+.morrow-copy > p {
+  line-height: 1.8;
+}
+.morrow-copy > .button {
+  margin-top: 16px;
+}
+.morrow-copy > .quiet-link {
+  display: inline-block;
+  margin: 20px;
+}
+.morrow-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 32px 0;
+}
+.morrow-pillars h2 {
+  font-size: 18px;
+}
+.morrow-pillars > div {
+  border-top: 1px solid #445065;
+  padding: 20px 0;
+}
+html[lang="zh-CN"] body {
+  font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+}
+html[lang="zh-CN"] .eyebrow {
+  letter-spacing: 0.12em;
+}
+@media (max-width: 700px) {
+  .site-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .site-header nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .morrow-feature {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 28px;
+    gap: 24px;
+  }
+  .morrow-emblem {
+    width: 80px;
+    height: 96px;
+  }
+  .morrow-emblem span {
+    font-size: 40px;
+  }
+  .morrow-pillars {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Game polish: badges, keys, combos, rings, confetti */
 .game-badge {
   display: grid;
@@ -1011,8 +1216,7 @@ nav > a.account-link:hover {
   height: 100%;
   transform: rotate(-90deg);
 }
-.ring circle,
-.countdown circle {
+.ring circle {
   fill: none;
   stroke-width: 8;
 }
@@ -1099,76 +1303,6 @@ nav > a.account-link:hover {
   border-radius: 50%;
 }
 
-/* Warm-up */
-.warmup {
-  position: relative;
-  overflow: hidden;
-}
-.countdown {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  margin: 14px auto 0;
-}
-.countdown svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-.countdown circle {
-  stroke-width: 4;
-}
-.countdown-fill {
-  stroke: #d5ff58;
-  stroke-linecap: round;
-  stroke-dasharray: 100.53;
-  animation: countdown 3s linear forwards;
-}
-.countdown span {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-  color: #d5ff58;
-  animation: score-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.digit-slots.typing {
-  margin-bottom: 4px;
-}
-.digit-slots.typing span {
-  background: transparent;
-  color: #d5ff58;
-  border: 2px dashed #59627a;
-  animation: none;
-}
-.digit-slots.typing span.filled {
-  border: 2px solid #d5ff58;
-  background: #d5ff5814;
-  animation: score-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.digit-slots.compare span {
-  position: relative;
-}
-.digit-slots.compare span.hit {
-  background: var(--success);
-}
-.digit-slots.compare span.miss {
-  background: var(--danger);
-  animation: answer-shake 0.4s;
-}
-.digit-slots.compare small {
-  position: absolute;
-  bottom: -22px;
-  font-size: 14px;
-  color: #d5ff58;
-}
-.digit-slots.compare + .round-result {
-  margin-top: 26px;
-}
-
 /* Practice: flip to reveal */
 .prompt,
 .recall-face {
@@ -1218,11 +1352,6 @@ nav > a.account-link:hover {
   100% {
     opacity: 0;
     transform: translate(var(--drift), 420px) rotate(var(--spin));
-  }
-}
-@keyframes countdown {
-  to {
-    stroke-dashoffset: 100.53;
   }
 }
 @keyframes flip-in {

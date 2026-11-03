@@ -2,17 +2,24 @@
 // game-api.mjs loads documents, calls these, and writes the results inside a
 // Firestore transaction. Nothing here trusts a score sent by the browser.
 import { readFileSync } from "node:fs";
+import { dailyLadder, scoreLadder } from "../src/data/ladder.mjs";
 
 const rounds = JSON.parse(
   readFileSync(new URL("../src/data/mind-games.json", import.meta.url), "utf8"),
 );
 
-export const GAMES = ["warmup", "logic", "decisions"];
+export const GAMES = ["warmup", "logic", "decisions", "ladder", "ladder_daily"];
 export const DAILY_XP_CAP = 300;
 export const STARTS_PER_HOUR = 60;
 export const PLAY_TTL_MS = 30 * 60 * 1000;
 /** Fastest believable completion for each game, in milliseconds. */
-export const MIN_DURATION_MS = { warmup: 3000, logic: 8000, decisions: 8000 };
+export const MIN_DURATION_MS = {
+  warmup: 3000,
+  logic: 8000,
+  decisions: 8000,
+  ladder: 18000,
+  ladder_daily: 18000,
+};
 
 export class GameError extends Error {
   constructor(status, code, message) {
@@ -40,6 +47,16 @@ export function levelProgress(xp) {
 
 /** Builds the challenge the server hands out for a new play. */
 export function newChallenge(game, randomInt) {
+  if (game === "ladder_daily") {
+    const day = dayKey(Date.now());
+    return { sequences: dailyLadder(day), day };
+  }
+  if (game === "ladder")
+    return {
+      sequences: Array.from({ length: 6 }, () =>
+        Array.from({ length: 8 }, () => randomInt(10)).join(""),
+      ),
+    };
   if (game === "warmup")
     return { digits: Array.from({ length: 3 }, () => randomInt(10)).join("") };
   return { rounds: rounds[game].length };
@@ -56,6 +73,18 @@ export function checkStart(player, now) {
 
 /** Grades submitted answers against the server's own answer key. */
 export function grade(play, answers) {
+  if (play.game === "ladder" || play.game === "ladder_daily") {
+    if (
+      !Array.isArray(answers) ||
+      answers.length !== 6 ||
+      !answers.every((a) => typeof a === "string" && /^\d{0,8}$/.test(a))
+    )
+      throw new GameError(400, "bad_answers", "Submit all six rounds.");
+    return {
+      score: scoreLadder(play.challenge.sequences, answers).score,
+      max: 6,
+    };
+  }
   if (play.game === "warmup") {
     if (typeof answers !== "string" || !/^\d{3}$/.test(answers))
       throw new GameError(400, "bad_answers", "Enter three digits.");

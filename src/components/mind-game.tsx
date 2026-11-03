@@ -1,4 +1,6 @@
 "use client";
+import { useLocale } from "@/components/locale";
+
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import mindGames from "@/data/mind-games.json";
@@ -17,6 +19,8 @@ type MindRound = {
 const games = mindGames as Record<"logic" | "decisions", MindRound[]>;
 
 export function MindGame({ mode }: { mode: keyof typeof games }) {
+  const { t, locale } = useLocale();
+
   const rounds = games[mode];
   const [round, setRound] = useState(0),
     [choice, setChoice] = useState<number | null>(null),
@@ -48,6 +52,8 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
     if (done || choice !== null) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable]")) return;
       const key = event.key.toUpperCase();
       const index = /^[1-9]$/.test(key) ? Number(key) - 1 : KEYS.indexOf(key);
       if (index >= 0 && index < game.options.length) {
@@ -74,7 +80,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
       : { href: "/logic/", label: "Next game: Logic" };
   return (
     <div className="mind-page container">
-      <Link href="/">← All games</Link>
+      <Link href="/">{t("← All games")}</Link>
       <div className={`game-badge ${mode}`} aria-hidden="true">
         {mode === "logic" ? (
           <LogicIcon size={30} />
@@ -83,23 +89,26 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
         )}
       </div>
       <p className="eyebrow">
-        {mode === "logic" ? "LOGIC LAB" : "DECISION ROOM"} / NO SIGN-IN
+        {t(mode === "logic" ? "LOGIC LAB" : "DECISION ROOM")}
+        {t("/ NO SIGN-IN")}
       </p>
       <h1>
-        {mode === "logic" ? "Connect the clues." : "Make your next move."}
+        {t(mode === "logic" ? "Connect the clues." : "Make your next move.")}
       </h1>
       <p>
-        {mode === "logic"
-          ? "Four puzzles. Take your time and find the reasoning."
-          : "Four fictional scenarios. Match each choice to the goal."}
+        {t(
+          mode === "logic"
+            ? "Four puzzles. Take your time and find the reasoning."
+            : "Four fictional scenarios. Match each choice to the goal.",
+        )}
       </p>
-      <section className={`mind-panel ${mode}`} aria-label="Game round">
+      <section className={`mind-panel ${mode}`} aria-label={t("Game round")}>
         {done ? (
           <>
             <div className="end-screen">
               {score === rounds.length && <Confetti />}
-              <p className="eyebrow">Round complete</p>
-              <div className="end-stars" aria-label={`${stars} of 3 stars`}>
+              <p className="eyebrow">{t("Round complete")}</p>
+              <div className="end-stars" aria-label={t(`${stars} of 3 stars`)}>
                 {[0, 1, 2].map((i) => (
                   <span key={i} className={i < stars ? "on" : ""}>
                     ★
@@ -107,17 +116,17 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
                 ))}
               </div>
               <EndScore score={score} total={rounds.length} />
-              <h2>{endTitle(score, rounds.length)}</h2>
+              <h2>{t(endTitle(score, rounds.length))}</h2>
               <p role="status">
-                {score} of {rounds.length} answers matched the goal.
+                {t(`${score} of ${rounds.length} answers matched the goal.`)}
               </p>
-              <ol className="recap" aria-label="Your answers">
+              <ol className="recap" aria-label={t("Your answers")}>
                 {rounds.map((r, i) => (
                   <li key={i} className={results[i] ? "hit" : "miss"}>
                     <span aria-hidden="true">{results[i] ? "✓" : "✗"}</span>
-                    {r.title}
+                    {t(r.title)}
                     <span className="sr-only">
-                      {results[i] ? " correct" : " missed"}
+                      {t(results[i] ? " correct" : " missed")}
                     </span>
                   </li>
                 ))}
@@ -129,10 +138,10 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
               />
               <div className="end-actions">
                 <button className="button" onClick={restart}>
-                  Play again
+                  {t("Play again")}
                 </button>
                 <Link className="secondary-button" href={next.href}>
-                  {next.label} →
+                  {t(next.label)} →
                 </Link>
               </div>
             </div>
@@ -142,7 +151,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
             <div className="game-hud">
               <div>
                 <span className="hud-label">
-                  Round {round + 1} of {rounds.length}
+                  {t(`Round ${round + 1} of ${rounds.length}`)}
                 </span>
                 <ol className="round-pips" aria-hidden="true">
                   {rounds.map((_, i) => (
@@ -163,7 +172,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
               </div>
               {combo >= 2 && (
                 <span key={combo} className="combo-chip">
-                  🔥 {combo} in a row
+                  🔥 {t(`${combo} in a row`)}
                 </span>
               )}
               <div className="hud-score">
@@ -176,13 +185,13 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
                   {score}
                 </span>
                 <span className="hud-label">
-                  {score === 1 ? "point" : "points"}
+                  {t(score === 1 ? "point" : "points")}
                 </span>
               </div>
             </div>
             <div className="round-card" key={round}>
-              <h2>{game.title}</h2>
-              <p className="round-prompt">{game.prompt}</p>
+              <h2>{t(game.title)}</h2>
+              <p className="round-prompt">{t(game.prompt)}</p>
               <div className="round-options">
                 {game.options.map((option, i) => (
                   <button
@@ -194,21 +203,27 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
                     <span className="option-key" aria-hidden="true">
                       {KEYS[i]}
                     </span>
-                    {option}
-                    {choice !== null && i === game.answer ? " ✓" : ""}
+                    {t(option)}
+                    {t(choice !== null && i === game.answer ? " ✓" : "")}
                   </button>
                 ))}
               </div>
               {choice !== null && (
                 <div className="round-explanation" role="status">
                   <h3>
-                    {choice === game.answer
-                      ? "You found it."
-                      : "Let’s unpack that."}
+                    {t(
+                      choice === game.answer
+                        ? "You found it."
+                        : "Let’s unpack that.",
+                    )}
                   </h3>
-                  <p>{game.why}</p>
+                  <p>{t(game.why)}</p>
                   <button ref={nextButton} className="button" onClick={advance}>
-                    {round === rounds.length - 1 ? "See results" : "Next round"}{" "}
+                    {t(
+                      round === rounds.length - 1
+                        ? "See results"
+                        : "Next round",
+                    )}{" "}
                     →
                   </button>
                 </div>
@@ -216,8 +231,9 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
             </div>
             {choice === null && (
               <p className="key-hint" aria-hidden="true">
-                Tip: press {KEYS.slice(0, game.options.length).join(" / ")} to
-                answer
+                {t(
+                  `Tip: press ${KEYS.slice(0, game.options.length).join(" / ")} to answer`,
+                )}
               </p>
             )}
           </>
@@ -225,8 +241,9 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
       </section>
       {done && <Leaderboard />}
       <p className="game-note">
-        Play for curiosity. These games are not an IQ test. Signed-in players
-        earn XP; every score is checked by the dingn server.
+        {t(
+          "Play for curiosity. These games are not an IQ test. Signed-in players earn XP; every score is checked by the dingn server.",
+        )}
       </p>
     </div>
   );

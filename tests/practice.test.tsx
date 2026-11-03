@@ -147,7 +147,7 @@ describe("migrated practice behavior", () => {
     await user.click(screen.getByRole("button", { name: /Previous/ }));
     await screen.findByRole("heading", { name: "name" });
   });
-  it("saves account preferences without writing other users or replacing unrelated fields", async () => {
+  it("saves the player name while preserving legacy profile fields", async () => {
     mocks.session.updateProfile.mockResolvedValue(undefined);
     const user = userEvent.setup();
     render(<Account />);
@@ -157,7 +157,10 @@ describe("migrated practice behavior", () => {
       "New name",
     );
     expect(screen.queryByRole("radio")).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(
+      screen.getByRole("link", { name: /Play games/ }).getAttribute("href"),
+    ).toBe("/#games");
+    await user.click(screen.getByRole("button", { name: "Save profile" }));
     await screen.findByRole("status");
     expect(mocks.session.updateProfile).toHaveBeenCalledWith({
       userName: "New name",

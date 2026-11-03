@@ -1,4 +1,6 @@
 "use client";
+import { useLocale } from "@/components/locale";
+
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AuthGate } from "./auth";
@@ -27,40 +29,52 @@ const titles = {
   card: "Playing cards",
 };
 export function Practice({ mode }: { mode: Mode }) {
+  const { t, locale } = useLocale();
+
   const [digits, setDigits] = useState(1);
-  const { user, profile, profileError } = useSession();
+  const { user, profileError } = useSession();
   return (
     <AuthGate returnTo={`/${mode}/`}>
       <div className="practice-page container">
         <div className="practice-heading">
           <div>
             <Link className="back-link" href="/">
-              ← All games
+              {t("← All games")}
             </Link>
-            <h1>{titles[mode]}</h1>
+            <h1>{t(titles[mode])}</h1>
             <p className="lede">
-              {mode === "word"
-                ? "Make a connection between a word and its number."
-                : mode === "card"
-                  ? "Give each card a memorable word or image."
-                  : "Turn a number into an image you can remember."}
+              {t(
+                mode === "word"
+                  ? "Make a connection between a word and its number."
+                  : mode === "card"
+                    ? "Give each card a memorable word or image."
+                    : "Turn a number into an image you can remember.",
+              )}
             </p>
           </div>
+          <p className="mode-link">
+            {t("Recall first. Reveal when you’re ready.")}
+          </p>
         </div>
         {profileError && (
           <p role="alert" className="error">
-            Your saved preferences couldn’t be loaded. {profileError}
+            {t("Your saved preferences couldn’t be loaded.")}
+            {t(profileError)}
           </p>
         )}
         {mode === "number" && (
-          <div className="digit-tabs" role="group" aria-label="Number length">
+          <div
+            className="digit-tabs"
+            role="group"
+            aria-label={t("Number length")}
+          >
             {[1, 2, 3, 4].map((n) => (
               <button
                 key={n}
                 aria-pressed={digits === n}
                 onClick={() => setDigits(n)}
               >
-                {n} {n === 1 ? "digit" : "digits"}
+                {n} {t(n === 1 ? "digit" : "digits")}
               </button>
             ))}
           </div>
@@ -71,7 +85,7 @@ export function Practice({ mode }: { mode: Mode }) {
           digits={digits}
         />
         <details className="mini-guide">
-          <summary>Need a hint? Open the number–sound guide</summary>
+          <summary>{t("Need a hint? Open the number–sound guide")}</summary>
           <div className="sound-grid">
             {soundGuide.map((sound, i) => (
               <div key={i}>
@@ -86,6 +100,8 @@ export function Practice({ mode }: { mode: Mode }) {
   );
 }
 function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
+  const { t, locale } = useLocale();
+
   const { user } = useSession();
   const [numbers, setNumbers] = useState<NumberEntry[]>([]),
     [words, setWords] = useState<WordEntry[]>([]);
@@ -309,26 +325,32 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
       if (mounted.current) setSaving(false);
     }
   }
-  // Every practice is a recall round: think of the answer, then flip.
   const showAnswer = revealed;
   return (
     <>
       <div className="practice-toolbar">
+        <p className="muted">
+          {t(
+            "This library practices English words and sounds. The interface is translated; word definitions and your saved associations stay in their original language.",
+          )}
+        </p>
         {mode !== "card" ? (
           <form className="search-form" onSubmit={searchFor}>
             <label className="sr-only" htmlFor="practice-search">
-              Search {mode === "word" ? "words" : "numbers"}
+              {t(mode === "word" ? "Search words" : "Search numbers")}
             </label>
             <input
               id="practice-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={mode === "word" ? "Find a word…" : "Find a number…"}
+              placeholder={t(
+                mode === "word" ? "Find a word…" : "Find a number…",
+              )}
               maxLength={mode === "word" ? 100 : 4}
               inputMode={mode === "word" ? "text" : "numeric"}
             />
             <button className="secondary-button" disabled={busy || saving}>
-              Search
+              {t("Search")}
             </button>
             {searching && (
               <button
@@ -344,7 +366,7 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
                   setRevealed(false);
                 }}
               >
-                Back to practice
+                {t("Back to practice")}
               </button>
             )}
           </form>
@@ -355,48 +377,50 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
               disabled={busy || saving}
               onClick={() => reorder(true)}
             >
-              Shuffle
+              {t("Shuffle")}
             </button>
             <button
               className="text-button"
               disabled={busy || saving}
               onClick={() => reorder(false)}
             >
-              Reset deck
+              {t("Reset deck")}
             </button>
           </div>
         )}
         <span className="counter">
-          {searching
-            ? "Search result"
-            : mode === "card"
-              ? `${index + 1} / 52`
-              : `Practice ${index + 1}`}
+          {t(
+            searching
+              ? "Search result"
+              : mode === "card"
+                ? `${index + 1} / 52`
+                : `Practice ${index + 1}`,
+          )}
         </span>
       </div>
       {error && (
         <div className="error" role="alert">
-          {error}{" "}
+          {t(error)}{" "}
           {!current && (
             <button className="text-button" onClick={initial} disabled={busy}>
-              Try again
+              {t("Try again")}
             </button>
           )}
         </div>
       )}
       {notice && (
         <p role="status" className="notice">
-          {notice}
+          {t(notice)}
         </p>
       )}
       <section
         className="exercise panel"
-        aria-label="Practice card"
+        aria-label={t("Practice card")}
         aria-busy={busy}
       >
         {busy ? (
           <div className="exercise-loading" role="status">
-            Loading your practice…
+            {t("Loading your practice…")}
           </div>
         ) : (
           <>
@@ -405,16 +429,16 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
                 <img
                   className="playing-card"
                   src={`/cards/${cards[index].id}.png`}
-                  alt={cards[index].name}
+                  alt={t(cards[index].name)}
                   width="160"
                   height="232"
                 />
-                <p>Picture the word you associate with this card.</p>
+                <p>{t("Picture the word you associate with this card.")}</p>
               </div>
             ) : current ? (
               <div className="prompt">
                 <span className="eyebrow">
-                  {mode === "word" ? "Your word" : "Your number"}
+                  {t(mode === "word" ? "Your word" : "Your number")}
                 </span>
                 <h2>{wordEntry?.word ?? numberEntry?.number}</h2>
                 {wordEntry?.ipa && (
@@ -425,9 +449,11 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
               </div>
             ) : (
               <p className="empty-state">
-                {mode === "card"
-                  ? "No word associations are saved for this card yet."
-                  : "Nothing to show yet. Try searching or choose another practice."}
+                {t(
+                  mode === "card"
+                    ? "No word associations are saved for this card yet."
+                    : "Nothing to show yet. Try searching or choose another practice.",
+                )}
               </p>
             )}
             {(current || mode === "card") && (
@@ -436,17 +462,17 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
                 aria-expanded={revealed}
                 onClick={() => setRevealed(!revealed)}
               >
-                {revealed ? "Hide answer" : "Reveal answer"}{" "}
+                {t(revealed ? "Hide answer" : "Reveal answer")}{" "}
                 <span aria-hidden="true">↻</span>
               </button>
             )}
             {showAnswer && numberEntry && (
               <div className="answer">
-                <h3>Your word association</h3>
+                <h3>{t("Your word association")}</h3>
                 <p className="favorite-label">
                   {favorite ??
                     numberEntry.favorite ??
-                    "Choose a word that brings an image to mind."}
+                    t("Choose a word that brings an image to mind.")}
                 </p>
                 <div className="word-choices">
                   {numberEntry.words.map((word) => (
@@ -457,21 +483,23 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
                       onClick={() => chooseFavorite(word)}
                     >
                       <span aria-hidden="true">
-                        {(favorite ?? numberEntry.favorite) === word
-                          ? "♥"
-                          : "♡"}
+                        {t(
+                          (favorite ?? numberEntry.favorite) === word
+                            ? "♥"
+                            : "♡",
+                        )}
                       </span>{" "}
                       {word}
                     </button>
                   ))}
                 </div>
                 <p className="hint">
-                  Choose a favorite to use in your next practice.
+                  {t("Choose a favorite to use in your next practice.")}
                 </p>
                 {favoriteError && (
                   <p role="alert" className="error">
-                    Your favorite couldn’t be loaded or saved. {favoriteError}{" "}
-                    Reload to try again.
+                    {t("Your favorite couldn’t be loaded or saved.")}
+                    {t(favoriteError)} {t("Reload to try again.")}
                   </p>
                 )}
               </div>
@@ -479,8 +507,8 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
             {showAnswer && wordEntry && (
               <div className="answer">
                 <div className="word-number">
-                  <span>Major System number</span>
-                  <strong>{wordEntry.number || "Not available"}</strong>
+                  <span>{t("Major System number")}</span>
+                  <strong>{wordEntry.number || t("Not available")}</strong>
                 </div>
                 {Object.entries(wordEntry.definitions).map(
                   ([part, definitions]) => (
@@ -506,7 +534,7 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
             onClick={previous}
             disabled={index === 0 || busy || saving}
           >
-            ← Previous
+            {t("← Previous")}
           </button>
           <button
             className="button"
@@ -521,7 +549,7 @@ function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
                   : false)
             }
           >
-            Next practice →
+            {t("Next practice →")}
           </button>
         </div>
       )}

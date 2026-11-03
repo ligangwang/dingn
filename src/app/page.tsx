@@ -1,76 +1,85 @@
+"use client";
+import { useLocale } from "@/components/locale";
 import Link from "next/link";
+import { MorrowglintFeature } from "@/components/morrowglint";
 import { WarmUp } from "@/components/warm-up";
 import { DecisionIcon, LogicIcon, MemoryIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/xp";
 export default function Home() {
+  const { t, locale } = useLocale();
+
   return (
     <div className="mind-home container">
       <section className="mind-hero">
         <div>
-          <p className="eyebrow">MEMORY · LOGIC · DECISIONS</p>
+          <p className="eyebrow">{t("THE DINGN GAME PLATFORM")}</p>
           <h1>
-            Play with purpose.
+            {t("Your next adventure.")}
             <br />
-            <span>Think one move ahead.</span>
+            <span>{t("Starts here.")}</span>
           </h1>
           <p className="lede">
-            Remember the details. Connect the clues. Make your move.
+            {t("Quick challenges today. New worlds to explore tomorrow.")}
             <br />
-            Welcome to your mind arcade.
+            {t("One platform. Your own way to play.")}
           </p>
           <a className="button" href="#games">
-            Find your next game ↗
+            {t("Find your next game ↗")}
           </a>
           <p className="hero-caption">
-            Short rounds. Fresh perspectives. Your pace.
+            {t("Short rounds. Fresh perspectives. Your pace.")}
           </p>
         </div>
         <div className="mind-art" aria-hidden="true">
-          <span className="orbit-label">THINK / PLAY / REPEAT</span>
+          <span className="orbit-label">{t("THINK / PLAY / REPEAT")}</span>
           <img src="/dingn-mark.svg" alt="" />
           <span className="art-chip chip-one">32 → ☾</span>
-          <span className="art-chip chip-two">WHAT’S NEXT?</span>
-          <span className="art-chip chip-three">YOUR MOVE ↗</span>
+          <span className="art-chip chip-two">{t("WHAT’S NEXT?")}</span>
+          <span className="art-chip chip-three">{t("YOUR MOVE ↗")}</span>
         </div>
       </section>
+      <MorrowglintFeature />
       <section id="games">
         <div className="mind-heading">
           <div>
-            <p className="eyebrow">THREE WAYS TO PLAY</p>
-            <h2>Your mind. Your playground.</h2>
+            <p className="eyebrow">{t("THREE WAYS TO PLAY")}</p>
+            <h2>{t("Your mind. Your playground.")}</h2>
           </div>
-          <span>No sign-in needed</span>
+          <span>{t("No sign-in needed")}</span>
         </div>
         <div className="arena-grid">
           <a href="#warm-up" className="arena memory-arena">
             <MemoryIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">01 / MEMORY</p>
-            <h2>Make it stick.</h2>
+            <p className="eyebrow">{t("01 / MEMORY")}</p>
+            <h2>{t("Make it stick.")}</h2>
             <p>
-              Catch a sequence. Hold it in your head. Recall it before it slips
-              away.
+              {t(
+                "Catch a sequence. Hold it in your head. Recall it before it slips away.",
+              )}
             </p>
-            <strong>Try the 3-digit warm-up ↓</strong>
+            <strong>{t("Play Memory Ladder ↓")}</strong>
           </a>
           <Link href="/logic/" className="arena logic-arena">
             <LogicIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">02 / LOGIC</p>
-            <h2>Crack the pattern.</h2>
+            <p className="eyebrow">{t("02 / LOGIC")}</p>
+            <h2>{t("Crack the pattern.")}</h2>
             <p>
-              Connect the clues and put your reasoning to work in four quick
-              puzzles.
+              {t(
+                "Connect the clues and put your reasoning to work in four quick puzzles.",
+              )}
             </p>
-            <strong>Play logic lab →</strong>
+            <strong>{t("Play logic lab →")}</strong>
           </Link>
           <Link href="/decisions/" className="arena decision-arena">
             <DecisionIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">03 / DECISIONS</p>
-            <h2>Choose your move.</h2>
+            <p className="eyebrow">{t("03 / DECISIONS")}</p>
+            <h2>{t("Choose your move.")}</h2>
             <p>
-              Weigh the odds, work with a budget, and discover why the goal
-              matters.
+              {t(
+                "Weigh the odds, work with a budget, and discover why the goal matters.",
+              )}
             </p>
-            <strong>Play decision room →</strong>
+            <strong>{t("Play decision room →")}</strong>
           </Link>
         </div>
       </section>
@@ -79,20 +88,23 @@ export default function Home() {
       </div>
       <Leaderboard />
       <section className="memory-library">
-        <p className="eyebrow">GO DEEPER WITH MEMORY</p>
-        <h2>Build connections that stick.</h2>
+        <p className="eyebrow">{t("GO DEEPER WITH MEMORY")}</p>
+        <h2>{t("Build connections that stick.")}</h2>
         <p>
-          Explore the Major System: turn numbers into sounds, words, and
-          pictures you can remember.
+          {t(
+            "Explore the Major System: turn numbers into sounds, words, and pictures you can remember.",
+          )}
         </p>
         <div className="library-links">
-          <Link href="/number/">Number lab ↗</Link>
-          <Link href="/word/">Word universe ↗</Link>
-          <Link href="/card/">Deck quest ↗</Link>
+          <Link href="/number/">{t("Number lab ↗")}</Link>
+          <Link href="/word/">{t("Word universe ↗")}</Link>
+          <Link href="/card/">{t("Deck quest ↗")}</Link>
         </div>
       </section>
       <p className="support">
-        <Link href="/feedback/">Have a game idea? Help shape dingn ↗</Link>
+        <Link href="/feedback/">
+          {t("Have a game idea? Help shape dingn ↗")}
+        </Link>
       </p>
     </div>
   );
