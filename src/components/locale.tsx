@@ -66,7 +66,21 @@ export function Text({ children }: { children: string }) {
 export function LanguageSwitcher() {
   const { locale, setLocale } = useLocale();
   return (
-    <label className="language-switch">
+    <label className="language-switch" title="Language / 语言">
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <ellipse cx="12" cy="12" rx="4" ry="9" />
+        <path d="M3 12h18" />
+      </svg>
       <span className="sr-only">Language / 语言</span>
       <select
         aria-label="Language / 语言"
