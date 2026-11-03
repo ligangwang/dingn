@@ -5,6 +5,8 @@ import { useLocale } from "./locale";
 import type { createAdventure, Snapshot } from "@/game/morrowglint-scene";
 const initial: Snapshot = {
   stage: "ready",
+  shot: null,
+  locked: false,
   health: 5,
   remaining: 3,
   cooldown: 0,
@@ -23,9 +25,20 @@ export function MorrowglintGame() {
     [failed, setFailed] = useState(false),
     [paused, setPaused] = useState(false),
     [completed, setCompleted] = useState(false),
-    [exploring, setExploring] = useState(false);
+    [exploring, setExploring] = useState(false),
+    [steady, setSteady] = useState(false),
+    [closeCamera, setCloseCamera] = useState(true);
   useEffect(() => {
     let cancelled = false;
+    let savedSteady = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let savedClose = true;
+    try {
+      const saved = localStorage.getItem("dingn.morrowglint.steady");
+      if (saved !== null) savedSteady = saved === "true";
+      savedClose = localStorage.getItem("dingn.morrowglint.close") !== "false";
+    } catch {}
+    setSteady(savedSteady);
+    setCloseCamera(savedClose);
     try {
       setCompleted(
         localStorage.getItem("dingn.morrowglint.chapter1") === "complete",
@@ -40,6 +53,8 @@ export function MorrowglintGame() {
           () => setPaused(true),
           () => setFailed(true),
         );
+        game.current.setSteady(savedSteady);
+        game.current.setCloseCamera(savedClose);
         setLoaded(true);
       })
       .catch(() => {
@@ -86,7 +101,7 @@ export function MorrowglintGame() {
         </div>
         <Link href="/morrowglint/">{t("About the adventure")}</Link>
       </div>
-      <div className="morrow-stage">
+      <div className={`morrow-stage ${state.shot ? "is-shot" : ""}`}>
         <div
           ref={host}
           className="morrow-canvas"
@@ -97,7 +112,24 @@ export function MorrowglintGame() {
           )}
           aria-describedby="morrow-help"
         />
-        {active && !failed && (
+        {state.shot && !paused && (
+          <div className="morrow-shot">
+            <p>
+              {t(
+                state.shot === "intro"
+                  ? "CHAPTER 01 · THE FIRST LIGHT"
+                  : "The shadows give way to light.",
+              )}
+            </p>
+            <button
+              className="secondary-button"
+              onClick={() => game.current?.skipShot()}
+            >
+              {t("Skip cinematic")}
+            </button>
+          </div>
+        )}
+        {active && !failed && !state.shot && (
           <>
             <div className="morrow-hud">
               <div>
@@ -316,6 +348,43 @@ export function MorrowglintGame() {
             </section>
           </div>
         )}
+      </div>
+      <div className="morrow-camera-settings" aria-label={t("Camera settings")}>
+        <label>
+          <input
+            type="checkbox"
+            checked={closeCamera}
+            onChange={(e) => {
+              const value = e.target.checked;
+              setCloseCamera(value);
+              game.current?.setCloseCamera(value);
+              try {
+                localStorage.setItem("dingn.morrowglint.close", String(value));
+              } catch {}
+            }}
+          />
+          {t("Close-up combat camera")}
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={steady}
+            onChange={(e) => {
+              const value = e.target.checked;
+              setSteady(value);
+              game.current?.setSteady(value);
+              try {
+                localStorage.setItem("dingn.morrowglint.steady", String(value));
+              } catch {}
+            }}
+          />
+          {t("Steady camera")}
+        </label>
+        <span>
+          {t(
+            state.locked ? "Nearby enemy in focus" : "Camera follows your hero",
+          )}
+        </span>
       </div>
       <div className="morrow-game-notes" id="morrow-help">
         <p>
