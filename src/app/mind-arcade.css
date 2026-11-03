@@ -948,18 +948,39 @@ nav > a.account-link:hover {
 .ladder .digit-slots > span {
   animation: none;
 }
-.language-switch {
-  margin-left: auto;
-  margin-right: 20px;
+.account-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
-.language-switch select {
-  font: inherit;
-  font-size: 13px;
+.language-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   color: var(--ink);
   background: var(--canvas);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px;
+}
+.language-switch:hover {
+  background: #283243;
+}
+.language-switch:focus-within {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+.language-switch select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 .morrow-feature {
   display: flex;
@@ -1043,9 +1064,6 @@ html[lang="zh-CN"] .eyebrow {
   .site-header nav {
     width: 100%;
     justify-content: space-between;
-  }
-  .language-switch {
-    margin-right: 0;
   }
   .morrow-feature {
     flex-direction: column;

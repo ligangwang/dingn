@@ -17,7 +17,6 @@ export function Header() {
         <img src="/dingn-mark.svg" width="34" height="34" alt="" />
         {t("dingn")}
       </Link>
-      <LanguageSwitcher />
       <nav aria-label={t("Main navigation")}>
         {[
           ["/logic/", "Logic", LogicIcon] as const,
@@ -42,21 +41,24 @@ export function Header() {
           </Link>
         ))}
         {ready && user && <LevelBadge />}
-        {ready && user ? (
-          <Link
-            className="account-link"
-            href="/account/"
-            aria-label={t("Your account")}
-          >
-            {(profile.userName || user.displayName || user.email || "Me")
-              .slice(0, 2)
-              .toUpperCase()}
-          </Link>
-        ) : (
-          <Link className="button small" href="/signin/">
-            {t("Sign in")}
-          </Link>
-        )}
+        <div className="account-controls">
+          <LanguageSwitcher />
+          {ready && user ? (
+            <Link
+              className="account-link"
+              href="/account/"
+              aria-label={t("Your account")}
+            >
+              {(profile.userName || user.displayName || user.email || "Me")
+                .slice(0, 2)
+                .toUpperCase()}
+            </Link>
+          ) : (
+            <Link className="button small" href="/signin/">
+              {t("Sign in")}
+            </Link>
+          )}
+        </div>
       </nav>
     </header>
   );
