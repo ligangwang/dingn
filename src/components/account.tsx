@@ -1,4 +1,6 @@
 "use client";
+import { useLocale } from "@/components/locale";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +8,8 @@ import { AuthGate } from "./auth";
 import { useSession } from "./session";
 import { friendlyError } from "@/lib/models";
 function Settings() {
+  const { t, locale } = useLocale();
+
   const { user, profile, profileError, updateProfile, logout } = useSession();
   const router = useRouter();
   const [name, setName] = useState(profile.userName);
@@ -39,17 +43,18 @@ function Settings() {
   }
   return (
     <div className="narrow container settings">
-      <p className="eyebrow">Make it yours</p>
-      <h1>Your player profile</h1>
+      <p className="eyebrow">{t("Make it yours")}</p>
+      <h1>{t("Your player profile")}</h1>
       <p className="lede">{user?.email}</p>
       {profileError && (
         <p role="alert" className="error">
-          Your profile couldn’t be loaded. {profileError} Reload this page to
-          try again.
+          {t("Your profile couldn’t be loaded.")}
+          {t(profileError)}
+          {t("Reload this page to try again.")}
         </p>
       )}
       <form className="panel" onSubmit={save}>
-        <label htmlFor="display-name">Display name</label>
+        <label htmlFor="display-name">{t("Display name")}</label>
         <input
           id="display-name"
           value={name}
@@ -58,25 +63,27 @@ function Settings() {
           disabled={busy || !!profileError}
         />
         <button className="button" disabled={busy || !!profileError}>
-          {busy ? "Please wait…" : "Save profile"}
+          {t(busy ? "Please wait…" : "Save profile")}
         </button>
-        {message && <p role="status">{message}</p>}
+        {message && <p role="status">{t(message)}</p>}
         {error && (
           <p role="alert" className="error">
-            {error}
+            {t(error)}
           </p>
         )}
       </form>
       <Link className="button" href="/#games">
-        Play games →
+        {t("Play games →")}
       </Link>
       <button className="text-button" onClick={leave} disabled={busy}>
-        Sign out
+        {t("Sign out")}
       </button>
     </div>
   );
 }
 export function Account() {
+  const { t, locale } = useLocale();
+
   return (
     <AuthGate returnTo="/account/">
       <Settings />
