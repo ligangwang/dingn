@@ -22,9 +22,7 @@ export function MorrowglintFeature({ full = false }: { full?: boolean }) {
             {locale === "zh-CN" ? "拾光幻境" : "Morrowglint"}
           </h2>
         )}
-        <p className="morrow-subtitle">
-          {locale === "zh-CN" ? "Morrowglint" : "拾光幻境"}
-        </p>
+        {locale === "zh-CN" && <p className="morrow-subtitle">Morrowglint</p>}
         <p className="lede">
           {t("Awaken your power. Restore a forgotten world.")}
         </p>
@@ -37,7 +35,7 @@ export function MorrowglintFeature({ full = false }: { full?: boolean }) {
           <>
             <p>
               {t(
-                "Planned for web, Android, and iOS, in English and Simplified Chinese. Development is underway; the adventure is not playable yet.",
+                "Try our first browser prototype in English or Simplified Chinese. The full adventure and Android / iOS apps are still in development.",
               )}
             </p>
             <div className="morrow-pillars">
@@ -57,8 +55,8 @@ export function MorrowglintFeature({ full = false }: { full?: boolean }) {
                 "Our first chapter follows a memory restorer who rescues a fading light spirit and brings a ruined courtyard back to life. Features and release timing are still being developed.",
               )}
             </p>
-            <Link className="button" href="/memory-ladder/">
-              {t("Play Memory Ladder now →")}
+            <Link className="button" href="/morrowglint/play/">
+              {t("Play the first chapter →")}
             </Link>
             <Link className="quiet-link" href="/">
               {t("Back to games")}
