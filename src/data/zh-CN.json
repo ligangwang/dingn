@@ -396,5 +396,10 @@
   "Close-up combat camera": "近距离战斗镜头",
   "Steady camera": "平稳镜头",
   "Nearby enemy in focus": "已聚焦附近敌人",
-  "Camera follows your hero": "镜头跟随你的英雄"
+  "Camera follows your hero": "镜头跟随你的英雄",
+  "Your answers": "你的答案",
+  "correct": "答对",
+  "missed": "答错",
+  "{0} in a row": "连续答对 {0} 题",
+  "Tip: press {0} to answer": "提示：按 {0} 作答"
 }
