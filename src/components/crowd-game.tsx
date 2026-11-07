@@ -3,6 +3,17 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "./locale";
 import { STORE, Sfx, read, write } from "./crowd-shared";
+import { useOptionalSession } from "./session";
+import {
+  FREE_LEVELS,
+  mergeProgress,
+  needsSignIn,
+  parseProgress,
+  readCrowdProgress,
+  sameProgress,
+  saveCrowdProgress,
+  type CrowdProgress,
+} from "@/lib/crowd-progress";
 import {
   newLevel,
   progress,
@@ -18,6 +29,13 @@ import type { CrowdScene, SceneFx } from "@/game/crowd-scene";
 const TEAM = "#3ea6ff";
 const RIVAL = "#ff5a5f";
 const MAX_FLOATS = 24;
+const SIGN_IN_HREF = `/signin/?next=${encodeURIComponent("/crowd/")}`;
+
+const localProgress = () => parseProgress(read(STORE.level), read(STORE.best));
+function storeLocal(p: CrowdProgress) {
+  write(STORE.level, String(p.level));
+  write(STORE.best, String(p.best));
+}
 
 type Spark = SceneFx["sparks"][number] & { vx: number; vz: number; vh: number };
 type Float = {
@@ -36,6 +54,12 @@ type Float = {
  */
 export function CrowdGame() {
   const { t } = useLocale();
+  // Levels past FREE_LEVELS need an account; progress then syncs to it.
+  const session = useOptionalSession();
+  const user = session?.user ?? null;
+  const sessionReady = session ? session.ready : true;
+  const uidRef = useRef<string | null>(null);
+  uidRef.current = user?.uid ?? null;
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const labelsRef = useRef<HTMLDivElement>(null);
@@ -65,6 +89,8 @@ export function CrowdGame() {
   const [result, setResult] = useState({ count: 0, stars: 0 });
   const [sound, setSound] = useState(true);
   const [noGl, setNoGl] = useState(false);
+  const [synced, setSynced] = useState(false);
+  const locked = needsSignIn(level, !!user);
 
   function load(lv: number) {
     world.current = newLevel(lv);
@@ -81,7 +107,7 @@ export function CrowdGame() {
   function begin() {
     sfx.current?.wake();
     const w = world.current;
-    if (w.phase === "ready") {
+    if (w.phase === "ready" && !needsSignIn(w.level, !!uidRef.current)) {
       start(w);
       setPhase("run");
       canvasRef.current?.focus({ preventScroll: true });
@@ -109,8 +135,8 @@ export function CrowdGame() {
     let disposed = false;
     let raf = 0;
     let observer: ResizeObserver | undefined;
-    const saved = Math.max(1, Number(read(STORE.level)) || 1);
-    setBest(Number(read(STORE.best)) || 0);
+    const { level: saved, best: savedBest } = localProgress();
+    setBest(savedBest);
     const s = read(STORE.sound) !== "off";
     setSound(s);
     sfx.current = new Sfx();
@@ -193,6 +219,32 @@ export function CrowdGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // On sign-in, merge this device's progress with the account's and keep
+  // whichever got further, so nothing played signed out is lost.
+  const uid = user?.uid;
+  useEffect(() => {
+    setSynced(false);
+    if (!uid) return;
+    let active = true;
+    readCrowdProgress(uid)
+      .then((remote) => {
+        if (!active) return;
+        const merged = mergeProgress(localProgress(), remote);
+        storeLocal(merged);
+        setBest(merged.best);
+        setSynced(true);
+        const w = world.current;
+        if (w.phase === "ready" && w.level < merged.level) load(merged.level);
+        if (!sameProgress(merged, remote))
+          return saveCrowdProgress(uid, merged);
+      })
+      .catch((err) => console.warn("Crowd Rush progress", err));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
+
   function update(dt: number) {
     const f = fx.current;
     const w = world.current;
@@ -215,12 +267,17 @@ export function CrowdGame() {
       setPhase(w.phase);
       if (w.phase === "won") {
         setResult({ count: w.count, stars: stars(w) });
-        write(STORE.level, String(w.level + 1));
-        setBest((b) => {
-          const v = Math.max(b, w.level);
-          write(STORE.best, String(v));
-          return v;
+        const saved = mergeProgress(localProgress(), {
+          level: w.level + 1,
+          best: w.level,
         });
+        storeLocal(saved);
+        setBest(saved.best);
+        const uid = uidRef.current;
+        if (uid)
+          saveCrowdProgress(uid, saved).catch((err) =>
+            console.warn("Crowd Rush progress", err),
+          );
       }
     }
     for (const p of f.sparks) {
@@ -539,7 +596,35 @@ export function CrowdGame() {
             </Link>
           </div>
         )}
-        {!noGl && phase === "ready" && (
+        {!noGl && phase === "ready" && locked && !sessionReady && (
+          <div className="crowd-overlay">
+            <p role="status">{t("Loading your game…")}</p>
+          </div>
+        )}
+        {!noGl && phase === "ready" && locked && sessionReady && (
+          <div className="crowd-overlay crowd-gate">
+            <p className="eyebrow">{t(`Level ${level}`)}</p>
+            <h2>{t("Save your progress to keep going")}</h2>
+            <p>
+              {t(
+                `You've cleared the first ${FREE_LEVELS} levels. Sign in for free to play level ${FREE_LEVELS + 1} and beyond, and pick up where you left off on any device.`,
+              )}
+            </p>
+            <div className="crowd-actions">
+              <Link href={SIGN_IN_HREF} className="button">
+                {t("Sign in to keep playing")}
+              </Link>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => load(FREE_LEVELS)}
+              >
+                {t(`Replay level ${FREE_LEVELS}`)}
+              </button>
+            </div>
+          </div>
+        )}
+        {!noGl && phase === "ready" && !locked && (
           <div className="crowd-overlay">
             <p className="eyebrow">{t(`Level ${level}`)}</p>
             <h2>{t("Ready to rush?")}</h2>
@@ -577,6 +662,13 @@ export function CrowdGame() {
             </p>
             <h2>{t("Boss down!")}</h2>
             <p>{t(`${result.count} of your squad made it.`)}</p>
+            {needsSignIn(level + 1, !!user) && (
+              <p>
+                {t(
+                  "Next up: sign in to save your progress and keep playing on any device.",
+                )}
+              </p>
+            )}
             <div className="crowd-actions">
               <button type="button" className="button" onClick={next}>
                 {t("Next level →")}
@@ -606,8 +698,18 @@ export function CrowdGame() {
         )}
       </div>
       <p className="crowd-hint">
-        {t("Progress is saved on this device only.")}
+        {user && synced
+          ? t("Progress is saved to your account.")
+          : t("Progress is saved on this device only.")}
         {best > 0 && <> {t(`Furthest level cleared: ${best}`)}</>}
+        {!user && (
+          <>
+            {" "}
+            <Link href={SIGN_IN_HREF}>
+              {t("Sign in to save it across devices.")}
+            </Link>
+          </>
+        )}
       </p>
     </div>
   );

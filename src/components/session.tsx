@@ -145,3 +145,7 @@ export function useSession() {
   if (!value) throw new Error("Session provider missing");
   return value;
 }
+/** The session when one is provided, or null (for pages that also work signed out). */
+export function useOptionalSession() {
+  return useContext(SessionContext);
+}

@@ -359,5 +359,12 @@
   "correct": "答对",
   "missed": "答错",
   "{0} in a row": "连续答对 {0} 题",
-  "Tip: press {0} to answer": "提示：按 {0} 作答"
+  "Tip: press {0} to answer": "提示：按 {0} 作答",
+  "Save your progress to keep going": "保存进度，继续闯关",
+  "You've cleared the first {0} levels. Sign in for free to play level {1} and beyond, and pick up where you left off on any device.": "你已经通过了前 {0} 关。免费登录即可挑战第 {1} 关及之后的关卡，并在任何设备上接着玩。",
+  "Sign in to keep playing": "登录继续玩",
+  "Replay level {0}": "重玩第 {0} 关",
+  "Next up: sign in to save your progress and keep playing on any device.": "下一步：登录保存进度，在任何设备上继续玩。",
+  "Progress is saved to your account.": "进度已保存到你的账号。",
+  "Sign in to save it across devices.": "登录即可在多台设备间同步。"
 }
