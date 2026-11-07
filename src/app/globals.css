@@ -504,6 +504,34 @@ input[type="radio"] {
 .settings > .text-button {
   margin-top: 16px;
 }
+.shop-panel {
+  margin-top: 20px;
+}
+.shop-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.shop-panel p {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.shop-badge {
+  background: var(--sage);
+  color: var(--green);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.shop-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 .practice-page {
   padding-top: 32px;
   padding-bottom: 30px;

@@ -10,8 +10,8 @@
     "build": "next build",
     "preview": "node scripts/preview.mjs",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test tests/auth-api.test.mjs && tsx --test tests/*.test.ts && vitest run",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-dingn-feedback \"node --test tests/feedback-rules.test.mjs\"",
+    "test": "node --test tests/auth-api.test.mjs tests/billing-api.test.mjs && tsx --test tests/*.test.ts && vitest run",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-dingn-feedback \"node --test tests/feedback-rules.test.mjs tests/billing-rules.test.mjs\"",
     "verify": "npm run typecheck && npm test && npm run build",
     "format": "prettier --write src tests scripts *.json *.ts *.md",
     "deploy:cloud-run": "powershell -NoProfile -File scripts/deploy-cloud-run.ps1"
@@ -23,6 +23,7 @@
     "next": "16.3.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "stripe": "^23.1.0",
     "three": "^0.187.0"
   },
   "devDependencies": {
