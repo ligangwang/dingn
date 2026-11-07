@@ -1,7 +1,6 @@
 "use client";
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
-import { MorrowglintFeature } from "@/components/morrowglint";
 import { WarmUp } from "@/components/warm-up";
 import { DecisionIcon, LogicIcon, MemoryIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/xp";
@@ -38,7 +37,6 @@ export default function Home() {
           <span className="art-chip chip-three">{t("YOUR MOVE ↗")}</span>
         </div>
       </section>
-      <MorrowglintFeature />
       <section id="games">
         <div className="mind-heading">
           <div>

@@ -157,26 +157,10 @@ The homepage memory game has six rounds, beginning with three digits. Correct an
 
 ## Platform brand and languages
 
-dingn is the game platform. Morrowglint (拾光幻境) is its planned 3D fantasy title, introduced at `/morrowglint/` and clearly marked as in development. Memory Ladder is playable at `/memory-ladder/` and on the homepage; existing practice and game links remain supported.
+dingn is the game platform. Memory Ladder is playable at `/memory-ladder/` and on the homepage; existing practice and game links remain supported.
 
 The shared `LocaleProvider` supports English (`en`) and Simplified Chinese (`zh-CN`). The header selector remembers the choice under `dingn.locale`. On first load, `?lang=` takes priority over a saved preference, followed by the browser language. The document language updates for assistive technology. Language changes do not remount games or reset progress.
 
 All new platform and game UI copy must support both languages. English source strings map to `src/data/zh-CN.json`; dynamic sentences use numbered placeholders and are translated as complete sentences. Keep IDs, answer indexes, server scoring, and stored user content independent of presentation language. The question catalog is shared with server grading; translations change presentation only. Tests verify translated questions and switching language mid-round.
 
-Names, feedback, saved associations, and English dictionary learning material retain their original content. The practice interface explains the English-learning context. Future Morrowglint dialogue, tutorials, item descriptions, quests, shop copy, and accessibility labels must ship with both languages; this change introduces its brand page, not the 3D game itself.
-
-### Morrowglint playable prototype
-
-`/morrowglint/play/` contains the first browser-only 3D chapter, **The First Light**. Three.js is loaded only when this route mounts. Art is built from original procedural geometry, with capped pixel ratio and no downloaded art assets. Gameplay logic in `src/game/morrowglint-core.ts` is separate from rendering, UI, language, and persistence.
-
-The loop is: defeat three shadows with a short-range light pulse, watch/repeat a three-rune pattern, approach the central pool and rescue Luma, then explore the restored courtyard. WASD/arrows and click-to-move are supported, alongside touch movement/action buttons. Space casts (hold to repeat), 1–3 enter runes, E rescues, and Escape pauses. Losing allows a full restart; rune errors replay the pattern without damage. Browser blur/visibility pauses the simulation. Completion is stored locally as `dingn.morrowglint.chapter1`; it is not a server-verified reward, purchase, or account entitlement.
-
-This is a prototype to evaluate movement, combat, memory puzzles and restoration. It is not the full game or a native Android/iOS release. Next work: player feedback on the loop, richer character animation/audio, more varied enemy encounters and chapters, then account-backed progression and native-device performance testing. The engine adapter can evolve independently of the tested game rules. All new authored UI and story text must include English and Simplified Chinese; English branding omits the Chinese subtitle.
-
-### Cinematic presentation
-
-The prototype uses a perspective follow camera with an optional close combat view. A nearby living shadow becomes the camera's focus; the camera keeps a stable world orientation so movement controls do not flip when targets change. Portrait screens use a wider field of view and greater distance. The rune puzzle pulls back to show all three runes. Opening and final-shadow shots are short, skippable, and freeze gameplay while active.
-
-The scene adds ACES tone mapping, restrained bloom, atmospheric fog, distant silhouettes, rim lighting, a hooded hero with walk/cast animation, and a target ring. Foreground scenery fades when it blocks the camera-to-hero sightline. Postprocessing resources are disposed on navigation. Pixel ratio is capped at 1.5; actual Android/iOS device performance remains to be tested.
-
-Camera preferences are device-local: `dingn.morrowglint.close` and `dingn.morrowglint.steady`. Steady mode defaults to the OS reduced-motion preference, skips cinematic shots, and uses stable wider framing without idle camera movement. Both controls support English and Simplified Chinese.
+Names, feedback, saved associations, and English dictionary learning material retain their original content. The practice interface explains the English-learning context.

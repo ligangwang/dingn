@@ -4,8 +4,6 @@ export type AnalyticsConsent = "granted" | "denied" | null;
 const pages: Record<string, string> = {
   "/": "Home",
   "/memory-ladder/": "Memory Ladder",
-  "/morrowglint/": "Morrowglint",
-  "/morrowglint/play/": "Morrowglint prototype",
   "/logic/": "Logic Lab",
   "/decisions/": "Decision Dash",
   "/word/": "Words",
