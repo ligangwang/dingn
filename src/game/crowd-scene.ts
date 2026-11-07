@@ -906,6 +906,14 @@ class GateView {
 }
 
 /** A crate (shoot it open for recruits) or a stone wall (dodge it). */
+/** Side and top colours of the two weapon crates. */
+const UPGRADE_COLORS = {
+  power: [0xc8322c, 0xff6a4d],
+  rate: [0x178ccc, 0x5fd4ff],
+} as const;
+/** Bullet colour per power level: brighter and hotter as it rises. */
+const BULLET_COLORS = [0xffe26a, 0xff9a3c, 0xff4f7a, 0xb46bff];
+
 class BlockView {
   group = new THREE.Group();
   private canvas = document.createElement("canvas");
@@ -917,7 +925,8 @@ class BlockView {
     readonly block: Block,
     rewardTex?: THREE.Texture,
   ) {
-    const crate = block.reward > 0;
+    const up = block.upgrade;
+    const crate = block.reward > 0 || !!up;
     const W = block.w * 2 * ROAD;
     const H = crate ? 1.3 : 1.7;
     const D = crate ? 1.3 : 0.8;
@@ -925,8 +934,13 @@ class BlockView {
     this.canvas.height = Math.round((256 * H) / W);
     this.tex = new THREE.CanvasTexture(this.canvas);
     this.tex.colorSpace = THREE.SRGBColorSpace;
-    const side = flat(crate ? 0xe3963a : 0xa9a39a);
-    const top = flat(crate ? 0xf5b85a : 0xc4beb4);
+    const tint = up
+      ? UPGRADE_COLORS[up]
+      : crate
+        ? [0xe3963a, 0xf5b85a]
+        : [0xa9a39a, 0xc4beb4];
+    const side = flat(tint[0]);
+    const top = flat(tint[1]);
     const front = new THREE.MeshStandardMaterial({
       map: this.tex,
       roughness: 0.85,
@@ -939,6 +953,18 @@ class BlockView {
     box.castShadow = true;
     box.receiveShadow = true;
     this.group.add(box);
+    if (up) {
+      // a glowing ring marks a weapon crate from far away
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(W * 0.62, 0.06, 6, 24),
+        new THREE.MeshBasicMaterial({ color: tint[1] }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.06;
+      this.geos.push(ring.geometry);
+      this.mats.push(ring.material);
+      this.group.add(ring);
+    }
     if (crate && rewardTex) {
       const sprite = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: rewardTex, depthWrite: false }),
@@ -959,7 +985,19 @@ class BlockView {
     if (!ctx) return;
     const { width: w, height: h } = this.canvas;
     const crate = b.reward > 0;
-    if (crate) {
+    if (b.upgrade) {
+      const power = b.upgrade === "power";
+      ctx.fillStyle = power ? "#d8352f" : "#1b9ad6";
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = power ? "#7c1612" : "#0c4f74";
+      ctx.lineWidth = 14;
+      ctx.strokeRect(7, 7, w - 14, h - 14);
+      ctx.fillStyle = power ? "#ffcf4a" : "#bff1ff";
+      ctx.font = `900 ${Math.round(h * 0.26)}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(power ? "POWER" : "RATE", w / 2, h * 0.08);
+    } else if (crate) {
       ctx.fillStyle = "#f0a541";
       ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = "#d98a2a";
@@ -999,9 +1037,10 @@ class BlockView {
     ctx.textBaseline = "middle";
     ctx.lineWidth = 10;
     ctx.strokeStyle = "#000000aa";
-    ctx.strokeText(String(b.hp), w / 2, h / 2 + 4);
+    const ty = b.upgrade ? h * 0.62 : h / 2 + 4;
+    ctx.strokeText(String(b.hp), w / 2, ty);
     ctx.fillStyle = "#fff";
-    ctx.fillText(String(b.hp), w / 2, h / 2 + 4);
+    ctx.fillText(String(b.hp), w / 2, ty);
     this.tex.needsUpdate = true;
   }
   dispose() {
@@ -1347,9 +1386,14 @@ export class CrowdScene {
         this.gates.push(g);
         this.level.add(g.group);
       } else if (th.kind === "block") {
-        const tex = th.reward
-          ? labelTexture(`+${th.reward}`, "#fff36a")
-          : undefined;
+        const tex = th.upgrade
+          ? labelTexture(
+              th.upgrade === "power" ? "DMG+" : "RATE+",
+              th.upgrade === "power" ? "#ffb08a" : "#9fe8ff",
+            )
+          : th.reward
+            ? labelTexture(`+${th.reward}`, "#fff36a")
+            : undefined;
         if (tex) this.levelMats.push(new THREE.SpriteMaterial({ map: tex }));
         const b = new BlockView(th, tex);
         this.blocks.set(th.id, b);
@@ -1454,13 +1498,18 @@ export class CrowdScene {
     this.boss.update(w, fx, this.bossDead, dt);
     this.boss.group.visible = this.boss.group.visible && w.boss.z < far;
 
-    // bullets
+    // bullets: hotter colours and fatter rounds as the weapon gets stronger
+    const tier = Math.max(0, Math.min(BULLET_COLORS.length - 1, w.power - 1));
+    (this.bullets.material as THREE.MeshBasicMaterial).color.setHex(
+      BULLET_COLORS[tier],
+    );
+    const fat = 1 + tier * 0.45;
     let n = 0;
     for (const b of w.bullets) {
       if (n >= this.bullets.instanceMatrix.count) break;
       this.bullets.setMatrixAt(
         n++,
-        local(b.x * ROAD, 0.5, -b.z - 0.3, Math.PI / 2),
+        local(b.x * ROAD, 0.5, -b.z - 0.3, Math.PI / 2, 0, 0, fat, 1, fat),
       );
     }
     this.bullets.count = n;

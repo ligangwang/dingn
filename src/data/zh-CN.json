@@ -374,5 +374,9 @@
   "Buy · {0}": "购买 · {0}",
   "Your purchases": "购买记录",
   "No purchases yet.": "暂无购买记录。",
-  "Refresh purchases": "刷新购买记录"
+  "Refresh purchases": "刷新购买记录",
+  "Damage ×{0}": "伤害 ×{0}",
+  "Faster fire": "射速提升",
+  "Damage {0}, fire rate level {1}": "伤害 {0}，射速等级 {1}",
+  "Shoot the red POWER and blue RATE crates down to zero to upgrade your guns.": "把红色 POWER 箱和蓝色 RATE 箱打到 0，就能升级武器。"
 }

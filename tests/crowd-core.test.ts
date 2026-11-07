@@ -7,6 +7,8 @@ import {
   crowdRadius,
   newLevel,
   progress,
+  RUN_SPEED,
+  shotRate,
   START_COUNT,
   start,
   stars,
@@ -15,15 +17,19 @@ import {
   type World,
 } from "../src/game/crowd-core";
 
-/** A simple player: take the better gate, dodge walls, aim at crates. */
+/** A simple player: take the better gate, dodge walls, shoot what it can break. */
 function autopilot(w: World) {
+  // damage the squad can deal to something dist metres ahead before reaching it
+  const canBreak = (hp: number, dist: number) =>
+    hp <= shotRate(w) * w.power * (dist / RUN_SPEED) * 0.7;
   const ahead = w.things
     .filter(
       (t) =>
         t.z > w.z - 0.5 &&
         t.z - w.z < 22 &&
         t.kind !== "monster" &&
-        !(t.kind === "gate" ? t.used : t.dead),
+        !(t.kind === "gate" ? t.used : t.dead) &&
+        !(t.kind === "block" && t.upgrade && !canBreak(t.hp, t.z - w.z)),
     )
     .sort((a, b) => a.z - b.z)[0];
   if (!ahead) return steer(w, 0);
@@ -38,13 +44,17 @@ function autopilot(w: World) {
     const row = w.things.filter(
       (t) => t.kind === "block" && !t.dead && Math.abs(t.z - ahead.z) < 0.1,
     );
-    if (ahead.reward) return steer(w, ahead.x);
+    if (ahead.upgrade) return steer(w, ahead.x);
+    const crate = row.find(
+      (t) => t.kind === "block" && t.reward && canBreak(t.hp, t.z - w.z),
+    );
+    if (crate && crate.kind === "block") return steer(w, crate.x);
     const lanes = [-0.62, 0, 0.62].filter(
       (x) => !row.some((t) => t.kind === "block" && t.x === x),
     );
     return steer(w, lanes[0] ?? 0);
   }
-  return steer(w, ahead.x);
+  return steer(w, ahead.kind === "squad" ? ahead.x : 0);
 }
 function play(level: number, pilot: (w: World) => void) {
   const w = newLevel(level);
@@ -257,4 +267,91 @@ test("gate pairs are close calls whose winner depends on the squad size", () => 
       if (small !== big) flips++;
     }
   assert.ok(flips / pairs > 0.3, `${flips} of ${pairs} pairs flip`);
+});
+
+test("weapon crates shot to zero raise damage or fire rate", () => {
+  const w = newLevel(4);
+  const ups = w.things.filter((t) => t.kind === "block" && t.upgrade);
+  assert.ok(ups.length >= 2, `${ups.length} weapon crates`);
+  assert.ok(ups.some((t) => t.kind === "block" && t.upgrade === "rate"));
+  assert.ok(ups.some((t) => t.kind === "block" && t.upgrade === "power"));
+
+  for (const kind of ["power", "rate"] as const) {
+    const v = newLevel(1);
+    v.things = [
+      {
+        kind: "block",
+        id: 1,
+        z: 8,
+        x: 0,
+        w: 0.2,
+        hp: 3,
+        maxHp: 3,
+        reward: 0,
+        upgrade: kind,
+        dead: false,
+      },
+    ];
+    start(v);
+    const rate = shotRate(v);
+    let got = false;
+    for (let i = 0; i < 60 && !got; i++) {
+      step(v, 1 / 60);
+      got = v.events.some((e) => e.type === "upgrade" && e.kind === kind);
+      v.events.length = 0;
+    }
+    assert.ok(got, `${kind} crate pays out`);
+    if (kind === "power") assert.equal(v.power, 2);
+    else assert.ok(shotRate(v) > rate * 1.3);
+  }
+});
+
+test("running past a weapon crate costs nothing", () => {
+  const w = newLevel(1);
+  w.things = [
+    {
+      kind: "block",
+      id: 1,
+      z: 0.3,
+      x: 0,
+      w: 0.2,
+      hp: 999,
+      maxHp: 999,
+      reward: 0,
+      upgrade: "power",
+      dead: false,
+    },
+  ];
+  w.count = 10;
+  start(w);
+  for (let i = 0; i < 30; i++) step(w, 1 / 60);
+  assert.equal(w.count, 10);
+  assert.equal(w.power, 1);
+});
+
+test("a strong shot that kills a slime carries on into the next one", () => {
+  const w = newLevel(1);
+  const slime = (id: number, z: number) => ({
+    kind: "monster" as const,
+    id,
+    z,
+    x: 0,
+    hp: 1,
+    maxHp: 1,
+    big: false,
+    bite: 1,
+    reward: 0,
+    speed: 0,
+    minion: false,
+    dead: false,
+  });
+  w.things = [slime(1, 6), slime(2, 6.2)];
+  w.power = 2;
+  w.bullets = [{ x: 0, z: 5, dmg: 2, dead: false }];
+  w.phase = "run";
+  w.speed = 0;
+  w.fireClock = -999;
+  step(w, 1 / 30);
+  step(w, 1 / 30);
+  assert.ok(w.things.every((t) => t.kind === "monster" && t.dead));
 });

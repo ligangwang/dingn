@@ -130,6 +130,19 @@ export class Sfx {
           );
         else this.tone(330, 110, 0.35, "sawtooth", 0.12);
         break;
+      case "upgrade":
+        // a rising power-up arpeggio
+        [0, 4, 7, 12].forEach((n, i) =>
+          this.tone(
+            440 * 2 ** (n / 12),
+            880 * 2 ** (n / 12),
+            0.14,
+            "square",
+            0.09,
+            i * 0.07,
+          ),
+        );
+        break;
       case "crate":
         this.tone(988, 988, 0.08, "square", 0.1);
         this.tone(1319, 1319, 0.25, "square", 0.1, 0.08);

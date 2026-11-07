@@ -190,7 +190,7 @@ export function squadRadius(count: number) {
  * harder.
  */
 export function fireRate(count: number) {
-  return Math.min(20, 1.5 + Math.sqrt(count) * 1.3);
+  return Math.min(20, 4.5 + Math.sqrt(count) * 1.2);
 }
 export const MAX_POWER = 4;
 export const MAX_RAPID = 4;
@@ -302,12 +302,12 @@ export function newLevel(level: number): World {
       });
       expected = applyOp(expected, good);
       // after each gate, a weapon crate on one side lane: rate, power, ...
-      if (ups < 2 + Math.min(3, Math.floor(lv / 3))) {
-        const hp = Math.round(4 + expected * 0.3 + lv * 1.5);
+      if (i > 0 && ups < 2 + Math.min(3, Math.floor(lv / 3))) {
+        const hp = Math.round(fireRate(expected) * 0.9) + Math.floor(lv / 4);
         things.push({
           kind: "block",
           id: id++,
-          z: z + 15,
+          z: z + 18,
           x: upRoll() < 0.5 ? -0.62 : 0.62,
           w: 0.2,
           hp,
@@ -327,9 +327,11 @@ export function newLevel(level: number): World {
       );
       if (!lanes.length) lanes.push(open === 1 ? 0.62 : 0);
       for (const x of lanes) {
-        const hp =
+        const value =
           Math.max(4, Math.round(expected * (0.18 + random() * 0.12))) + lv;
-        const reward = Math.max(4, Math.round(hp * 0.7));
+        // shots are slower now, so crates take fewer hits than they pay
+        const hp = Math.max(3, Math.round(value * 0.6));
+        const reward = Math.max(4, Math.round(value * 0.7));
         things.push({
           kind: "block",
           id: id++,
@@ -365,7 +367,7 @@ export function newLevel(level: number): World {
     } else {
       const count = Math.max(
         4,
-        Math.round(expected * (0.35 + random() * 0.25)) + Math.min(lv, 8),
+        Math.round(expected * (0.2 + random() * 0.2)) + Math.min(lv, 4),
       );
       things.push({
         kind: "squad",
@@ -391,7 +393,7 @@ export function newLevel(level: number): World {
   for (
     let mz = firstGate + 10;
     mz < length - BOSS_STOP - 6;
-    mz += 4 + roll() * 3
+    mz += 5 + roll() * 3
   ) {
     if (busy.some((bz) => Math.abs(bz - mz) < 4) || roll() < 0.08) continue;
     const near = [...checkpoints].reverse().find((c) => c.z <= mz);
@@ -426,11 +428,12 @@ export function newLevel(level: number): World {
     const n =
       (size >= 10 ? 2 : 1) +
       Math.floor(roll() * Math.min(4, 1 + Math.sqrt(size) / 2, 2 + lv / 3));
+    // many small slimes, so each one is weak
     const hp = Math.max(
       1,
       Math.min(
-        2 + Math.floor(Math.min(lv, 15) / 5),
-        Math.round(Math.sqrt(size) * 0.7),
+        1 + Math.floor(Math.min(lv, 15) / 6),
+        Math.round(Math.sqrt(size) * 0.35),
       ),
     );
     for (let k = 0; k < n; k++)
@@ -452,9 +455,9 @@ export function newLevel(level: number): World {
   const finalSize = Math.max(4, expected);
   const hordeHp = Math.max(
     1,
-    Math.min(4, Math.round(Math.sqrt(finalSize) * 0.45)),
+    Math.min(3, Math.round(Math.sqrt(finalSize) * 0.3)),
   );
-  const rows = 3 + Math.min(5, Math.floor(lv / 2));
+  const rows = 3 + Math.min(4, Math.floor(lv / 3));
   for (let r = 0; r < rows; r++) {
     const hz = length - BOSS_STOP - 26 + r * 2.4;
     const across = 3 + Math.floor(roll() * 3);
@@ -487,7 +490,7 @@ export function newLevel(level: number): World {
   }
   things.sort((a, b) => a.z - b.z);
 
-  const bossHp = Math.round(fireRate(expected) * (9 + Math.min(lv, 20) * 0.4));
+  const bossHp = Math.round(fireRate(expected) * (7 + Math.min(lv, 20) * 0.3));
   return {
     level: lv,
     phase: "ready",
