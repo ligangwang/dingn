@@ -20,6 +20,8 @@ export type Gate = {
   right: GateSide;
   used: boolean;
   chosen?: "left" | "right";
+  /** Whether the chosen door was the better of the two. */
+  wasBest?: boolean;
 };
 export type Block = {
   kind: "block";
@@ -42,7 +44,25 @@ export type Squad = {
   start: number;
   dead: boolean;
 };
-export type Thing = Gate | Block | Squad;
+/** Small monsters roam the road; brutes are bigger and free captives. */
+export type Monster = {
+  kind: "monster";
+  id: number;
+  z: number;
+  x: number;
+  hp: number;
+  maxHp: number;
+  big: boolean;
+  /** Squad members lost if it reaches you. */
+  bite: number;
+  /** Recruits freed when it is shot down. */
+  reward: number;
+  speed: number;
+  /** Summoned by the boss rather than placed on the road. */
+  minion: boolean;
+  dead: boolean;
+};
+export type Thing = Gate | Block | Squad | Monster;
 export type Boss = {
   z: number;
   hp: number;
@@ -50,6 +70,10 @@ export type Boss = {
   /** Seconds until the next ground slam. */
   slam: number;
   slamEvery: number;
+  /** Seconds until the boss calls in more minions. */
+  summon: number;
+  summonEvery: number;
+  minions: number;
 };
 export type Bullet = { x: number; z: number; dead: boolean };
 export type Phase = "ready" | "run" | "boss" | "won" | "lost";
@@ -63,7 +87,15 @@ export type GameEvent =
       z: number;
       x: number;
     }
-  | { type: "hit"; x: number; z: number; target: "block" | "squad" | "boss" }
+  | {
+      type: "hit";
+      x: number;
+      z: number;
+      target: "block" | "squad" | "boss" | "monster";
+    }
+  | { type: "kill"; x: number; z: number; big: boolean; reward: number }
+  | { type: "bite"; x: number; z: number; lost: number }
+  | { type: "summon"; count: number }
   | { type: "crate"; x: number; z: number; reward: number }
   | { type: "wall"; x: number; z: number; lost: number }
   | { type: "clash"; x: number; z: number; lost: number }
@@ -88,13 +120,14 @@ export type World = {
   shotsFired: number;
   events: GameEvent[];
   random: () => number;
+  nextId: number;
 };
 
 export const START_COUNT = 8;
 export const MAX_COUNT = 999;
 export const RUN_SPEED = 10;
 export const BULLET_SPEED = 46;
-export const BULLET_RANGE = 34;
+export const BULLET_RANGE = 21;
 /** Distance in front of the boss where the squad halts and opens fire. */
 export const BOSS_STOP = 14;
 
@@ -124,6 +157,11 @@ export function applyOp(count: number, side: GateSide) {
 export const opLabel = (s: GateSide) =>
   `${{ "+": "+", "-": "−", x: "×", "/": "÷" }[s.op]}${s.n}`;
 export const isGood = (s: GateSide) => s.op === "+" || s.op === "x";
+/** Whether taking `side` of a gate was at least as good as the other door. */
+export function bestChoice(count: number, gate: Gate, side: "left" | "right") {
+  const other = side === "left" ? "right" : "left";
+  return applyOp(count, gate[side]) >= applyOp(count, gate[other]);
+}
 
 /** How wide the squad is on the road, given its head count. */
 export function crowdRadius(count: number) {
@@ -165,37 +203,67 @@ export function newLevel(level: number): World {
     const kind = pick(options);
     lastKind = kind;
     if (kind === "gate") {
-      const good: GateSide = pick<GateSide>(
-        expected < 30
-          ? [
-              { op: "+", n: int(8, 20) },
-              { op: "x", n: 2 },
-              { op: "+", n: int(10, 25) },
-            ]
-          : expected < 120
-            ? [
-                { op: "x", n: 2 },
-                { op: "+", n: int(20, 50) },
-                { op: "x", n: 2 },
-              ]
-            : [
-                { op: "+", n: int(30, 80) },
-                { op: "x", n: 2 },
-              ],
-      );
-      const bad: GateSide = pick<GateSide>([
-        { op: "-", n: int(3, Math.max(5, Math.floor(expected * 0.5))) },
-        { op: "/", n: 2 },
-        { op: "/", n: 3 },
-        { op: "-", n: int(2, 8) },
-      ]);
-      const goodLeft = random() < 0.5;
+      // Both doors look the same, so the player has to do the maths. Most
+      // pairs are close calls whose winner depends on the squad's size.
+      const e = Math.max(START_COUNT, expected);
+      const around = (k: number, spread: number) =>
+        Math.max(2, Math.round(e * k * (1 - spread + random() * spread * 2)));
+      const kinds =
+        i === 0
+          ? ["addMul", "addSub"]
+          : [
+              "addMul",
+              "addMul",
+              "addMul3",
+              "subDiv",
+              "addAdd",
+              "mulDiv",
+              "addSub",
+            ];
+      const pairKind = pick(kinds);
+      let pair: [GateSide, GateSide];
+      if (pairKind === "addMul")
+        pair = [
+          { op: "+", n: around(1, 0.45) },
+          { op: "x", n: 2 },
+        ];
+      else if (pairKind === "addMul3")
+        pair = [
+          { op: "+", n: around(2, 0.35) },
+          { op: "x", n: 3 },
+        ];
+      else if (pairKind === "subDiv")
+        pair = [
+          { op: "-", n: around(0.5, 0.35) },
+          { op: "/", n: 2 },
+        ];
+      else if (pairKind === "mulDiv")
+        pair = [
+          { op: "x", n: 2 },
+          { op: "-", n: around(0.4, 0.3) },
+        ];
+      else if (pairKind === "addAdd") {
+        const a = around(0.6, 0.4);
+        pair = [
+          { op: "+", n: a },
+          { op: "+", n: a + int(-Math.ceil(a / 3), Math.ceil(a / 3)) || a + 1 },
+        ];
+      } else
+        pair = [
+          { op: "+", n: around(0.8, 0.4) },
+          { op: "-", n: int(2, Math.max(4, Math.round(e * 0.3))) },
+        ];
+      if (pair[0].op === pair[1].op && pair[0].n === pair[1].n)
+        pair[1] = { ...pair[1], n: pair[1].n + 1 };
+      const swap = random() < 0.5;
+      const good =
+        applyOp(e, pair[0]) >= applyOp(e, pair[1]) ? pair[0] : pair[1];
       things.push({
         kind: "gate",
         id: id++,
         z,
-        left: goodLeft ? good : bad,
-        right: goodLeft ? bad : good,
+        left: swap ? pair[1] : pair[0],
+        right: swap ? pair[0] : pair[1],
         used: false,
       });
       expected = applyOp(expected, good);
@@ -246,7 +314,7 @@ export function newLevel(level: number): World {
     } else {
       const count = Math.max(
         4,
-        Math.round(expected * (0.35 + random() * 0.25)) + lv * 2,
+        Math.round(expected * (0.35 + random() * 0.25)) + Math.min(lv, 8),
       );
       things.push({
         kind: "squad",
@@ -262,7 +330,55 @@ export function newLevel(level: number): World {
     }
   }
   const length = z + 30;
-  const bossHp = Math.round(fireRate(expected) * (9 + Math.min(lv, 20) * 0.6));
+
+  // Monsters fill the stretches between gates and obstacles. They use their
+  // own random stream so the rest of the layout stays the same.
+  const roll = rng(lv * 104729 + 3);
+  const busy = things.map((t) => t.z);
+  let pack = 0;
+  const firstGate = things[0]?.z ?? 30;
+  for (
+    let mz = firstGate + 10;
+    mz < length - BOSS_STOP - 6;
+    mz += 9 + roll() * 5
+  ) {
+    if (busy.some((bz) => Math.abs(bz - mz) < 5) || roll() < 0.2) continue;
+    pack++;
+    const brute = pack % 4 === 0;
+    if (brute) {
+      const hp = Math.round(12 + Math.min(lv, 15) * 2);
+      things.push(
+        monster(
+          id++,
+          mz,
+          (roll() * 2 - 1) * 0.55,
+          true,
+          hp,
+          2 + Math.floor(Math.min(lv, 15) / 5),
+          3 + Math.floor(lv / 2),
+          1.6,
+        ),
+      );
+      continue;
+    }
+    const n = 2 + Math.floor(roll() * Math.min(4, 2 + lv / 3));
+    for (let k = 0; k < n; k++)
+      things.push(
+        monster(
+          id++,
+          mz + k * 0.9,
+          (roll() * 2 - 1) * 0.75,
+          false,
+          2 + Math.floor(Math.min(lv, 15) / 5),
+          1,
+          1,
+          2.4,
+        ),
+      );
+  }
+  things.sort((a, b) => a.z - b.z);
+
+  const bossHp = Math.round(fireRate(expected) * (8 + Math.min(lv, 20) * 0.45));
   return {
     level: lv,
     phase: "ready",
@@ -280,6 +396,9 @@ export function newLevel(level: number): World {
       maxHp: bossHp,
       slam: 2.2,
       slamEvery: Math.max(1.1, 2 - lv * 0.06),
+      summon: 1.2,
+      summonEvery: Math.max(1.6, 3 - lv * 0.06),
+      minions: Math.min(5, 2 + Math.floor(lv / 4)),
     },
     bullets: [],
     fireClock: 0,
@@ -287,8 +406,37 @@ export function newLevel(level: number): World {
     shotsFired: 0,
     events: [],
     random,
+    nextId: id,
   };
 }
+
+function monster(
+  id: number,
+  z: number,
+  x: number,
+  big: boolean,
+  hp: number,
+  bite: number,
+  reward: number,
+  speed: number,
+  minion = false,
+): Monster {
+  return {
+    kind: "monster",
+    id,
+    z,
+    x,
+    hp,
+    maxHp: hp,
+    big,
+    bite,
+    reward,
+    speed,
+    minion,
+    dead: false,
+  };
+}
+export const monsterRadius = (m: Monster) => (m.big ? 0.15 : 0.09);
 
 export function start(w: World) {
   if (w.phase === "ready") w.phase = "run";
@@ -333,6 +481,14 @@ export function step(w: World, dt: number) {
       t.x += Math.sign(w.x - t.x) * Math.min(Math.abs(w.x - t.x), 0.25 * dt);
     }
 
+  // monsters shamble toward the squad once they notice it
+  for (const t of w.things)
+    if (t.kind === "monster" && !t.dead && t.z - w.z < 32) {
+      t.z -= t.speed * dt;
+      const drift = t.big ? 0.25 : 0.6;
+      t.x += Math.sign(w.x - t.x) * Math.min(Math.abs(w.x - t.x), drift * dt);
+    }
+
   // gates
   for (const t of w.things) {
     if (t.kind !== "gate" || t.used || t.z > w.z || t.z <= prevZ - 0.001)
@@ -341,11 +497,13 @@ export function step(w: World, dt: number) {
     t.chosen = w.x < 0 ? "left" : "right";
     const side = t[t.chosen];
     const before = w.count;
+    const best = bestChoice(before, t, t.chosen);
+    t.wasBest = best;
     w.count = applyOp(w.count, side);
     w.events.push({
       type: "gate",
       side: t.chosen,
-      good: isGood(side),
+      good: best,
       before,
       after: w.count,
       z: t.z,
@@ -377,7 +535,12 @@ export function step(w: World, dt: number) {
     for (const t of w.things) {
       if (t.kind === "gate" || t.dead) continue;
       if (t.z < from - 0.5 || t.z > b.z + 0.5 || t.z >= hitZ) continue;
-      const half = t.kind === "block" ? t.w : squadRadius(t.count);
+      const half =
+        t.kind === "block"
+          ? t.w
+          : t.kind === "monster"
+            ? monsterRadius(t)
+            : squadRadius(t.count);
       if (Math.abs(b.x - t.x) <= half) {
         hit = t;
         hitZ = t.z;
@@ -415,6 +578,20 @@ export function step(w: World, dt: number) {
       hit.count--;
       w.events.push({ type: "hit", x: b.x, z: hit.z, target: "squad" });
       if (hit.count <= 0) hit.dead = true;
+    } else if (hit.kind === "monster") {
+      hit.hp--;
+      w.events.push({ type: "hit", x: b.x, z: hit.z, target: "monster" });
+      if (hit.hp <= 0) {
+        hit.dead = true;
+        w.count = Math.min(MAX_COUNT, w.count + hit.reward);
+        w.events.push({
+          type: "kill",
+          x: hit.x,
+          z: hit.z,
+          big: hit.big,
+          reward: hit.reward,
+        });
+      }
     }
   }
   w.bullets = w.bullets.filter((b) => !b.dead);
@@ -434,6 +611,13 @@ export function step(w: World, dt: number) {
         w.count -= lost;
         t.dead = true;
         w.events.push({ type: "wall", x: t.x, z: t.z, lost });
+      }
+    } else if (t.kind === "monster") {
+      if (Math.abs(t.x - w.x) < monsterRadius(t) + rr) {
+        const lost = Math.min(w.count, t.bite);
+        w.count -= lost;
+        t.dead = true;
+        w.events.push({ type: "bite", x: t.x, z: t.z, lost });
       }
     } else {
       if (Math.abs(t.x - w.x) < squadRadius(t.count) + rr) {
@@ -456,6 +640,33 @@ export function step(w: World, dt: number) {
       w.count -= lost;
       w.events.push({ type: "slam", lost });
       if (w.count <= 0) return lose(w);
+    }
+    // ...and keeps calling in minions to swarm you
+    w.boss.summon -= dt;
+    if (w.boss.summon <= 0) {
+      w.boss.summon += w.boss.summonEvery;
+      const hp =
+        1 +
+        Math.floor(Math.sqrt(w.count) / 4) +
+        Math.floor(Math.min(w.level, 24) / 8);
+      for (let k = 0; k < w.boss.minions; k++)
+        w.things.push(
+          monster(
+            w.nextId++,
+            w.boss.z - 2 - w.random() * 1.5,
+            (w.random() * 2 - 1) * 0.6,
+            false,
+            hp,
+            1,
+            0,
+            4,
+            true,
+          ),
+        );
+      w.things = w.things.filter(
+        (t) => !(t.kind === "monster" && t.dead && t.minion),
+      );
+      w.events.push({ type: "summon", count: w.boss.minions });
     }
   }
   w.best = Math.max(w.best, w.count);

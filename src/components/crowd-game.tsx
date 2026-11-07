@@ -5,11 +5,11 @@ import { useLocale } from "./locale";
 import {
   BOSS_STOP,
   crowdRadius,
-  isGood,
   newLevel,
   opLabel,
   progress,
   squadRadius,
+  type Monster,
   stars,
   start,
   steer,
@@ -161,6 +161,19 @@ class Sfx {
       case "wall":
       case "clash":
         this.thump(900, 0.3, 0.7);
+        break;
+      case "kill":
+        if (e.big) {
+          this.thump(500, 0.35, 0.8);
+          this.tone(784, 1568, 0.2, "square", 0.1, 0.05);
+        } else if (this.gap("kill", 0.06))
+          this.tone(660, 1320, 0.09, "square", 0.08);
+        break;
+      case "bite":
+        if (this.gap("bite", 0.08)) this.thump(1400, 0.15, 0.5);
+        break;
+      case "summon":
+        this.tone(140, 260, 0.4, "sawtooth", 0.12);
         break;
       case "slam":
         this.thump(220, 0.6, 1);
@@ -458,7 +471,11 @@ export function CrowdGame() {
             e.x,
             e.z,
             0.5,
-            e.target === "squad" ? RIVAL : "#ffd36a",
+            e.target === "squad"
+              ? RIVAL
+              : e.target === "monster"
+                ? "#8be04e"
+                : "#ffd36a",
             2,
             1.5,
           );
@@ -476,6 +493,40 @@ export function CrowdGame() {
           big: true,
         });
         burst(e.x, e.z, 0.5, "#ffcf3a", 24, 4);
+        break;
+      case "kill":
+        burst(
+          e.x,
+          e.z,
+          0.4,
+          e.big ? "#c77dff" : "#8be04e",
+          e.big ? 30 : 10,
+          e.big ? 5 : 3,
+        );
+        if (e.reward)
+          f.floats.push({
+            text: `+${e.reward}`,
+            x: e.x,
+            z: e.z,
+            h: e.big ? 1.4 : 0.9,
+            life: 0,
+            color: "#9dff6a",
+            big: e.big,
+          });
+        if (e.big) f.shake = Math.max(f.shake, 0.3);
+        break;
+      case "bite":
+        f.floats.push({
+          text: `−${e.lost}`,
+          x: e.x,
+          z: e.z,
+          h: 1,
+          life: 0,
+          color: "#ff8a8a",
+          big: e.lost > 1,
+        });
+        burst(e.x, e.z, 0.4, TEAM, 6 + e.lost * 2, 3);
+        if (e.lost > 1) f.shake = Math.max(f.shake, 0.35);
         break;
       case "wall":
         if (e.lost)
@@ -641,6 +692,11 @@ export function CrowdGame() {
         });
       else if (th.kind === "block" && !th.dead)
         items.push({ d: th.z - camZ, draw: () => drawBlock(ctx, project, th) });
+      else if (th.kind === "monster" && !th.dead)
+        items.push({
+          d: th.z - camZ,
+          draw: () => drawMonster(ctx, project, th, f.clock),
+        });
       else if (th.kind === "squad" && !th.dead && th.count > 0)
         items.push({
           d: th.z - camZ,
@@ -838,10 +894,19 @@ export function CrowdGame() {
             <h2>{t("Ready to rush?")}</h2>
             <ul>
               <li>{t("Drag left and right (or use ← →) to steer.")}</li>
-              <li>{t("Green gates grow your squad. Red gates shrink it.")}</li>
+              <li>
+                {t(
+                  "Every gate has two doors that look alike. Do the maths and take the one that leaves you more people.",
+                )}
+              </li>
               <li>
                 {t(
                   "Your squad fires on its own. Shoot crates for recruits, dodge the walls.",
+                )}
+              </li>
+              <li>
+                {t(
+                  "Monsters roam the road and the boss keeps calling more. Shoot them before they bite.",
                 )}
               </li>
             </ul>
@@ -946,12 +1011,18 @@ function drawGate(
     const x1 = side === "left" ? -0.02 : 1.08;
     const bl = project(x0, g.z, 0);
     const tr = project(x1, g.z, 1.9);
-    const good = isGood(s);
-    const faded = g.used && g.chosen !== side;
-    ctx.globalAlpha = g.used ? (faded ? 0.25 : 0.5) : 1;
-    ctx.fillStyle = good ? "#36d17a66" : "#ff4d5a66";
+    // Both doors share one colour until you pass, so you have to do the
+    // maths. Afterwards the door you took shows whether it was the better one.
+    const chosen = g.used && g.chosen === side;
+    const tone = chosen ? (g.wasBest ? "good" : "bad") : "plain";
+    ctx.globalAlpha = g.used ? (chosen ? 0.6 : 0.25) : 1;
+    ctx.fillStyle = { plain: "#4aa3ff66", good: "#36d17a77", bad: "#ff4d5a77" }[
+      tone
+    ];
     ctx.fillRect(bl.sx, tr.sy, tr.sx - bl.sx, bl.sy - tr.sy);
-    ctx.strokeStyle = good ? "#2fbf6e" : "#e23b48";
+    ctx.strokeStyle = { plain: "#2b7fd6", good: "#2fbf6e", bad: "#e23b48" }[
+      tone
+    ];
     ctx.lineWidth = Math.max(2, bl.s * 0.03);
     ctx.strokeRect(bl.sx, tr.sy, tr.sx - bl.sx, bl.sy - tr.sy);
     label(
@@ -1113,6 +1184,113 @@ function drawCrowd(
   );
   ctx.fill();
   label(ctx, text, top.sx, top.sy, size, "#fff");
+}
+
+function drawMonster(
+  ctx: CanvasRenderingContext2D,
+  project: Project,
+  m: Monster,
+  clock: number,
+) {
+  const hop = Math.abs(Math.sin(clock * (m.big ? 5 : 9) + m.id * 1.7));
+  const foot = project(m.x, m.z, 0);
+  const s = foot.s;
+  const size = s * (m.big ? 1.5 : 0.85);
+  const lift = hop * size * 0.25;
+  const squash = 1 + (1 - hop) * 0.12;
+  const cy = foot.sy - size * 0.55 - lift;
+  const body = m.big ? "#9b5de5" : "#70c43b";
+  const shade = m.big ? "#6a3cb0" : "#4c9324";
+  // shadow
+  ctx.fillStyle = "#00000030";
+  ctx.beginPath();
+  ctx.ellipse(foot.sx, foot.sy, size * 0.6, size * 0.14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // body: a squishy blob
+  ctx.fillStyle = shade;
+  ctx.beginPath();
+  ctx.ellipse(
+    foot.sx,
+    cy + size * 0.06,
+    size * 0.62 * squash,
+    (size * 0.52) / squash,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.ellipse(
+    foot.sx,
+    cy,
+    size * 0.58 * squash,
+    (size * 0.5) / squash,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  if (m.big) {
+    // horns
+    ctx.fillStyle = "#ffe08a";
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(foot.sx + side * size * 0.28, cy - size * 0.38);
+      ctx.lineTo(foot.sx + side * size * 0.48, cy - size * 0.8);
+      ctx.lineTo(foot.sx + side * size * 0.1, cy - size * 0.45);
+      ctx.fill();
+    }
+  }
+  // angry eyes and mouth
+  const eye = size * 0.12;
+  ctx.fillStyle = "#fff";
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(foot.sx + side * size * 0.2, cy - size * 0.08, eye, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#1b1b1b";
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(
+      foot.sx + side * size * 0.18,
+      cy - size * 0.05,
+      eye * 0.55,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  }
+  ctx.strokeStyle = "#1b1b1b";
+  ctx.lineWidth = Math.max(1, size * 0.05);
+  ctx.beginPath();
+  ctx.moveTo(foot.sx - size * 0.32, cy - size * 0.24);
+  ctx.lineTo(foot.sx - size * 0.08, cy - size * 0.16);
+  ctx.moveTo(foot.sx + size * 0.32, cy - size * 0.24);
+  ctx.lineTo(foot.sx + size * 0.08, cy - size * 0.16);
+  ctx.moveTo(foot.sx - size * 0.16, cy + size * 0.18);
+  ctx.quadraticCurveTo(
+    foot.sx,
+    cy + size * 0.08,
+    foot.sx + size * 0.16,
+    cy + size * 0.18,
+  );
+  ctx.stroke();
+  // health bar once damaged, or always for brutes
+  if (m.big || m.hp < m.maxHp) {
+    const bw = size * 1.1;
+    const by = cy - size * (m.big ? 0.95 : 0.7);
+    ctx.fillStyle = "#00000088";
+    ctx.fillRect(foot.sx - bw / 2, by, bw, Math.max(3, size * 0.08));
+    ctx.fillStyle = m.big ? "#ff9f43" : "#ff5a5f";
+    ctx.fillRect(
+      foot.sx - bw / 2,
+      by,
+      (bw * m.hp) / m.maxHp,
+      Math.max(3, size * 0.08),
+    );
+  }
 }
 
 function drawBoss(
