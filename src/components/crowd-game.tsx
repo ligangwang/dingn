@@ -148,6 +148,9 @@ export function CrowdGame() {
           return;
         }
         sceneRef.current = scene;
+        if (process.env.NODE_ENV === "development")
+          (window as unknown as { __crowdScene?: CrowdScene }).__crowdScene =
+            scene;
         const layout = () => {
           const rect = stage.getBoundingClientRect();
           f.width = Math.max(1, rect.width);
@@ -646,7 +649,10 @@ export function CrowdGame() {
       </div>
       <p className="crowd-hint">
         {t("Progress is saved on this device only.")}
-        {best > 0 && <> {t(`Furthest level cleared: ${best}`)}</>}
+        {best > 0 && <> {t(`Furthest level cleared: ${best}`)}</>}{" "}
+        <a href="/models/crowd/CREDITS.md">
+          {t("3D models by Polyfork (CC BY 4.0)")}
+        </a>
       </p>
     </div>
   );

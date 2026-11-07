@@ -29,9 +29,9 @@ export const MODEL_URLS = {
  * `flip` turns a prop end for end if its muzzle points the wrong way.
  */
 export const WEAPONS: { url: string; length: number; flip?: boolean }[] = [
-  { url: "/models/crowd/weapons/rifle-df1815.glb", length: 1.05 },
+  { url: "/models/crowd/weapons/rifle-df1815.glb", length: 1.15 },
   { url: "/models/crowd/weapons/rotary-cannon-e2114b.glb", length: 1.1 },
-  { url: "/models/crowd/weapons/rocket-launcher-032299.glb", length: 1.2 },
+  { url: "/models/crowd/weapons/rocket-launcher-032299.glb", length: 1.35 },
 ];
 
 export type Bones = Record<string, THREE.Bone>;
