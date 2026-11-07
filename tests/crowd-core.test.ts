@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   applyOp,
+  BOSS_REACH,
+  BOSS_STOP,
   crowdRadius,
   newLevel,
   progress,
@@ -116,6 +118,49 @@ test("always taking the worse door leaves a much smaller squad", () => {
   assert.ok(careless < sensible * 0.5, `${careless} vs ${sensible}`);
 });
 
+test("a squad that never steers loses every one of the first fifteen levels", () => {
+  for (let lv = 1; lv <= 15; lv++) {
+    const w = play(lv, () => {});
+    assert.equal(w.phase, "lost", `level ${lv} ended ${w.phase}`);
+  }
+});
+
+test("monsters charge at the squad and the boss stomps toward it", () => {
+  const w = newLevel(2);
+  w.things = [];
+  w.things.push({
+    kind: "monster",
+    id: 1,
+    z: 30,
+    x: 0.7,
+    hp: 99,
+    maxHp: 99,
+    big: false,
+    bite: 1,
+    reward: 0,
+    speed: 4.5,
+    minion: false,
+    dead: false,
+  });
+  start(w);
+  w.speed = 0;
+  for (let i = 0; i < 60; i++) step(w, 1 / 60);
+  const m = w.things[0];
+  assert.ok(m.kind === "monster" && m.z < 26 && m.x < 0.7, "monster homes in");
+
+  const b = newLevel(2);
+  b.things = [];
+  b.count = 500;
+  b.boss.hp = 99999;
+  b.z = b.boss.z - BOSS_STOP;
+  b.phase = "boss";
+  const from = b.boss.z;
+  for (let i = 0; i < 60 * 3; i++) step(b, 1 / 60);
+  assert.ok(b.boss.z < from - 2, "boss walks toward the squad");
+  for (let i = 0; i < 60 * 20; i++) step(b, 1 / 60);
+  assert.ok(b.boss.z - b.z <= BOSS_REACH + 0.01, "boss reaches the squad");
+});
+
 test("steering is clamped to the road and the squad widens as it grows", () => {
   const w = newLevel(1);
   steer(w, 5);
@@ -180,20 +225,24 @@ test("monsters roam every level, die to gunfire and bite on contact", () => {
   assert.equal(v.count, 7);
 });
 
-test("the boss keeps summoning minions during the fight", () => {
+test("the boss summons minions on its way in, then stops once it is close", () => {
   const w = newLevel(3);
   w.things = [];
-  w.count = 400;
+  w.count = 900;
   w.z = w.boss.z - 14;
   w.phase = "boss";
   w.boss.hp = 99999;
-  let summons = 0;
-  for (let i = 0; i < 60 * 8; i++) {
+  let far = 0;
+  let near = 0;
+  for (let i = 0; i < 60 * 14; i++) {
     step(w, 1 / 60);
-    summons += w.events.filter((e) => e.type === "summon").length;
+    const n = w.events.filter((e) => e.type === "summon").length;
+    if (w.boss.z - w.z > BOSS_REACH + 5) far += n;
+    else near += n;
     w.events.length = 0;
   }
-  assert.ok(summons >= 3, `${summons} summons`);
+  assert.ok(far >= 2, `${far} summons on the way in`);
+  assert.equal(near, 0);
 });
 
 test("gate pairs are close calls whose winner depends on the squad size", () => {

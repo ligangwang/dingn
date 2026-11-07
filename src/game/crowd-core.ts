@@ -130,6 +130,12 @@ export const BULLET_SPEED = 46;
 export const BULLET_RANGE = 21;
 /** Distance in front of the boss where the squad halts and opens fire. */
 export const BOSS_STOP = 14;
+/** How fast the boss stomps toward the squad once the fight starts (m/s). */
+export const BOSS_WALK = 1.0;
+/** How close the boss gets before it tramples the squad. */
+export const BOSS_REACH = 2.5;
+/** How far ahead monsters notice the squad and charge. */
+export const MONSTER_NOTICE = 42;
 
 export function rng(seed: number) {
   let a = seed >>> 0;
@@ -258,15 +264,19 @@ export function newLevel(level: number): World {
         ];
       if (pair[0].op === pair[1].op && pair[0].n === pair[1].n)
         pair[1] = { ...pair[1], n: pair[1].n + 1 };
-      const swap = random() < 0.5;
       const good =
         applyOp(e, pair[0]) >= applyOp(e, pair[1]) ? pair[0] : pair[1];
+      const bad = good === pair[0] ? pair[1] : pair[0];
+      // A squad that never steers runs through the right-hand door, so the
+      // worse door sits there more often than not. The first gate always
+      // punishes standing still.
+      const badRight = i === 0 || random() < 0.65;
       things.push({
         kind: "gate",
         id: id++,
         z,
-        left: swap ? pair[1] : pair[0],
-        right: swap ? pair[0] : pair[1],
+        left: badRight ? good : bad,
+        right: badRight ? bad : good,
         used: false,
       });
       expected = applyOp(expected, good);
@@ -297,7 +307,7 @@ export function newLevel(level: number): World {
       expected += 6;
       z += 26;
     } else if (kind === "walls") {
-      const gap = pick([-0.62, 0, 0.62]);
+      const gap = pick([-0.62, 0.62]);
       for (const x of [-0.62, 0, 0.62]) {
         if (x === gap) continue;
         const hp = int(10, 16) + lv * 6;
@@ -343,9 +353,9 @@ export function newLevel(level: number): World {
   for (
     let mz = firstGate + 10;
     mz < length - BOSS_STOP - 6;
-    mz += 9 + roll() * 5
+    mz += 6 + roll() * 4
   ) {
-    if (busy.some((bz) => Math.abs(bz - mz) < 5) || roll() < 0.2) continue;
+    if (busy.some((bz) => Math.abs(bz - mz) < 4) || roll() < 0.12) continue;
     const near = [...checkpoints].reverse().find((c) => c.z <= mz);
     const size = Math.max(1, near?.expected ?? START_COUNT);
     pack++;
@@ -368,7 +378,7 @@ export function newLevel(level: number): World {
             Math.max(2, Math.floor(size / 6)),
           ),
           3 + Math.floor(lv / 2),
-          1.6,
+          3,
         ),
       );
       continue;
@@ -391,14 +401,52 @@ export function newLevel(level: number): World {
           false,
           hp,
           1,
+          0,
+          4.5,
+        ),
+      );
+  }
+
+  // A horde guards the boss: rows of monsters charge out to meet the squad.
+  const finalSize = Math.max(4, expected);
+  const hordeHp = Math.max(
+    1,
+    Math.min(4, Math.round(Math.sqrt(finalSize) * 0.45)),
+  );
+  const rows = 4 + Math.min(6, Math.floor(lv / 2));
+  for (let r = 0; r < rows; r++) {
+    const hz = length - BOSS_STOP - 26 + r * 2.4;
+    const across = 3 + Math.floor(roll() * 3);
+    for (let k = 0; k < across; k++)
+      things.push(
+        monster(
+          id++,
+          hz + roll() * 0.8,
+          -0.8 + (1.6 * (k + roll() * 0.6)) / across,
+          false,
+          hordeHp,
           1,
-          2.4,
+          1,
+          4.5,
+        ),
+      );
+    if (r % 3 === 2 && finalSize >= 12)
+      things.push(
+        monster(
+          id++,
+          hz + 1,
+          (roll() * 2 - 1) * 0.4,
+          true,
+          Math.min(40, Math.round(finalSize * 0.35) + 6),
+          Math.min(8, Math.max(2, Math.floor(finalSize / 10))),
+          3 + Math.floor(lv / 2),
+          3,
         ),
       );
   }
   things.sort((a, b) => a.z - b.z);
 
-  const bossHp = Math.round(fireRate(expected) * (8 + Math.min(lv, 20) * 0.45));
+  const bossHp = Math.round(fireRate(expected) * (9 + Math.min(lv, 20) * 0.4));
   return {
     level: lv,
     phase: "ready",
@@ -501,11 +549,11 @@ export function step(w: World, dt: number) {
       t.x += Math.sign(w.x - t.x) * Math.min(Math.abs(w.x - t.x), 0.25 * dt);
     }
 
-  // monsters shamble toward the squad once they notice it
+  // monsters charge at the squad once they notice it, homing in on it
   for (const t of w.things)
-    if (t.kind === "monster" && !t.dead && t.z - w.z < 32) {
+    if (t.kind === "monster" && !t.dead && t.z - w.z < MONSTER_NOTICE) {
       t.z -= t.speed * dt;
-      const drift = t.big ? 0.25 : 0.6;
+      const drift = t.big ? 0.9 : 1.6;
       t.x += Math.sign(w.x - t.x) * Math.min(Math.abs(w.x - t.x), drift * dt);
     }
 
@@ -651,18 +699,25 @@ export function step(w: World, dt: number) {
     if (w.count <= 0) return lose(w);
   }
 
-  // the boss slams the ground once you reach it
+  // the boss stomps toward the squad, slamming the ground as it comes
   if (w.phase === "boss") {
-    w.boss.slam -= dt;
+    w.boss.z = Math.max(w.z + BOSS_REACH, w.boss.z - BOSS_WALK * dt);
+    // once it is on top of the squad it tramples twice as often
+    const trampling = w.boss.z <= w.z + BOSS_REACH + 0.01;
+    w.boss.slam -= dt * (trampling ? 2 : 1);
     if (w.boss.slam <= 0) {
       w.boss.slam += w.boss.slamEvery;
-      const lost = Math.min(w.count, 2 + Math.ceil(w.count * 0.06));
+      const lost = Math.min(
+        w.count,
+        2 + Math.ceil(w.count * (trampling ? 0.1 : 0.06)),
+      );
       w.count -= lost;
       w.events.push({ type: "slam", lost });
       if (w.count <= 0) return lose(w);
     }
     // ...and keeps calling in minions to swarm you
-    w.boss.summon -= dt;
+    // (it stops once it is close: minions would land right on the squad)
+    if (w.boss.z - w.z > BOSS_REACH + 5) w.boss.summon -= dt;
     if (w.boss.summon <= 0) {
       w.boss.summon += w.boss.summonEvery;
       const hp =
@@ -679,7 +734,7 @@ export function step(w: World, dt: number) {
             hp,
             1,
             0,
-            4,
+            6,
             true,
           ),
         );
