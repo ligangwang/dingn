@@ -695,14 +695,22 @@ class Boss {
   private modelMats: THREE.MeshStandardMaterial[] = [];
   private mixer?: THREE.AnimationMixer;
   private idle?: THREE.AnimationAction;
-  private breath?: THREE.AnimationAction;
+  private walk?: THREE.AnimationAction;
+  private attack?: THREE.AnimationAction;
+  private looping?: THREE.AnimationAction;
   private lastSlam = 0;
-  /** Swaps the code-built boss for the animated dragon. */
-  useModel(gltf: GLTF) {
+  private lastZ = 0;
+  private moving = 0;
+  /**
+   * Swaps the code-built boss for an animated model. It loops Idle or Walk
+   * (Run as a fallback) and plays an attack clip, if it has one, on each
+   * ground slam; otherwise it lunges forward.
+   */
+  useModel(gltf: GLTF, height: number, yaw = 0) {
     const model = gltf.scene;
     const box = new THREE.Box3().setFromObject(model);
-    const s = 6.2 / Math.max(0.1, box.max.y - box.min.y);
-    model.scale.setScalar(s);
+    model.scale.setScalar(height / Math.max(0.1, box.max.y - box.min.y));
+    model.rotation.y = yaw;
     model.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
@@ -716,35 +724,43 @@ class Boss {
       mesh.material = mat;
       this.modelMats.push(mat);
     });
-    this.mixer = new THREE.AnimationMixer(model);
-    const clip = (name: string) => gltf.animations.find((a) => a.name === name);
-    const idle = clip("Idle");
-    const breath = clip("FireBreath");
-    if (idle) {
-      this.idle = this.mixer.clipAction(idle);
-      this.idle.play();
-    }
-    if (breath) {
-      this.breath = this.mixer.clipAction(breath);
-      this.breath.setLoop(THREE.LoopOnce, 1);
-      this.breath.clampWhenFinished = false;
-      this.mixer.addEventListener("finished", () => {
-        this.breath?.fadeOut(0.25);
-        this.idle?.reset().fadeIn(0.25).play();
+    const mixer = new THREE.AnimationMixer(model);
+    this.mixer = mixer;
+    const action = (...names: string[]) => {
+      const c = gltf.animations.find((a) => names.includes(a.name));
+      return c ? mixer.clipAction(c) : undefined;
+    };
+    this.idle = action("Idle");
+    this.walk = action("Walk", "Run");
+    this.attack = action("FireBreath", "Attack", "Roar", "Bite");
+    if (this.attack) {
+      this.attack.setLoop(THREE.LoopOnce, 1);
+      mixer.addEventListener("finished", (e) => {
+        if (e.action === this.attack) this.attack?.fadeOut(0.25);
       });
     }
+    this.loop(this.idle);
     this.body.visible = false;
     this.model = model;
     this.group.add(model);
   }
+  private loop(next?: THREE.AnimationAction) {
+    if (!next || next === this.looping) return;
+    this.looping?.fadeOut(0.3);
+    next.reset().fadeIn(0.3).play();
+    this.looping = next;
+  }
   update(w: World, fx: SceneFx, dead: number, dt = 0) {
     this.group.position.set(0, 0, -w.boss.z);
     if (this.model) {
-      // every ground slam is a burst of fire breath
-      if (fx.slamAnim > this.lastSlam + 0.5 && this.breath) {
-        this.idle?.fadeOut(0.15);
-        this.breath.reset().fadeIn(0.1).play();
-      }
+      // walk while it closes in, idle otherwise
+      const step = this.lastZ - w.boss.z;
+      this.lastZ = w.boss.z;
+      this.moving =
+        step > 0.0001 && step < 1 ? 0.4 : Math.max(0, this.moving - dt);
+      this.loop(this.moving > 0 ? this.walk : this.idle);
+      if (fx.slamAnim > this.lastSlam + 0.5 && this.attack)
+        this.attack.reset().fadeIn(0.1).play();
       this.lastSlam = fx.slamAnim;
       this.mixer?.update(dt);
       for (const m of this.modelMats)
@@ -753,7 +769,15 @@ class Boss {
           fx.bossHit * 0.1,
           fx.bossHit * 0.05,
         );
+      // without an attack clip, each slam is a lunge at the squad
+      const lunge = this.attack
+        ? 0
+        : fx.slamAnim > 0.5
+          ? (1 - fx.slamAnim) * 2
+          : fx.slamAnim * 2;
       const k = Math.min(1, dead);
+      this.model.rotation.x = lunge * 0.25;
+      this.model.position.z = lunge * 1.2;
       this.model.rotation.z = k * 1.5;
       this.model.position.y = -k * k * 4;
       this.group.visible = k < 1;
@@ -1153,7 +1177,7 @@ export class CrowdScene {
         2.3 / bruteFrames.height,
       ),
     );
-    this.boss.useModel(boss);
+    this.boss.useModel(boss, 6.2);
     this.modelsReady = true;
   }
   modelsReady = false;

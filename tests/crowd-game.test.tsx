@@ -21,15 +21,27 @@ afterEach(() => {
   history.replaceState({}, "", "/");
 });
 
-test("starts at the saved level and begins the run from the menu or keyboard", async () => {
-  localStorage.setItem("dingn.crowd.level", "4");
+test("starts at the saved level and has no 2D version to switch to", async () => {
+  localStorage.setItem("dingn.crowd.level", "6");
   render(<CrowdGame />);
   expect(
-    await screen.findByRole("heading", { name: "Ready to rush?" }),
+    await screen.findByRole("heading", { name: "Crowd Rush" }),
   ).toBeTruthy();
-  expect(screen.getAllByText("Level 4").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Level 6").length).toBeGreaterThan(0);
+  expect(screen.queryByRole("link", { name: /2D/ })).toBeNull();
+});
+
+test("explains when WebGL is unavailable and links back to the games", async () => {
+  render(<CrowdGame />);
+  expect(
+    await screen.findByRole("heading", { name: "3D isn't available here" }),
+  ).toBeTruthy();
+  expect(
+    screen
+      .getAllByRole("link", { name: "Back to games" })
+      .every((a) => a.getAttribute("href") === "/"),
+  ).toBe(true);
   fireEvent.keyDown(screen.getByRole("application"), { key: "Enter" });
-  expect(screen.queryByRole("heading", { name: "Ready to rush?" })).toBeNull();
 });
 
 test("sound preference is remembered", async () => {
@@ -40,7 +52,7 @@ test("sound preference is remembered", async () => {
   expect(localStorage.getItem("dingn.crowd.sound")).toBe("off");
 });
 
-test("the menu is translated into Simplified Chinese", async () => {
+test("the page is translated into Simplified Chinese", async () => {
   history.replaceState({}, "", "/crowd/?lang=zh-CN");
   render(
     <LocaleProvider>
@@ -49,9 +61,6 @@ test("the menu is translated into Simplified Chinese", async () => {
   );
   expect(
     await screen.findByRole("heading", { name: catalog["Crowd Rush"] }),
-  ).toBeTruthy();
-  expect(
-    screen.getByRole("heading", { name: catalog["Ready to rush?"] }),
   ).toBeTruthy();
   expect(screen.getAllByText("第 1 关").length).toBeGreaterThan(0);
   localStorage.removeItem("dingn.locale");
