@@ -31,10 +31,87 @@ Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project 
 - `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
 - `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
 - `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.
-- `/account/`: player display name, a link to the games, and sign-out. Legacy practice pages start with answers hidden and let players reveal them when ready; there is no account-level mode selector.
+- `/account/`: player display name, game items and purchase history, a link to the games, and sign-out. Legacy practice pages start with answers hidden; there is no account-level mode selector.
 - `/signin/`: Google sign-in with a validated return destination.
 
 The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_favorites/{uid}-{number}` collections and field names are preserved. Writes merge only the supported fields. User accounts do not need to be imported or recreated. Security remains enforced by the existing Firebase Authentication and Firestore rules; no rules or indexes were changed by the migration.
+
+## One-time game item purchases (Stripe)
+
+The account page contains an English/Chinese item shop and account purchase history.
+There is no Premium subscription, recurring charge, virtual currency or randomized
+reward. This first version supports non-consumable items (one permanent ownership
+record per account and item). It does not support consumable bundles.
+
+**The catalog ships empty. No unfinished cosmetics are offered for sale.**
+`src/data/shop-items.json` is the server's release allowlist. Before adding an active
+item, finish the asset, implement and test its equip/use path in the named game,
+and have the game check `shopInventory/{uid}/items/{itemId}` server-side for
+`status: owned`. Do not trust a browser's local storage or a return URL for access.
+No equip UI or paid game content is included in this PR.
+
+### Checkout and ownership
+
+- POST `/api/billing/items`, `/inventory`, `/checkout` require the existing session,
+  verified Firebase identity, and same-origin request headers. The client sends
+  an item ID and locale, never an amount, price ID or account ID.
+- The server reads active one-time Stripe prices. A Firestore transaction creates
+  an immutable `shopOrders` record and reserves the account/item. Repeat attempts
+  reuse the same order and Stripe idempotency key until Stripe reports expiry.
+- `/api/billing/webhook` verifies Stripe's signature against the raw request body.
+  It retrieves the Checkout Session from Stripe, validates the account, item,
+  price, quantity, currency and amount, then atomically marks the order and
+  inventory owned. Merely returning from Checkout never grants ownership.
+- Duplicate payment events are harmless. Any refund (including partial refunds)
+  or dispute revokes that order's entitlement; late success cannot restore it.
+  A refund of an old order does not revoke a newer purchase. Dispute resolution
+  does not automatically restore access; handle reinstatement manually after review.
+- Expired sessions are marked expired by webhook. Webhook failures return non-2xx
+  for Stripe retries. Monitor and replay failed events before allowing purchases.
+- Browsers cannot read/write billing collections directly, including legacy
+  `customers` and `products`. The server filters purchase history by verified UID.
+
+### Setup before selling
+
+1. Deploy `firestore.rules` before exposing billing or adding real items. The
+   runtime service account needs Firestore data access, as it does for XP.
+2. Create Stripe **one-time** prices for finished items. Put the Stripe secret key
+   and webhook signing secret in Google Secret Manager and bind them to Cloud Run
+   as `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Never use `NEXT_PUBLIC_` or
+   commit keys. This uses the Stripe SDK directly; no Firebase Stripe extension
+   or Premium custom claim is needed.
+3. Configure `https://dingn.com/api/billing/webhook` for
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `checkout.session.expired`, `charge.refunded`, and `charge.dispute.created`.
+4. Add a released item to `src/data/shop-items.json`, for example (placeholder,
+   **not a real item or price**):
+
+   ```json
+   [
+     {
+       "id": "finished-cape",
+       "game": "morrowglint",
+       "active": false,
+       "priceId": "price_REPLACE",
+       "name": { "en": "Cape", "zh-CN": "披风" },
+       "description": {
+         "en": "Describe the finished item and where to use it.",
+         "zh-CN": "说明已完成的道具及其使用位置。"
+       }
+     }
+   ]
+   ```
+
+5. Run `npm run verify` and `npm run test:rules` (Firebase CLI + Java 21).
+   In Stripe test mode, verify payment, webhook delay/replay, another account,
+   repeat checkout, expiry, refund and dispute, plus actual in-game equip/use.
+   Only then enable the item and production keys. Checkout currently accepts
+   cards, quantity one, and the fixed price without discounts or automatic tax;
+   configure required pricing/tax behavior before launch.
+
+Missing Stripe configuration or an empty release allowlist produces an empty shop.
+The production secrets, Stripe products/webhook, and real payment smoke test are
+external setup steps; adding this code alone does not activate sales.
 
 ## Hosting and cutover
 
@@ -166,8 +243,8 @@ Names, feedback, saved associations, and English dictionary learning material re
 
 ## Crowd Rush (人潮突击)
 
-`/crowd/` is a 3D crowd-runner shooter drawn with three.js. Every level starts with a single runner, so early gates and monsters matter. The squad runs forward on its own; players drag left and right (or hold ←/→, A/D) to steer through number gates (+, −, ×, ÷). Both doors of a gate share one colour, and pairs such as +10 vs ×2 are close calls whose winner depends on the current squad size; after passing, the chosen door turns green or red to show whether it was the better one, dodge walls, shoot open supply crates for extra recruits, and clash with rival squads, where both sides lose the smaller count. Small slime monsters roam between obstacles and bite off a squad member each if they reach you (shooting one frees a recruit); horned brutes take more hits, bite harder and free several recruits. The squad fires automatically, faster as it grows. Monsters charge at the squad once they spot it, and a horde guards the boss. Each level ends with a boss that stomps toward the squad, slamming the ground and summoning minions on the way, then tramples it on arrival; its health bar must be emptied first. A squad that never steers runs into a centre wall or through the worse door, which sits on the right more often than not, so standing still loses (`tests/crowd-core.test.ts` checks this for levels 1–15). There is no last level: layouts keep generating, and difficulty stops rising after about level 20.
+`/crowd/` is a 3D crowd-runner shooter drawn with three.js. Every level starts with a single runner, so early gates and monsters matter. The squad runs forward on its own; players drag left and right (or hold ←/→, A/D) to steer through number gates (+, −, ×, ÷). Both doors of a gate share one colour, and pairs such as +10 vs ×2 are close calls whose winner depends on the current squad size; after passing, the chosen door turns green or red to show whether it was the better one, dodge walls, shoot open supply crates for extra recruits, and clash with rival squads, where both sides lose the smaller count. Small slime monsters roam between obstacles and bite off a squad member each if they reach you (shooting one frees a recruit); horned brutes take more hits, bite harder and free several recruits. The squad fires automatically, faster as it grows. Red POWER and blue RATE crates sit on a side lane after gates: shooting one down to zero raises damage per shot (and swaps the squad's gun for a stronger Polyfork weapon: rifle, future rifle, rotary cannon, rocket launcher) or the fire rate. Monsters charge at the squad once they spot it, and a horde guards the boss. Each level ends with a boss that stomps toward the squad, slamming the ground and summoning minions on the way, then tramples it on arrival; its health bar must be emptied first. A squad that never steers runs into a centre wall or through the worse door, which sits on the right more often than not, so standing still loses (`tests/crowd-core.test.ts` checks this for levels 1–15). There is no last level: layouts keep generating, and difficulty stops rising after about level 20.
 
 Levels are generated from the level number, so every player sees the same layout. Difficulty follows an estimate of a sensible player's squad size, and `tests/crowd-core.test.ts` plays levels 1–15 with a simple autopilot to keep them winnable and checks that always taking the worse gate loses. Sound effects are synthesized with Web Audio. Reached level, furthest cleared level and the sound setting are stored only on the device (`dingn.crowd.*`); nothing is sent to the server and no XP is awarded. Rules live in `src/game/crowd-core.ts`, separate from rendering in `src/components/crowd-game.tsx`.
 
-The game rules live in `src/game/crowd-core.ts`, separate from the view, and are tested on their own. Saved progress and the sound setting are kept in `localStorage`. The runners (an infantry rifleman, recoloured blue or red per side), the orc brutes and the boss are free [Polyfork](https://polyfork.dev) models used under CC BY 4.0; the files and their credits are in `public/models/crowd/` (`CREDITS.md`). A skinned mesh can't be instanced, so `src/game/crowd-models.ts` poses the rifleman and the orc with the game's own run and walk cycles and bakes each pose into a plain geometry; every runner on the same frame of the cycle then shares one `InstancedMesh` draw call. The boss is a T-Rex that plays its own Walk and Idle clips as it closes in and lunges with its jaw open when it slams. Slimes, the road, scenery and the code-built fallback characters (shown until the models load, or if they fail to) are built in code in `src/game/crowd-scene.ts`. three.js is loaded only on that page. If the browser can't create a WebGL context, the page says so and links back to the games. On phones, dragging anywhere on the stage steers without scrolling or zooming the page. The stage fills the screen in portrait and landscape and scrolls fully into view when a level starts. Touch devices get a lighter renderer: no MSAA, a pixel ratio capped at 1.5 and a smaller shadow map. On any device the resolution drops a step while frames run under about 40 fps and comes back once they recover.
+The game rules live in `src/game/crowd-core.ts`, separate from the view, and are tested on their own. Saved progress and the sound setting are kept in `localStorage`. The runners (an infantry rifleman, recoloured blue or red per side), the orc brutes, the boss and the three upgrade weapons are free [Polyfork](https://polyfork.dev) models used under CC BY 4.0; the files and their credits are in `public/models/crowd/` (`CREDITS.md`). A skinned mesh can't be instanced, so `src/game/crowd-models.ts` poses the rifleman and the orc with the game's own run and walk cycles and bakes each pose into a plain geometry; every runner on the same frame of the cycle then shares one `InstancedMesh` draw call. The boss is a T-Rex that plays its own Walk and Idle clips as it closes in and lunges with its jaw open when it slams. Slimes, the road, scenery and the code-built fallback characters (shown until the models load, or if they fail to) are built in code in `src/game/crowd-scene.ts`. three.js is loaded only on that page. If the browser can't create a WebGL context, the page says so and links back to the games. On phones, dragging anywhere on the stage steers without scrolling or zooming the page. The stage fills the screen in portrait and landscape and scrolls fully into view when a level starts. Touch devices get a lighter renderer: no MSAA, a pixel ratio capped at 1.5 and a smaller shadow map. On any device the resolution drops a step while frames run under about 40 fps and comes back once they recover.

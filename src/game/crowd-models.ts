@@ -22,6 +22,18 @@ export const MODEL_URLS = {
   boss: "/models/crowd/tyrannosaurus-rex-adf79f.glb",
 };
 
+/**
+ * The squad's gun at each damage level. Level 1 is the rifle the rifleman
+ * already carries; the others are Polyfork props held in the same hand,
+ * lined up with that rifle and stretched to `length` times its size.
+ * `flip` turns a prop end for end if its muzzle points the wrong way.
+ */
+export const WEAPONS: { url: string; length: number; flip?: boolean }[] = [
+  { url: "/models/crowd/weapons/rifle-df1815.glb", length: 1.15 },
+  { url: "/models/crowd/weapons/rotary-cannon-e2114b.glb", length: 1.1 },
+  { url: "/models/crowd/weapons/rocket-launcher-032299.glb", length: 1.35 },
+];
+
 export type Bones = Record<string, THREE.Bone>;
 export type Pose = (b: Bones, phase: number) => void;
 
@@ -164,7 +176,164 @@ export function bake(
     geo.userData.parts = parts;
     return geo;
   });
+  for (const r of rest) {
+    r.bone.position.copy(r.p);
+    r.bone.quaternion.copy(r.q);
+  }
+  root.updateMatrixWorld(true);
   return { frames, height };
+}
+
+/** A prop model flattened into one non-indexed geometry with vertex colours. */
+export function propGeometry(gltf: GLTF): THREE.BufferGeometry {
+  const root = gltf.scene;
+  root.updateMatrixWorld(true);
+  const pos: number[] = [];
+  const col: number[] = [];
+  const c = new THREE.Color();
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const g = mesh.geometry.index
+      ? mesh.geometry.toNonIndexed()
+      : mesh.geometry;
+    const p = g.getAttribute("position");
+    const vc = g.getAttribute("color");
+    const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    const base = (mat as THREE.MeshStandardMaterial).color ?? c.set(0x888888);
+    for (let i = 0; i < p.count; i++) {
+      _v.fromBufferAttribute(p, i).applyMatrix4(mesh.matrixWorld);
+      pos.push(_v.x, _v.y, _v.z);
+      if (vc) col.push(vc.getX(i), vc.getY(i), vc.getZ(i));
+      else col.push(base.r, base.g, base.b);
+    }
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  return geo;
+}
+
+/** Box axes sorted from longest to shortest, with the box centre. */
+function axes(points: THREE.Vector3[]) {
+  const box = new THREE.Box3().setFromPoints(points);
+  const size = box.getSize(new THREE.Vector3());
+  const order = [0, 1, 2].sort(
+    (a, b) => size.getComponent(b) - size.getComponent(a),
+  );
+  return {
+    center: box.getCenter(new THREE.Vector3()),
+    length: size.getComponent(order[0]),
+    dirs: order.map((k) => new THREE.Vector3().setComponent(k, 1)),
+  };
+}
+
+/**
+ * Bakes a prop held in the rifleman's right hand through the same poses as
+ * `bake`, so frame i of the result lines up with frame i of the body. The
+ * prop replaces the rifle: it is centred where the rifle sits, turned so
+ * its long side runs along the rifle, and scaled to `length` times it.
+ */
+export function bakeHeld(
+  gltf: GLTF,
+  pose: Pose,
+  phases: number[],
+  prop: THREE.BufferGeometry,
+  length: number,
+  flip = false,
+): Baked {
+  const root = gltf.scene;
+  const bones: Bones = {};
+  let rifle: THREE.SkinnedMesh | undefined;
+  root.traverse((o) => {
+    if ((o as THREE.Bone).isBone) bones[o.name] = o as THREE.Bone;
+    if ((o as THREE.SkinnedMesh).isSkinnedMesh && o.name.includes("righthand"))
+      rifle = o as THREE.SkinnedMesh;
+  });
+  const hand = bones.RightHand;
+  if (!rifle || !hand) throw new Error("model has no right-hand item");
+  root.updateMatrixWorld(true);
+  rifle.skeleton.update();
+
+  // where the rifle sits in the hand's own space, at rest
+  const toHand = hand.matrixWorld.clone().invert();
+  const rp: THREE.Vector3[] = [];
+  const rpos = rifle.geometry.getAttribute("position");
+  for (let i = 0; i < rpos.count; i++)
+    rp.push(
+      rifle
+        .getVertexPosition(i, new THREE.Vector3())
+        .applyMatrix4(rifle.matrixWorld)
+        .applyMatrix4(toHand),
+    );
+  const r = axes(rp);
+  const ppos = prop.getAttribute("position");
+  const pp: THREE.Vector3[] = [];
+  for (let i = 0; i < ppos.count; i++)
+    pp.push(new THREE.Vector3().fromBufferAttribute(ppos, i));
+  const q = axes(pp);
+
+  // map the prop's longest/middle/shortest sides onto the rifle's
+  const sign = flip ? -1 : 1;
+  const from = new THREE.Matrix4().makeBasis(
+    q.dirs[0].clone().multiplyScalar(sign),
+    q.dirs[1],
+    q.dirs[0].clone().multiplyScalar(sign).cross(q.dirs[1]),
+  );
+  const to = new THREE.Matrix4().makeBasis(
+    r.dirs[0],
+    r.dirs[1],
+    r.dirs[0].clone().cross(r.dirs[1]),
+  );
+  const k = (r.length * length) / Math.max(1e-6, q.length);
+  const offset = new THREE.Matrix4()
+    .makeTranslation(r.center.x, r.center.y, r.center.z)
+    .multiply(to)
+    .multiply(from.clone().transpose())
+    .multiply(new THREE.Matrix4().makeScale(k, k, k))
+    .multiply(
+      new THREE.Matrix4().makeTranslation(
+        -q.center.x,
+        -q.center.y,
+        -q.center.z,
+      ),
+    );
+
+  const rest = Object.values(bones).map((bone) => ({
+    bone,
+    p: bone.position.clone(),
+    q: bone.quaternion.clone(),
+  }));
+  const color = prop.getAttribute("color") as THREE.BufferAttribute;
+  const m = new THREE.Matrix4();
+  const frames = phases.map((phase) => {
+    for (const b of rest) {
+      b.bone.position.copy(b.p);
+      b.bone.quaternion.copy(b.q);
+    }
+    pose(bones, phase);
+    root.updateMatrixWorld(true);
+    m.multiplyMatrices(hand.matrixWorld, offset);
+    const out = new Float32Array(ppos.count * 3);
+    for (let i = 0; i < ppos.count; i++) {
+      _v.fromBufferAttribute(ppos, i).applyMatrix4(m);
+      out[i * 3] = _v.x;
+      out[i * 3 + 1] = _v.y;
+      out[i * 3 + 2] = _v.z;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(out, 3));
+    geo.setAttribute("color", color);
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    return geo;
+  });
+  for (const b of rest) {
+    b.bone.position.copy(b.p);
+    b.bone.quaternion.copy(b.q);
+  }
+  root.updateMatrixWorld(true);
+  return { frames, height: 0 };
 }
 
 /**

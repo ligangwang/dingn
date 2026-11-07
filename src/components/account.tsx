@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "./auth";
 import { useSession } from "./session";
+import { ItemShop } from "./item-shop";
 import { friendlyError } from "@/lib/models";
 function Settings() {
   const { t, locale } = useLocale();
@@ -72,6 +73,7 @@ function Settings() {
           </p>
         )}
       </form>
+      <ItemShop />
       <Link className="button" href="/#games">
         {t("Play games →")}
       </Link>

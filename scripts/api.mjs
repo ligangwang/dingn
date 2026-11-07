@@ -92,7 +92,7 @@ async function identity(token) {
     isAdmin: claims.admin === true,
   };
 }
-async function readBody(req) {
+export async function readBody(req) {
   let body = "";
   for await (const part of req) {
     body += part;
@@ -121,7 +121,7 @@ export function validateOrigin(req) {
   )
     throw new ApiError(403, "invalid-origin");
 }
-function throttle(req) {
+export function throttle(req) {
   const now = Date.now();
   // Per-instance burst protection (Cloud Run may share a proxy address), in addition to Firebase account/project quotas.
   const ip = req.socket.remoteAddress || "unknown";

@@ -23,6 +23,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Check Firestore security rules
+        run: npx --yes firebase-tools@15.35.0 emulators:exec --only firestore --project demo-dingn-feedback "node --test tests/feedback-rules.test.mjs tests/billing-rules.test.mjs"
 
   deploy:
     name: Deploy Cloud Run
