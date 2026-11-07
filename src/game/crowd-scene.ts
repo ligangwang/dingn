@@ -24,13 +24,17 @@ import {
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
   MODEL_URLS,
+  WEAPONS,
   bake,
+  bakeHeld,
   loadModel,
+  propGeometry,
   recolor,
   runPose,
   standPose,
   stompPose,
   type Baked,
+  type Pose,
 } from "./crowd-models";
 
 /** Metres per road unit: the road is 2 × ROAD wide. */
@@ -255,6 +259,8 @@ class Runners {
   private arms: THREE.InstancedMesh;
   private gun: THREE.InstancedMesh;
   private model?: FrameSet;
+  /** One gun per damage level, drawn in the runners' hands. */
+  private guns: FrameSet[] = [];
   constructor(
     scene: THREE.Scene,
     readonly capacity: number,
@@ -298,8 +304,9 @@ class Runners {
         m.setColorAt(i, _c.set(0xffffff));
   }
   /** Switches from the code-built runners to the baked rifleman. */
-  useModel(set: FrameSet) {
+  useModel(set: FrameSet, guns: FrameSet[] = []) {
     this.model = set;
+    this.guns = guns;
     for (const m of this.parts.meshes) m.visible = false;
   }
   /** Draws a squad of `count` around road position (x, z). */
@@ -313,6 +320,7 @@ class Runners {
     clock: number,
     running: boolean,
     lean: number,
+    tier = 0,
   ) {
     const n = Math.min(count, MAX_DRAWN);
     const rx = radius * ROAD * 1.1;
@@ -325,6 +333,7 @@ class Runners {
     const model = this.model;
     if (model) {
       const variant = color === TEAM ? 0 : 1;
+      const gun = this.guns[Math.min(tier, this.guns.length - 1)];
       // the rifleman faces +Z, so the squad (running toward -Z) turns round
       const myaw = facing === 1 ? Math.PI + lean : lean;
       for (let i = 0; i < n; i++) {
@@ -334,7 +343,9 @@ class Runners {
         const frame = running
           ? Math.floor(((((clock * 1.5 + i * 0.37) % 1) + 1) % 1) * RUN_FRAMES)
           : RUN_FRAMES;
-        model.add(variant, frame, base(X, 0, Z, myaw, model.scale));
+        const m = base(X, 0, Z, myaw, model.scale);
+        model.add(variant, frame, m);
+        gun?.add(0, frame, m);
         this.blobs.add(X, Z, 0.26);
       }
       return;
@@ -373,6 +384,7 @@ class Runners {
   }
   finish() {
     this.model?.finish();
+    for (const g of this.guns) g.finish();
     this.parts.finish();
   }
 }
@@ -1194,15 +1206,42 @@ export class CrowdScene {
       loadModel(MODEL_URLS.brute),
       loadModel(MODEL_URLS.boss),
     ]);
+    // a missing gun model just leaves the squad on its last good weapon
+    const weapons = await Promise.allSettled(
+      WEAPONS.map((wp) => loadModel(wp.url)),
+    );
     if (this.disposed) return;
     const phases = Array.from({ length: RUN_FRAMES }, (_, i) => i / RUN_FRAMES);
-    const skipFace = (name: string) => name.includes("face");
+    const pose: Pose = (b, p) => (p < 0 ? standPose(b, 0) : runPose(b, p));
+    const allPhases = [...phases, -1];
+    // the gun is baked on its own so it can be swapped as the squad upgrades
+    const rifleFrames = bake(
+      runner,
+      pose,
+      allPhases,
+      (name) => !name.includes("righthand"),
+    );
+    const gunFrames = [rifleFrames];
+    for (const [i, r] of weapons.entries()) {
+      if (r.status !== "fulfilled") break;
+      const wp = WEAPONS[i];
+      gunFrames.push(
+        bakeHeld(
+          runner,
+          pose,
+          allPhases,
+          propGeometry(r.value),
+          wp.length,
+          wp.flip,
+        ),
+      );
+    }
     // the last frame is the rifleman standing still before the run starts
     const runFrames = bake(
       runner,
-      (b, p) => (p < 0 ? standPose(b, 0) : runPose(b, p)),
-      [...phases, -1],
-      skipFace,
+      pose,
+      allPhases,
+      (name) => name.includes("face") || name.includes("righthand"),
     );
     const team = recolor(runFrames, {
       "top-mesh": 0x2f7fe0,
@@ -1212,13 +1251,24 @@ export class CrowdScene {
       "top-mesh": 0xd9363e,
       "hat-mesh": 0x7a1a20,
     });
+    const scale = 1.15 / Math.max(runFrames.height, rifleFrames.height);
     this.runners.useModel(
       new FrameSet(
         this.scene,
         runFrames,
         [team, rival],
         this.runners.capacity,
-        1.15 / runFrames.height,
+        scale,
+      ),
+      gunFrames.map(
+        (g) =>
+          new FrameSet(
+            this.scene,
+            g,
+            [g.frames[0].getAttribute("color") as THREE.BufferAttribute],
+            this.runners.capacity,
+            scale,
+          ),
       ),
     );
     const bruteFrames = bake(
@@ -1472,6 +1522,7 @@ export class CrowdScene {
         clock,
         running,
         Math.max(-0.5, Math.min(0.5, (w.x - w.targetX) * 1.2)),
+        w.power - 1,
       );
     for (const th of w.things) {
       if (th.kind === "gate" || th.z < near || th.z > far || th.dead) continue;
