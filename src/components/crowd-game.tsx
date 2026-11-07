@@ -18,19 +18,19 @@ import {
   type World,
 } from "@/game/crowd-core";
 
-const STORE = {
+export const STORE = {
   level: "dingn.crowd.level",
   best: "dingn.crowd.best",
   sound: "dingn.crowd.sound",
 };
-const read = (key: string) => {
+export const read = (key: string) => {
   try {
     return localStorage.getItem(key);
   } catch {
     return null;
   }
 };
-const write = (key: string, value: string) => {
+export const write = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value);
   } catch {}
@@ -43,7 +43,7 @@ const RIVAL_DARK = "#c2303a";
 const MAX_DRAWN = 140;
 
 /** Synthesised sound effects: no audio files are downloaded. */
-class Sfx {
+export class Sfx {
   private ctx?: AudioContext;
   private out?: GainNode;
   private noise?: AudioBuffer;
@@ -863,7 +863,10 @@ export function CrowdGame() {
             )}
           </p>
         </div>
-        <Link href="/">{t("Back to games")}</Link>
+        <div className="crowd-links">
+          <Link href="/crowd-3d/">{t("Try the 3D version")}</Link>
+          <Link href="/">{t("Back to games")}</Link>
+        </div>
       </div>
       <div className="crowd-stage" ref={stageRef}>
         <canvas

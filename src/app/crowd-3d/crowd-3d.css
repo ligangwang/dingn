@@ -1,0 +1,88 @@
+.crowd3d-stage {
+  background: #8fd0ff;
+}
+.crowd3d-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.crowd3d-labels span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  font-weight: 900;
+  will-change: transform;
+}
+.crowd3d-count {
+  font-size: 17px;
+  color: #fff;
+  background: #0f3d78e6;
+  border: 2px solid #ffffffb0;
+  border-radius: 999px;
+  padding: 2px 11px;
+  box-shadow: 0 3px 8px #0004;
+}
+.crowd3d-count.rival {
+  background: #8a1820e6;
+}
+.crowd3d-float {
+  font-size: 22px;
+  text-shadow:
+    0 2px 0 #0009,
+    0 0 6px #0006;
+}
+.crowd3d-float.big {
+  font-size: 34px;
+}
+.crowd3d-bars {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, 60%);
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+.crowd3d-progress,
+.crowd3d-boss {
+  border-radius: 999px;
+  background: #0b1426aa;
+  overflow: hidden;
+}
+.crowd3d-progress {
+  height: 12px;
+}
+.crowd3d-progress div {
+  height: 100%;
+  background: #7cff6b;
+  border-radius: 999px;
+}
+.crowd3d-boss {
+  height: 16px;
+}
+.crowd3d-boss[hidden] {
+  display: none;
+}
+.crowd3d-boss div {
+  height: 100%;
+  background: #b27bff;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  min-width: 24px;
+}
+.crowd3d-boss div[data-hit="1"] {
+  background: #ffb3d0;
+}
+@media (max-width: 520px) {
+  .crowd3d-bars {
+    top: 54px;
+    width: calc(100% - 32px);
+  }
+}
