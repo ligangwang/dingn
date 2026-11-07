@@ -24,13 +24,17 @@ import {
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
   MODEL_URLS,
+  WEAPONS,
   bake,
+  bakeHeld,
   loadModel,
+  propGeometry,
   recolor,
   runPose,
   standPose,
   stompPose,
   type Baked,
+  type Pose,
 } from "./crowd-models";
 
 /** Metres per road unit: the road is 2 × ROAD wide. */
@@ -255,6 +259,8 @@ class Runners {
   private arms: THREE.InstancedMesh;
   private gun: THREE.InstancedMesh;
   private model?: FrameSet;
+  /** One gun per damage level, drawn in the runners' hands. */
+  private guns: FrameSet[] = [];
   constructor(
     scene: THREE.Scene,
     readonly capacity: number,
@@ -298,8 +304,9 @@ class Runners {
         m.setColorAt(i, _c.set(0xffffff));
   }
   /** Switches from the code-built runners to the baked rifleman. */
-  useModel(set: FrameSet) {
+  useModel(set: FrameSet, guns: FrameSet[] = []) {
     this.model = set;
+    this.guns = guns;
     for (const m of this.parts.meshes) m.visible = false;
   }
   /** Draws a squad of `count` around road position (x, z). */
@@ -313,6 +320,7 @@ class Runners {
     clock: number,
     running: boolean,
     lean: number,
+    tier = 0,
   ) {
     const n = Math.min(count, MAX_DRAWN);
     const rx = radius * ROAD * 1.1;
@@ -325,6 +333,7 @@ class Runners {
     const model = this.model;
     if (model) {
       const variant = color === TEAM ? 0 : 1;
+      const gun = this.guns[Math.min(tier, this.guns.length - 1)];
       // the rifleman faces +Z, so the squad (running toward -Z) turns round
       const myaw = facing === 1 ? Math.PI + lean : lean;
       for (let i = 0; i < n; i++) {
@@ -334,7 +343,9 @@ class Runners {
         const frame = running
           ? Math.floor(((((clock * 1.5 + i * 0.37) % 1) + 1) % 1) * RUN_FRAMES)
           : RUN_FRAMES;
-        model.add(variant, frame, base(X, 0, Z, myaw, model.scale));
+        const m = base(X, 0, Z, myaw, model.scale);
+        model.add(variant, frame, m);
+        gun?.add(0, frame, m);
         this.blobs.add(X, Z, 0.26);
       }
       return;
@@ -373,6 +384,7 @@ class Runners {
   }
   finish() {
     this.model?.finish();
+    for (const g of this.guns) g.finish();
     this.parts.finish();
   }
 }
@@ -906,6 +918,14 @@ class GateView {
 }
 
 /** A crate (shoot it open for recruits) or a stone wall (dodge it). */
+/** Side and top colours of the two weapon crates. */
+const UPGRADE_COLORS = {
+  power: [0xc8322c, 0xff6a4d],
+  rate: [0x178ccc, 0x5fd4ff],
+} as const;
+/** Bullet colour per power level: brighter and hotter as it rises. */
+const BULLET_COLORS = [0xffe26a, 0xff9a3c, 0xff4f7a, 0xb46bff];
+
 class BlockView {
   group = new THREE.Group();
   private canvas = document.createElement("canvas");
@@ -917,7 +937,8 @@ class BlockView {
     readonly block: Block,
     rewardTex?: THREE.Texture,
   ) {
-    const crate = block.reward > 0;
+    const up = block.upgrade;
+    const crate = block.reward > 0 || !!up;
     const W = block.w * 2 * ROAD;
     const H = crate ? 1.3 : 1.7;
     const D = crate ? 1.3 : 0.8;
@@ -925,8 +946,13 @@ class BlockView {
     this.canvas.height = Math.round((256 * H) / W);
     this.tex = new THREE.CanvasTexture(this.canvas);
     this.tex.colorSpace = THREE.SRGBColorSpace;
-    const side = flat(crate ? 0xe3963a : 0xa9a39a);
-    const top = flat(crate ? 0xf5b85a : 0xc4beb4);
+    const tint = up
+      ? UPGRADE_COLORS[up]
+      : crate
+        ? [0xe3963a, 0xf5b85a]
+        : [0xa9a39a, 0xc4beb4];
+    const side = flat(tint[0]);
+    const top = flat(tint[1]);
     const front = new THREE.MeshStandardMaterial({
       map: this.tex,
       roughness: 0.85,
@@ -939,6 +965,18 @@ class BlockView {
     box.castShadow = true;
     box.receiveShadow = true;
     this.group.add(box);
+    if (up) {
+      // a glowing ring marks a weapon crate from far away
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(W * 0.62, 0.06, 6, 24),
+        new THREE.MeshBasicMaterial({ color: tint[1] }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.06;
+      this.geos.push(ring.geometry);
+      this.mats.push(ring.material);
+      this.group.add(ring);
+    }
     if (crate && rewardTex) {
       const sprite = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: rewardTex, depthWrite: false }),
@@ -959,7 +997,19 @@ class BlockView {
     if (!ctx) return;
     const { width: w, height: h } = this.canvas;
     const crate = b.reward > 0;
-    if (crate) {
+    if (b.upgrade) {
+      const power = b.upgrade === "power";
+      ctx.fillStyle = power ? "#d8352f" : "#1b9ad6";
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = power ? "#7c1612" : "#0c4f74";
+      ctx.lineWidth = 14;
+      ctx.strokeRect(7, 7, w - 14, h - 14);
+      ctx.fillStyle = power ? "#ffcf4a" : "#bff1ff";
+      ctx.font = `900 ${Math.round(h * 0.26)}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(power ? "POWER" : "RATE", w / 2, h * 0.08);
+    } else if (crate) {
       ctx.fillStyle = "#f0a541";
       ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = "#d98a2a";
@@ -999,9 +1049,10 @@ class BlockView {
     ctx.textBaseline = "middle";
     ctx.lineWidth = 10;
     ctx.strokeStyle = "#000000aa";
-    ctx.strokeText(String(b.hp), w / 2, h / 2 + 4);
+    const ty = b.upgrade ? h * 0.62 : h / 2 + 4;
+    ctx.strokeText(String(b.hp), w / 2, ty);
     ctx.fillStyle = "#fff";
-    ctx.fillText(String(b.hp), w / 2, h / 2 + 4);
+    ctx.fillText(String(b.hp), w / 2, ty);
     this.tex.needsUpdate = true;
   }
   dispose() {
@@ -1155,15 +1206,42 @@ export class CrowdScene {
       loadModel(MODEL_URLS.brute),
       loadModel(MODEL_URLS.boss),
     ]);
+    // a missing gun model just leaves the squad on its last good weapon
+    const weapons = await Promise.allSettled(
+      WEAPONS.map((wp) => loadModel(wp.url)),
+    );
     if (this.disposed) return;
     const phases = Array.from({ length: RUN_FRAMES }, (_, i) => i / RUN_FRAMES);
-    const skipFace = (name: string) => name.includes("face");
+    const pose: Pose = (b, p) => (p < 0 ? standPose(b, 0) : runPose(b, p));
+    const allPhases = [...phases, -1];
+    // the gun is baked on its own so it can be swapped as the squad upgrades
+    const rifleFrames = bake(
+      runner,
+      pose,
+      allPhases,
+      (name) => !name.includes("righthand"),
+    );
+    const gunFrames = [rifleFrames];
+    for (const [i, r] of weapons.entries()) {
+      if (r.status !== "fulfilled") break;
+      const wp = WEAPONS[i];
+      gunFrames.push(
+        bakeHeld(
+          runner,
+          pose,
+          allPhases,
+          propGeometry(r.value),
+          wp.length,
+          wp.flip,
+        ),
+      );
+    }
     // the last frame is the rifleman standing still before the run starts
     const runFrames = bake(
       runner,
-      (b, p) => (p < 0 ? standPose(b, 0) : runPose(b, p)),
-      [...phases, -1],
-      skipFace,
+      pose,
+      allPhases,
+      (name) => name.includes("face") || name.includes("righthand"),
     );
     const team = recolor(runFrames, {
       "top-mesh": 0x2f7fe0,
@@ -1173,13 +1251,24 @@ export class CrowdScene {
       "top-mesh": 0xd9363e,
       "hat-mesh": 0x7a1a20,
     });
+    const scale = 1.15 / Math.max(runFrames.height, rifleFrames.height);
     this.runners.useModel(
       new FrameSet(
         this.scene,
         runFrames,
         [team, rival],
         this.runners.capacity,
-        1.15 / runFrames.height,
+        scale,
+      ),
+      gunFrames.map(
+        (g) =>
+          new FrameSet(
+            this.scene,
+            g,
+            [g.frames[0].getAttribute("color") as THREE.BufferAttribute],
+            this.runners.capacity,
+            scale,
+          ),
       ),
     );
     const bruteFrames = bake(
@@ -1347,9 +1436,14 @@ export class CrowdScene {
         this.gates.push(g);
         this.level.add(g.group);
       } else if (th.kind === "block") {
-        const tex = th.reward
-          ? labelTexture(`+${th.reward}`, "#fff36a")
-          : undefined;
+        const tex = th.upgrade
+          ? labelTexture(
+              th.upgrade === "power" ? "DMG+" : "RATE+",
+              th.upgrade === "power" ? "#ffb08a" : "#9fe8ff",
+            )
+          : th.reward
+            ? labelTexture(`+${th.reward}`, "#fff36a")
+            : undefined;
         if (tex) this.levelMats.push(new THREE.SpriteMaterial({ map: tex }));
         const b = new BlockView(th, tex);
         this.blocks.set(th.id, b);
@@ -1428,6 +1522,7 @@ export class CrowdScene {
         clock,
         running,
         Math.max(-0.5, Math.min(0.5, (w.x - w.targetX) * 1.2)),
+        w.power - 1,
       );
     for (const th of w.things) {
       if (th.kind === "gate" || th.z < near || th.z > far || th.dead) continue;
@@ -1454,13 +1549,18 @@ export class CrowdScene {
     this.boss.update(w, fx, this.bossDead, dt);
     this.boss.group.visible = this.boss.group.visible && w.boss.z < far;
 
-    // bullets
+    // bullets: hotter colours and fatter rounds as the weapon gets stronger
+    const tier = Math.max(0, Math.min(BULLET_COLORS.length - 1, w.power - 1));
+    (this.bullets.material as THREE.MeshBasicMaterial).color.setHex(
+      BULLET_COLORS[tier],
+    );
+    const fat = 1 + tier * 0.45;
     let n = 0;
     for (const b of w.bullets) {
       if (n >= this.bullets.instanceMatrix.count) break;
       this.bullets.setMatrixAt(
         n++,
-        local(b.x * ROAD, 0.5, -b.z - 0.3, Math.PI / 2),
+        local(b.x * ROAD, 0.5, -b.z - 0.3, Math.PI / 2, 0, 0, fat, 1, fat),
       );
     }
     this.bullets.count = n;

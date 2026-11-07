@@ -72,6 +72,29 @@
   border-radius: 999px;
   padding: 6px 12px;
 }
+.crowd-hud-left {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.crowd-weapon {
+  display: inline-flex;
+  gap: 4px;
+}
+.crowd-weapon b {
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 9px;
+}
+.crowd-weapon .power {
+  background: #c8322ccc;
+}
+.crowd-weapon .rate {
+  background: #178cccc0;
+}
 .crowd-hud button {
   pointer-events: auto;
   font: inherit;

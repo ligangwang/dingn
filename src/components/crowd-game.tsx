@@ -65,6 +65,7 @@ export function CrowdGame() {
   const [result, setResult] = useState({ count: 0, stars: 0 });
   const [sound, setSound] = useState(true);
   const [noGl, setNoGl] = useState(false);
+  const [weapon, setWeapon] = useState({ power: 1, rapid: 0 });
 
   function load(lv: number) {
     world.current = newLevel(lv);
@@ -74,6 +75,7 @@ export function CrowdGame() {
     f.shake = 0;
     f.slamAnim = 0;
     sceneRef.current?.load(world.current);
+    setWeapon({ power: 1, rapid: 0 });
     setLevel(lv);
     setPhase("ready");
   }
@@ -146,6 +148,9 @@ export function CrowdGame() {
           return;
         }
         sceneRef.current = scene;
+        if (process.env.NODE_ENV === "development")
+          (window as unknown as { __crowdScene?: CrowdScene }).__crowdScene =
+            scene;
         const layout = () => {
           const rect = stage.getBoundingClientRect();
           f.width = Math.max(1, rect.width);
@@ -316,6 +321,21 @@ export function CrowdGame() {
           sfx.current?.play(e);
         }
         break;
+      case "upgrade": {
+        const power = e.kind === "power";
+        float(
+          power ? t(`Damage ×${e.level}`) : t("Faster fire"),
+          e.x,
+          e.z,
+          2,
+          power ? "#ff9b7a" : "#8fe3ff",
+          true,
+        );
+        burst(e.x, e.z, 0.7, power ? "#ff5a4a" : "#3fc4ff", 40, 5);
+        burst(w.x, w.z, 0.4, power ? "#ffd36a" : "#bff1ff", 24, 3);
+        setWeapon({ power: w.power, rapid: w.rapid });
+        break;
+      }
       case "crate":
         float(`+${e.reward}`, e.x, e.z, 1.6, "#ffe066", true);
         burst(e.x, e.z, 0.7, "#ffcf3a", 30, 4);
@@ -525,7 +545,24 @@ export function CrowdGame() {
           </div>
         </div>
         <div className="crowd-hud">
-          <span className="crowd-level">{t(`Level ${level}`)}</span>
+          <span className="crowd-hud-left">
+            <span className="crowd-level">{t(`Level ${level}`)}</span>
+            {(weapon.power > 1 || weapon.rapid > 0) && (
+              <span
+                className="crowd-weapon"
+                aria-label={t(
+                  `Damage ${weapon.power}, fire rate level ${weapon.rapid}`,
+                )}
+              >
+                {weapon.power > 1 && (
+                  <b className="power">DMG ×{weapon.power}</b>
+                )}
+                {weapon.rapid > 0 && (
+                  <b className="rate">RATE +{weapon.rapid}</b>
+                )}
+              </span>
+            )}
+          </span>
           <button type="button" aria-pressed={sound} onClick={toggleSound}>
             {sound ? t("Sound on") : t("Sound off")}
           </button>
@@ -558,6 +595,11 @@ export function CrowdGame() {
               <li>
                 {t(
                   "Monsters roam the road and the boss keeps calling more. Shoot them before they bite.",
+                )}
+              </li>
+              <li>
+                {t(
+                  "Shoot the red POWER and blue RATE crates down to zero to upgrade your guns.",
                 )}
               </li>
             </ul>
@@ -607,7 +649,10 @@ export function CrowdGame() {
       </div>
       <p className="crowd-hint">
         {t("Progress is saved on this device only.")}
-        {best > 0 && <> {t(`Furthest level cleared: ${best}`)}</>}
+        {best > 0 && <> {t(`Furthest level cleared: ${best}`)}</>}{" "}
+        <a href="/models/crowd/CREDITS.md">
+          {t("3D models by Polyfork (CC BY 4.0)")}
+        </a>
       </p>
     </div>
   );
