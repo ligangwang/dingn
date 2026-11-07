@@ -85,7 +85,18 @@ export function CrowdGame() {
       start(w);
       setPhase("run");
       canvasRef.current?.focus({ preventScroll: true });
+      fitStage();
     }
+  }
+  /** On a phone the stage fills the screen; scroll it fully into view to play. */
+  function fitStage() {
+    const stage = stageRef.current;
+    if (!stage || typeof window.matchMedia !== "function") return;
+    if (!window.matchMedia("(max-width: 640px), (pointer: coarse)").matches)
+      return;
+    const r = stage.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight + 1)
+      stage.scrollIntoView?.({ block: "end", behavior: "smooth" });
   }
   const next = () => load(world.current.level + 1);
   const retry = () => load(world.current.level);

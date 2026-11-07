@@ -701,10 +701,11 @@ class Boss {
   private lastSlam = 0;
   private lastZ = 0;
   private moving = 0;
+  private jaw?: THREE.Object3D;
   /**
    * Swaps the code-built boss for an animated model. It loops Idle or Walk
    * (Run as a fallback) and plays an attack clip, if it has one, on each
-   * ground slam; otherwise it lunges forward.
+   * ground slam; otherwise it lunges forward with its jaw open.
    */
   useModel(gltf: GLTF, height: number, yaw = 0) {
     const model = gltf.scene;
@@ -739,6 +740,7 @@ class Boss {
         if (e.action === this.attack) this.attack?.fadeOut(0.25);
       });
     }
+    this.jaw = model.getObjectByName("Jaw");
     this.loop(this.idle);
     this.body.visible = false;
     this.model = model;
@@ -776,6 +778,7 @@ class Boss {
           ? (1 - fx.slamAnim) * 2
           : fx.slamAnim * 2;
       const k = Math.min(1, dead);
+      if (this.jaw) this.jaw.rotation.x += lunge * 0.7;
       this.model.rotation.x = lunge * 0.25;
       this.model.position.z = lunge * 1.2;
       this.model.rotation.z = k * 1.5;
@@ -1051,9 +1054,25 @@ export class CrowdScene {
   private bossDead = 0;
   private width = 1;
   private height = 1;
+  private dpr = 1;
+  /** Phones and tablets: lower resolution, no MSAA, smaller shadow map. */
+  readonly lite: boolean;
+  /** Resolution scale, lowered while frames run slow and raised once they recover. */
+  private resScale = 1;
+  private frameAvg = 1 / 60;
+  private frameClock = 0;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    const lite =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches;
+    this.lite = lite;
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: !lite,
+      powerPreference: "high-performance",
+    });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1064,7 +1083,7 @@ export class CrowdScene {
     this.scene.add(new THREE.HemisphereLight(0xe6f4ff, 0x6c8f4a, 1.6));
     const sun = new THREE.DirectionalLight(0xfff3dd, 2.4);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.setScalar(lite ? 1024 : 2048);
     const sc = sun.shadow.camera;
     sc.left = -14;
     sc.right = 14;
@@ -1177,7 +1196,7 @@ export class CrowdScene {
         2.3 / bruteFrames.height,
       ),
     );
-    this.boss.useModel(boss, 6.2);
+    this.boss.useModel(boss, 6);
     this.modelsReady = true;
   }
   modelsReady = false;
@@ -1186,7 +1205,8 @@ export class CrowdScene {
   resize(width: number, height: number, dpr: number) {
     this.width = width;
     this.height = height;
-    this.renderer.setPixelRatio(Math.min(dpr, 2));
+    this.dpr = dpr;
+    this.applyPixelRatio();
     this.renderer.setSize(width, height, false);
     const aspect = width / height;
     this.camera.aspect = aspect;
@@ -1354,7 +1374,33 @@ export class CrowdScene {
     this.level.clear();
   }
 
+  private applyPixelRatio() {
+    const cap = this.lite ? 1.5 : 2;
+    const ratio = Math.max(0.6, Math.min(this.dpr, cap) * this.resScale);
+    if (Math.abs(ratio - this.renderer.getPixelRatio()) < 0.01) return;
+    this.renderer.setPixelRatio(ratio);
+    this.renderer.setSize(this.width, this.height, false);
+  }
+  /**
+   * Keeps the frame rate up on slow devices: every two seconds, drop the
+   * resolution a step if frames average under ~40 fps, and raise it again
+   * once they're back near 60.
+   */
+  private adapt(dt: number) {
+    if (dt <= 0 || dt > 0.25) return;
+    this.frameAvg += (dt - this.frameAvg) * 0.05;
+    this.frameClock += dt;
+    if (this.frameClock < 2) return;
+    this.frameClock = 0;
+    if (this.frameAvg > 1 / 40 && this.resScale > 0.5) this.resScale -= 0.15;
+    else if (this.frameAvg < 1 / 55 && this.resScale < 1)
+      this.resScale = Math.min(1, this.resScale + 0.1);
+    else return;
+    this.applyPixelRatio();
+  }
+
   render(w: World, fx: SceneFx, dt: number) {
+    this.adapt(dt);
     const near = w.z - VIEW_BEHIND;
     const far = w.z + VIEW_AHEAD;
     const clock = fx.clock;
@@ -1453,13 +1499,14 @@ export class CrowdScene {
     const drawn = Math.min(Math.max(1, w.count), MAX_DRAWN);
     const depth = crowdDepth(drawn, crowdRadius(w.count) * ROAD * 1.1);
     this.camPull += (depth - this.camPull) * Math.min(1, dt * 2);
-    const back = (portrait ? 10.5 : 8.5) + this.camPull * 0.9;
+    const back = (portrait ? 9.5 : 8.5) + this.camPull * 0.9;
     const up = (portrait ? 10 : 7.4) + this.camPull * 0.6;
     const shake = fx.shake;
     const sx = shake ? (Math.random() - 0.5) * shake * 0.5 : 0;
     const sy = shake ? (Math.random() - 0.5) * shake * 0.35 : 0;
     this.camera.position.set(this.camX + sx, up + sy, -w.z + back);
-    this.camera.lookAt(this.camX * 0.6 + sx, 0, -w.z - 13);
+    // on a tall screen, aim nearer so the road fills more of it than the sky
+    this.camera.lookAt(this.camX * 0.6 + sx, 0, -w.z - (portrait ? 9 : 13));
 
     this.sun.position.set(-8 + this.camX, 22, -w.z + 12);
     this.sun.target.position.set(this.camX, 0, -w.z - 8);

@@ -37,6 +37,11 @@
   overflow: hidden;
   background: #9fd3ff;
   isolation: isolate;
+  overscroll-behavior: contain;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .crowd-canvas {
   display: block;
@@ -94,6 +99,8 @@
   box-shadow: 0 20px 50px #0007;
   text-align: center;
   color: #e8edf6;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
 }
 .crowd-overlay h2 {
   font-size: 28px;
@@ -133,21 +140,59 @@
 }
 @media (max-width: 640px) {
   .crowd-page {
-    padding: 16px 12px 32px;
+    padding: 10px max(10px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
   }
   .crowd-heading {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    margin-bottom: 12px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .crowd-heading .eyebrow,
+  .crowd-heading .lede {
+    display: none;
   }
   .crowd-heading h1 {
-    font-size: 28px;
+    font-size: 24px;
+    margin: 0;
   }
+  /* the stage fills a phone screen; starting a level scrolls it into view */
   .crowd-stage {
-    height: 72vh;
-    min-height: 460px;
+    height: calc(100svh - 20px);
+    min-height: 420px;
+    max-height: 900px;
+    border-radius: 16px;
+  }
+  .crowd-hud {
+    padding: 8px 10px;
+  }
+  .crowd-level,
+  .crowd-hud button {
+    font-size: 13px;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .crowd-overlay {
+    padding: 18px 16px;
     border-radius: 18px;
+  }
+  .crowd-overlay h2 {
+    font-size: 22px;
+    margin: 4px 0 8px;
+  }
+  .crowd-overlay ul {
+    font-size: 13px;
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+  .crowd-overlay li + li {
+    margin-top: 4px;
+  }
+  .crowd-overlay .button,
+  .crowd-overlay .secondary-button {
+    min-height: 44px;
   }
 }
 .crowd3d-stage {
@@ -236,5 +281,41 @@
   .crowd3d-bars {
     top: 54px;
     width: calc(100% - 32px);
+  }
+}
+/* a phone on its side: the stage takes the whole screen height */
+@media (max-height: 500px) and (orientation: landscape) {
+  .crowd-page {
+    padding: 8px max(12px, env(safe-area-inset-right)) 12px
+      max(12px, env(safe-area-inset-left));
+  }
+  .crowd-heading {
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .crowd-heading .eyebrow,
+  .crowd-heading .lede {
+    display: none;
+  }
+  .crowd-heading h1 {
+    font-size: 22px;
+    margin: 0;
+  }
+  .crowd-stage {
+    height: calc(100svh - 16px);
+    min-height: 300px;
+    border-radius: 14px;
+  }
+  .crowd-overlay {
+    padding: 14px 18px;
+  }
+  .crowd-overlay h2 {
+    font-size: 20px;
+    margin: 2px 0 6px;
+  }
+  .crowd-overlay ul {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 10px;
   }
 }

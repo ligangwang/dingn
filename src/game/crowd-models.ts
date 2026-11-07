@@ -19,7 +19,7 @@ import {
 export const MODEL_URLS = {
   runner: "/models/crowd/infantry-rifleman-c1c0a5.glb",
   brute: "/models/crowd/orc-brute-08c6ca.glb",
-  boss: "/models/crowd/red-fire-dragon-base.glb",
+  boss: "/models/crowd/tyrannosaurus-rex-adf79f.glb",
 };
 
 export type Bones = Record<string, THREE.Bone>;
