@@ -23,6 +23,7 @@
     "next": "16.3.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "stripe": "^23.1.0",
     "three": "^0.187.0"
   },
   "devDependencies": {

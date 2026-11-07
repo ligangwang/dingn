@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 const key =
   process.env.FIREBASE_API_KEY || "AIzaSyDzWk1JfjsMi9o_yPBz69XSQmWBXfC8dWs";
 const project = "dingn-193716";
-export const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
+const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
 const secure = process.env.NODE_ENV === "production";
 const cookieName = secure ? "__Host-dingn-session" : "dingn-session";
 const buckets = new Map();
@@ -13,7 +13,7 @@ export class ApiError extends Error {
     this.code = code;
   }
 }
-export async function upstream(url, body, token, method = "POST") {
+async function upstream(url, body, token, method = "POST") {
   const response = await fetch(url, {
     method,
     redirect: "error",
@@ -90,7 +90,6 @@ async function identity(token) {
     email: user.email || null,
     displayName: user.displayName || null,
     isAdmin: claims.admin === true,
-    isPremium: claims.stripeRole === "premium",
   };
 }
 export async function readBody(req) {

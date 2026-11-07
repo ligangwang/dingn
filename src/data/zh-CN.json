@@ -359,5 +359,20 @@
   "correct": "答对",
   "missed": "答错",
   "{0} in a row": "连续答对 {0} 题",
-  "Tip: press {0} to answer": "提示：按 {0} 作答"
+  "Tip: press {0} to answer": "提示：按 {0} 作答",
+  "Game items": "游戏道具",
+  "Optional items. One-time purchases, no subscription.": "可选道具。一次性购买，无需订阅。",
+  "The item shop could not be loaded. Please try again.": "无法加载道具商店，请重试。",
+  "Checkout could not be opened. Refresh your purchases before trying again.": "无法打开结账页面。请刷新购买记录后重试。",
+  "Loading items…": "正在加载道具…",
+  "No items are available yet. We will only sell items that are ready to use.": "暂时没有可购买的道具。我们只会出售已完成、可使用的道具。",
+  "Owned": "已拥有",
+  "Awaiting payment confirmation": "等待付款确认",
+  "Refunded or disputed": "已退款或存在争议",
+  "Checkout expired": "结账已过期",
+  "Opening checkout…": "正在打开结账页面…",
+  "Buy · {0}": "购买 · {0}",
+  "Your purchases": "购买记录",
+  "No purchases yet.": "暂无购买记录。",
+  "Refresh purchases": "刷新购买记录"
 }

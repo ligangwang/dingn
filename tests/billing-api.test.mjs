@@ -1,212 +1,298 @@
-import { test, afterEach } from "node:test";
+import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
-import { handleBilling, timing } from "../scripts/billing.mjs";
-const original = globalThis.fetch;
-timing.sleep = async () => {};
-afterEach(() => {
-  globalThis.fetch = original;
+import Stripe from "stripe";
+import {
+  catalog,
+  checkout,
+  fulfill,
+  inventory,
+  createBillingHandler,
+} from "../scripts/billing.mjs";
+const item = {
+  id: "test-cape",
+  game: "morrowglint",
+  active: true,
+  priceId: "price_test",
+  name: { en: "Test cape", "zh-CN": "测试披风" },
+  description: { en: "Test only", "zh-CN": "仅供测试" },
+};
+let deps, records, sessions, calls;
+beforeEach(() => {
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+  records = new Map();
+  sessions = new Map();
+  calls = [];
+  const db = {
+    doc: (path) => ({ path }),
+    collection: (name) => ({
+      where: (field, op, value) => ({
+        get: async () => ({
+          docs: [...records]
+            .filter(([p, r]) => p.startsWith(name + "/") && r[field] === value)
+            .map(([, r]) => ({ data: () => r })),
+        }),
+      }),
+    }),
+    runTransaction: async (fn) =>
+      fn({
+        get: async (ref) => ({ data: () => records.get(ref.path) }),
+        set: (ref, data) => records.set(ref.path, data),
+        update: (ref, data) =>
+          records.set(ref.path, { ...records.get(ref.path), ...data }),
+      }),
+  };
+  const stripe = {
+    prices: {
+      retrieve: async () => ({
+        active: true,
+        type: "one_time",
+        unit_amount: 300,
+        currency: "usd",
+      }),
+    },
+    checkout: {
+      sessions: {
+        create: async (params, options) => {
+          calls.push({ params, options });
+          const key = options.idempotencyKey;
+          if (!sessions.has(key))
+            sessions.set(key, {
+              id: "cs_test",
+              url: "https://checkout.stripe.com/c/test",
+              ...params,
+              payment_status: "paid",
+              amount_total: 300,
+              currency: "usd",
+              payment_intent: "pi_test",
+              line_items: {
+                data: [{ price: { id: "price_test" }, quantity: 1 }],
+              },
+            });
+          return sessions.get(key);
+        },
+        retrieve: async () => [...sessions.values()][0],
+      },
+    },
+    paymentIntents: {
+      retrieve: async () => ({
+        id: "pi_test",
+        metadata: [...sessions.values()][0].metadata,
+      }),
+    },
+    webhooks: new Stripe("sk_test_fake").webhooks,
+  };
+  deps = {
+    db,
+    stripe,
+    items: [item],
+    auth: { verifyIdToken: async () => ({ uid: "alice" }) },
+  };
 });
-async function request(path, body = {}, headers = {}, method = "POST") {
-  const req = Readable.from([JSON.stringify(body)]);
+const event = (type) => ({
+  type,
+  data: { object: { id: "cs_test", payment_intent: "pi_test" } },
+});
+test("catalog hides unreleased and recurring items and unconfigured payments", async () => {
+  assert.equal((await catalog(deps)).length, 1);
+  deps.items = [{ ...item, active: false }];
+  assert.deepEqual(await catalog(deps), []);
+  deps.items = [item];
+  deps.stripe.prices.retrieve = async () => ({
+    active: true,
+    type: "recurring",
+    unit_amount: 300,
+    currency: "usd",
+  });
+  assert.deepEqual(await catalog(deps), []);
+  assert.deepEqual(await catalog({ ...deps, stripe: null }), []);
+});
+test("checkout uses server price, one-time mode, account identity and same idempotency key on retries", async () => {
+  await checkout(deps, "alice", "test-cape", "en");
+  await checkout(deps, "alice", "test-cape", "zh-CN");
+  assert.equal(calls[0].params.mode, "payment");
+  assert.deepEqual(calls[0].params.line_items, [
+    { price: "price_test", quantity: 1 },
+  ]);
+  assert.equal(calls[0].params.client_reference_id, "alice");
+  assert.deepEqual(calls[0], calls[1]);
+  assert.equal(
+    [...records.keys()].filter((p) => p.startsWith("shopOrders/")).length,
+    1,
+  );
+  await assert.rejects(
+    checkout(deps, "alice", "unknown", "en"),
+    /item-unavailable/,
+  );
+});
+test("pending/forged return never grants ownership; confirmed payment is idempotent and prevents repurchase", async () => {
+  await checkout(deps, "alice", "test-cape", "en");
+  assert.equal(
+    records.get("shopInventory/alice/items/test-cape").status,
+    "pending",
+  );
+  const session = [...sessions.values()][0];
+  session.payment_status = "unpaid";
+  await fulfill(deps, event("checkout.session.completed"));
+  assert.equal(
+    records.get("shopInventory/alice/items/test-cape").status,
+    "pending",
+  );
+  session.payment_status = "paid";
+  await fulfill(deps, event("checkout.session.completed"));
+  await fulfill(deps, event("checkout.session.completed"));
+  assert.equal(
+    records.get("shopInventory/alice/items/test-cape").status,
+    "owned",
+  );
+  await assert.rejects(
+    checkout(deps, "alice", "test-cape", "en"),
+    /already-owned/,
+  );
+  assert.deepEqual(await inventory(deps, "bob"), []);
+  assert.equal((await inventory(deps, "alice"))[0].status, "owned");
+});
+test("wrong price, amount, currency and account never grant ownership", async () => {
+  await checkout(deps, "alice", "test-cape", "en");
+  const s = [...sessions.values()][0];
+  for (const [field, value] of [
+    ["amount_total", 1],
+    ["currency", "eur"],
+    ["client_reference_id", "bob"],
+  ]) {
+    const old = s[field];
+    s[field] = value;
+    await assert.rejects(
+      fulfill(deps, event("checkout.session.completed")),
+      /payment-mismatch/,
+    );
+    s[field] = old;
+  }
+  s.line_items.data[0].price.id = "price_other";
+  await assert.rejects(
+    fulfill(deps, event("checkout.session.completed")),
+    /payment-mismatch/,
+  );
+  assert.equal(
+    records.get("shopInventory/alice/items/test-cape").status,
+    "pending",
+  );
+});
+test("refund or dispute revokes access even before success; late success cannot restore it", async () => {
+  for (const type of ["charge.refunded", "charge.dispute.created"]) {
+    records.clear();
+    sessions.clear();
+    await checkout(deps, "alice", "test-cape", "en");
+    await fulfill(deps, event(type));
+    await fulfill(deps, event("checkout.session.completed"));
+    assert.equal(
+      records.get("shopInventory/alice/items/test-cape").status,
+      "revoked",
+    );
+  }
+});
+test("expired checkout permits a new order but expired event cannot revoke paid item", async () => {
+  await checkout(deps, "alice", "test-cape", "en");
+  const s = [...sessions.values()][0];
+  s.status = "expired";
+  s.payment_status = "unpaid";
+  await fulfill(deps, event("checkout.session.expired"));
+  assert.equal(
+    records.get("shopInventory/alice/items/test-cape").status,
+    "expired",
+  );
+  await checkout(deps, "alice", "test-cape", "en");
+  assert.notEqual(
+    calls[0].options.idempotencyKey,
+    calls[1].options.idempotencyKey,
+  );
+});
+async function request(path, body = "{}", headers = {}, method = "POST") {
+  const req = Readable.from([body]);
   Object.assign(req, {
     method,
     url: path,
-    socket: { remoteAddress: `billing-${Math.random()}` },
-    headers: {
-      origin: "http://127.0.0.1:3001",
-      "content-type": "application/json",
-      "x-dingn-request": "1",
-      cookie: "dingn-session=refresh-1",
-      ...headers,
-    },
+    headers,
+    socket: { remoteAddress: "test" },
   });
-  const result = { status: 200, headers: {}, body: null };
+  const result = { status: 200, body: null };
   const res = {
-    setHeader: (k, v) => {
-      result.headers[k] = v;
-    },
+    setHeader() {},
     set statusCode(v) {
       result.status = v;
     },
-    end: (v) => {
+    end(v) {
       result.body = JSON.parse(v);
     },
   };
-  await handleBilling(req, res);
+  await createBillingHandler(async () => deps)(req, res);
   return result;
 }
-function stub(responses) {
-  const calls = [];
-  globalThis.fetch = async (url, options) => {
-    calls.push({
-      url,
-      ...options,
-      body: options.body && JSON.parse(options.body),
-    });
-    const next = responses.shift();
-    assert.ok(next, `unexpected upstream request ${url}`);
-    return {
-      ok: !next.status,
-      status: next.status || 200,
-      json: async () => next.data,
-    };
-  };
-  return calls;
-}
-const token = (claims) =>
-  `h.${Buffer.from(JSON.stringify({ user_id: "u1", ...claims })).toString("base64url")}.s`;
-const signedIn = (claims = {}) => ({
-  data: { id_token: token(claims), refresh_token: "refresh-2" },
-});
-const root = "projects/dingn-193716/databases/(default)/documents";
-const products = {
-  data: [{ document: { name: `${root}/products/prod_1`, fields: {} } }],
-};
-const prices = {
-  data: [
-    {
-      document: {
-        name: `${root}/products/prod_1/prices/price_year`,
-        fields: {
-          unit_amount: { integerValue: "1999" },
-          currency: { stringValue: "usd" },
-          interval: { stringValue: "year" },
-        },
-      },
-    },
-    {
-      document: {
-        name: `${root}/products/prod_1/prices/price_month`,
-        fields: {
-          unit_amount: { integerValue: "299" },
-          currency: { stringValue: "usd" },
-          interval: { stringValue: "month" },
-        },
-      },
-    },
-  ],
-};
-
-test("lists only active recurring premium prices, monthly first, using the player's token", async () => {
-  const calls = stub([signedIn(), products, prices]);
-  const result = await request("/api/billing/prices");
-  assert.equal(result.status, 200);
-  assert.deepEqual(
-    result.body.map((p) => [p.id, p.unitAmount, p.interval]),
-    [
-      ["price_month", 299, "month"],
-      ["price_year", 1999, "year"],
-    ],
-  );
-  assert.match(calls[2].url, /products\/prod_1:runQuery$/);
-  const filters = calls[2].body.structuredQuery.where.compositeFilter.filters;
-  assert.deepEqual(
-    filters.map((f) => f.fieldFilter.field.fieldPath),
-    ["active", "type"],
-  );
-  assert.equal(calls[1].headers.Authorization, `Bearer ${token({})}`);
-});
-
-test("creates a checkout session for the signed-in player and returns the Stripe URL", async () => {
-  const calls = stub([
-    signedIn(),
-    products,
-    prices,
-    { data: {} },
-    { data: { fields: {} } },
-    {
-      data: {
-        fields: { url: { stringValue: "https://checkout.stripe.com/c/1" } },
-      },
-    },
-  ]);
-  const result = await request("/api/billing/checkout", {
-    price: "price_month",
+test("webhook requires valid signature over raw body; accepts genuine signed events", async () => {
+  const payload = JSON.stringify({
+    id: "evt_test",
+    type: "irrelevant",
+    data: { object: {} },
   });
-  assert.equal(result.status, 200);
-  assert.deepEqual(result.body, { url: "https://checkout.stripe.com/c/1" });
-  const write = calls[3].body.writes[0];
-  assert.match(
-    write.update.name,
-    /documents\/customers\/u1\/checkout_sessions\//,
-  );
-  assert.deepEqual(write.currentDocument, { exists: false });
-  assert.equal(write.update.fields.mode.stringValue, "subscription");
   assert.equal(
-    write.update.fields.success_url.stringValue,
-    "http://127.0.0.1:3001/account/?checkout=success",
+    (
+      await request("/api/billing/webhook", payload, {
+        "stripe-signature": "bad",
+      })
+    ).status,
+    400,
   );
-  assert.equal(calls[4].method, "GET");
-});
-
-test("rejects a price that is not an active premium price", async () => {
-  const calls = stub([signedIn(), products, prices]);
-  const result = await request("/api/billing/checkout", {
-    price: "price_other",
+  const signature = deps.stripe.webhooks.generateTestHeaderString({
+    payload,
+    secret: "whsec_test",
   });
-  assert.equal(result.status, 400);
-  assert.equal(calls.length, 3);
-});
-
-test("reports a checkout error written by the extension", async () => {
-  stub([
-    signedIn(),
-    products,
-    prices,
-    { data: {} },
-    { data: { fields: { error: { mapValue: { fields: {} } } } } },
-  ]);
-  const result = await request("/api/billing/checkout", {
-    price: "price_month",
-  });
-  assert.equal(result.status, 502);
-  assert.equal(result.body.error, "checkout-failed");
-});
-
-test("reads premium status from the stripeRole claim", async () => {
-  stub([signedIn({ stripeRole: "premium" })]);
-  assert.deepEqual((await request("/api/billing/status")).body, {
-    isPremium: true,
-  });
-  stub([signedIn({ stripeRole: "basic" })]);
-  assert.deepEqual((await request("/api/billing/status")).body, {
-    isPremium: false,
-  });
-});
-
-test("opens the Stripe portal through the extension's callable function", async () => {
-  const calls = stub([
-    signedIn(),
-    { data: { result: { url: "https://billing.stripe.com/p/1" } } },
-  ]);
-  const result = await request("/api/billing/portal");
-  assert.deepEqual(result.body, { url: "https://billing.stripe.com/p/1" });
-  assert.match(calls[1].url, /ext-firestore-stripe-payments-createPortalLink$/);
-  assert.deepEqual(calls[1].body, {
-    data: { returnUrl: "http://127.0.0.1:3001/account/" },
-  });
-});
-
-test("requires sign-in, same-origin POST and never calls upstream otherwise", async () => {
-  const calls = stub([]);
   assert.equal(
-    (await request("/api/billing/prices", {}, { cookie: "" })).status,
-    401,
+    (
+      await request("/api/billing/webhook", payload, {
+        "stripe-signature": signature,
+      })
+    ).status,
+    200,
   );
   assert.equal(
     (
-      await request(
-        "/api/billing/checkout",
-        {},
-        { origin: "https://evil.example" },
-      )
+      await request("/api/billing/webhook", payload + " ", {
+        "stripe-signature": signature,
+      })
     ).status,
-    403,
+    400,
   );
+});
+test("browser routes require same-origin POST and sign-in before accessing billing", async () => {
   assert.equal(
-    (await request("/api/billing/status", {}, {}, "GET")).status,
+    (await request("/api/billing/items", "{}", {}, "GET")).status,
     405,
   );
-  assert.equal(calls.length, 0);
+  assert.equal((await request("/api/billing/items")).status, 403);
+  assert.equal(
+    (
+      await request("/api/billing/items", "{}", {
+        origin: "http://127.0.0.1:3001",
+        "x-dingn-request": "1",
+        "content-type": "application/json",
+      })
+    ).status,
+    401,
+  );
+});
+test("refund after ownership revokes the item, and expiry cannot revoke a paid item", async () => {
+  await checkout(deps, "alice", "test-cape", "en");
+  await fulfill(deps, event("checkout.session.completed"));
+  const session = [...sessions.values()][0];
+  session.status = "expired";
+  await fulfill(deps, event("checkout.session.expired"));
+  assert.equal(
+    records.get("shopInventory/alice/items/test-cape").status,
+    "owned",
+  );
+  await fulfill(deps, event("charge.refunded"));
+  assert.equal(
+    records.get("shopInventory/alice/items/test-cape").status,
+    "revoked",
+  );
 });

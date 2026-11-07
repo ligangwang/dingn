@@ -15,8 +15,6 @@ type Account = {
   email: string | null;
   displayName: string | null;
   isAdmin: boolean;
-  // Set by the Stripe payments extension's stripeRole claim.
-  isPremium?: boolean;
 };
 type Session = {
   user: Account | null;

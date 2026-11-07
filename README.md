@@ -31,29 +31,78 @@ Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project 
 - `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
 - `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
 - `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.
-- `/account/`: player display name, Dingn Premium, a link to the games, and sign-out. Legacy practice pages start with answers hidden; there is no account-level mode selector.
+- `/account/`: player display name, game items and purchase history, a link to the games, and sign-out. Legacy practice pages start with answers hidden; there is no account-level mode selector.
 - `/signin/`: Google sign-in with a validated return destination.
 
 The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_favorites/{uid}-{number}` collections and field names are preserved. Writes merge only the supported fields. User accounts do not need to be imported or recreated. Security remains enforced by the existing Firebase Authentication and Firestore rules; no rules or indexes were changed by the migration.
 
-## Premium payments (Stripe)
+## One-time game item purchases (Stripe)
 
-`/account/` shows a Dingn Premium panel. Players upgrade through Stripe Checkout and manage or cancel through the Stripe customer portal. Billing runs through Firebase's official [Run Payments with Stripe](https://extensions.dev/extensions/invertase/firestore-stripe-payments) extension, so the website holds no Stripe keys.
+The account page contains an English/Chinese item shop and account purchase history.
+There is no Premium subscription, recurring charge, virtual currency or randomized
+reward. This first version supports non-consumable items (one permanent ownership
+record per account and item). It does not support consumable bundles.
 
-- `scripts/billing.mjs` serves `/api/billing/prices`, `/checkout`, `/portal` and `/status` on the same Node server as `/api/auth/*`, with the same origin, cookie and size checks. Like `/api/data`, it calls Firestore and the extension with the player's own ID token, so `firestore.rules` still decide access.
-- The extension syncs Stripe products and prices into `products`. The panel offers the active recurring prices of the active product whose Stripe metadata has `firebaseRole: premium`. One-time prices are ignored, because the extension only sets the premium claim for subscriptions. Checkout also rejects any price outside that list.
-- Checkout creates `customers/{uid}/checkout_sessions/{id}` and waits up to 20 seconds for the extension to write back the Stripe URL.
-- For subscriptions, the extension sets the custom claim `stripeRole: "premium"`. The session's `user.isPremium` reads that claim; use it to unlock premium features. Players cannot set custom claims or write their billing records (see `firestore.rules`; tests in `tests/billing-rules.test.mjs`).
-- If no premium product is active, the panel says Premium isn't available yet, so this code can ship before Stripe is set up.
+**The catalog ships empty. No unfinished cosmetics are offered for sale.**
+`src/data/shop-items.json` is the server's release allowlist. Before adding an active
+item, finish the asset, implement and test its equip/use path in the named game,
+and have the game check `shopInventory/{uid}/items/{itemId}` server-side for
+`status: owned`. Do not trust a browser's local storage or a return URL for access.
+No equip UI or paid game content is included in this PR.
 
-One-time setup (project owner):
+### Checkout and ownership
 
-1. In Stripe, create the product **Dingn Premium** with metadata `firebaseRole` = `premium`, and add its prices. Enable the [customer portal](https://dashboard.stripe.com/settings/billing/portal) with cancellation allowed.
-2. Create a Stripe restricted key with the permissions listed by the extension, then install the extension in `dingn-193716`: `firebase ext:install invertase/firestore-stripe-payments --project dingn-193716`. Use location `us-central1`, products collection `products`, customer collection `customers`, and sync new users `Do not sync`.
-3. Add the extension's `ext-firestore-stripe-payments-handleWebhookEvents` URL as a Stripe webhook endpoint with the events the extension lists, then reconfigure the extension with the webhook signing secret. Both keys are stored in Secret Manager by the extension, never in this repository.
-4. Deploy rules: `firebase deploy --only firestore:rules --project dingn-193716`.
+- POST `/api/billing/items`, `/inventory`, `/checkout` require the existing session,
+  verified Firebase identity, and same-origin request headers. The client sends
+  an item ID and locale, never an amount, price ID or account ID.
+- The server reads active one-time Stripe prices. A Firestore transaction creates
+  an immutable `shopOrders` record and reserves the account/item. Repeat attempts
+  reuse the same order and Stripe idempotency key until Stripe reports expiry.
+- `/api/billing/webhook` verifies Stripe's signature against the raw request body.
+  It retrieves the Checkout Session from Stripe, validates the account, item,
+  price, quantity, currency and amount, then atomically marks the order and
+  inventory owned. Merely returning from Checkout never grants ownership.
+- Duplicate payment events are harmless. Any refund (including partial refunds)
+  or dispute revokes that order's entitlement; late success cannot restore it.
+  A refund of an old order does not revoke a newer purchase. Dispute resolution
+  does not automatically restore access; handle reinstatement manually after review.
+- Expired sessions are marked expired by webhook. Webhook failures return non-2xx
+  for Stripe retries. Monitor and replay failed events before allowing purchases.
+- Browsers cannot read/write billing collections directly, including legacy
+  `customers` and `products`. The server filters purchase history by verified UID.
 
-Test end to end with Stripe test-mode keys and card `4242 4242 4242 4242` before switching the extension to live keys.
+### Setup before selling
+
+1. Deploy `firestore.rules` before exposing billing or adding real items. The
+   runtime service account needs Firestore data access, as it does for XP.
+2. Create Stripe **one-time** prices for finished items. Put the Stripe secret key
+   and webhook signing secret in Google Secret Manager and bind them to Cloud Run
+   as `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Never use `NEXT_PUBLIC_` or
+   commit keys. This uses the Stripe SDK directly; no Firebase Stripe extension
+   or Premium custom claim is needed.
+3. Configure `https://dingn.com/api/billing/webhook` for
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `checkout.session.expired`, `charge.refunded`, and `charge.dispute.created`.
+4. Add a released item to `src/data/shop-items.json`, for example (placeholder,
+   **not a real item or price**):
+
+   ```json
+   [{"id":"finished-cape","game":"morrowglint","active":false,
+     "priceId":"price_REPLACE","name":{"en":"Cape","zh-CN":"披风"},
+     "description":{"en":"Describe the finished item and where to use it.",
+                    "zh-CN":"说明已完成的道具及其使用位置。"}}]
+   ```
+
+5. Run `npm run verify` and `npm run test:rules` (Firebase CLI + Java 21).
+   In Stripe test mode, verify payment, webhook delay/replay, another account,
+   repeat checkout, expiry, refund and dispute, plus actual in-game equip/use.
+   Only then enable the item and production keys. Checkout currently accepts
+   cards, quantity one, and the fixed price without discounts or automatic tax;
+   configure required pricing/tax behavior before launch.
+
+Missing Stripe configuration or an empty release allowlist produces an empty shop.
+The production secrets, Stripe products/webhook, and real payment smoke test are
+external setup steps; adding this code alone does not activate sales.
 
 ## Hosting and cutover
 

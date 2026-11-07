@@ -1,39 +1,16 @@
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Preserve existing collection access, excluding private feedback,
-    // server-owned game data, and the Stripe billing collections managed by
-    // the payments extension.
+    // Billing and ownership are server-only. Legacy Stripe extension records
+    // remain excluded so old billing data cannot become writable.
     match /{collection}/{document=**} {
       allow read, write: if request.auth != null
-        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products']);
+        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products', 'shopOrders', 'shopInventory']);
     }
-    // Run Payments with Stripe: players read their own billing records and may
-    // only create checkout sessions. Everything else is written by the extension.
-    match /customers/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      match /checkout_sessions/{id} {
-        allow read: if request.auth != null && request.auth.uid == uid;
-        allow create: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['price', 'mode',
-               'allow_promotion_codes', 'success_url', 'cancel_url'])
-          && request.resource.data.price is string
-          && request.resource.data.mode in ['subscription', 'payment'];
-      }
-      match /subscriptions/{id} {
-        allow read: if request.auth != null && request.auth.uid == uid;
-      }
-      match /payments/{id} {
-        allow read: if request.auth != null && request.auth.uid == uid;
-      }
+    match /shopOrders/{document=**} {
+      allow read, write: if false;
     }
-    match /products/{id} {
-      allow read: if true;
-      match /prices/{price} {
-        allow read: if true;
-      }
-      match /tax_rates/{rate} {
-        allow read: if true;
-      }
+    match /shopInventory/{document=**} {
+      allow read, write: if false;
     }
     // XP, levels and plays are written only by the dingn server (Admin SDK),
     // which scores every game itself. Browsers cannot read or write them.

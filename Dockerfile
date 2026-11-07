@@ -12,7 +12,7 @@ RUN npm run build
 FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080
-# Only the server's own dependency (firebase-admin) ships in the runtime image.
+# Only server dependencies (firebase-admin and Stripe) ship in the runtime image.
 COPY server/package.json server/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --from=build --chown=node:node /app/out ./out
