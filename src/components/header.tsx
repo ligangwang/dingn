@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
 import {
-  BubbleIcon,
+  CrowdIcon,
   DecisionIcon,
   LogicIcon,
   MailIcon,
@@ -28,7 +28,7 @@ export function Header() {
           ["/logic/", "Logic", LogicIcon] as const,
           ["/memory-ladder/", "Memory", MemoryIcon] as const,
           ["/decisions/", "Decisions", DecisionIcon] as const,
-          ["/pop/", "Unwind", BubbleIcon] as const,
+          ["/crowd/", "Crowd Rush", CrowdIcon] as const,
           ...(ready && isAdmin
             ? [["/admin/feedback/", "Feedback", MailIcon] as const]
             : []),

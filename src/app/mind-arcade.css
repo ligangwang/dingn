@@ -201,11 +201,11 @@ select {
 .decision-arena .arena-symbol {
   color: #ffc49d;
 }
-.pop-arena {
-  background: linear-gradient(150deg, #1d3a44, #17212a);
+.crowd-arena {
+  background: linear-gradient(150deg, #1c3550, #18202c);
 }
-.pop-arena .arena-symbol {
-  color: #8fe3ff;
+.crowd-arena .arena-symbol {
+  color: #6cc4ff;
 }
 @media (max-width: 1040px) and (min-width: 761px) {
   .arena-grid {
