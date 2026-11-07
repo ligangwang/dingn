@@ -151,6 +151,10 @@ export function CrowdGame3D() {
             : undefined;
         observer?.observe(stage);
         scene.load(world.current);
+        // the Polyfork models replace the code-built characters once loaded
+        scene
+          .loadModels()
+          .catch((err) => console.warn("Crowd Rush 3D models", err));
         let last = performance.now();
         const loop = (now: number) => {
           raf = requestAnimationFrame(loop);

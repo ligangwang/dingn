@@ -21,6 +21,17 @@ import {
   type Monster,
   type World,
 } from "./crowd-core";
+import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import {
+  MODEL_URLS,
+  bake,
+  loadModel,
+  recolor,
+  runPose,
+  standPose,
+  stompPose,
+  type Baked,
+} from "./crowd-models";
 
 /** Metres per road unit: the road is 2 × ROAD wide. */
 export const ROAD = 3.4;
@@ -146,6 +157,94 @@ function put(
   mesh.setMatrixAt(i, _out);
 }
 
+/**
+ * Baked animation frames drawn with one InstancedMesh per frame and colour
+ * variant. Each instance picks the frame for its point in the cycle.
+ */
+class FrameSet {
+  private meshes: THREE.InstancedMesh[][];
+  private used: number[][];
+  readonly frames: number;
+  constructor(
+    scene: THREE.Scene,
+    baked: Baked,
+    variants: THREE.BufferAttribute[],
+    readonly capacity: number,
+    readonly scale: number,
+  ) {
+    this.frames = baked.frames.length;
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      flatShading: true,
+      roughness: 0.85,
+      metalness: 0,
+    });
+    this.meshes = variants.map((color) =>
+      baked.frames.map((f) => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", f.getAttribute("position"));
+        geo.setAttribute("normal", f.getAttribute("normal"));
+        geo.setAttribute("color", color);
+        const mesh = new THREE.InstancedMesh(geo, mat, capacity);
+        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        mesh.frustumCulled = false;
+        mesh.count = 0;
+        scene.add(mesh);
+        return mesh;
+      }),
+    );
+    this.used = variants.map(() => baked.frames.map(() => 0));
+  }
+  add(variant: number, frame: number, m: THREE.Matrix4) {
+    const u = this.used[variant];
+    if (u[frame] >= this.capacity) return;
+    this.meshes[variant][frame].setMatrixAt(u[frame]++, m);
+  }
+  finish() {
+    for (const [v, row] of this.meshes.entries())
+      for (const [f, mesh] of row.entries()) {
+        mesh.count = this.used[v][f];
+        mesh.instanceMatrix.needsUpdate = true;
+        this.used[v][f] = 0;
+      }
+  }
+}
+
+/** Soft round shadows under the instanced characters, far cheaper than shadow maps. */
+class Blobs {
+  private mesh: THREE.InstancedMesh;
+  private used = 0;
+  constructor(scene: THREE.Scene) {
+    const geo = new THREE.CircleGeometry(1, 12);
+    geo.rotateX(-Math.PI / 2);
+    this.mesh = new THREE.InstancedMesh(
+      geo,
+      new THREE.MeshBasicMaterial({
+        color: 0x1d2a1a,
+        transparent: true,
+        opacity: 0.28,
+        depthWrite: false,
+      }),
+      900,
+    );
+    this.mesh.frustumCulled = false;
+    this.mesh.count = 0;
+    this.mesh.renderOrder = 1;
+    scene.add(this.mesh);
+  }
+  add(X: number, Z: number, r: number) {
+    if (this.used >= 900) return;
+    this.mesh.setMatrixAt(this.used++, local(X, 0.03, Z, 0, 0, 0, r, 1, r));
+  }
+  finish() {
+    this.mesh.count = this.used;
+    this.mesh.instanceMatrix.needsUpdate = true;
+    this.used = 0;
+  }
+}
+
+const RUN_FRAMES = 10;
+
 /** Low-poly runners with a cap, a rifle and swinging legs. */
 class Runners {
   private parts: Parts;
@@ -155,7 +254,12 @@ class Runners {
   private legs: THREE.InstancedMesh;
   private arms: THREE.InstancedMesh;
   private gun: THREE.InstancedMesh;
-  constructor(scene: THREE.Scene, capacity: number) {
+  private model?: FrameSet;
+  constructor(
+    scene: THREE.Scene,
+    readonly capacity: number,
+    private blobs: Blobs,
+  ) {
     const torso = new THREE.CapsuleGeometry(0.13, 0.16, 2, 6);
     const head = new THREE.IcosahedronGeometry(0.14, 1);
     const cap = new THREE.SphereGeometry(
@@ -193,6 +297,11 @@ class Runners {
       for (let i = 0; i < m.instanceMatrix.count; i++)
         m.setColorAt(i, _c.set(0xffffff));
   }
+  /** Switches from the code-built runners to the baked rifleman. */
+  useModel(set: FrameSet) {
+    this.model = set;
+    for (const m of this.parts.meshes) m.visible = false;
+  }
   /** Draws a squad of `count` around road position (x, z). */
   squad(
     x: number,
@@ -213,6 +322,23 @@ class Runners {
     const body = _c.set(color);
     const dark = new THREE.Color(color).multiplyScalar(0.55);
     const yaw = facing === 1 ? lean : Math.PI + lean;
+    const model = this.model;
+    if (model) {
+      const variant = color === TEAM ? 0 : 1;
+      // the rifleman faces +Z, so the squad (running toward -Z) turns round
+      const myaw = facing === 1 ? Math.PI + lean : lean;
+      for (let i = 0; i < n; i++) {
+        const s = slot(i, n, rx, rz);
+        const X = x * ROAD + s.x;
+        const Z = -z - s.z * facing - ahead;
+        const frame = running
+          ? Math.floor(((((clock * 1.5 + i * 0.37) % 1) + 1) % 1) * RUN_FRAMES)
+          : RUN_FRAMES;
+        model.add(variant, frame, base(X, 0, Z, myaw, model.scale));
+        this.blobs.add(X, Z, 0.26);
+      }
+      return;
+    }
     for (let i = 0; i < n; i++) {
       const k = this.parts.used;
       if (k >= this.parts.capacity) break;
@@ -246,6 +372,7 @@ class Runners {
     }
   }
   finish() {
+    this.model?.finish();
     this.parts.finish();
   }
 }
@@ -255,7 +382,11 @@ class Monsters {
   private slimes: Parts;
   private brutes: Parts;
   private bars: Parts;
-  constructor(scene: THREE.Scene) {
+  private bruteModel?: FrameSet;
+  constructor(
+    scene: THREE.Scene,
+    private blobs: Blobs,
+  ) {
     const eye = new THREE.SphereGeometry(1, 8, 6);
     const brow = new THREE.BoxGeometry(1, 1, 1);
     const whiteM = flat(0xffffff, { roughness: 0.4 });
@@ -306,6 +437,11 @@ class Monsters {
     for (let i = 0; i < fill.instanceMatrix.count; i++)
       fill.setColorAt(i, _c.set(0xffffff));
   }
+  /** Switches the brutes to the baked orc. */
+  useBrute(set: FrameSet) {
+    this.bruteModel = set;
+    for (const m of this.brutes.meshes) m.visible = false;
+  }
   draw(m: Monster, clock: number) {
     const hop = Math.abs(Math.sin(clock * (m.big ? 5 : 9) + m.id * 1.7));
     const X = m.x * ROAD;
@@ -354,6 +490,14 @@ class Monsters {
       }
       if (m.hp < m.maxHp)
         this.bar(X, 0.95 + lift, Z, 0.7, m.hp / m.maxHp, 0xff5a5f);
+    } else if (this.bruteModel) {
+      const set = this.bruteModel;
+      const frame = Math.floor(
+        ((((clock * 0.9 + m.id * 0.31) % 1) + 1) % 1) * set.frames,
+      );
+      set.add(0, frame, base(X, 0, Z, 0, set.scale));
+      this.blobs.add(X, Z, 0.6);
+      this.bar(X, 2.55, Z, 1.3, m.hp / m.maxHp, 0xff9f43);
     } else {
       const p = this.brutes;
       if (p.used >= p.capacity) return;
@@ -420,6 +564,7 @@ class Monsters {
     fill.setColorAt(k, _c.set(color));
   }
   finish() {
+    this.bruteModel?.finish();
     this.slimes.finish();
     this.brutes.finish();
     this.bars.finish();
@@ -546,8 +691,74 @@ class Boss {
     this.group.add(g);
     scene.add(this.group);
   }
-  update(w: World, fx: SceneFx, dead: number) {
+  private model?: THREE.Object3D;
+  private modelMats: THREE.MeshStandardMaterial[] = [];
+  private mixer?: THREE.AnimationMixer;
+  private idle?: THREE.AnimationAction;
+  private breath?: THREE.AnimationAction;
+  private lastSlam = 0;
+  /** Swaps the code-built boss for the animated dragon. */
+  useModel(gltf: GLTF) {
+    const model = gltf.scene;
+    const box = new THREE.Box3().setFromObject(model);
+    const s = 6.2 / Math.max(0.1, box.max.y - box.min.y);
+    model.scale.setScalar(s);
+    model.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true;
+      mesh.frustumCulled = false;
+      const mat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        flatShading: true,
+        roughness: 0.75,
+      });
+      mesh.material = mat;
+      this.modelMats.push(mat);
+    });
+    this.mixer = new THREE.AnimationMixer(model);
+    const clip = (name: string) => gltf.animations.find((a) => a.name === name);
+    const idle = clip("Idle");
+    const breath = clip("FireBreath");
+    if (idle) {
+      this.idle = this.mixer.clipAction(idle);
+      this.idle.play();
+    }
+    if (breath) {
+      this.breath = this.mixer.clipAction(breath);
+      this.breath.setLoop(THREE.LoopOnce, 1);
+      this.breath.clampWhenFinished = false;
+      this.mixer.addEventListener("finished", () => {
+        this.breath?.fadeOut(0.25);
+        this.idle?.reset().fadeIn(0.25).play();
+      });
+    }
+    this.body.visible = false;
+    this.model = model;
+    this.group.add(model);
+  }
+  update(w: World, fx: SceneFx, dead: number, dt = 0) {
     this.group.position.set(0, 0, -w.boss.z);
+    if (this.model) {
+      // every ground slam is a burst of fire breath
+      if (fx.slamAnim > this.lastSlam + 0.5 && this.breath) {
+        this.idle?.fadeOut(0.15);
+        this.breath.reset().fadeIn(0.1).play();
+      }
+      this.lastSlam = fx.slamAnim;
+      this.mixer?.update(dt);
+      for (const m of this.modelMats)
+        m.emissive.setRGB(
+          fx.bossHit * 0.35,
+          fx.bossHit * 0.1,
+          fx.bossHit * 0.05,
+        );
+      const k = Math.min(1, dead);
+      this.model.rotation.z = k * 1.5;
+      this.model.position.y = -k * k * 4;
+      this.group.visible = k < 1;
+      return;
+    }
     const lift = fx.slamAnim > 0.5 ? (1 - fx.slamAnim) * 2 : fx.slamAnim * 2;
     const idle = Math.sin(fx.clock * 2.2) * 0.08;
     for (const [i, arm] of this.arms.entries()) {
@@ -799,6 +1010,7 @@ export class CrowdScene {
   private camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
   private sun: THREE.DirectionalLight;
   private runners: Runners;
+  private blobs: Blobs;
   private monsters: Monsters;
   private boss: Boss;
   private bullets: THREE.InstancedMesh;
@@ -852,8 +1064,9 @@ export class CrowdScene {
     grass.name = "grass";
     this.scene.add(grass);
 
-    this.runners = new Runners(this.scene, 360);
-    this.monsters = new Monsters(this.scene);
+    this.blobs = new Blobs(this.scene);
+    this.runners = new Runners(this.scene, 360, this.blobs);
+    this.monsters = new Monsters(this.scene, this.blobs);
     this.boss = new Boss(this.scene);
 
     this.bullets = new THREE.InstancedMesh(
@@ -888,6 +1101,63 @@ export class CrowdScene {
     this.scene.add(this.ring);
     this.scene.add(this.level);
   }
+
+  /**
+   * Loads the Polyfork models and swaps them in. Until they arrive, or if
+   * they fail to load, the code-built characters stay on screen.
+   */
+  async loadModels() {
+    const [runner, brute, boss] = await Promise.all([
+      loadModel(MODEL_URLS.runner),
+      loadModel(MODEL_URLS.brute),
+      loadModel(MODEL_URLS.boss),
+    ]);
+    if (this.disposed) return;
+    const phases = Array.from({ length: RUN_FRAMES }, (_, i) => i / RUN_FRAMES);
+    const skipFace = (name: string) => name.includes("face");
+    // the last frame is the rifleman standing still before the run starts
+    const runFrames = bake(
+      runner,
+      (b, p) => (p < 0 ? standPose(b, 0) : runPose(b, p)),
+      [...phases, -1],
+      skipFace,
+    );
+    const team = recolor(runFrames, {
+      "top-mesh": 0x2f7fe0,
+      "hat-mesh": 0x1d4f9a,
+    });
+    const rival = recolor(runFrames, {
+      "top-mesh": 0xd9363e,
+      "hat-mesh": 0x7a1a20,
+    });
+    this.runners.useModel(
+      new FrameSet(
+        this.scene,
+        runFrames,
+        [team, rival],
+        this.runners.capacity,
+        1.15 / runFrames.height,
+      ),
+    );
+    const bruteFrames = bake(
+      brute,
+      stompPose,
+      Array.from({ length: 8 }, (_, i) => i / 8),
+    );
+    this.monsters.useBrute(
+      new FrameSet(
+        this.scene,
+        bruteFrames,
+        [bruteFrames.frames[0].getAttribute("color") as THREE.BufferAttribute],
+        32,
+        2.3 / bruteFrames.height,
+      ),
+    );
+    this.boss.useModel(boss);
+    this.modelsReady = true;
+  }
+  modelsReady = false;
+  private disposed = false;
 
   resize(width: number, height: number, dpr: number) {
     this.width = width;
@@ -1107,10 +1377,11 @@ export class CrowdScene {
     }
     this.runners.finish();
     this.monsters.finish();
+    this.blobs.finish();
 
     // boss
     if (w.phase === "won") this.bossDead += dt * 0.8;
-    this.boss.update(w, fx, this.bossDead);
+    this.boss.update(w, fx, this.bossDead, dt);
     this.boss.group.visible = this.boss.group.visible && w.boss.z < far;
 
     // bullets
@@ -1185,6 +1456,7 @@ export class CrowdScene {
   }
 
   dispose() {
+    this.disposed = true;
     this.clearLevel();
     this.scene.traverse((o) => {
       if (o instanceof THREE.Mesh || o instanceof THREE.InstancedMesh) {
