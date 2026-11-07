@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { PopGame } from "@/components/pop-game";
-import "./pop.css";
+import { PopRedirect } from "./redirect";
 export const metadata: Metadata = {
-  title: "Bubble Calm · 解压泡泡纸",
-  description:
-    "A calm, endless sheet of bubble wrap: press, swipe and pop with crisp sounds and sparkles. No timer, no score.",
+  title: "Crowd Rush · 人潮突击",
+  robots: { index: false },
 };
+/** Bubble Calm used to live here; old links now go to Crowd Rush. */
 export default function PopPage() {
-  return <PopGame />;
+  return <PopRedirect />;
 }

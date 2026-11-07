@@ -3,7 +3,7 @@ import { useLocale } from "@/components/locale";
 import Link from "next/link";
 import { WarmUp } from "@/components/warm-up";
 import {
-  BubbleIcon,
+  CrowdIcon,
   DecisionIcon,
   LogicIcon,
   MemoryIcon,
@@ -84,16 +84,16 @@ export default function Home() {
             </p>
             <strong>{t("Play decision room →")}</strong>
           </Link>
-          <Link href="/pop/" className="arena pop-arena">
-            <BubbleIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("04 / UNWIND")}</p>
-            <h2>{t("Pop the stress away.")}</h2>
+          <Link href="/crowd/" className="arena crowd-arena">
+            <CrowdIcon className="arena-symbol" size={52} />
+            <p className="eyebrow">{t("04 / ACTION")}</p>
+            <h2>{t("Grow your squad.")}</h2>
             <p>
               {t(
-                "An endless sheet of bubble wrap. Press, swipe and pop. No timer, no score.",
+                "Pick the right gates, blast through crates and rival squads, then beat the boss.",
               )}
             </p>
-            <strong>{t("Play Bubble Calm →")}</strong>
+            <strong>{t("Play Crowd Rush →")}</strong>
           </Link>
         </div>
       </section>
