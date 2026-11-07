@@ -1115,7 +1115,7 @@ function drawCrowd(
   const depth = R * 4.5;
   const people: { x: number; z: number; i: number }[] = [];
   for (let i = 0; i < n; i++) {
-    const r = Math.sqrt((i + 0.5) / n);
+    const r = n === 1 ? 0 : Math.sqrt((i + 0.5) / n);
     const a = i * 2.39996;
     people.push({
       x: cx + Math.cos(a) * r * R,

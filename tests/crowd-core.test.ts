@@ -128,11 +128,13 @@ test("steering is clamped to the road and the squad widens as it grows", () => {
 });
 
 test("monsters roam every level, die to gunfire and bite on contact", () => {
+  let withBrutes = 0;
   for (let lv = 1; lv <= 10; lv++) {
     const monsters = newLevel(lv).things.filter((t) => t.kind === "monster");
     assert.ok(monsters.length >= 8, `level ${lv} has ${monsters.length}`);
-    assert.ok(monsters.some((m) => m.kind === "monster" && m.big));
+    if (monsters.some((m) => m.kind === "monster" && m.big)) withBrutes++;
   }
+  assert.ok(withBrutes >= 7, `brutes in only ${withBrutes} levels`);
   const w = newLevel(1);
   w.things = [];
   w.things.push({
@@ -172,9 +174,10 @@ test("monsters roam every level, die to gunfire and bite on contact", () => {
       dead: false,
     },
   ];
+  v.count = 10;
   start(v);
   step(v, 1 / 60);
-  assert.equal(v.count, START_COUNT - 3);
+  assert.equal(v.count, 7);
 });
 
 test("the boss keeps summoning minions during the fight", () => {

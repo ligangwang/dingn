@@ -123,7 +123,7 @@ export type World = {
   nextId: number;
 };
 
-export const START_COUNT = 8;
+export const START_COUNT = 1;
 export const MAX_COUNT = 999;
 export const RUN_SPEED = 10;
 export const BULLET_SPEED = 46;
@@ -192,6 +192,8 @@ export function newLevel(level: number): World {
   let expected = START_COUNT;
   let id = 0;
   let lastKind = "";
+  /** Rough squad size along the track, used to size the monsters. */
+  const checkpoints: { z: number; expected: number }[] = [];
   for (let i = 0; i < sections; i++) {
     // Always open with a gate, never repeat the same obstacle twice in a row.
     const options =
@@ -202,10 +204,11 @@ export function newLevel(level: number): World {
           );
     const kind = pick(options);
     lastKind = kind;
+    checkpoints.push({ z, expected });
     if (kind === "gate") {
       // Both doors look the same, so the player has to do the maths. Most
       // pairs are close calls whose winner depends on the squad's size.
-      const e = Math.max(START_COUNT, expected);
+      const e = Math.max(4, expected);
       const around = (k: number, spread: number) =>
         Math.max(2, Math.round(e * k * (1 - spread + random() * spread * 2)));
       const kinds =
@@ -343,10 +346,16 @@ export function newLevel(level: number): World {
     mz += 9 + roll() * 5
   ) {
     if (busy.some((bz) => Math.abs(bz - mz) < 5) || roll() < 0.2) continue;
+    const near = [...checkpoints].reverse().find((c) => c.z <= mz);
+    const size = Math.max(1, near?.expected ?? START_COUNT);
     pack++;
-    const brute = pack % 4 === 0;
+    const brute = pack >= 4 && size >= 12;
+    if (brute) pack = 0;
     if (brute) {
-      const hp = Math.round(12 + Math.min(lv, 15) * 2);
+      const hp = Math.min(
+        Math.round(12 + Math.min(lv, 15) * 2),
+        Math.round(size * 0.6) + 4,
+      );
       things.push(
         monster(
           id++,
@@ -354,14 +363,25 @@ export function newLevel(level: number): World {
           (roll() * 2 - 1) * 0.55,
           true,
           hp,
-          2 + Math.floor(Math.min(lv, 15) / 5),
+          Math.min(
+            2 + Math.floor(Math.min(lv, 15) / 5),
+            Math.max(2, Math.floor(size / 6)),
+          ),
           3 + Math.floor(lv / 2),
           1.6,
         ),
       );
       continue;
     }
-    const n = 2 + Math.floor(roll() * Math.min(4, 2 + lv / 3));
+    const n =
+      1 + Math.floor(roll() * Math.min(4, 1 + Math.sqrt(size) / 2, 2 + lv / 3));
+    const hp = Math.max(
+      1,
+      Math.min(
+        2 + Math.floor(Math.min(lv, 15) / 5),
+        Math.round(Math.sqrt(size) * 0.7),
+      ),
+    );
     for (let k = 0; k < n; k++)
       things.push(
         monster(
@@ -369,7 +389,7 @@ export function newLevel(level: number): World {
           mz + k * 0.9,
           (roll() * 2 - 1) * 0.75,
           false,
-          2 + Math.floor(Math.min(lv, 15) / 5),
+          hp,
           1,
           1,
           2.4,
