@@ -164,3 +164,9 @@ The shared `LocaleProvider` supports English (`en`) and Simplified Chinese (`zh-
 All new platform and game UI copy must support both languages. English source strings map to `src/data/zh-CN.json`; dynamic sentences use numbered placeholders and are translated as complete sentences. Keep IDs, answer indexes, server scoring, and stored user content independent of presentation language. The question catalog is shared with server grading; translations change presentation only. Tests verify translated questions and switching language mid-round.
 
 Names, feedback, saved associations, and English dictionary learning material retain their original content. The practice interface explains the English-learning context.
+
+## Bubble Calm (解压泡泡纸)
+
+`/pop/` is a low-pressure stress-relief toy: an endless sheet of bubble wrap drawn on a canvas. Press, or drag across the sheet to pop whole rows (fast swipes are sampled so no bubble is skipped). Each pop has a quick swell-and-crinkle animation, flecks and a ring, a synthesized Web Audio sound (no audio files), and an optional short vibration where supported. About one bubble in 36 is golden and adds a sparkle and chime. Quick pops build a gentle streak that only brightens the sound; there is no timer, score, or failure. Finishing a sheet shows a calming line and rolls in a fresh sheet in a new colour.
+
+Keyboard players focus the sheet and press Space or Enter to pop bubbles in reading order. Reduced-motion preferences use fewer particles and no sliding. Pop totals, sheet count, and sound/vibration toggles are stored only on the device (`dingn.pop.*`); nothing is sent to the server and no XP is awarded. Rules live in `src/game/pop-core.ts` and are covered by `tests/pop-core.test.ts`.

@@ -2,7 +2,12 @@
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
 import { WarmUp } from "@/components/warm-up";
-import { DecisionIcon, LogicIcon, MemoryIcon } from "@/components/icons";
+import {
+  BubbleIcon,
+  DecisionIcon,
+  LogicIcon,
+  MemoryIcon,
+} from "@/components/icons";
 import { Leaderboard } from "@/components/xp";
 export default function Home() {
   const { t, locale } = useLocale();
@@ -40,7 +45,7 @@ export default function Home() {
       <section id="games">
         <div className="mind-heading">
           <div>
-            <p className="eyebrow">{t("THREE WAYS TO PLAY")}</p>
+            <p className="eyebrow">{t("FOUR WAYS TO PLAY")}</p>
             <h2>{t("Your mind. Your playground.")}</h2>
           </div>
           <span>{t("No sign-in needed")}</span>
@@ -78,6 +83,17 @@ export default function Home() {
               )}
             </p>
             <strong>{t("Play decision room →")}</strong>
+          </Link>
+          <Link href="/pop/" className="arena pop-arena">
+            <BubbleIcon className="arena-symbol" size={52} />
+            <p className="eyebrow">{t("04 / UNWIND")}</p>
+            <h2>{t("Pop the stress away.")}</h2>
+            <p>
+              {t(
+                "An endless sheet of bubble wrap. Press, swipe and pop. No timer, no score.",
+              )}
+            </p>
+            <strong>{t("Play Bubble Calm →")}</strong>
           </Link>
         </div>
       </section>
