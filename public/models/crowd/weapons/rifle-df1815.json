@@ -1,0 +1,253 @@
+{
+    "id": "rifle-df1815",
+    "title": "Rifle",
+    "class": "prop",
+    "triangles": 946,
+    "kit": "primal-future-armory-kit-d7c368",
+    "free": true,
+    "plan": "free",
+    "price_usd": 0,
+    "price_note": "free: every low poly model is. The /cdn links need no account and no key (an account adds the ready-to-serve zip). The HD edition, where `hd` is not null, comes with Pro",
+    "owned": true,
+    "page": "https://polyfork.dev/asset/rifle-df1815",
+    "thumbnail": "https://polyfork.dev/files/rifle-df1815/renders/hero.png",
+    "preview_glb": "https://polyfork.dev/cdn/rifle-df1815-preview.glb",
+    "hd": null,
+    "preview_triangles": 946,
+    "preview_fidelity": 1,
+    "preview_rigged": true,
+    "preview_rig": "pivots",
+    "preview_pivots": [
+        "magazine"
+    ],
+    "preview_note": "This preview keeps its pivots named (preview_pivots), so they turn as rigged_parts describes; its normals are stripped for flat shading. This model is free, so build with `download.glb`: the authored file, normals and node names as built.",
+    "has_rig": true,
+    "remixable": true,
+    "has_night": true,
+    "has_decals": true,
+    "has_ik": false,
+    "ik_type": null,
+    "has_skeleton": false,
+    "size_m": {
+        "x": 0.14,
+        "y": 0.35,
+        "z": 1.16
+    },
+    "origin_y": 0,
+    "mass_kg": 4,
+    "download": {
+        "glb": "https://polyfork.dev/cdn/rifle-df1815.glb",
+        "mjs": "https://polyfork.dev/cdn/rifle-df1815.mjs",
+        "auth": "none"
+    },
+    "export_formats": {
+        "fbx": {
+            "url": "https://polyfork.dev/dl/rifle-df1815.fbx",
+            "for": "Unity, Unreal, Maya, 3ds Max",
+            "available": true
+        },
+        "usdz": {
+            "url": "https://polyfork.dev/dl/rifle-df1815.usdz",
+            "for": "iOS AR Quick Look, Omniverse; with UsdPhysics collision and mass",
+            "available": true
+        },
+        "usda": {
+            "url": "https://polyfork.dev/dl/rifle-df1815.usda",
+            "for": "Isaac Sim, Omniverse, Blender, usdview; with UsdPhysics collision and mass",
+            "available": true
+        },
+        "obj": {
+            "url": "https://polyfork.dev/dl/rifle-df1815.obj",
+            "for": "universal, geometry only, no pivots",
+            "available": true,
+            "also_fetch": "https://polyfork.dev/dl/rifle-df1815.mtl",
+            "also_fetch_note": "save it beside the .obj as rifle-df1815.mtl: the model names that exact file and imports white without it"
+        }
+    },
+    "export_note": "vertex colours become NAMED MATERIALS on export, named after this asset's own colour knobs; a plain format conversion would arrive white, because only three.js reads our COLOR_0. Built on first request (about a second), cached after. This model is free: these download with no account and no key (only its .mjs source asks for a free account).",
+    "night": {
+        "crystal": {
+            "color": "#5deaff",
+            "intensity": 0.8,
+            "albedo": "#5deaff",
+            "findable": true,
+            "describe": "The energy crystal inlays (glow strip, charging cell, magazine window, scope lenses, rail core) glow teal."
+        }
+    },
+    "night_note": "each zone is found by its ALBEDO in COLOR_0: match those vertices exactly, make them emissive at the zone colour and intensity, and drop your scene lights. That is the whole night look.",
+    "decals": [
+        {
+            "name": "receiver-right",
+            "size": [
+                0.065,
+                0.05
+            ],
+            "at": [
+                0.026,
+                0.148,
+                -0.05499999999999991
+            ],
+            "normal": [
+                1,
+                0,
+                0
+            ],
+            "up": [
+                0,
+                1,
+                0
+            ],
+            "describe": "Roll-mark / maker logo on the flat flank of the magazine well, above the magazine."
+        },
+        {
+            "name": "receiver-left",
+            "size": [
+                0.065,
+                0.05
+            ],
+            "at": [
+                -0.026,
+                0.148,
+                -0.05499999999999991
+            ],
+            "normal": [
+                -1,
+                0,
+                0
+            ],
+            "up": [
+                0,
+                1,
+                0
+            ],
+            "describe": "Roll-mark / maker logo on the flat flank of the magazine well, above the magazine."
+        }
+    ],
+    "decals_note": "flat areas you can print your own logo, sign, number or stencil on. `at` is the centre in model space (metres), `normal` points out of the surface, `up` is which way is up in the artwork, `size` is [width, height]. In three.js: bake art with https://polyfork.dev/cdn/sdf.mjs and place it with https://polyfork.dev/cdn/decal.mjs. In any other engine, a `plate` area takes a quad at `at` + `normal` * 0.002; a `projected` area is on a curved face `relief_mm` deep and the mark has to be projected onto the geometry. `albedo` is the colour of the surface underneath, so you can pick art that contrasts. Measured on the DEFAULT build: a geometry knob (a remix, a get_variant result) can move the surface by a few centimetres, and decal.mjs follows it because it raycasts the model you hand it; anywhere else, re-measure or keep the defaults.",
+    "params_url": "https://polyfork.dev/cdn/rifle-df1815-params.json",
+    "real_scale": null,
+    "physics": {
+        "mass_kg": 4,
+        "mass_source": "estimated",
+        "material": "steel",
+        "body": "dynamic",
+        "dimensions_m": {
+            "x": 0.143,
+            "y": 0.349,
+            "z": 1.158
+        },
+        "up_axis": "Y",
+        "meters_per_unit": 1,
+        "volume_m3": 0.008056,
+        "collision": {
+            "approximation": "convexDecomposition",
+            "parts": 30,
+            "colliders_url": "https://polyfork.dev/cdn/rifle-df1815-colliders.json"
+        },
+        "note": "For the default knob settings; a size knob changes all of it. dimensions_m and the colliders are measured from the model; mass_kg and material are an estimate of what the real object weighs. body \"static\" means fixed in place (give it a collider, no rigid body); \"dynamic\" means it moves. collision.approximation uses UsdPhysics terms: \"convexHull\" = one hull is a good fit, \"convexDecomposition\" = use the per-part hulls in colliders_url (the one hull would fill a gap, like the space under a table). Model space, metres, Y up, origin as the model ships."
+    },
+    "simready_metadata": {
+        "simready_metadata_mass": 4,
+        "simready_metadata_rigid_body_count": 1,
+        "usd_dimensions": [
+            0.143,
+            1.158,
+            0.349
+        ],
+        "usd_up_axis": "Z",
+        "usd_meters_per_unit": 1,
+        "simready_metadata_validation__profile": null
+    },
+    "materials": 3,
+    "draw_calls": 6,
+    "description": "Modular rifle, 0.6-1.5m: receiver with stock, barrel and magazine sockets; adjustable barrel length, stock profile and handguard size; action knob (musket, lever, bolt, automatic, rail), optional scope, bayonet, bipod and coils. Wood, steel and alloy presets.",
+    "palette": [
+        {
+            "hex": "#45495d",
+            "share": 0.315
+        },
+        {
+            "hex": "#95a0b5",
+            "share": 0.19
+        },
+        {
+            "hex": "#4f6284",
+            "share": 0.169
+        },
+        {
+            "hex": "#c6ab55",
+            "share": 0.148
+        },
+        {
+            "hex": "#d9dbe0",
+            "share": 0.101
+        },
+        {
+            "hex": "#5deaff",
+            "share": 0.042
+        }
+    ],
+    "style": "low-poly, flat-shaded vertex colors, no textures, 3 materials: the shared opaque one plus a distinct surface (glass, water or chrome), which stays its own mesh through mergeAssets rather than merging into the rest; shares palette and scale with its kit",
+    "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+    "rigged_parts": {
+        "magazine": {
+            "axis": "y",
+            "range": [
+                0,
+                -0.2
+            ],
+            "type": "slide"
+        }
+    },
+    "detachable_parts": [
+        "magazine"
+    ],
+    "animation": "rigged parts are named groups with the pivot at the hinge/axle: obj.getObjectByName(part) then rotation[axis] (rotate, degrees) or position[axis] (slide, meters). 0 is the pose the model is built in, which is not always shut: `range` is all the travel the part has from there, and outside it the part passes through the body. Whether the range opens or closes is in that knob's describe in params_url",
+    "detaching": "detachable parts are named groups you may hide or remove: obj.getObjectByName(part).visible = false, or .removeFromParent(). The surface behind each is closed, so nothing shows a hole",
+    "published_at": "2026-11-06 00:36:27",
+    "renders": [
+        "https://polyfork.dev/files/rifle-df1815/renders/back.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/close.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/compare.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/detail.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/front.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/hero-crop.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/hero.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/left.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/low-back.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/low.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/pose-magazine.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/proofs.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/removed-magazine.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/right.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/top.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/under.png",
+        "https://polyfork.dev/files/rifle-df1815/renders/views.png"
+    ],
+    "license": "Mesh files (GLB, FBX, USD, OBJ): CC BY 4.0 with the line in `credit`, or the Polyfork licence with no credit and no redistribution, your choice. The .mjs source and the HD edition: Polyfork licence only, commercial use, no attribution, no redistribution. https://polyfork.dev/licensing",
+    "credit": "Rifle by Polyfork (https://polyfork.dev/asset/rifle-df1815), CC BY 4.0",
+    "access": {
+        "as": "anonymous",
+        "remix_bakes_per_hour": 40,
+        "remix_bakes_left_this_hour": 40,
+        "remix_note": "The budget is on generating NEW geometry. Variations anyone has already baked are served to everybody and never counted, so re-fetching a variant you or anyone else has made costs nothing.",
+        "remix_bakes_per_month": 100,
+        "remix_bakes_left_this_month": 100,
+        "remix_allowance_resets": "2026-12-01",
+        "remix_allowance_note": "Anonymous callers are counted per IP address, so other sessions from the same address share this. A free account raises it to 300 a WEEK on its own budget, and costs an email address.",
+        "a_free_account_adds": {
+            "how": "Authorization: Bearer <key>, created at https://polyfork.dev/account. Costs an email address.",
+            "remix_bakes_per_hour": 100,
+            "remix_bakes_per_week": 300,
+            "downloads": "every low poly model's .mjs program and a ready-to-serve zip from /dl, and any kit as one zip (/dl/kit-<id>.zip). The .glb, .fbx, .usdz, .usda and .obj need no key"
+        },
+        "pro_adds": {
+            "url": "https://polyfork.dev/pricing",
+            "usd_per_year": 149,
+            "hd_editions": "the HD edition of a model: the same program built finer, high poly with PBR materials generated in code, every knob still working. 1,688 models have one. Free accounts get its public preview (/cdn/<id>-hd-preview.glb) only",
+            "cdn": "a per-account /c/<token>/ path for the HD files you can hotlink from a shipped build; it keeps up when an asset is rebuilt, and the token is not the API key",
+            "remix_bakes_per_hour": 900,
+            "remix_bakes_per_week": "uncapped: a free account gets a weekly allowance, Pro does not"
+        }
+    }
+}
