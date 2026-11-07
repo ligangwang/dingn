@@ -180,3 +180,9 @@ The prototype uses a perspective follow camera with an optional close combat vie
 The scene adds ACES tone mapping, restrained bloom, atmospheric fog, distant silhouettes, rim lighting, a hooded hero with walk/cast animation, and a target ring. Foreground scenery fades when it blocks the camera-to-hero sightline. Postprocessing resources are disposed on navigation. Pixel ratio is capped at 1.5; actual Android/iOS device performance remains to be tested.
 
 Camera preferences are device-local: `dingn.morrowglint.close` and `dingn.morrowglint.steady`. Steady mode defaults to the OS reduced-motion preference, skips cinematic shots, and uses stable wider framing without idle camera movement. Both controls support English and Simplified Chinese.
+
+## Bubble Calm (解压泡泡纸)
+
+`/pop/` is a low-pressure stress-relief toy: an endless sheet of bubble wrap drawn on a canvas. Press, or drag across the sheet to pop whole rows (fast swipes are sampled so no bubble is skipped). Each pop has a quick swell-and-crinkle animation, flecks and a ring, a synthesized Web Audio sound (no audio files), and an optional short vibration where supported. About one bubble in 36 is golden and adds a sparkle and chime. Quick pops build a gentle streak that only brightens the sound; there is no timer, score, or failure. Finishing a sheet shows a calming line and rolls in a fresh sheet in a new colour.
+
+Keyboard players focus the sheet and press Space or Enter to pop bubbles in reading order. Reduced-motion preferences use fewer particles and no sliding. Pop totals, sheet count, and sound/vibration toggles are stored only on the device (`dingn.pop.*`); nothing is sent to the server and no XP is awarded. Rules live in `src/game/pop-core.ts` and are covered by `tests/pop-core.test.ts`.

@@ -4,7 +4,13 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import { DecisionIcon, LogicIcon, MailIcon, MemoryIcon } from "./icons";
+import {
+  BubbleIcon,
+  DecisionIcon,
+  LogicIcon,
+  MailIcon,
+  MemoryIcon,
+} from "./icons";
 import { LevelBadge } from "./xp";
 export function Header() {
   const { t, locale } = useLocale();
@@ -22,6 +28,7 @@ export function Header() {
           ["/logic/", "Logic", LogicIcon] as const,
           ["/memory-ladder/", "Memory", MemoryIcon] as const,
           ["/decisions/", "Decisions", DecisionIcon] as const,
+          ["/pop/", "Unwind", BubbleIcon] as const,
           ...(ready && isAdmin
             ? [["/admin/feedback/", "Feedback", MailIcon] as const]
             : []),

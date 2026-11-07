@@ -142,7 +142,7 @@ select {
 }
 .arena-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
 .arena {
@@ -200,6 +200,17 @@ select {
 }
 .decision-arena .arena-symbol {
   color: #ffc49d;
+}
+.pop-arena {
+  background: linear-gradient(150deg, #1d3a44, #17212a);
+}
+.pop-arena .arena-symbol {
+  color: #8fe3ff;
+}
+@media (max-width: 1040px) and (min-width: 761px) {
+  .arena-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 .warmup {
   margin: 50px 0;

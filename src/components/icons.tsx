@@ -74,3 +74,15 @@ export function SparkIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/** Unwind: a cluster of bubbles. */
+export function BubbleIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="9" cy="14" r="5.5" />
+      <circle cx="17" cy="8" r="3.5" />
+      <circle cx="18" cy="17" r="2" />
+      <path d="M6.8 11.6a2.6 2.6 0 0 1 2-1.1" />
+    </Svg>
+  );
+}
