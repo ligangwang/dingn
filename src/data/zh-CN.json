@@ -353,5 +353,10 @@
   "Nothing to win here. Just pops.": "这里没有输赢，只有啪啪声。",
   "Unclench your jaw. Here comes another.": "松开咬紧的牙关。新的一张来啦。",
   "That’s a whole sheet. Nice and easy.": "一整张都捏完了，轻轻松松。",
-  "Breathe in for four, out for six.": "吸气数四下，呼气数六下。"
+  "Breathe in for four, out for six.": "吸气数四下，呼气数六下。",
+  "Your answers": "你的答案",
+  "correct": "答对",
+  "missed": "答错",
+  "{0} in a row": "连续答对 {0} 题",
+  "Tip: press {0} to answer": "提示：按 {0} 作答"
 }
