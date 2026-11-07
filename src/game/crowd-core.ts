@@ -33,8 +33,11 @@ export type Block = {
   maxHp: number;
   /** Crates pay out recruits when shot open; walls only block. */
   reward: number;
+  /** Weapon crates: shot to zero, they raise damage ("power") or fire rate. */
+  upgrade?: Upgrade;
   dead: boolean;
 };
+export type Upgrade = "power" | "rate";
 export type Squad = {
   kind: "squad";
   id: number;
@@ -75,7 +78,7 @@ export type Boss = {
   summonEvery: number;
   minions: number;
 };
-export type Bullet = { x: number; z: number; dead: boolean };
+export type Bullet = { x: number; z: number; dmg: number; dead: boolean };
 export type Phase = "ready" | "run" | "boss" | "won" | "lost";
 export type GameEvent =
   | {
@@ -100,6 +103,7 @@ export type GameEvent =
   | { type: "wall"; x: number; z: number; lost: number }
   | { type: "clash"; x: number; z: number; lost: number }
   | { type: "slam"; lost: number }
+  | { type: "upgrade"; kind: Upgrade; level: number; x: number; z: number }
   | { type: "won" }
   | { type: "lost" };
 export type World = {
@@ -115,6 +119,10 @@ export type World = {
   things: Thing[];
   boss: Boss;
   bullets: Bullet[];
+  /** Damage per shot, raised by power crates. */
+  power: number;
+  /** Fire-rate upgrades collected from rate crates. */
+  rapid: number;
   fireClock: number;
   time: number;
   shotsFired: number;
@@ -176,9 +184,19 @@ export function crowdRadius(count: number) {
 export function squadRadius(count: number) {
   return Math.min(0.4, 0.07 + Math.sqrt(Math.max(1, count)) * 0.026);
 }
-/** Shots per second: a bigger squad fires faster. */
+/**
+ * Base shots per second: a bigger squad fires faster. It starts slow;
+ * rate crates on the road speed it up and power crates make each shot hit
+ * harder.
+ */
 export function fireRate(count: number) {
-  return Math.min(40, 3 + Math.sqrt(count) * 2.6);
+  return Math.min(20, 1.5 + Math.sqrt(count) * 1.3);
+}
+export const MAX_POWER = 4;
+export const MAX_RAPID = 4;
+/** Shots per second for this squad, including rate upgrades. */
+export function shotRate(w: Pick<World, "count" | "rapid">) {
+  return fireRate(w.count) * (1 + 0.35 * w.rapid);
 }
 
 /**
@@ -198,6 +216,9 @@ export function newLevel(level: number): World {
   let expected = START_COUNT;
   let id = 0;
   let lastKind = "";
+  // weapon crates use their own random stream so the rest stays the same
+  const upRoll = rng(lv * 31337 + 5);
+  let ups = 0;
   /** Rough squad size along the track, used to size the monsters. */
   const checkpoints: { z: number; expected: number }[] = [];
   for (let i = 0; i < sections; i++) {
@@ -280,6 +301,23 @@ export function newLevel(level: number): World {
         used: false,
       });
       expected = applyOp(expected, good);
+      // after each gate, a weapon crate on one side lane: rate, power, ...
+      if (ups < 2 + Math.min(3, Math.floor(lv / 3))) {
+        const hp = Math.round(4 + expected * 0.3 + lv * 1.5);
+        things.push({
+          kind: "block",
+          id: id++,
+          z: z + 15,
+          x: upRoll() < 0.5 ? -0.62 : 0.62,
+          w: 0.2,
+          hp,
+          maxHp: hp,
+          reward: 0,
+          upgrade: ups % 2 === 0 ? "rate" : "power",
+          dead: false,
+        });
+        ups++;
+      }
       z += 30;
     } else if (kind === "crates") {
       // a row of crates always leaves one lane open to slip past
@@ -353,9 +391,9 @@ export function newLevel(level: number): World {
   for (
     let mz = firstGate + 10;
     mz < length - BOSS_STOP - 6;
-    mz += 6 + roll() * 4
+    mz += 4 + roll() * 3
   ) {
-    if (busy.some((bz) => Math.abs(bz - mz) < 4) || roll() < 0.12) continue;
+    if (busy.some((bz) => Math.abs(bz - mz) < 4) || roll() < 0.08) continue;
     const near = [...checkpoints].reverse().find((c) => c.z <= mz);
     const size = Math.max(1, near?.expected ?? START_COUNT);
     pack++;
@@ -383,8 +421,11 @@ export function newLevel(level: number): World {
       );
       continue;
     }
+    // small squads meet single slimes; bigger ones meet packs
+    if (size < 6 && roll() < 0.4) continue;
     const n =
-      1 + Math.floor(roll() * Math.min(4, 1 + Math.sqrt(size) / 2, 2 + lv / 3));
+      (size >= 10 ? 2 : 1) +
+      Math.floor(roll() * Math.min(4, 1 + Math.sqrt(size) / 2, 2 + lv / 3));
     const hp = Math.max(
       1,
       Math.min(
@@ -413,7 +454,7 @@ export function newLevel(level: number): World {
     1,
     Math.min(4, Math.round(Math.sqrt(finalSize) * 0.45)),
   );
-  const rows = 4 + Math.min(6, Math.floor(lv / 2));
+  const rows = 3 + Math.min(5, Math.floor(lv / 2));
   for (let r = 0; r < rows; r++) {
     const hz = length - BOSS_STOP - 26 + r * 2.4;
     const across = 3 + Math.floor(roll() * 3);
@@ -469,6 +510,8 @@ export function newLevel(level: number): World {
       minions: Math.min(5, 2 + Math.floor(lv / 4)),
     },
     bullets: [],
+    power: 1,
+    rapid: 0,
     fireClock: 0,
     time: 0,
     shotsFired: 0,
@@ -581,13 +624,14 @@ export function step(w: World, dt: number) {
   }
 
   // shooting
-  w.fireClock += dt * fireRate(w.count);
+  w.fireClock += dt * shotRate(w);
   while (w.fireClock >= 1) {
     w.fireClock -= 1;
     w.shotsFired++;
     w.bullets.push({
       x: w.x + (w.random() * 2 - 1) * r * 0.7,
       z: w.z + 0.8,
+      dmg: w.power,
       dead: false,
     });
   }
@@ -619,7 +663,7 @@ export function step(w: World, dt: number) {
     if (!hit) continue;
     b.dead = true;
     if (hit === "boss") {
-      w.boss.hp = Math.max(0, w.boss.hp - 1);
+      w.boss.hp = Math.max(0, w.boss.hp - b.dmg);
       w.events.push({ type: "hit", x: b.x, z: w.boss.z, target: "boss" });
       if (w.boss.hp === 0) {
         w.phase = "won";
@@ -628,10 +672,20 @@ export function step(w: World, dt: number) {
         return;
       }
     } else if (hit.kind === "block") {
-      hit.hp--;
+      hit.hp = Math.max(0, hit.hp - b.dmg);
       w.events.push({ type: "hit", x: b.x, z: hit.z, target: "block" });
       if (hit.hp <= 0) {
         hit.dead = true;
+        if (hit.upgrade === "power" && w.power < MAX_POWER) w.power++;
+        if (hit.upgrade === "rate" && w.rapid < MAX_RAPID) w.rapid++;
+        if (hit.upgrade)
+          w.events.push({
+            type: "upgrade",
+            kind: hit.upgrade,
+            level: hit.upgrade === "power" ? w.power : w.rapid + 1,
+            x: hit.x,
+            z: hit.z,
+          });
         if (hit.reward) {
           w.count = Math.min(MAX_COUNT, w.count + hit.reward);
           w.events.push({
@@ -643,11 +697,15 @@ export function step(w: World, dt: number) {
         }
       }
     } else if (hit.kind === "squad") {
-      hit.count--;
+      hit.count = Math.max(0, hit.count - b.dmg);
       w.events.push({ type: "hit", x: b.x, z: hit.z, target: "squad" });
       if (hit.count <= 0) hit.dead = true;
     } else if (hit.kind === "monster") {
-      hit.hp--;
+      // a shot that kills a monster carries its leftover damage onward
+      const dealt = Math.min(b.dmg, hit.hp);
+      hit.hp -= dealt;
+      b.dmg -= dealt;
+      if (b.dmg > 0) b.dead = false;
       w.events.push({ type: "hit", x: b.x, z: hit.z, target: "monster" });
       if (hit.hp <= 0) {
         hit.dead = true;
@@ -674,6 +732,7 @@ export function step(w: World, dt: number) {
       continue;
     }
     if (t.kind === "block") {
+      if (t.upgrade) continue;
       if (Math.abs(t.x - w.x) < t.w + rr * 0.8) {
         const lost = Math.min(w.count, Math.ceil(t.hp / 2));
         w.count -= lost;
