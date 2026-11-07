@@ -1,4 +1,6 @@
 "use client";
+import { useLocale } from "@/components/locale";
+
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { useSession } from "./session";
@@ -6,6 +8,8 @@ import { submitFeedback } from "@/lib/feedback";
 import { friendlyError } from "@/lib/models";
 
 export function Feedback() {
+  const { t, locale } = useLocale();
+
   const { user, ready, login } = useSession();
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -48,20 +52,23 @@ export function Feedback() {
   }
   return (
     <div className="settings container feedback-page">
-      <h1>We’re listening.</h1>
+      <h1>{t("We’re listening.")}</h1>
       <p>
-        Share an idea, report a problem, or tell us what would make dingn
-        better.
+        {t(
+          "Share an idea, report a problem, or tell us what would make dingn better.",
+        )}
       </p>
       <section className="panel">
         {sent ? (
           <div role="status">
-            <h2>Thanks for your feedback.</h2>
-            <p>Your message has been saved for the dingn team to review.</p>
+            <h2>{t("Thanks for your feedback.")}</h2>
+            <p>
+              {t("Your message has been saved for the dingn team to review.")}
+            </p>
           </div>
         ) : (
           <form onSubmit={submit}>
-            <label htmlFor="feedback-message">Your feedback</label>
+            <label htmlFor="feedback-message">{t("Your feedback")}</label>
             <textarea
               id="feedback-message"
               required
@@ -73,8 +80,9 @@ export function Feedback() {
               aria-describedby="feedback-note"
             />
             <p id="feedback-note">
-              Only the dingn team can read your feedback. Up to 5,000
-              characters.
+              {t(
+                "Only the dingn team can read your feedback. Up to 5,000 characters.",
+              )}
             </p>
             {user ? (
               <button
@@ -82,13 +90,13 @@ export function Feedback() {
                 type="submit"
                 disabled={pending || !ready || !message.trim()}
               >
-                {pending ? "Saving…" : "Submit feedback"}
+                {t(pending ? "Saving…" : "Submit feedback")}
               </button>
             ) : (
               <>
-                <p>Sign in to submit. Your draft will stay here.</p>
+                <p>{t("Sign in to submit. Your draft will stay here.")}</p>
                 <Link className="button" href="/signin/">
-                  Sign in with email
+                  {t("Sign in with email")}
                 </Link>
                 <button
                   className="google-button"
@@ -96,7 +104,7 @@ export function Feedback() {
                   onClick={signIn}
                   disabled={pending || !ready}
                 >
-                  {pending ? "Signing in…" : "Continue with Google"}
+                  {t(pending ? "Signing in…" : "Continue with Google")}
                 </button>
               </>
             )}
@@ -104,12 +112,12 @@ export function Feedback() {
         )}
         {error && (
           <p role="alert" className="error">
-            {error}
+            {t(error)}
           </p>
         )}
       </section>
       <Link className="quiet-link" href="/">
-        Back to games
+        {t("Back to games")}
       </Link>
     </div>
   );

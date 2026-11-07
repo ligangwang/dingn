@@ -74,3 +74,18 @@ export function SparkIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/** Action: a squad of three figures charging forward. */
+export function CrowdIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="5.5" r="2.2" />
+      <path d="M8.5 13a3.5 3.5 0 0 1 7 0v1.5h-7z" />
+      <circle cx="5.5" cy="9.5" r="1.8" />
+      <path d="M2.5 16a3 3 0 0 1 5.4-1.8" />
+      <circle cx="18.5" cy="9.5" r="1.8" />
+      <path d="M21.5 16a3 3 0 0 0-5.4-1.8" />
+      <path d="M7 20h10" />
+    </Svg>
+  );
+}

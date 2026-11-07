@@ -115,6 +115,7 @@ export function shuffle<T>(items: readonly T[], random = Math.random): T[] {
 }
 export function safeDestination(value: string | null) {
   return [
+    "/memory-ladder/",
     "/word/",
     "/number/",
     "/card/",

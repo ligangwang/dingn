@@ -31,7 +31,7 @@ Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project 
 - `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
 - `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
 - `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.
-- `/account/`: display name, training/recall preference, Dingn Premium, and sign-out.
+- `/account/`: player display name, Dingn Premium, a link to the games, and sign-out. Legacy practice pages start with answers hidden; there is no account-level mode selector.
 - `/signin/`: Google sign-in with a validated return destination.
 
 The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_favorites/{uid}-{number}` collections and field names are preserved. Writes merge only the supported fields. User accounts do not need to be imported or recreated. Security remains enforced by the existing Firebase Authentication and Firestore rules; no rules or indexes were changed by the migration.
@@ -103,7 +103,6 @@ After deployment, authorize the exact returned `run.app` hostname in Firebase Au
 
 In authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (or `--revoke`) for an explicitly approved existing account. This uses the project-owner credentials, preserves other custom claims, and verifies the change. The script is excluded from the website container. Never store admin access in editable account documents. After a change, sign out and back in; existing tokens can retain their claims until expiry (up to an hour). The admin navigation link appears only after the token claim is confirmed; Firestore independently enforces access.
 
-
 ## Mind arcade and authentication domain
 
 Memory Sprint, Logic Lab (`/logic/`), and Decision Room (`/decisions/`) are public games. Logic and decision rounds explain each answer, lock each submitted choice, and reset scores when replayed. No game score is persisted. Existing memory practice, account, feedback, and admin features remain available.
@@ -169,3 +168,25 @@ gcloud projects add-iam-policy-binding dingn-193716 \
 ```
 
 Until the IAM binding exists, the games still work, but XP reports "unavailable".
+
+## Memory Ladder
+
+The homepage memory game has six rounds, beginning with three digits. Correct answers add a digit; mistakes keep the same difficulty with a fresh sequence. Memorization lasts one second per digit, then recall lasts 15 seconds. Free play generates fresh sequences. Daily challenges use a shared UTC date seed and allow replays. Personal longest recall is saved on the device; signed-in completed games receive server-graded XP under the existing daily cap. Shared results contain no sequence answers. This is a casual challenge, not a tamper-proof competition: the browser receives the sequence bank to display it.
+
+## Platform brand and languages
+
+dingn is the game platform. Memory Ladder is playable at `/memory-ladder/` and on the homepage; existing practice and game links remain supported.
+
+The shared `LocaleProvider` supports English (`en`) and Simplified Chinese (`zh-CN`). The header selector remembers the choice under `dingn.locale`. On first load, `?lang=` takes priority over a saved preference, followed by the browser language. The document language updates for assistive technology. Language changes do not remount games or reset progress.
+
+All new platform and game UI copy must support both languages. English source strings map to `src/data/zh-CN.json`; dynamic sentences use numbered placeholders and are translated as complete sentences. Keep IDs, answer indexes, server scoring, and stored user content independent of presentation language. The question catalog is shared with server grading; translations change presentation only. Tests verify translated questions and switching language mid-round.
+
+Names, feedback, saved associations, and English dictionary learning material retain their original content. The practice interface explains the English-learning context.
+
+## Crowd Rush (人潮突击)
+
+`/crowd/` is a 3D crowd-runner shooter drawn with three.js. Every level starts with a single runner, so early gates and monsters matter. The squad runs forward on its own; players drag left and right (or hold ←/→, A/D) to steer through number gates (+, −, ×, ÷). Both doors of a gate share one colour, and pairs such as +10 vs ×2 are close calls whose winner depends on the current squad size; after passing, the chosen door turns green or red to show whether it was the better one, dodge walls, shoot open supply crates for extra recruits, and clash with rival squads, where both sides lose the smaller count. Small slime monsters roam between obstacles and bite off a squad member each if they reach you (shooting one frees a recruit); horned brutes take more hits, bite harder and free several recruits. The squad fires automatically, faster as it grows. Monsters charge at the squad once they spot it, and a horde guards the boss. Each level ends with a boss that stomps toward the squad, slamming the ground and summoning minions on the way, then tramples it on arrival; its health bar must be emptied first. A squad that never steers runs into a centre wall or through the worse door, which sits on the right more often than not, so standing still loses (`tests/crowd-core.test.ts` checks this for levels 1–15). There is no last level: layouts keep generating, and difficulty stops rising after about level 20.
+
+Levels are generated from the level number, so every player sees the same layout. Difficulty follows an estimate of a sensible player's squad size, and `tests/crowd-core.test.ts` plays levels 1–15 with a simple autopilot to keep them winnable and checks that always taking the worse gate loses. Sound effects are synthesized with Web Audio. Reached level, furthest cleared level and the sound setting are stored only on the device (`dingn.crowd.*`); nothing is sent to the server and no XP is awarded. Rules live in `src/game/crowd-core.ts`, separate from rendering in `src/components/crowd-game.tsx`.
+
+The game rules live in `src/game/crowd-core.ts`, separate from the view, and are tested on their own. Saved progress and the sound setting are kept in `localStorage`. The runners (an infantry rifleman, recoloured blue or red per side), the orc brutes and the boss are free [Polyfork](https://polyfork.dev) models used under CC BY 4.0; the files and their credits are in `public/models/crowd/` (`CREDITS.md`). A skinned mesh can't be instanced, so `src/game/crowd-models.ts` poses the rifleman and the orc with the game's own run and walk cycles and bakes each pose into a plain geometry; every runner on the same frame of the cycle then shares one `InstancedMesh` draw call. The boss is a T-Rex that plays its own Walk and Idle clips as it closes in and lunges with its jaw open when it slams. Slimes, the road, scenery and the code-built fallback characters (shown until the models load, or if they fail to) are built in code in `src/game/crowd-scene.ts`. three.js is loaded only on that page. If the browser can't create a WebGL context, the page says so and links back to the games. On phones, dragging anywhere on the stage steers without scrolling or zooming the page. The stage fills the screen in portrait and landscape and scrolls fully into view when a level starts. Touch devices get a lighter renderer: no MSAA, a pixel ratio capped at 1.5 and a smaller shadow map. On any device the resolution drops a step while frames run under about 40 fps and comes back once they recover.

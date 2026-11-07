@@ -1,25 +1,29 @@
 "use client";
+import { useLocale } from "@/components/locale";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "./session";
 import { readFeedbackPage, type FeedbackCursor } from "@/lib/admin-feedback";
 
 export function AdminFeedback() {
+  const { t, locale } = useLocale();
+
   const { user, ready, isAdmin } = useSession();
   if (!ready)
     return (
       <div className="center-page">
-        <p role="status">Checking access…</p>
+        <p role="status">{t("Checking access…")}</p>
       </div>
     );
   if (!user)
     return (
       <div className="center-page">
         <section className="panel signin-panel">
-          <h1>Admin sign-in</h1>
-          <p>Sign in with an account that has admin access.</p>
+          <h1>{t("Admin sign-in")}</h1>
+          <p>{t("Sign in with an account that has admin access.")}</p>
           <Link className="button" href="/signin/?next=%2Fadmin%2Ffeedback%2F">
-            Sign in
+            {t("Sign in")}
           </Link>
         </section>
       </div>
@@ -28,9 +32,9 @@ export function AdminFeedback() {
     return (
       <div className="center-page">
         <section className="panel signin-panel">
-          <h1>Admin access required</h1>
-          <p>Your account does not have permission to view feedback.</p>
-          <Link href="/">Back to games</Link>
+          <h1>{t("Admin access required")}</h1>
+          <p>{t("Your account does not have permission to view feedback.")}</p>
+          <Link href="/">{t("Back to games")}</Link>
         </section>
       </div>
     );
@@ -38,6 +42,8 @@ export function AdminFeedback() {
 }
 
 function Inbox() {
+  const { t, locale } = useLocale();
+
   const { user, profile } = useSession();
   const [cursors, setCursors] = useState<(FeedbackCursor | undefined)[]>([
     undefined,
@@ -68,8 +74,8 @@ function Inbox() {
     <div className="container admin-feedback">
       <div className="practice-toolbar">
         <div>
-          <h1>Feedback inbox</h1>
-          <p>Newest submissions first · Page {page + 1}</p>
+          <h1>{t("Feedback inbox")}</h1>
+          <p>{t(`Newest submissions first · Page ${page + 1}`)}</p>
         </div>
         <button
           className="secondary-button"
@@ -79,29 +85,31 @@ function Inbox() {
             setRefresh((n) => n + 1);
           }}
         >
-          Refresh
+          {t("Refresh")}
         </button>
       </div>
       {error ? (
         <p role="alert">
-          Couldn’t load feedback. Check your admin access and try Refresh.
+          {t(
+            "Couldn’t load feedback. Check your admin access and try Refresh.",
+          )}
         </p>
       ) : !result ? (
-        <p role="status">Loading feedback…</p>
+        <p role="status">{t("Loading feedback…")}</p>
       ) : result.items.length === 0 ? (
-        <p role="status">No feedback on this page.</p>
+        <p role="status">{t("No feedback on this page.")}</p>
       ) : (
         <div className="feedback-list">
           {result.items.map((item) => (
             <article className="panel" key={item.id}>
               <p className="eyebrow">
-                {item.status} ·{" "}
+                {t(item.status)} ·{" "}
                 {item.createdAt ? (
                   <time dateTime={item.createdAt}>
-                    {new Date(item.createdAt).toLocaleString()}
+                    {new Date(item.createdAt).toLocaleString(locale)}
                   </time>
                 ) : (
-                  "Date unavailable"
+                  t("Date unavailable")
                 )}
               </p>
               <p className="feedback-message">{item.message}</p>
@@ -110,7 +118,7 @@ function Inbox() {
                   (item.uid === user?.uid
                     ? profile?.userName || user.displayName || user.email
                     : "") ||
-                  "Name not set"}
+                  t("Name not set")}
               </p>
             </article>
           ))}
@@ -122,7 +130,7 @@ function Inbox() {
           disabled={page === 0 || !result}
           onClick={() => setPage((n) => n - 1)}
         >
-          Newer
+          {t("Newer")}
         </button>
         <button
           className="secondary-button"
@@ -136,7 +144,7 @@ function Inbox() {
             setPage((n) => n + 1);
           }}
         >
-          Older
+          {t("Older")}
         </button>
       </div>
     </div>

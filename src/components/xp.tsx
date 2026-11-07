@@ -1,4 +1,6 @@
 "use client";
+import { useLocale } from "@/components/locale";
+
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "./session";
@@ -91,64 +93,70 @@ export function XpSummary({
   signedIn: boolean;
   returnTo: string;
 }) {
+  const { t, locale } = useLocale();
+
   if (!signedIn)
     return (
       <p className="xp-note">
         <Link href={`/signin/?next=${encodeURIComponent(returnTo)}`}>
-          Sign in
+          {t("Sign in")}
         </Link>{" "}
-        to earn XP and join the leaderboard.
+        {t("to earn XP and join the leaderboard.")}
       </p>
     );
   if (outcome.kind === "saving")
-    return <p className="xp-note">Scoring your game…</p>;
+    return <p className="xp-note">{t("Scoring your game…")}</p>;
   if (outcome.kind === "error")
-    return <p className="xp-note muted">{outcome.message}</p>;
+    return <p className="xp-note muted">{t(outcome.message)}</p>;
   if (outcome.kind !== "done") return null;
   const r = outcome.result;
   const span = Math.max(1, r.next - r.floor);
   return (
     <div className="xp-summary">
-      <div className="xp-gain">+{r.xpGained} XP</div>
+      <div className="xp-gain">{t(`+${r.xpGained} XP`)}</div>
       <div className="xp-level">
-        <span>Level {r.level}</span>
+        <span>{t(`Level ${r.level}`)}</span>
         <div
           className="xp-bar"
           role="progressbar"
-          aria-label="Progress to next level"
+          aria-label={t("Progress to next level")}
           aria-valuemin={0}
           aria-valuemax={span}
           aria-valuenow={r.xp - r.floor}
         >
           <span style={{ width: `${((r.xp - r.floor) / span) * 100}%` }} />
         </div>
-        <small>
-          {r.xp} / {r.next} XP
-        </small>
+        <small>{t(`${r.xp} / ${r.next} XP`)}</small>
       </div>
       <p className="xp-tags">
-        {r.streak > 1 && <span>🔥 {r.streak}-day streak</span>}
-        {r.newBest && <span>New best!</span>}
-        {r.capped && <span>Daily XP cap reached</span>}
+        {r.streak > 1 && <span>{t(`🔥 ${r.streak}-day streak`)}</span>}
+        {r.newBest && <span>{t("New best!")}</span>}
+        {r.capped && <span>{t("Daily XP cap reached")}</span>}
       </p>
     </div>
   );
 }
 
 export function LevelBadge() {
+  const { t, locale } = useLocale();
+
   const { stats } = useSession();
   if (!stats) return null;
   return (
     <span
       className="level-badge"
-      title={`${stats.xp} XP${stats.streak > 1 ? ` · ${stats.streak}-day streak` : ""}`}
+      title={t(
+        `${stats.xp} XP${stats.streak > 1 ? ` · ${stats.streak}-day streak` : ""}`,
+      )}
     >
-      Lv {stats.level}
+      {t(`Lv ${stats.level}`)}
     </span>
   );
 }
 
 export function Leaderboard({ title = "Top players" }: { title?: string }) {
+  const { t, locale } = useLocale();
+
   // Refetch whenever this player's XP changes so fresh scores show up.
   const xp = useSession().stats?.xp;
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
@@ -167,23 +175,25 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
     };
   }, [xp]);
   return (
-    <section className="leaderboard" id="leaderboard" aria-label={title}>
-      <p className="eyebrow">Leaderboard</p>
-      <h2>{title}</h2>
+    <section className="leaderboard" id="leaderboard" aria-label={t(title)}>
+      <p className="eyebrow">{t("Leaderboard")}</p>
+      <h2>{t(title)}</h2>
       {failed ? (
-        <p className="muted">The leaderboard isn’t available right now.</p>
+        <p className="muted">
+          {t("The leaderboard isn’t available right now.")}
+        </p>
       ) : !entries ? (
-        <p className="muted">Loading…</p>
+        <p className="muted">{t("Loading…")}</p>
       ) : !entries.length ? (
-        <p className="muted">No scores yet. Sign in and be the first.</p>
+        <p className="muted">{t("No scores yet. Sign in and be the first.")}</p>
       ) : (
         <ol>
           {entries.map((e, i) => (
             <li key={i}>
               <span className="rank">{i + 1}</span>
               <span className="name">{e.name}</span>
-              <span className="lv">Lv {e.level}</span>
-              <span className="pts">{e.xp} XP</span>
+              <span className="lv">{t(`Lv ${e.level}`)}</span>
+              <span className="pts">{t(`${e.xp} XP`)}</span>
             </li>
           ))}
         </ol>
