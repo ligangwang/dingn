@@ -142,7 +142,7 @@ select {
 }
 .arena-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
 .arena {
@@ -200,6 +200,17 @@ select {
 }
 .decision-arena .arena-symbol {
   color: #ffc49d;
+}
+.pop-arena {
+  background: linear-gradient(150deg, #1d3a44, #17212a);
+}
+.pop-arena .arena-symbol {
+  color: #8fe3ff;
+}
+@media (max-width: 1040px) and (min-width: 761px) {
+  .arena-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 .warmup {
   margin: 50px 0;
@@ -982,74 +993,6 @@ nav > a.account-link:hover {
   opacity: 0;
   cursor: pointer;
 }
-.morrow-feature {
-  display: flex;
-  gap: 40px;
-  align-items: center;
-  padding: 48px;
-  margin: 0 0 64px;
-  border-radius: 28px;
-  border: 1px solid #445065;
-  background: radial-gradient(ellipse at 10% 50%, #283c41, #171d2b 65%);
-}
-.morrow-emblem {
-  width: 160px;
-  height: 200px;
-  flex-shrink: 0;
-  border: 1px solid #86b9a7;
-  border-radius: 80px 80px 24px 24px;
-  display: grid;
-  place-items: center;
-  box-shadow:
-    inset 0 0 60px #87cfaa22,
-    0 0 80px #87cfaa11;
-}
-.morrow-emblem span {
-  font-size: 76px;
-  color: #e4efb3;
-  text-shadow: 0 0 35px #c5ff9c;
-}
-.morrow-copy {
-  min-width: 0;
-}
-.morrow-copy h1,
-.morrow-copy h2 {
-  margin: 12px 0;
-}
-.morrow-copy h1 {
-  font-size: clamp(36px, 6vw, 64px);
-}
-.morrow-copy h2 {
-  font-size: 36px;
-}
-.morrow-copy .morrow-subtitle {
-  margin-top: 0;
-  color: #acbcb9;
-  letter-spacing: 0.12em;
-}
-.morrow-copy > p {
-  line-height: 1.8;
-}
-.morrow-copy > .button {
-  margin-top: 16px;
-}
-.morrow-copy > .quiet-link {
-  display: inline-block;
-  margin: 20px;
-}
-.morrow-pillars {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin: 32px 0;
-}
-.morrow-pillars h2 {
-  font-size: 18px;
-}
-.morrow-pillars > div {
-  border-top: 1px solid #445065;
-  padding: 20px 0;
-}
 html[lang="zh-CN"] body {
   font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
 }
@@ -1064,22 +1007,6 @@ html[lang="zh-CN"] .eyebrow {
   .site-header nav {
     width: 100%;
     justify-content: space-between;
-  }
-  .morrow-feature {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 28px;
-    gap: 24px;
-  }
-  .morrow-emblem {
-    width: 80px;
-    height: 96px;
-  }
-  .morrow-emblem span {
-    font-size: 40px;
-  }
-  .morrow-pillars {
-    grid-template-columns: 1fr;
   }
 }
 
