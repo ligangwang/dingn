@@ -354,5 +354,10 @@
   "Progress is saved on this device only.": "进度只保存在这台设备上。",
   "Furthest level cleared: {0}": "最远通关：第 {0} 关",
   "Monsters roam the road and the boss keeps calling more. Shoot them before they bite.": "路上有小怪游荡，大魔王还会不停召唤新的小怪。在它们咬到你之前把它们打掉。",
-  "Every gate has two doors that look alike. Do the maths and take the one that leaves you more people.": "每道关口有两扇颜色一样的门，算一算，选能让人数更多的那扇。"
+  "Every gate has two doors that look alike. Do the maths and take the one that leaves you more people.": "每道关口有两扇颜色一样的门，算一算，选能让人数更多的那扇。",
+  "Your answers": "你的答案",
+  "correct": "答对",
+  "missed": "答错",
+  "{0} in a row": "连续答对 {0} 题",
+  "Tip: press {0} to answer": "提示：按 {0} 作答"
 }
