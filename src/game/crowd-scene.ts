@@ -62,7 +62,7 @@ const flat = (
 
 /** Formation slot i of n inside an ellipse: a sunflower spiral. */
 function slot(i: number, n: number, rx: number, rz: number) {
-  const r = Math.sqrt((i + 0.5) / n);
+  const r = n === 1 ? 0 : Math.sqrt((i + 0.5) / n);
   const a = i * 2.39996;
   return { x: Math.cos(a) * r * rx, z: Math.sin(a) * r * rz };
 }
