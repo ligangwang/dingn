@@ -342,8 +342,6 @@
   "Steer through the best gates, blast everything in your way, then take down the boss.": "穿过最划算的数字门，射爆挡路的一切，再打倒终点的大魔王。",
   "Crowd Rush. Use the left and right arrow keys to steer. Press Enter to start.": "人潮突击。用左右方向键控制方向，按回车键开始。",
   "Ready to rush?": "准备好冲了吗？",
-  "Drag left and right (or use ← →) to steer.": "左右拖动（或按 ← →）控制方向。",
-  "Your squad fires on its own. Shoot crates for recruits, dodge the walls.": "队伍会自动开火。射开箱子能招到新队员，记得躲开墙。",
   "Start": "开始",
   "Boss down!": "大魔王被打倒了！",
   "{0} of your squad made it.": "你的队伍还剩 {0} 人。",
@@ -353,8 +351,6 @@
   "Pick the bigger gate and shoot the crates for extra recruits.": "选让人数更多的门，再射开箱子招募更多队员。",
   "Progress is saved on this device only.": "进度只保存在这台设备上。",
   "Furthest level cleared: {0}": "最远通关：第 {0} 关",
-  "Monsters roam the road and the boss keeps calling more. Shoot them before they bite.": "路上有小怪游荡，大魔王还会不停召唤新的小怪。在它们咬到你之前把它们打掉。",
-  "Every gate has two doors that look alike. Do the maths and take the one that leaves you more people.": "每道关口有两扇颜色一样的门，算一算，选能让人数更多的那扇。",
   "Your answers": "你的答案",
   "correct": "答对",
   "missed": "答错",
@@ -385,6 +381,5 @@
   "Damage ×{0}": "伤害 ×{0}",
   "Faster fire": "射速提升",
   "Damage {0}, fire rate level {1}": "伤害 {0}，射速等级 {1}",
-  "Shoot the red POWER and blue RATE crates down to zero to upgrade your guns.": "把红色 POWER 箱和蓝色 RATE 箱打到 0，就能升级武器。",
   "3D models by Polyfork (CC BY 4.0)": "3D 模型来自 Polyfork（CC BY 4.0）"
 }
