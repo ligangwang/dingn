@@ -133,14 +133,6 @@
   margin: 0 0 16px;
   color: #c4ccda;
 }
-.crowd-overlay ul {
-  text-align: left;
-  margin: 0 0 20px;
-  padding-left: 20px;
-  color: #c4ccda;
-  font-size: 14px;
-  line-height: 1.6;
-}
 .crowd-actions {
   display: flex;
   gap: 10px;
@@ -204,14 +196,6 @@
   .crowd-overlay h2 {
     font-size: 22px;
     margin: 4px 0 8px;
-  }
-  .crowd-overlay ul {
-    font-size: 13px;
-    line-height: 1.45;
-    margin-bottom: 14px;
-  }
-  .crowd-overlay li + li {
-    margin-top: 4px;
   }
   .crowd-overlay .button,
   .crowd-overlay .secondary-button {
@@ -335,10 +319,5 @@
   .crowd-overlay h2 {
     font-size: 20px;
     margin: 2px 0 6px;
-  }
-  .crowd-overlay ul {
-    font-size: 12px;
-    line-height: 1.4;
-    margin-bottom: 10px;
   }
 }

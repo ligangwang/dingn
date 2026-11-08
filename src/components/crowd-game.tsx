@@ -665,29 +665,6 @@ export function CrowdGame() {
           <div className="crowd-overlay">
             <p className="eyebrow">{t(`Level ${level}`)}</p>
             <h2>{t("Ready to rush?")}</h2>
-            <ul>
-              <li>{t("Drag left and right (or use ← →) to steer.")}</li>
-              <li>
-                {t(
-                  "Every gate has two doors that look alike. Do the maths and take the one that leaves you more people.",
-                )}
-              </li>
-              <li>
-                {t(
-                  "Your squad fires on its own. Shoot crates for recruits, dodge the walls.",
-                )}
-              </li>
-              <li>
-                {t(
-                  "Monsters roam the road and the boss keeps calling more. Shoot them before they bite.",
-                )}
-              </li>
-              <li>
-                {t(
-                  "Shoot the red POWER and blue RATE crates down to zero to upgrade your guns.",
-                )}
-              </li>
-            </ul>
             <button type="button" className="button" onClick={begin}>
               {t("Start")}
             </button>
