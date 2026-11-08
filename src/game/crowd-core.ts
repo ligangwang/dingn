@@ -210,7 +210,9 @@ export function newLevel(level: number): World {
   const pick = <T>(items: T[]) => items[Math.floor(random() * items.length)];
   const int = (lo: number, hi: number) =>
     lo + Math.floor(random() * (hi - lo + 1));
-  const sections = 7 + Math.min(lv, 8);
+  // Difficulty keeps climbing with every level; there is no last level.
+  const hard = lv + 3;
+  const sections = 8 + Math.min(lv, 10);
   const things: Thing[] = [];
   let z = 34;
   let expected = START_COUNT;
@@ -219,8 +221,12 @@ export function newLevel(level: number): World {
   // weapon crates use their own random stream so the rest stays the same
   const upRoll = rng(lv * 31337 + 5);
   let ups = 0;
+  /** Expected damage multiplier from the weapon crates collected so far. */
+  let gun = 1;
+  const gunFor = (n: number) =>
+    (1 + Math.floor(n / 2)) * (1 + 0.35 * Math.ceil(n / 2));
   /** Rough squad size along the track, used to size the monsters. */
-  const checkpoints: { z: number; expected: number }[] = [];
+  const checkpoints: { z: number; expected: number; gun: number }[] = [];
   for (let i = 0; i < sections; i++) {
     // Always open with a gate, never repeat the same obstacle twice in a row.
     const options =
@@ -231,7 +237,7 @@ export function newLevel(level: number): World {
           );
     const kind = pick(options);
     lastKind = kind;
-    checkpoints.push({ z, expected });
+    checkpoints.push({ z, expected, gun });
     if (kind === "gate") {
       // Both doors look the same, so the player has to do the maths. Most
       // pairs are close calls whose winner depends on the squad's size.
@@ -303,7 +309,7 @@ export function newLevel(level: number): World {
       expected = applyOp(expected, good);
       // after each gate, a weapon crate on one side lane: rate, power, ...
       if (i > 0 && ups < 2 + Math.min(3, Math.floor(lv / 3))) {
-        const hp = Math.round(fireRate(expected) * 0.9) + Math.floor(lv / 4);
+        const hp = Math.round(fireRate(expected) * 0.7) + Math.floor(lv / 6);
         things.push({
           kind: "block",
           id: id++,
@@ -317,6 +323,7 @@ export function newLevel(level: number): World {
           dead: false,
         });
         ups++;
+        gun = gunFor(ups);
       }
       z += 30;
     } else if (kind === "crates") {
@@ -331,7 +338,7 @@ export function newLevel(level: number): World {
           Math.max(4, Math.round(expected * (0.18 + random() * 0.12))) + lv;
         // shots are slower now, so crates take fewer hits than they pay
         const hp = Math.max(3, Math.round(value * 0.6));
-        const reward = Math.max(4, Math.round(value * 0.7));
+        const reward = Math.max(3, Math.round(value * 0.5));
         things.push({
           kind: "block",
           id: id++,
@@ -367,7 +374,8 @@ export function newLevel(level: number): World {
     } else {
       const count = Math.max(
         4,
-        Math.round(expected * (0.2 + random() * 0.2)) + Math.min(lv, 4),
+        Math.round(expected * (0.3 + random() * 0.25)) +
+          Math.min(Math.floor(hard / 3), Math.floor(expected / 4)),
       );
       things.push({
         kind: "squad",
@@ -378,7 +386,7 @@ export function newLevel(level: number): World {
         start: count,
         dead: false,
       });
-      expected = Math.max(START_COUNT, expected - Math.floor(count * 0.5));
+      expected = Math.max(START_COUNT, expected - Math.floor(count * 0.6));
       z += 34;
     }
   }
@@ -390,21 +398,29 @@ export function newLevel(level: number): World {
   const busy = things.map((t) => t.z);
   let pack = 0;
   const firstGate = things[0]?.z ?? 30;
-  for (
-    let mz = firstGate + 10;
-    mz < length - BOSS_STOP - 6;
-    mz += 5 + roll() * 3
-  ) {
-    if (busy.some((bz) => Math.abs(bz - mz) < 4) || roll() < 0.08) continue;
+  // Monsters arrive faster at higher levels: the share of the squad's
+  // firepower needed to hold them off keeps climbing, with no cap on the
+  // level (it only levels off near the point where nothing could keep up).
+  const pressure = 0.5 + 0.45 * (1 - 1 / (1 + hard / 12));
+  let mz = firstGate + 10;
+  while (mz < length - BOSS_STOP - 6) {
     const near = [...checkpoints].reverse().find((c) => c.z <= mz);
     const size = Math.max(1, near?.expected ?? START_COUNT);
+    const g = near?.gun ?? 1;
+    const dps = fireRate(size) * g;
+    // the gap that keeps this group's hit points within the pressure budget
+    const gap = (hp: number, closing: number) =>
+      Math.max(1.8, (hp * closing) / (pressure * dps)) * (0.8 + roll() * 0.4);
+    if (busy.some((bz) => Math.abs(bz - mz) < 4)) {
+      mz += 2;
+      continue;
+    }
     pack++;
-    const brute = pack >= 4 && size >= 12;
-    if (brute) pack = 0;
+    const brute = pack >= 4 && size >= 16;
     if (brute) {
-      const hp = Math.min(
-        Math.round(12 + Math.min(lv, 15) * 2),
-        Math.round(size * 0.6) + 4,
+      pack = 0;
+      const hp = Math.round(
+        Math.min(12 + hard * 2, size * 0.45 + 3) * Math.sqrt(g),
       );
       things.push(
         monster(
@@ -413,28 +429,26 @@ export function newLevel(level: number): World {
           (roll() * 2 - 1) * 0.55,
           true,
           hp,
-          Math.min(
-            2 + Math.floor(Math.min(lv, 15) / 5),
-            Math.max(2, Math.floor(size / 6)),
-          ),
-          3 + Math.floor(lv / 2),
+          Math.min(2 + Math.floor(hard / 4), Math.max(2, Math.floor(size / 6))),
+          2 + Math.floor(lv / 3),
           3,
         ),
       );
+      mz += gap(hp, RUN_SPEED + 3);
       continue;
     }
     // small squads meet single slimes; bigger ones meet packs
-    if (size < 6 && roll() < 0.4) continue;
     const n =
-      (size >= 10 ? 2 : 1) +
-      Math.floor(roll() * Math.min(4, 1 + Math.sqrt(size) / 2, 2 + lv / 3));
+      (size >= 10 ? 3 : size >= 4 ? 2 : 1) +
+      Math.floor(roll() * Math.min(6, 1 + Math.sqrt(size) / 2, 2 + hard / 3));
     // many small slimes, so each one is weak
     const hp = Math.max(
       1,
-      Math.min(
-        1 + Math.floor(Math.min(lv, 15) / 6),
-        Math.round(Math.sqrt(size) * 0.35),
-      ),
+      Math.round(Math.min(1 + hard / 8, Math.sqrt(size) * 0.25) * Math.sqrt(g)),
+    );
+    const bite = Math.max(
+      1,
+      Math.min(1 + Math.floor(hard / 8), Math.floor(size / 10)),
     );
     for (let k = 0; k < n; k++)
       things.push(
@@ -444,23 +458,26 @@ export function newLevel(level: number): World {
           (roll() * 2 - 1) * 0.75,
           false,
           hp,
-          1,
+          bite,
           0,
           4.5,
         ),
       );
+    mz += n * 0.9 + gap(hp * n, RUN_SPEED + 4.5);
   }
 
   // A horde guards the boss: rows of monsters charge out to meet the squad.
   const finalSize = Math.max(4, expected);
   const hordeHp = Math.max(
     1,
-    Math.min(3, Math.round(Math.sqrt(finalSize) * 0.3)),
+    Math.round(
+      Math.min(2 + hard / 6, Math.sqrt(finalSize) * 0.3) * Math.sqrt(gun),
+    ),
   );
-  const rows = 3 + Math.min(4, Math.floor(lv / 3));
+  const rows = 3 + Math.min(9, Math.floor(hard / 3));
   for (let r = 0; r < rows; r++) {
     const hz = length - BOSS_STOP - 26 + r * 2.4;
-    const across = 3 + Math.floor(roll() * 3);
+    const across = 3 + Math.floor(roll() * Math.min(5, 2 + hard / 6));
     for (let k = 0; k < across; k++)
       things.push(
         monster(
@@ -481,16 +498,21 @@ export function newLevel(level: number): World {
           hz + 1,
           (roll() * 2 - 1) * 0.4,
           true,
-          Math.min(40, Math.round(finalSize * 0.35) + 6),
-          Math.min(8, Math.max(2, Math.floor(finalSize / 10))),
-          3 + Math.floor(lv / 2),
+          Math.round(
+            Math.min(30 + hard * 2, finalSize * 0.35 + 6) * Math.sqrt(gun),
+          ),
+          Math.min(4 + hard, Math.max(2, Math.floor(finalSize / 8))),
+          2 + Math.floor(lv / 3),
           3,
         ),
       );
   }
   things.sort((a, b) => a.z - b.z);
 
-  const bossHp = Math.round(fireRate(expected) * (7 + Math.min(lv, 20) * 0.3));
+  // seconds of full fire the boss soaks up, assuming every weapon crate
+  const bossHp = Math.round(
+    fireRate(expected) * gun ** 0.9 * (5 + 2 * Math.sqrt(hard)),
+  );
   return {
     level: lv,
     phase: "ready",
@@ -507,10 +529,10 @@ export function newLevel(level: number): World {
       hp: bossHp,
       maxHp: bossHp,
       slam: 2.2,
-      slamEvery: Math.max(1.1, 2 - lv * 0.06),
+      slamEvery: Math.max(0.7, 1.8 - hard * 0.05),
       summon: 1.2,
-      summonEvery: Math.max(1.6, 3 - lv * 0.06),
-      minions: Math.min(5, 2 + Math.floor(lv / 4)),
+      summonEvery: Math.max(1.2, 2.6 - hard * 0.06),
+      minions: Math.min(9, 2 + Math.floor(hard / 3)),
     },
     bullets: [],
     power: 1,
@@ -771,7 +793,7 @@ export function step(w: World, dt: number) {
       w.boss.slam += w.boss.slamEvery;
       const lost = Math.min(
         w.count,
-        2 + Math.ceil(w.count * (trampling ? 0.1 : 0.06)),
+        2 + Math.ceil(w.count * (trampling ? 0.12 : 0.07)),
       );
       w.count -= lost;
       w.events.push({ type: "slam", lost });
@@ -784,8 +806,8 @@ export function step(w: World, dt: number) {
       w.boss.summon += w.boss.summonEvery;
       const hp =
         1 +
-        Math.floor(Math.sqrt(w.count) / 4) +
-        Math.floor(Math.min(w.level, 24) / 8);
+        Math.floor((Math.sqrt(w.count) / 4) * w.power) +
+        Math.floor(w.level / 6);
       for (let k = 0; k < w.boss.minions; k++)
         w.things.push(
           monster(
