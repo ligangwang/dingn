@@ -728,10 +728,7 @@ export function CrowdGame() {
               {t("Sign in to save it across devices.")}
             </Link>
           </>
-        )}{" "}
-        <a href="/models/crowd/CREDITS.md">
-          {t("3D models by Polyfork (CC BY 4.0)")}
-        </a>
+        )}
       </p>
     </div>
   );
