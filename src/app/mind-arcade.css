@@ -912,6 +912,26 @@ nav > a.account-link:hover {
 .ladder-hud [role="timer"] {
   color: #d5ff58;
 }
+.ladder-lives {
+  color: #ff7a8a;
+  letter-spacing: 0.1em;
+}
+/* Long sequences wrap onto several rows of smaller tiles. */
+.ladder .digit-slots.long {
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.ladder .digit-slots.long > span {
+  width: 26px;
+  height: 36px;
+  font-size: 18px;
+  border-radius: 6px;
+}
+.ladder .digit-slots.long > span:nth-child(5n) {
+  margin-right: 6px;
+}
 .ladder-steps {
   list-style: none;
   display: flex;
@@ -942,7 +962,7 @@ nav > a.account-link:hover {
 }
 .ladder .warmup-play input {
   width: 100%;
-  max-width: 300px;
+  max-width: 520px;
   letter-spacing: 0.15em;
 }
 .ladder .ladder-best {

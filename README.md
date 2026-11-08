@@ -229,7 +229,7 @@ Until the IAM binding exists, the games still work, but XP reports "unavailable"
 
 ## Memory Ladder
 
-The homepage memory game has six rounds, beginning with three digits. Correct answers add a digit; mistakes keep the same difficulty with a fresh sequence. Memorization lasts one second per digit, then recall lasts 15 seconds. Free play generates fresh sequences. Daily challenges use a shared UTC date seed and allow replays. Personal longest recall is saved on the device; signed-in completed games receive server-graded XP under the existing daily cap. Shared results contain no sequence answers. This is a casual challenge, not a tamper-proof competition: the browser receives the sequence bank to display it.
+The homepage memory game is a climb from three digits up to 20. Correct answers add a digit; a miss keeps the same length with a fresh sequence and costs one of three lives. The climb ends after the third miss or once 20 digits are recalled. Memorization lasts one second per digit, then recall lasts 15 seconds or 1.5 seconds per digit, whichever is longer. Free play generates fresh sequences. Daily challenges use a shared UTC date seed and allow replays. Personal longest recall is saved on the device; signed-in completed games receive server-graded XP under the existing daily cap. Shared results contain no sequence answers. This is a casual challenge, not a tamper-proof competition: the browser receives the sequence bank to display it.
 
 ## Platform brand and languages
 

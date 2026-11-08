@@ -2,7 +2,14 @@
 // game-api.mjs loads documents, calls these, and writes the results inside a
 // Firestore transaction. Nothing here trusts a score sent by the browser.
 import { readFileSync } from "node:fs";
-import { dailyLadder, scoreLadder } from "../src/data/ladder.mjs";
+import {
+  dailyLadder,
+  LADDER_MAX,
+  LADDER_ROUNDS,
+  LADDER_START,
+  ladderSequences,
+  scoreLadder,
+} from "../src/data/ladder.mjs";
 
 const rounds = JSON.parse(
   readFileSync(new URL("../src/data/mind-games.json", import.meta.url), "utf8"),
@@ -17,8 +24,9 @@ export const MIN_DURATION_MS = {
   warmup: 3000,
   logic: 8000,
   decisions: 8000,
-  ladder: 18000,
-  ladder_daily: 18000,
+  // three quick misses at three digits
+  ladder: 9000,
+  ladder_daily: 9000,
 };
 
 export class GameError extends Error {
@@ -52,11 +60,7 @@ export function newChallenge(game, randomInt) {
     return { sequences: dailyLadder(day), day };
   }
   if (game === "ladder")
-    return {
-      sequences: Array.from({ length: 6 }, () =>
-        Array.from({ length: 8 }, () => randomInt(10)).join(""),
-      ),
-    };
+    return { sequences: ladderSequences(() => randomInt(10)) };
   if (game === "warmup")
     return { digits: Array.from({ length: 3 }, () => randomInt(10)).join("") };
   return { rounds: rounds[game].length };
@@ -76,14 +80,19 @@ export function grade(play, answers) {
   if (play.game === "ladder" || play.game === "ladder_daily") {
     if (
       !Array.isArray(answers) ||
-      answers.length !== 6 ||
-      !answers.every((a) => typeof a === "string" && /^\d{0,8}$/.test(a))
+      answers.length < 1 ||
+      answers.length > LADDER_ROUNDS ||
+      !answers.every(
+        (a) =>
+          typeof a === "string" && a.length <= LADDER_MAX && /^\d*$/.test(a),
+      )
     )
-      throw new GameError(400, "bad_answers", "Submit all six rounds.");
-    return {
-      score: scoreLadder(play.challenge.sequences, answers).score,
-      max: 6,
-    };
+      throw new GameError(400, "bad_answers", "Submit every round you played.");
+    const climb = scoreLadder(play.challenge.sequences, answers);
+    // only a finished climb counts, with no rounds after it ended
+    if (!climb.over || climb.rounds.length !== answers.length)
+      throw new GameError(400, "bad_answers", "Finish the climb first.");
+    return { score: climb.score, max: LADDER_MAX - LADDER_START + 1 };
   }
   if (play.game === "warmup") {
     if (typeof answers !== "string" || !/^\d{3}$/.test(answers))
