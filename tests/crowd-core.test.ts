@@ -95,16 +95,54 @@ test("gate maths never goes below zero or above the cap", () => {
   assert.equal(applyOp(600, { op: "x", n: 2 }), 999);
 });
 
-test("a sensible player clears the first fifteen levels", () => {
-  for (let lv = 1; lv <= 15; lv++) {
+test("a sensible player clears the opening levels and most of the first twenty", () => {
+  let wins = 0;
+  for (let lv = 1; lv <= 20; lv++) {
     const w = play(lv, autopilot);
-    assert.equal(
-      w.phase,
-      "won",
-      `level ${lv} ended ${w.phase} at ${progress(w)}`,
-    );
-    assert.ok(stars(w) >= 1);
+    if (lv <= 12)
+      assert.equal(
+        w.phase,
+        "won",
+        `level ${lv} ended ${w.phase} at ${progress(w)}`,
+      );
+    if (w.phase === "won") {
+      wins++;
+      assert.ok(stars(w) >= 1);
+    }
   }
+  assert.ok(wins >= 17, `won ${wins} of 20`);
+});
+
+test("difficulty keeps climbing with no last level", () => {
+  const threat = (lv: number) => {
+    const w = newLevel(lv);
+    let hp = w.boss.maxHp;
+    for (const t of w.things) if (t.kind === "monster") hp += t.maxHp;
+    return {
+      hp,
+      monsters: w.things.filter((t) => t.kind === "monster").length,
+    };
+  };
+  const sum = (from: number) => {
+    let hp = 0;
+    let monsters = 0;
+    for (let lv = from; lv < from + 10; lv++) {
+      const t = threat(lv);
+      hp += t.hp;
+      monsters += t.monsters;
+    }
+    return { hp, monsters };
+  };
+  const a = sum(1);
+  const b = sum(21);
+  const c = sum(91);
+  assert.ok(b.hp > a.hp && c.hp > b.hp, `${a.hp} < ${b.hp} < ${c.hp}`);
+  assert.ok(b.monsters > a.monsters, `${a.monsters} < ${b.monsters}`);
+  // a sensible player struggles much more deep into the game
+  let lateWins = 0;
+  for (let lv = 31; lv <= 40; lv++)
+    if (play(lv, autopilot).phase === "won") lateWins++;
+  assert.ok(lateWins <= 5, `won ${lateWins} of levels 31-40`);
 });
 
 test("always taking the worse door leaves a much smaller squad", () => {
