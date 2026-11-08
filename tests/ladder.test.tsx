@@ -8,6 +8,7 @@ import {
   screen,
 } from "@testing-library/react";
 import { WarmUp } from "../src/components/warm-up";
+const SEQ = "01234567890123456789";
 const mocks = vi.hoisted(() => ({ begin: vi.fn(), submit: vi.fn() }));
 vi.mock("../src/components/xp", () => ({
   useXpPlay: () => ({ ...mocks, signedIn: true, outcome: { kind: "idle" } }),
@@ -16,7 +17,7 @@ vi.mock("../src/components/xp", () => ({
 beforeEach(() => {
   vi.useFakeTimers();
   localStorage.clear();
-  mocks.begin.mockResolvedValue({ sequences: Array(6).fill("01234567") });
+  mocks.begin.mockResolvedValue({ sequences: Array(20).fill(SEQ) });
   mocks.submit.mockReset();
 });
 afterEach(() => {
@@ -36,33 +37,41 @@ function answer(value: string) {
   fireEvent.change(screen.getByRole("textbox"), { target: { value } });
   fireEvent.click(screen.getByRole("button", { name: /Check answer/ }));
 }
-test("six correct rounds climb from three to eight digits and submit once", async () => {
+test("correct rounds climb from three to twenty digits and submit once", async () => {
   await start();
-  for (let n = 3; n <= 8; n++) {
+  for (let n = 3; n <= 20; n++) {
     expect(
-      screen.getByLabelText(
-        `Remember ${"01234567".slice(0, n).split("").join(", ")}`,
-      ),
+      screen.getByLabelText(`Remember ${SEQ.slice(0, n).split("").join(", ")}`),
     ).toBeTruthy();
     await time(n * 1000);
     expect(screen.queryByLabelText(/^Remember /)).toBeNull();
-    answer("01234567".slice(0, n));
+    answer(SEQ.slice(0, n));
     fireEvent.click(
       screen.getByRole("button", {
-        name: n === 8 ? /See results/ : /Next round/,
+        name: n === 20 ? /See results/ : /Next round/,
       }),
     );
   }
   expect(screen.getByText("Top of the ladder!")).toBeTruthy();
-  expect(mocks.submit).toHaveBeenCalledExactlyOnceWith([
-    "012",
-    "0123",
-    "01234",
-    "012345",
-    "0123456",
-    "01234567",
-  ]);
-  expect(localStorage.getItem("dingn.memory-ladder.best.v1")).toBe("8");
+  expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(
+    Array.from({ length: 18 }, (_, i) => SEQ.slice(0, i + 3)),
+  );
+  expect(localStorage.getItem("dingn.memory-ladder.best.v1")).toBe("20");
+});
+test("three misses end the climb", async () => {
+  await start();
+  for (let miss = 1; miss <= 3; miss++) {
+    expect(screen.getByLabelText(`${4 - miss} of 3 lives left`)).toBeTruthy();
+    await time(3000);
+    answer("999");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: miss === 3 ? /See results/ : /Next round/,
+      }),
+    );
+  }
+  expect(screen.getByText("Your climb is complete.")).toBeTruthy();
+  expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(["999", "999", "999"]);
 });
 test("typing does not reset recall deadline and a miss keeps difficulty", async () => {
   await start();

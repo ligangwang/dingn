@@ -24,8 +24,8 @@ test("all authored game questions, explanations and word choices have Chinese tr
     }
 });
 test("specific sentence templates take priority over generic digit templates", () => {
-  expect(translate("Round 2 / 6 · 4 digits", "zh-CN")).toBe(
-    catalog["Round {0} / 6 · {1} digits"]
+  expect(translate("Round 2 · 4 digits", "zh-CN")).toBe(
+    catalog["Round {0} · {1} digits"]
       .replace("{0}", "2")
       .replace("{1}", "4"),
   );

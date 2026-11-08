@@ -2,10 +2,20 @@
 import { useLocale } from "@/components/locale";
 
 import { useEffect, useRef, useState } from "react";
-import { dailyLadder, scoreLadder } from "@/data/ladder.mjs";
+import {
+  dailyLadder,
+  LADDER_LIVES,
+  LADDER_MAX,
+  ladderSequences,
+  scoreLadder,
+} from "@/data/ladder.mjs";
 import { useXpPlay, XpSummary } from "./xp";
 type Phase = "ready" | "memorize" | "recall" | "round" | "done";
 const bestKey = "dingn.memory-ladder.best.v1";
+/** Rungs marked on the ladder beside the game. */
+const MILESTONES = [3, 5, 8, 10, 12, 15, LADDER_MAX];
+/** Seconds to type the answer: longer sequences get longer. */
+const recallSeconds = (length: number) => Math.max(15, Math.ceil(length * 1.5));
 export function WarmUp() {
   const { t, locale } = useLocale();
 
@@ -31,7 +41,8 @@ export function WarmUp() {
   useEffect(() => {
     try {
       const saved = Number(localStorage.getItem(bestKey));
-      if (Number.isInteger(saved) && saved >= 0 && saved <= 8) setBest(saved);
+      if (Number.isInteger(saved) && saved >= 0 && saved <= LADDER_MAX)
+        setBest(saved);
     } catch {}
   }, []);
   function memorize() {
@@ -45,14 +56,10 @@ export function WarmUp() {
     const challenge = await xp.begin();
     const today = challenge?.day ?? new Date().toISOString().slice(0, 10);
     const random = () =>
-      Array.from(
-        crypto.getRandomValues(new Uint32Array(8)),
-        (n) => n % 10,
-      ).join("");
+      ladderSequences(() => crypto.getRandomValues(new Uint32Array(1))[0] % 10);
     setDay(today);
     setSequences(
-      challenge?.sequences ??
-        (daily ? dailyLadder(today) : Array.from({ length: 6 }, random)),
+      challenge?.sequences ?? (daily ? dailyLadder(today) : random()),
     );
     setAnswers([]);
     setShareMessage("");
@@ -72,11 +79,11 @@ export function WarmUp() {
         localStorage.setItem(bestKey, String(scored.best));
       } catch {}
     }
-    if (next.length === 6) void xp.submit(next);
+    if (scored.over) void xp.submit(next);
   }
   useEffect(() => {
     if (phase !== "memorize" && phase !== "recall") return;
-    const seconds = phase === "memorize" ? length : 15;
+    const seconds = phase === "memorize" ? length : recallSeconds(length);
     deadline.current = Date.now() + seconds * 1000;
     setRemaining(seconds);
     const tick = () => {
@@ -103,7 +110,7 @@ export function WarmUp() {
   }, [phase]);
   const last = result.rounds.at(-1);
   const shareText = t(
-    `Memory Ladder${daily ? ` · ${day} UTC` : ""}: ${result.score}/6 rounds · ${result.best} digits recalled. Can you beat it? https://dingn.com/#warm-up`,
+    `Memory Ladder${daily ? ` · ${day} UTC` : ""}: ${result.best} digits recalled. Can you beat it? https://dingn.com/#warm-up`,
   );
   async function share() {
     try {
@@ -130,16 +137,16 @@ export function WarmUp() {
           </h2>
           <p>
             {t(
-              "Six rounds. Start with three digits. Get them right to add one more. Miss a round? Try a fresh sequence at the same level.",
+              "Start with three digits. Get them right to add one more, all the way up to 20. Miss a round? Try a fresh sequence at the same length. Three misses end the climb.",
             )}
           </p>
-          <p>{t("About two minutes · 15 seconds to answer each round.")}</p>
+          <p>{t("At least 15 seconds to answer each round.")}</p>
           <p className="ladder-best">
             {t("Best on this device:")}{" "}
             {t(best ? `${best} digits` : "Set your first record")}
           </p>
           <ol className="ladder-steps" aria-label={t("Digits to master")}>
-            {[3, 4, 5, 6, 7, 8].map((n) => (
+            {MILESTONES.map((n) => (
               <li key={n} className={result.best >= n ? "cleared" : ""}>
                 {n}
                 <span className="sr-only">
@@ -180,8 +187,13 @@ export function WarmUp() {
           )}
           {(phase === "memorize" || phase === "recall") && (
             <div className="ladder-hud">
-              <span>
-                {t(`Round ${answers.length + 1} / 6 · ${length} digits`)}
+              <span>{t(`Round ${answers.length + 1} · ${length} digits`)}</span>
+              <span
+                className="ladder-lives"
+                aria-label={t(`${result.lives} of ${LADDER_LIVES} lives left`)}
+              >
+                {"♥".repeat(result.lives)}
+                {"♡".repeat(LADDER_LIVES - result.lives)}
               </span>
               <span role="timer" aria-label={t("Seconds remaining")}>
                 {remaining}
@@ -193,7 +205,7 @@ export function WarmUp() {
             <>
               <p role="status">{t("Memorize the sequence.")}</p>
               <div
-                className="digit-slots"
+                className={`digit-slots${length > 10 ? " long" : ""}`}
                 aria-label={t(`Remember ${sequence.split("").join(", ")}`)}
               >
                 {sequence.split("").map((n, i) => (
@@ -247,7 +259,7 @@ export function WarmUp() {
                   )}
                 </p>
                 <div
-                  className="digit-slots ladder-review"
+                  className={`digit-slots ladder-review${last.expected.length > 10 ? " long" : ""}`}
                   aria-label={t("Correct sequence")}
                 >
                   {last.expected.split("").map((n, i) => (
@@ -262,21 +274,21 @@ export function WarmUp() {
                 </div>
                 <p>
                   {t(
-                    answers.length < 6
+                    !result.over
                       ? last.correct
                         ? `Next up: ${length} digits.`
-                        : `Stay with ${length} digits. You’ve got another shot.`
-                      : "Six rounds complete. See how you did.",
+                        : `Stay with ${length} digits. Lives left: ${result.lives}.`
+                      : result.best === LADDER_MAX
+                        ? "You cleared all 20 digits!"
+                        : "That was your last life. See how you did.",
                   )}
                 </p>
               </div>
               <button
                 className="button"
-                onClick={() =>
-                  answers.length === 6 ? setPhase("done") : memorize()
-                }
+                onClick={() => (result.over ? setPhase("done") : memorize())}
               >
-                {t(answers.length === 6 ? "See results →" : "Next round →")}
+                {t(result.over ? "See results →" : "Next round →")}
               </button>
             </>
           )}
@@ -284,19 +296,19 @@ export function WarmUp() {
             <>
               <h3 className="round-result win">
                 {t(
-                  result.score === 6
+                  result.best === LADDER_MAX
                     ? "Top of the ladder!"
                     : "Your climb is complete.",
                 )}
               </h3>
               <p>
                 {t(
-                  `${result.score} / 6 correct · Longest recall: ${result.best} digits`,
+                  `Longest recall: ${result.best} digits · ${result.score} correct rounds`,
                 )}
               </p>
               <p>
                 {t(
-                  result.score
+                  result.score && result.best < LADDER_MAX
                     ? "Ready to take it one digit further?"
                     : "Try saying the digits in small groups, then have another go.",
                 )}
