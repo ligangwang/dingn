@@ -935,6 +935,7 @@ nav > a.account-link:hover {
 .ladder-steps {
   list-style: none;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0;
   margin-top: 24px;
