@@ -96,6 +96,9 @@ footer {
   font-size: 11px;
   padding: 24px;
 }
+footer a {
+  color: inherit;
+}
 .container {
   max-width: 1120px;
   margin: 0 auto;

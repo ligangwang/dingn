@@ -29,7 +29,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Header />
             <main id="main">{children}</main>
             <footer>
-              <Text>dingn · A world of games. A spark of adventure.</Text>
+              <Text>dingn · A world of games. A spark of adventure.</Text> ·{" "}
+              <a href="/models/crowd/CREDITS.md">
+                <Text>Credits</Text>
+              </a>
             </footer>
             <Analytics />
           </SessionProvider>
