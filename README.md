@@ -241,7 +241,7 @@ Names, feedback, saved associations, and English dictionary learning material re
 
 Crowd Rush, a 3D crowd-runner shooter, is published like any outside developer's game. Its code lives in its own repository, [ligangwang/crowdrush](https://github.com/ligangwang/crowdrush). Merging there uploads it to dingn with an upload key, and an admin approves it. It plays at `/play/crowdrush/`. The old `/crowd/` and `/pop/` addresses redirect there permanently.
 
-Players keep their progress from before the move: until Crowd Rush saves something itself, the game bridge reads the old `crowd` game's saves instead, both the device ones and the signed-in account ones (`MIGRATED_FROM` in `src/lib/game-bridge.ts`). The Polyfork model credits stay at `public/models/crowd/CREDITS.md` for the footer link.
+Players keep their progress from before the move: until Crowd Rush saves something itself, the game bridge reads the old `crowd` game's saves instead, both the device ones and the signed-in account ones (`MIGRATED_FROM` in `src/lib/game-bridge.ts`). To copy signed-in players' saves into crowdrush's own field in one go, run the Website workflow by hand with **migration** set to `crowd-progress-dry-run` (counts only), then `crowd-progress` (`scripts/migrate-crowd-progress.mjs`). It never overwrites a crowdrush save and keeps the old fields. Device saves can only move in the browser, so the bridge fallback stays. The Polyfork model credits stay at `public/models/crowd/CREDITS.md` for the footer link.
 
 ## Game platform
 

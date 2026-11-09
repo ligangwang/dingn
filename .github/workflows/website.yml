@@ -21,6 +21,11 @@ on:
       version:
         description: Version for set-live or set-beta (a rollback is set-live with an older version)
         required: false
+      migration:
+        description: One-time data migration to run instead (dry-run only counts)
+        type: choice
+        options: [none, crowd-progress-dry-run, crowd-progress]
+        default: none
 
 permissions:
   contents: read
@@ -42,9 +47,12 @@ jobs:
           BEFORE: ${{ github.event.before }}
           BASE: ${{ github.event.pull_request.base.sha }}
           INPUT_GAME: ${{ inputs.game }}
+          MIGRATION: ${{ inputs.migration }}
         run: |
           all_games() { for d in games/*/; do [ -f "$d/game.json" ] && basename "$d"; done; }
-          if [ "$EVENT" = workflow_dispatch ]; then
+          if [ "$EVENT" = workflow_dispatch ] && [ -n "$MIGRATION" ] && [ "$MIGRATION" != none ]; then
+            site=false; games=""
+          elif [ "$EVENT" = workflow_dispatch ]; then
             if [ -n "$INPUT_GAME" ]; then site=false; games="$INPUT_GAME"; else site=true; games=""; fi
           else
             from="${BASE:-$BEFORE}"
@@ -196,3 +204,33 @@ jobs:
             esac
             printf -- '- `%s`: %s %s\n' "$id" "$ACTION" "$VERSION" >> "$GITHUB_STEP_SUMMARY"
           done
+
+  migrate:
+    name: Migrate data
+    if: github.event_name == 'workflow_dispatch' && inputs.migration != 'none' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      FIREBASE_PROJECT_ID: dingn-193716
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Authenticate with GitHub OIDC
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: dingn-193716
+          workload_identity_provider: projects/211238433635/locations/global/workloadIdentityPools/dingn-github/providers/github
+          service_account: dingn-github-deploy@dingn-193716.iam.gserviceaccount.com
+      - name: Move Crowd Rush progress to crowdrush
+        if: startsWith(inputs.migration, 'crowd-progress')
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.migration }}" = crowd-progress ]; then apply=--apply; else apply=; fi
+          node scripts/migrate-crowd-progress.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
