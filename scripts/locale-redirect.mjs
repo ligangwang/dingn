@@ -19,27 +19,6 @@ export function localizedRedirect(requestUrl) {
   return pathname + url.search;
 }
 
-/** Pages that moved for good, by their path without the /zh prefix. */
-export const MOVED_PAGES = {
-  // Crowd Rush is published as its own game, crowdrush, like any outside
-  // developer's game. /pop/ was its first address.
-  "/crowd/": "/play/crowdrush/",
-  "/pop/": "/play/crowdrush/",
-  "/play/crowd/": "/play/crowdrush/",
-};
-
-/**
- * Where a moved page lives now, keeping the language and the query, or null.
- * The trailing slash is optional.
- */
-export function movedPage(requestUrl) {
-  const url = new URL(requestUrl, "http://localhost");
-  const zh = url.pathname === "/zh" || url.pathname.startsWith("/zh/");
-  const rest = (zh ? url.pathname.slice(3) : url.pathname).replace(/\/?$/, "/");
-  const target = MOVED_PAGES[rest];
-  return target ? `${zh ? "/zh" : ""}${target}${url.search}` : null;
-}
-
 /** Short addresses for the developer pages, on their own (sub)domains. */
 export const DEVELOPER_HOSTS = ["developer.dingn.com", "dev.dingn.com"];
 
