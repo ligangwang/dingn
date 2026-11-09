@@ -8,6 +8,12 @@ import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { database, doc, getDoc, setDoc } from "@/lib/database";
 import {
+  countPlay,
+  reportGame,
+  REPORT_REASONS,
+  type ReportReason,
+} from "@/lib/game-reports";
+import {
   accountProgress,
   handleGameRequest,
   isGameRequest,
@@ -148,6 +154,11 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     return () => window.removeEventListener("message", onMessage);
   }, [game?.id, game?.version]);
 
+  // Count one play each time a game opens, for its developer's stats.
+  useEffect(() => {
+    if (game) countPlay(game.id, game.version);
+  }, [game?.id, game?.version]);
+
   // Tell the game when the player signs in or out.
   const playerKey = JSON.stringify(player);
   const firstPlayer = useRef(true);
@@ -223,6 +234,129 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           onLoad={() => setTimeout(() => setLoaded(true), 4000)}
         />
       </div>
+      <ReportGame game={state.game} signedIn={!!user} />
     </div>
+  );
+}
+
+const REASON_TEXT: Record<ReportReason, string> = {
+  broken: "It does not work",
+  offensive: "It is offensive or not for children",
+  unsafe: "It asks for personal details, or looks like a scam",
+  copyright: "It copies someone else's game or work",
+  other: "Something else",
+};
+
+/** Lets a player tell dingn about a problem with a game. */
+function ReportGame({
+  game,
+  signedIn,
+}: {
+  game: PublishedGame;
+  signedIn: boolean;
+}) {
+  const { t, href } = useLocale();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<ReportReason | "">("");
+  const [details, setDetails] = useState("");
+  const [status, setStatus] = useState<"" | "sending" | "sent" | "failed">("");
+
+  if (status === "sent")
+    return (
+      <p className="play-report" role="status">
+        {t("Thanks. dingn will look at this game.")}
+      </p>
+    );
+  if (!open)
+    return (
+      <p className="play-report">
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => setOpen(true)}
+        >
+          {t("Report a problem with this game")}
+        </button>
+      </p>
+    );
+  if (!signedIn)
+    return (
+      <p className="play-report">
+        {t("Sign in to report a game.")}{" "}
+        <Link
+          href={`${href("/signin/")}?next=${encodeURIComponent(
+            typeof location === "undefined"
+              ? href(`/play/${game.id}/`)
+              : location.pathname + location.search,
+          )}`}
+        >
+          {t("Sign in")}
+        </Link>
+      </p>
+    );
+
+  async function send(event: React.FormEvent) {
+    event.preventDefault();
+    if (!reason) return;
+    setStatus("sending");
+    try {
+      await reportGame({ id: game.id, version: game.version, reason, details });
+      setStatus("sent");
+    } catch {
+      setStatus("failed");
+    }
+  }
+
+  return (
+    <form className="play-report play-report-form" onSubmit={send}>
+      <fieldset>
+        <legend>{t("What is wrong with this game?")}</legend>
+        {REPORT_REASONS.map((value) => (
+          <label key={value}>
+            <input
+              type="radio"
+              name="report-reason"
+              value={value}
+              checked={reason === value}
+              onChange={() => setReason(value)}
+            />{" "}
+            {t(REASON_TEXT[value])}
+          </label>
+        ))}
+      </fieldset>
+      <label htmlFor="report-details">{t("Details (optional)")}</label>
+      <textarea
+        id="report-details"
+        value={details}
+        maxLength={1000}
+        rows={3}
+        onChange={(event) => setDetails(event.target.value)}
+      />
+      {status === "failed" && (
+        <p role="alert" className="error">
+          {t("The report could not be sent. Try again.")}
+        </p>
+      )}
+      <p>
+        <button
+          type="submit"
+          className="button small"
+          disabled={
+            !reason ||
+            (reason === "other" && !details.trim()) ||
+            status === "sending"
+          }
+        >
+          {t("Send report")}
+        </button>{" "}
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setOpen(false)}
+        >
+          {t("Cancel")}
+        </button>
+      </p>
+    </form>
   );
 }

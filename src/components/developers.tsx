@@ -193,15 +193,15 @@ export function Developers() {
       </ol>
       <p>
         {t(
-          "Uploading is open to invited developers for now. Tell us about your game and we will invite you.",
-        )}
+          "Anyone can sign up on My games by accepting the developer agreement.",
+        )}{" "}
+        <Link href={href("/developers/agreement/")}>
+          {t("Read the developer agreement")}
+        </Link>
       </p>
       <p className="dev-actions">
         <Link className="button" href={href("/developers/games/")}>
           {t("My games")}
-        </Link>
-        <Link className="button secondary" href={href("/feedback/")}>
-          {t("Tell us about your game →")}
         </Link>
       </p>
     </div>

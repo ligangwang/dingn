@@ -157,6 +157,19 @@ export const pages = {
         "用 dingn 游戏 SDK 为 dingn 制作网页游戏：入门游戏、SDK 参考和测试游戏的试玩场。",
     },
   },
+  "/developers/agreement/": {
+    index: true,
+    en: {
+      title: "Developer agreement",
+      description:
+        "The terms for publishing a game on dingn: your rights, what games must not do, review and removal.",
+    },
+    zh: {
+      title: "开发者协议",
+      description:
+        "在 dingn 发布游戏的条款：你的权利、游戏不得做的事、审核与下架。",
+    },
+  },
   "/developers/games/": {
     index: false,
     en: { title: "My games" },
@@ -197,6 +210,7 @@ export const sitemapPaths: PagePath[] = [
   "/card/",
   "/feedback/",
   "/developers/",
+  "/developers/agreement/",
 ];
 
 /** Absolute URLs of one page in every language, for hreflang alternates. */

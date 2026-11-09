@@ -104,6 +104,8 @@ export const isPreview = (record, version) =>
 
 /** What the website receives about one game: never the full history. */
 export function publicGame(record, requested) {
+  // A game an admin took down plays nowhere.
+  if (record?.status === "removed") return null;
   const resolved = resolveVersion(record, requested);
   if (!resolved) return null;
   return {
@@ -122,7 +124,8 @@ export function publicGame(record, requested) {
 // ---- Registry storage ----
 
 let adminPromise;
-async function firestore() {
+/** The Admin SDK's Firestore, shared by the platform's server modules. */
+export async function firestore() {
   adminPromise ??= (async () => {
     const { initializeApp, getApps } = await import("firebase-admin/app");
     const { getFirestore } = await import("firebase-admin/firestore");
@@ -260,6 +263,8 @@ async function cached(key, load) {
   return value;
 }
 export const clearRegistryCache = () => cache.clear();
+/** One game's record, from the short cache. */
+export const cachedRecord = (id) => cached(`game:${id}`, () => getRecord(id));
 
 function sendJson(res, status, body, maxAge = 0) {
   res.writeHead(status, {
@@ -306,10 +311,7 @@ export async function handleGames(req, res, pathname) {
     }
     const id = pathname.slice("/api/games/".length).replace(/\/$/, "");
     const requested = url.searchParams.get("v") ?? "";
-    const game = publicGame(
-      await cached(`game:${id}`, () => getRecord(id)),
-      requested,
-    );
+    const game = publicGame(await cachedRecord(id), requested);
     if (!game) return sendJson(res, 404, { error: "not_found" });
     // A pinned version never changes; the live pointer can move at any time.
     return sendJson(
@@ -431,6 +433,14 @@ async function serveGameFile(req, res, pathname) {
     return;
   }
   const { id, version, file } = parsed;
+  if ((await cachedRecord(id))?.status === "removed") {
+    res.writeHead(404, {
+      "Content-Type": "text/plain",
+      "Cache-Control": "no-store",
+    });
+    res.end("Not found");
+    return;
+  }
   // A game page opened on its own in a tab goes to the player page instead,
   // so a game is always shown inside dingn's player, with its notices.
   if (isPage(file) && req.headers["sec-fetch-dest"] === "document") {

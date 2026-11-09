@@ -5,12 +5,17 @@
 // registry as the game's beta. Only an admin making it live publishes it, so
 // every upload is reviewed first.
 //
+// Anyone with a verified email can become a developer on that page by
+// accepting the developer agreement (/developers/agreement/), which sets the
+// claim and records the acceptance in Firestore `developers/{uid}`. An admin
+// who removes a developer also blocks them from signing up again.
+//
 // A game uploaded this way belongs to the developer who first uploaded its
 // id: `owner` on the registry record. Nobody else can upload to it, and games
 // published from the repository (which have no owner) cannot be uploaded to.
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { ApiError, refresh, validateOrigin } from "./api.mjs";
+import { ApiError, readBody, refresh, validateOrigin } from "./api.mjs";
 import { firebaseAuth } from "./games-admin.mjs";
 import {
   addVersion,
@@ -26,11 +31,20 @@ import {
   validateManifest,
 } from "./game-registry.mjs";
 import { ZIP_LIMITS, ZipError, unzip } from "./zip.mjs";
+import { queueMail, reviewers } from "./mail.mjs";
+import { mergeDoc } from "./platform-store.mjs";
+import { playsFor } from "./game-stats.mjs";
 
 export const developerGameRoutes = [
   "/api/developer/games",
   "/api/developer/games/upload",
+  "/api/developer/join",
 ];
+
+/** The developer agreement's version; /developers/agreement/ shows it. */
+export const AGREEMENT_VERSION = "2026-11-09";
+/** How many games one developer can own, and upload in a day. */
+export const LIMITS = { games: 10, uploadsPerDay: 20 };
 
 /** An upload that fails a check, with what to fix in `detail`. */
 export class UploadError extends ApiError {
@@ -95,6 +109,8 @@ export function prepareUpload(zipped) {
  * two developers can never write the same game's files. Throws UploadError.
  */
 export function reserveUpload(record, manifest, developer, now = Date.now()) {
+  if (record?.status === "removed")
+    throw new UploadError(403, "game-removed", manifest.id);
   if (record && record.owner !== developer.uid)
     throw new UploadError(403, "not-your-game", manifest.id);
   if (record?.versions?.[manifest.version])
@@ -116,6 +132,26 @@ export function reserveUpload(record, manifest, developer, now = Date.now()) {
       [manifest.version]: { startedAt: new Date(now).toISOString() },
     },
   };
+}
+
+/**
+ * Checks a developer's upload against LIMITS, given the games they own.
+ * Throws UploadError.
+ */
+export function checkLimits(owned, manifest, developer, now = Date.now()) {
+  if (!owned.some((r) => r.id === manifest.id) && owned.length >= LIMITS.games)
+    throw new UploadError(403, "too-many-games", String(LIMITS.games));
+  const dayAgo = now - 86_400_000;
+  let recent = 0;
+  for (const record of owned) {
+    for (const v of Object.values(record.versions ?? {}))
+      if (v.uploadedBy === developer.uid && Date.parse(v.publishedAt) > dayAgo)
+        recent++;
+    for (const p of Object.values(record.pending ?? {}))
+      if (Date.parse(p.startedAt) > dayAgo) recent++;
+  }
+  if (recent >= LIMITS.uploadsPerDay)
+    throw new UploadError(429, "upload-limit", String(LIMITS.uploadsPerDay));
 }
 
 /** Adds the stored version as the game's beta. */
@@ -178,10 +214,12 @@ async function saveFile(id, version, name, data) {
 }
 
 /** What a developer sees about one of their games. */
-export function developerGame(record) {
+export function developerGame(record, plays = null) {
   return {
     id: record.id,
     status: record.status ?? "unlisted",
+    removedReason: record.removedReason ?? null,
+    plays,
     live: record.live ?? null,
     beta: record.beta ?? null,
     versions: Object.entries(record.versions ?? {})
@@ -190,6 +228,7 @@ export function developerGame(record) {
         title: v.title,
         publishedAt: v.publishedAt ?? null,
         reviewed: !isPreview(record, v),
+        rejected: v.rejectReason ?? null,
       }))
       .sort((a, b) => compareVersions(b.version, a.version)),
   };
@@ -217,22 +256,52 @@ function send(res, status, body) {
 }
 
 /**
+ * Makes the signed-in account a developer once it accepts the agreement.
+ * `users` is the Admin SDK's auth.
+ */
+async function join(claims, body, users) {
+  if (body.agree !== true || body.agreement !== AGREEMENT_VERSION)
+    throw new ApiError(400, "agreement-required");
+  if (claims.developerBlocked === true)
+    throw new ApiError(403, "developer-blocked");
+  // Review results are emailed, so the address must be the developer's own.
+  if (claims.email_verified !== true || !claims.email)
+    throw new ApiError(403, "email-not-verified");
+  const user = await users.getUser(claims.uid);
+  if (user.customClaims?.developerBlocked === true)
+    throw new ApiError(403, "developer-blocked");
+  await mergeDoc("developers", claims.uid, {
+    email: claims.email,
+    agreement: AGREEMENT_VERSION,
+    agreedAt: new Date().toISOString(),
+  });
+  await users.setCustomUserClaims(claims.uid, {
+    ...user.customClaims,
+    developer: true,
+  });
+  console.log("developer joined", claims.uid);
+}
+
+/**
  * POST /api/developer/games         → { developer, games } for the signed-in account
  * POST /api/developer/games/upload  → a zip body; adds it as the game's beta
+ * POST /api/developer/join          → { agree: true, agreement } signs up
  *
- * `verify`, `exchange` and `save` replace the Admin SDK token check, the
- * session cookie exchange and file storage in tests.
+ * `verify`, `exchange`, `save` and `users` replace the Admin SDK token check,
+ * the session cookie exchange, file storage and user accounts in tests.
  */
 export async function handleDeveloperGames(
   req,
   res,
   pathname,
-  { verify, exchange = refresh, save = saveFile } = {},
+  { verify, exchange = refresh, save = saveFile, users } = {},
 ) {
   try {
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
     const uploading = pathname === "/api/developer/games/upload";
     validateOrigin(req, uploading ? "application/zip" : "application/json");
+    const body =
+      pathname === "/api/developer/join" ? await readBody(req) : null;
     const token = await exchange(req, res);
     let claims;
     try {
@@ -245,13 +314,37 @@ export async function handleDeveloperGames(
     const isDeveloper = claims.developer === true || claims.admin === true;
     const developer = { uid: claims.uid, email: claims.email ?? "" };
 
+    if (body) {
+      if (!isDeveloper)
+        await join(claims, body, users ?? (await firebaseAuth()));
+      return send(res, 200, { developer: true });
+    }
+
     if (!uploading) {
-      if (!isDeveloper) return send(res, 200, { developer: false, games: [] });
-      const games = (await listRecords())
-        .filter((r) => r.owner === developer.uid)
-        .map(developerGame)
-        .sort((a, b) => a.id.localeCompare(b.id));
-      return send(res, 200, { developer: true, games });
+      if (!isDeveloper)
+        return send(res, 200, {
+          developer: false,
+          blocked: claims.developerBlocked === true,
+          emailVerified: claims.email_verified === true,
+          agreement: AGREEMENT_VERSION,
+          games: [],
+        });
+      const owned = (await listRecords()).filter(
+        (r) => r.owner === developer.uid,
+      );
+      const games = (
+        await Promise.all(
+          owned.map(async (r) =>
+            developerGame(r, await playsFor(r.id).catch(() => null)),
+          ),
+        )
+      ).sort((a, b) => a.id.localeCompare(b.id));
+      return send(res, 200, {
+        developer: true,
+        agreement: AGREEMENT_VERSION,
+        limits: LIMITS,
+        games,
+      });
     }
 
     if (!isDeveloper) throw new ApiError(403, "developer-required");
@@ -268,6 +361,12 @@ export async function handleDeveloperGames(
       throw error;
     }
     const { manifest, files } = prepareUpload(zipped);
+    if (claims.admin !== true)
+      checkLimits(
+        (await listRecords()).filter((r) => r.owner === developer.uid),
+        manifest,
+        developer,
+      );
     await updateRecord(manifest.id, (record) =>
       reserveUpload(record, manifest, developer),
     );
@@ -290,6 +389,12 @@ export async function handleDeveloperGames(
       manifest.version,
       developer.uid,
       names.length,
+    );
+    const title = manifest.title.en;
+    await queueMail(
+      reviewers(),
+      `dingn: ${title} ${manifest.version} is waiting for review`,
+      `${developer.email || developer.uid} uploaded ${title} (${manifest.id}) ${manifest.version}.\n\nTry it: https://dingn.com/play/${manifest.id}/?v=${manifest.version}\nReview it: https://dingn.com/admin/games/`,
     );
     return send(res, 200, {
       game: developerGame(record),

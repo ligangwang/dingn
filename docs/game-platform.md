@@ -89,11 +89,25 @@ runs a game from any http(s) address, such as a developer's
 SDK calls through the same bridge, with a test player and storage that lasts
 until the page closes, and logs every call.
 
-### Uploads by invited developers
+### Signing up
 
-Admins invite a developer on `/admin/games/` (Developers), which gives the
-account the `developer: true` claim. The developer uploads a zip of their
-built game on `/developers/games/` (`scripts/developer-games.mjs`):
+Anyone signed in with a verified email (a Google account, for example) can
+become a developer on `/developers/games/` by accepting the developer
+agreement (`/developers/agreement/`). That sets the `developer: true` claim
+and records the acceptance in Firestore `developers/{uid}` (agreement
+version and time). Admins can also add a developer by email on
+`/admin/games/` (Developers). Removing one there sets `developerBlocked`, so
+they cannot sign up again by themselves.
+
+The agreement's version is `AGREEMENT_VERSION` in both
+`scripts/developer-games.mjs` and `src/components/developer-agreement.tsx`;
+change both together (a test checks they match). The text is plain-language
+terms, not reviewed by a lawyer.
+
+### Uploads
+
+The developer uploads a zip of their built game on `/developers/games/`
+(`scripts/developer-games.mjs`):
 
 1. The zip is checked: at most 20 MB zipped, 50 MB unpacked and 1000 files;
    `game.json` and the entry page at the top (or inside one folder); only web
@@ -110,6 +124,52 @@ new game has no live version, so only its `?v=` links play it. Game pages
 opened directly at `/g/…` redirect to the player, so a game always appears
 inside dingn's player with its notices.
 
+Limits (`LIMITS`): a developer can own 10 games and upload 20 versions in
+24 hours. Admins have no limits.
+
+### Review queue
+
+`/admin/games/` lists uploads waiting for review. **Approve** makes the
+version live (and marks it reviewed); **Send back** asks for a reason, clears
+the beta and shows the reason to the developer on `/developers/games/`.
+
+### Reports and take-down
+
+Signed-in players can report a game from its player page (reason and
+optional details, 10 reports an hour per account), stored in Firestore
+`gameReports`. Open reports appear on `/admin/games/`, where an admin
+dismisses one or takes the game down. **Take down** (also on each game's
+card) asks for a reason and sets the game's status to `removed`: its player
+page, API and files answer 404 and it cannot be uploaded to. **Restore**
+brings it back, unlisted.
+
+### Play counts
+
+The player page counts a play each time a game opens
+(`POST /api/game-plays`). Each server instance adds them up and writes them to
+Firestore `gameStats/{id}` (a total and a count per UTC day) about once a
+minute. Developers see the last 7 days, 30 days and total on
+`/developers/games/`, and admins on `/admin/games/`.
+
+### Emails
+
+Developers get an email when a version is approved, sent back, taken down or
+restored, and reviewers get one for every upload and report. Emails are
+queued in Firestore `mail` in the format of Firebase's **Trigger Email from
+Firestore** extension, which sends them once it is installed with an SMTP
+account (Firebase console → Extensions). Until then they stay queued.
+Reviewers are the addresses in the `REVIEW_EMAIL` setting (comma-separated),
+set once on the Cloud Run service; deploys keep it:
+
+```sh
+gcloud run services update dingn-web --region us-central1 \
+  --update-env-vars REVIEW_EMAIL=you@example.com
+```
+
+The new Firestore collections (`developers`, `gameReports`, `gameStats`,
+`mail`) are server-only: `firestore.rules` denies browsers every read and
+write, so deploy the rules with `firebase deploy --only firestore:rules`.
+
 The website's runtime account needs two extra roles for uploads, granted
 once:
 
@@ -123,8 +183,8 @@ gcloud projects add-iam-policy-binding dingn-193716 \
 ```
 
 The first lets the server store uploaded files. The second lets admins grant
-developer access. Writing the registry uses the account's existing
-Firestore access.
+developer access, including self sign-up. Writing the registry and the
+platform's other collections uses the account's existing Firestore access.
 
 ## Writing a game
 

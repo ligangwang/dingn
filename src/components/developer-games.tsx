@@ -1,15 +1,18 @@
 "use client";
-// /developers/games/: where invited developers upload their games. An upload
-// becomes the game's beta, a preview that goes live once an admin makes it
-// live on /admin/games/ (scripts/developer-games.mjs).
+// /developers/games/: where developers sign up (accepting the developer
+// agreement) and upload their games. An upload becomes the game's beta, a
+// preview that goes live once an admin makes it live on /admin/games/
+// (scripts/developer-games.mjs).
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale } from "./locale";
 import { useSession } from "./session";
 import {
+  joinDevelopers,
   listMyGames,
   uploadGame,
   type DeveloperGame,
+  type MyGames as MyGamesResult,
   type UploadResult,
 } from "@/lib/developer-games";
 
@@ -35,6 +38,11 @@ const PROBLEMS: Record<string, string> = {
   "upload-in-progress":
     "An upload of this version is still running. Try again in a few minutes.",
   "developer-required": "Your account cannot upload games yet.",
+  "too-many-games":
+    "You have reached the limit of 10 games. Ask us if you need more.",
+  "upload-limit":
+    "You have reached today's limit of 20 uploads. Try again tomorrow.",
+  "game-removed": "dingn took this game down, so it cannot be updated.",
 };
 
 export function DeveloperGames() {
@@ -66,7 +74,8 @@ export function DeveloperGames() {
 function MyGames() {
   const { t, href, locale } = useLocale();
   const [state, setState] = useState<
-    | { status: "loading" | "error" | "invite" }
+    | { status: "loading" | "error" }
+    | { status: "join"; result: MyGamesResult }
     | { status: "ready"; games: DeveloperGame[] }
   >({ status: "loading" });
   const [file, setFile] = useState<File | null>(null);
@@ -74,17 +83,18 @@ function MyGames() {
   const [problem, setProblem] = useState("");
   const [done, setDone] = useState<UploadResult | null>(null);
 
-  useEffect(() => {
+  function load() {
     listMyGames()
       .then((result) =>
         setState(
           result.developer
             ? { status: "ready", games: result.games }
-            : { status: "invite" },
+            : { status: "join", result },
         ),
       )
       .catch(() => setState({ status: "error" }));
-  }, []);
+  }
+  useEffect(load, []);
 
   async function upload(event: React.FormEvent) {
     event.preventDefault();
@@ -146,22 +156,8 @@ function MyGames() {
           {t("Games could not be loaded. Try again.")}
         </p>
       )}
-      {state.status === "invite" && (
-        <>
-          <p>
-            {t(
-              "Uploading games is open to invited developers for now. Tell us about your game and we will invite you.",
-            )}
-          </p>
-          <p className="dev-actions">
-            <Link className="button" href={href("/feedback/")}>
-              {t("Tell us about your game →")}
-            </Link>
-            <Link className="button secondary" href={href("/developers/")}>
-              {t("Read the developer guide")}
-            </Link>
-          </p>
-        </>
+      {state.status === "join" && (
+        <Join result={state.result} onJoined={load} />
       )}
       {state.status === "ready" && (
         <>
@@ -221,6 +217,18 @@ function MyGames() {
               <h3 id={`dev-game-${game.id}`}>
                 {titleOf(game)} <code>{game.id}</code>
               </h3>
+              {game.status === "removed" && (
+                <p className="dev-problem" role="note">
+                  {t("dingn took this game down:")} {game.removedReason}
+                </p>
+              )}
+              {game.plays && (
+                <p className="dev-plays">
+                  {t(
+                    `Plays: ${game.plays.week} this week, ${game.plays.month} in 30 days, ${game.plays.total} in all`,
+                  )}
+                </p>
+              )}
               <div className="dev-table-wrap">
                 <table className="dev-table">
                   <thead>
@@ -239,9 +247,11 @@ function MyGames() {
                         <td>
                           {v.version === game.live
                             ? t("Live")
-                            : v.reviewed
-                              ? t("Reviewed")
-                              : t("Waiting for review")}
+                            : v.rejected
+                              ? `${t("Needs changes:")} ${v.rejected}`
+                              : v.reviewed
+                                ? t("Reviewed")
+                                : t("Waiting for review")}
                         </td>
                         <td>
                           <a
@@ -262,5 +272,85 @@ function MyGames() {
         </>
       )}
     </div>
+  );
+}
+
+/** Signing up: accept the developer agreement to start uploading. */
+function Join({
+  result,
+  onJoined,
+}: {
+  result: MyGamesResult;
+  onJoined: () => void;
+}) {
+  const { t, href } = useLocale();
+  const [agreed, setAgreed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState("");
+
+  if (result.blocked)
+    return (
+      <p>
+        {t(
+          "Your account can no longer upload games. If you think this is a mistake, tell us.",
+        )}{" "}
+        <Link href={href("/feedback/")}>{t("Contact dingn")}</Link>
+      </p>
+    );
+  if (result.emailVerified === false)
+    return (
+      <p>
+        {t(
+          "To publish games, sign in with an account whose email is verified, such as a Google account. dingn emails you the result of every review.",
+        )}
+      </p>
+    );
+
+  async function join(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setProblem("");
+    try {
+      await joinDevelopers(result.agreement);
+      onJoined();
+    } catch {
+      setProblem(t("Signing up did not work. Try again."));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="dev-join" onSubmit={join}>
+      <h2>{t("Publish your games on dingn")}</h2>
+      <p>
+        {t(
+          "Sign up as a developer to upload games. dingn reviews every version before players see it, and emails you the result. You can have up to 10 games and upload up to 20 versions a day.",
+        )}
+      </p>
+      <label className="dev-agree">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(event) => setAgreed(event.target.checked)}
+        />{" "}
+        {t("I accept the")}{" "}
+        <Link href={href("/developers/agreement/")} target="_blank">
+          {t("developer agreement")}
+        </Link>
+      </label>
+      {problem && (
+        <p role="alert" className="dev-problem">
+          {problem}
+        </p>
+      )}
+      <p className="dev-actions">
+        <button type="submit" className="button" disabled={!agreed || busy}>
+          {busy ? t("Signing up…") : t("Sign up as a developer")}
+        </button>
+        <Link className="button secondary" href={href("/developers/")}>
+          {t("Read the developer guide")}
+        </Link>
+      </p>
+    </form>
   );
 }

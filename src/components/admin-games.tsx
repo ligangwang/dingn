@@ -1,7 +1,8 @@
 "use client";
-// Games admin: every published version of every game, with buttons to make a
-// version live (a release or a rollback), set or clear the beta, and show or
-// hide a game in the catalog. New versions are published from GitHub.
+// Games admin: the review queue of developers' uploads, players' reports, and
+// every published version of every game, with buttons to make a version live
+// (a release, an approval or a rollback), send an upload back, set or clear
+// the beta, show or hide a game in the catalog, and take a game down.
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale } from "./locale";
@@ -9,12 +10,29 @@ import { useSession } from "./session";
 import {
   changeDeveloper,
   changeGame,
+  closeReport,
   listDevelopers,
   listGames,
+  listReports,
   type AdminGame,
   type Developer,
   type GameChange,
+  type Report,
 } from "@/lib/admin-games";
+
+const REASON_LABELS: Record<Report["reason"], string> = {
+  broken: "Does not work",
+  offensive: "Offensive or not for children",
+  unsafe: "Unsafe or a scam",
+  copyright: "Copies someone else's work",
+  other: "Something else",
+};
+
+const titleIn = (game: AdminGame, version: string, zh: boolean) => {
+  const v =
+    game.versions.find((x) => x.version === version) ?? game.versions[0];
+  return v ? (zh ? v.title.zh : v.title.en) : game.id;
+};
 
 export function AdminGames() {
   const { t, href } = useLocale();
@@ -74,11 +92,16 @@ function GameList() {
     try {
       const updated = await changeGame(game.id, change);
       setGames(
-        (list) => list?.map((g) => (g.id === updated.id ? updated : g)) ?? null,
+        (list) =>
+          list?.map((g) =>
+            g.id === updated.id ? { ...updated, plays: g.plays } : g,
+          ) ?? null,
       );
       setNotice(done);
+      return true;
     } catch {
       setError(t("That change could not be saved. Try again."));
+      return false;
     } finally {
       setBusy("");
     }
@@ -102,6 +125,8 @@ function GameList() {
         </p>
       )}
       {!games && !error && <p role="status">{t("Loading games…")}</p>}
+      {games && <ReviewQueue games={games} busy={busy} apply={apply} />}
+      {games && <Reports games={games} busy={busy} apply={apply} />}
       {games?.length === 0 && <p>{t("No games have been published yet.")}</p>}
       {games?.map((game) => (
         <GameCard
@@ -177,7 +202,7 @@ function Developers() {
       <h2 id="admin-developers">{t("Developers")}</h2>
       <p className="admin-game-meta">
         {t(
-          "Invited developers can upload games at /developers/games/. Their uploads wait for you here as betas.",
+          "Developers sign up at /developers/games/ by accepting the developer agreement, or you add them here. Removing one also stops them from signing up again.",
         )}
       </p>
       {message.text && (
@@ -236,6 +261,217 @@ function Developers() {
   );
 }
 
+type Apply = (
+  game: AdminGame,
+  change: GameChange,
+  done: string,
+) => Promise<boolean>;
+
+/** Asks for a reason, which the developer receives by email. */
+function askReason(question: string) {
+  const reason = window.prompt(question)?.trim() ?? "";
+  return reason.slice(0, 500);
+}
+
+/** Developers' uploads that nobody has made live or sent back yet. */
+function ReviewQueue({
+  games,
+  busy,
+  apply,
+}: {
+  games: AdminGame[];
+  busy: string;
+  apply: Apply;
+}) {
+  const { t, locale, href } = useLocale();
+  const zh = locale === "zh-CN";
+  const waiting = games.flatMap((game) =>
+    game.owner && game.status !== "removed"
+      ? game.versions
+          .filter((v) => !v.reviewed && !v.rejected)
+          .map((v) => ({ game, version: v }))
+      : [],
+  );
+  return (
+    <section className="panel admin-game" aria-labelledby="admin-review">
+      <h2 id="admin-review">
+        {t("Waiting for review")} ({waiting.length})
+      </h2>
+      {waiting.length === 0 ? (
+        <p>{t("No uploads are waiting.")}</p>
+      ) : (
+        <ul className="admin-queue">
+          {waiting.map(({ game, version: v }) => {
+            const title = titleIn(game, v.version, zh);
+            return (
+              <li key={`${game.id}@${v.version}`}>
+                <span>
+                  <strong>{title}</strong> <code>{game.id}</code> {v.version} ·{" "}
+                  {game.owner}
+                </span>
+                <span className="admin-version-actions">
+                  <a
+                    href={`${href(`/play/${game.id}/`)}?v=${v.version}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t("Try it")}
+                  </a>
+                  <button
+                    type="button"
+                    className="button small"
+                    disabled={busy === game.id}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          t(`Approve ${title} ${v.version} and make it live?`),
+                        )
+                      )
+                        void apply(
+                          game,
+                          { action: "set-live", version: v.version },
+                          t(`${title} ${v.version} is live.`),
+                        );
+                    }}
+                  >
+                    {t("Approve")}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={busy === game.id}
+                    onClick={() => {
+                      const reason = askReason(
+                        t("What should the developer change?"),
+                      );
+                      if (reason)
+                        void apply(
+                          game,
+                          { action: "reject", version: v.version, reason },
+                          t(`${title} ${v.version} was sent back.`),
+                        );
+                    }}
+                  >
+                    {t("Send back")}
+                  </button>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Players' open reports. */
+function Reports({
+  games,
+  busy,
+  apply,
+}: {
+  games: AdminGame[];
+  busy: string;
+  apply: Apply;
+}) {
+  const { t, locale, href } = useLocale();
+  const [reports, setReports] = useState<Report[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    listReports()
+      .then(setReports)
+      .catch(() => setFailed(true));
+  }, []);
+
+  async function close(report: Report, action: "dismiss" | "resolve") {
+    try {
+      await closeReport(report.id, action);
+      setReports((list) => list?.filter((r) => r.id !== report.id) ?? null);
+    } catch {
+      setFailed(true);
+    }
+  }
+
+  return (
+    <section className="panel admin-game" aria-labelledby="admin-reports">
+      <h2 id="admin-reports">
+        {t("Reports")} ({reports?.length ?? 0})
+      </h2>
+      {failed && (
+        <p role="alert" className="error">
+          {t("Reports could not be loaded. Try again.")}
+        </p>
+      )}
+      {reports?.length === 0 && <p>{t("No open reports.")}</p>}
+      {reports && reports.length > 0 && (
+        <ul className="admin-queue">
+          {reports.map((report) => {
+            const game = games.find((g) => g.id === report.game);
+            const title = game
+              ? titleIn(game, report.version, locale === "zh-CN")
+              : report.game;
+            return (
+              <li key={report.id}>
+                <span>
+                  <strong>{title}</strong> <code>{report.game}</code>{" "}
+                  {report.version} · {t(REASON_LABELS[report.reason])}
+                  {report.details && <> · “{report.details}”</>}
+                  <br />
+                  <small>
+                    {report.reporter} ·{" "}
+                    {new Date(report.createdAt).toLocaleString(
+                      locale === "zh-CN" ? "zh-CN" : "en",
+                    )}
+                  </small>
+                </span>
+                <span className="admin-version-actions">
+                  <a
+                    href={`${href(`/play/${report.game}/`)}?v=${report.version}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t("Try it")}
+                  </a>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => void close(report, "dismiss")}
+                  >
+                    {t("Dismiss")}
+                  </button>
+                  {game && game.status !== "removed" && (
+                    <button
+                      type="button"
+                      className="secondary-button danger"
+                      disabled={busy === game.id}
+                      onClick={async () => {
+                        const reason = askReason(
+                          t("Why is this game being taken down?"),
+                        );
+                        if (
+                          reason &&
+                          (await apply(
+                            game,
+                            { action: "take-down", reason },
+                            t(`${title} was taken down.`),
+                          ))
+                        )
+                          void close(report, "resolve");
+                      }}
+                    >
+                      {t("Take down")}
+                    </button>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function GameCard({
   game,
   busy,
@@ -243,7 +479,7 @@ function GameCard({
 }: {
   game: AdminGame;
   busy: boolean;
-  apply: (game: AdminGame, change: GameChange, done: string) => Promise<void>;
+  apply: Apply;
 }) {
   const { t, locale, href } = useLocale();
   const latest = game.versions[0];
@@ -253,6 +489,7 @@ function GameCard({
       : latest.title.en
     : game.id;
   const listed = game.status === "listed";
+  const removed = game.status === "removed";
   const date = (iso: string | null) =>
     iso
       ? new Date(iso).toLocaleString(locale === "zh-CN" ? "zh-CN" : "en")
@@ -266,28 +503,43 @@ function GameCard({
           <p className="admin-game-meta">
             <code>{game.id}</code> · {t(`Live: ${game.live ?? t("none")}`)} ·{" "}
             {t(`Beta: ${game.beta ?? t("none")}`)} ·{" "}
-            {listed ? t("Shown in the catalog") : t("Hidden from the catalog")}
+            {removed
+              ? t("Taken down")
+              : listed
+                ? t("Shown in the catalog")
+                : t("Hidden from the catalog")}
             {game.owner && <> · {t(`Uploaded by ${game.owner}`)}</>}
+            {game.plays && (
+              <>
+                {" "}
+                ·{" "}
+                {t(
+                  `Plays: ${game.plays.week} this week, ${game.plays.month} in 30 days, ${game.plays.total} in all`,
+                )}
+              </>
+            )}
           </p>
+          {removed && (
+            <p className="error">
+              {t("Taken down:")} {game.removedReason}
+            </p>
+          )}
         </div>
-        <div className="admin-game-actions">
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={busy}
-            onClick={() =>
-              apply(
-                game,
-                { action: listed ? "unlist" : "list" },
-                listed
-                  ? t(`${title} is hidden from the catalog.`)
-                  : t(`${title} is shown in the catalog.`),
-              )
-            }
-          >
-            {listed ? t("Hide from catalog") : t("Show in catalog")}
-          </button>
-          {game.beta && (
+        {removed ? (
+          <div className="admin-game-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={busy}
+              onClick={() =>
+                apply(game, { action: "restore" }, t(`${title} is back.`))
+              }
+            >
+              {t("Restore")}
+            </button>
+          </div>
+        ) : (
+          <div className="admin-game-actions">
             <button
               type="button"
               className="secondary-button"
@@ -295,15 +547,51 @@ function GameCard({
               onClick={() =>
                 apply(
                   game,
-                  { action: "clear-beta" },
-                  t(`${title} has no beta now.`),
+                  { action: listed ? "unlist" : "list" },
+                  listed
+                    ? t(`${title} is hidden from the catalog.`)
+                    : t(`${title} is shown in the catalog.`),
                 )
               }
             >
-              {t("Clear beta")}
+              {listed ? t("Hide from catalog") : t("Show in catalog")}
             </button>
-          )}
-        </div>
+            {game.beta && (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() =>
+                  apply(
+                    game,
+                    { action: "clear-beta" },
+                    t(`${title} has no beta now.`),
+                  )
+                }
+              >
+                {t("Clear beta")}
+              </button>
+            )}
+            <button
+              type="button"
+              className="secondary-button danger"
+              disabled={busy}
+              onClick={() => {
+                const reason = askReason(
+                  t("Why is this game being taken down?"),
+                );
+                if (reason)
+                  void apply(
+                    game,
+                    { action: "take-down", reason },
+                    t(`${title} was taken down.`),
+                  );
+              }}
+            >
+              {t("Take down")}
+            </button>
+          </div>
+        )}
       </div>
       <table className="admin-game-versions">
         <thead>
@@ -329,9 +617,14 @@ function GameCard({
                   {isBeta && (
                     <span className="admin-tag beta">{t("Beta")}</span>
                   )}
-                  {!v.reviewed && (
+                  {!v.reviewed && !v.rejected && (
                     <span className="admin-tag review">
                       {t("Needs review")}
+                    </span>
+                  )}
+                  {v.rejected && (
+                    <span className="admin-tag review" title={v.rejected}>
+                      {t("Sent back")}
                     </span>
                   )}
                 </th>
@@ -344,7 +637,7 @@ function GameCard({
                   >
                     {t("Try it")}
                   </a>
-                  {!isLive && (
+                  {!isLive && !removed && (
                     <button
                       type="button"
                       className="button small"
@@ -365,7 +658,7 @@ function GameCard({
                       {t("Make live")}
                     </button>
                   )}
-                  {!isBeta && !isLive && (
+                  {!isBeta && !isLive && !removed && (
                     <button
                       type="button"
                       className="secondary-button"

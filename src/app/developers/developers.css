@@ -167,3 +167,17 @@
 .dev-game h3 {
   margin-bottom: 4px;
 }
+
+.dev-join {
+  display: grid;
+  gap: 4px;
+  max-width: 680px;
+}
+.dev-agree {
+  display: block;
+  margin: 8px 0;
+}
+.dev-plays {
+  margin: 0 0 8px;
+  opacity: 0.8;
+}
