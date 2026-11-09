@@ -159,3 +159,33 @@ test("feedback uses server timestamp transform and cannot choose upstream host",
   assert.deepEqual(write.currentDocument, { exists: false });
   assert.equal(write.update.fields.createdAt, undefined);
 });
+test("Google sign-in returns the provider photo as the default avatar, but only over https", async () => {
+  stub([
+    { data: { id_token: idToken, refresh_token: "rotated" } },
+    {
+      data: {
+        users: [
+          {
+            localId: "g1",
+            email: "g@example.com",
+            displayName: "Gee",
+            photoUrl: "https://lh3.googleusercontent.com/a/photo",
+          },
+        ],
+      },
+    },
+    { data: { id_token: idToken, refresh_token: "rotated" } },
+    {
+      data: {
+        users: [{ localId: "g2", photoUrl: "javascript:alert(1)" }],
+      },
+    },
+  ]);
+  const google = await request("/api/auth/google", { refreshToken: "r" });
+  assert.equal(
+    google.body.photoURL,
+    "https://lh3.googleusercontent.com/a/photo",
+  );
+  const unsafe = await request("/api/auth/google", { refreshToken: "r" });
+  assert.equal(unsafe.body.photoURL, null);
+});

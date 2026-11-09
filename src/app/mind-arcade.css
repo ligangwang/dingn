@@ -1328,3 +1328,49 @@ html[lang="zh-CN"] .eyebrow {
     margin-left: 0;
   }
 }
+
+/* Avatars: header circle and the account-page picker. */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  line-height: 1;
+  object-fit: cover;
+}
+nav a.account-link:has(.avatar-photo),
+nav a.account-link:has(.avatar-preset) {
+  background: transparent;
+}
+.avatar-picker {
+  margin: 0 0 24px;
+}
+.avatar-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 10px;
+}
+.avatar-option {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid transparent;
+  cursor: pointer;
+  aspect-ratio: 1;
+}
+.avatar-option:hover {
+  border-color: #d5ff5866;
+}
+.avatar-option[aria-pressed="true"] {
+  border-color: #d5ff58;
+  box-shadow: 0 0 0 3px #d5ff5833;
+}
+.avatar-initials {
+  background: #d5ff58;
+  color: #10131c;
+  font-family: var(--font-display);
+  font-weight: 700;
+}

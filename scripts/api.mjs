@@ -89,6 +89,11 @@ async function identity(token) {
     uid: user.localId,
     email: user.email || null,
     displayName: user.displayName || null,
+    // Google (or another provider) profile photo, used as the default avatar.
+    photoURL:
+      typeof user.photoUrl === "string" && user.photoUrl.startsWith("https://")
+        ? user.photoUrl
+        : null,
     isAdmin: claims.admin === true,
   };
 }

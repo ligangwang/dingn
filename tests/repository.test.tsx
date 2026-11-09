@@ -22,10 +22,14 @@ beforeEach(() => {
   sdk.setDoc.mockResolvedValue(undefined);
 });
 it("updates legacy account and favorite documents with merge semantics", async () => {
-  await saveProfile("u1", { userName: "Lee", cardSide: "TwoSides" });
+  await saveProfile("u1", {
+    userName: "Lee",
+    cardSide: "TwoSides",
+    avatar: "owl",
+  });
   expect(sdk.setDoc).toHaveBeenCalledWith(
     "accounts/u1",
-    { user_name: "Lee", card_side: "TwoSides" },
+    { user_name: "Lee", card_side: "TwoSides", avatar: "owl" },
     { merge: true },
   );
   await saveFavorite("u1", "02", "sun");
