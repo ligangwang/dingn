@@ -29,6 +29,8 @@ function PlayerList() {
   const [page, setPage] = useState(0);
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [error, setError] = useState(false);
+  // Bumped by Try again, to load the same page once more.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let current = true;
@@ -47,7 +49,7 @@ function PlayerList() {
       current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, attempt]);
 
   const date = (iso: string | null) =>
     iso
@@ -66,6 +68,7 @@ function PlayerList() {
       .filter(Boolean)
       .join(", ") || t("Player");
   const hasNext = tokens.length > page + 1;
+  const loading = !players && !error;
 
   return (
     <div className="container admin-games">
@@ -78,7 +81,14 @@ function PlayerList() {
       </p>
       {error && (
         <p role="alert" className="error">
-          {t("Players could not be loaded. Try again.")}
+          {t("Players could not be loaded. Try again.")}{" "}
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => setAttempt((n) => n + 1)}
+          >
+            {t("Try again")}
+          </button>
         </p>
       )}
       {!players && !error && <p role="status">{t("Loading players…")}</p>}
@@ -122,7 +132,7 @@ function PlayerList() {
         <button
           type="button"
           className="secondary-button"
-          disabled={page === 0 || !players}
+          disabled={page === 0 || loading}
           onClick={() => setPage(page - 1)}
         >
           {t("Previous")}
@@ -131,7 +141,7 @@ function PlayerList() {
         <button
           type="button"
           className="secondary-button"
-          disabled={!hasNext || !players}
+          disabled={!hasNext || loading}
           onClick={() => setPage(page + 1)}
         >
           {t("Next")}

@@ -77,3 +77,21 @@ it("lists players with their roles and pages forward and back", async () => {
   expect(await screen.findByText("bo@x.com")).toBeTruthy();
   expect(mocks.listPlayers).toHaveBeenLastCalledWith(null);
 });
+
+it("can retry or go back after a page fails to load", async () => {
+  mocks.listPlayers
+    .mockResolvedValueOnce({ players: [player("ada")], next: "p2" })
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce({ players: [player("cy")], next: null });
+  render(<AdminPlayers />);
+  await screen.findByText("ada@x.com");
+  await userEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByRole("alert");
+  expect(
+    (screen.getByRole("button", { name: "Previous" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(await screen.findByText("cy@x.com")).toBeTruthy();
+  expect(mocks.listPlayers).toHaveBeenLastCalledWith("p2");
+});
