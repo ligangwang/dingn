@@ -59,6 +59,12 @@ In CI, merging a change to `games/<id>/` with a new version publishes it as
 live. To ship a beta or roll back without a local `gcloud`, go to Actions →
 Website → Run workflow, and fill in the game id and action.
 
+Admins can also do this on the website at `/admin/games/` (accounts with the
+`admin: true` claim, like the feedback inbox). The page lists every published
+version of each game, with buttons to make a version live (release or roll
+back), set or clear the beta, and show or hide a game in the catalog. It
+cannot upload new versions: those always come from the repository through CI.
+
 ## Trying it locally
 
 ```sh

@@ -3,6 +3,7 @@ import { handleBilling } from "./billing.mjs";
 import { gameRoutes, handleGameApi } from "./game-api.mjs";
 import { localizedRedirect } from "./locale-redirect.mjs";
 import { handleGames, isGamesPath } from "./game-registry.mjs";
+import { adminGameRoutes, handleAdminGames } from "./games-admin.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -36,6 +37,10 @@ http
     const pathname = new URL(req.url, "http://localhost").pathname;
     if (pathname.startsWith("/api/billing/")) {
       void handleBilling(req, res);
+      return;
+    }
+    if (adminGameRoutes.includes(pathname)) {
+      void handleAdminGames(req, res, pathname);
       return;
     }
     if (isGamesPath(pathname)) {

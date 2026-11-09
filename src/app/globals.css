@@ -875,6 +875,62 @@ input[type="radio"] {
   padding-top: 40px;
   padding-bottom: 40px;
 }
+.admin-games {
+  max-width: 960px;
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+.admin-game {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.admin-game-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin-game-head h2 {
+  margin: 0;
+}
+.admin-game-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+.admin-game-actions,
+.admin-version-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.admin-game-versions {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.admin-game-versions th,
+.admin-game-versions td {
+  text-align: left;
+  padding: 8px 6px;
+  border-top: 1px solid var(--line);
+}
+.admin-tag {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.admin-tag.live {
+  background: #d5ff58;
+  color: #172013;
+}
+.admin-tag.beta {
+  background: #ffe08a;
+  color: #3a2c00;
+}
 .feedback-list {
   display: grid;
   gap: 20px;
