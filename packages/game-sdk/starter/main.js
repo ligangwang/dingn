@@ -1,5 +1,6 @@
 // A starter game for dingn. It uses every part of the dingn game SDK:
-// language, player, device storage, account progress, sign-in and ready().
+// language, player, device storage, account progress, badges, sign-in and
+// ready().
 // Change anything you like; keep the connect() call and dingn.ready().
 import { connect } from "https://dingn.com/sdk/v1/dingn-sdk.js";
 
@@ -62,6 +63,10 @@ $("start").onclick = () => {
       if (dingn.player.signedIn)
         await dingn.progress.save({ best }).catch(() => {});
     }
+    // A badge from game.json. dingn shows the "Badge earned" popup and pays
+    // its coins once; signed-out players can't earn badges.
+    if (score >= 30 && dingn.player.signedIn)
+      await dingn.rewards.unlock("taps-30").catch(() => {});
     render();
   }, 5000);
 };

@@ -32,6 +32,7 @@ it("blocks forged purchases, ownership, Stripe records, XP, the game registry an
       "gameReports/report1",
       "gameStats/crowd",
       "mail/mail1",
+      "rewards/alice",
     ]) {
       const ref = doc(ctx.firestore(), path);
       await assertFails(setDoc(ref, { status: "owned" }));

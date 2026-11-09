@@ -30,6 +30,9 @@ signed out, and scores last until the page closes.
   is served from its own folder, not the site root.
 - Save with `dingn.storage` and `dingn.progress`, not `localStorage` or
   cookies, which the dingn sandbox blocks.
+- Award badges and dingn coins: list them under `badges` in `game.json` and
+  call `dingn.rewards.unlock(id)` when a player earns one, for example after
+  passing a level. Each badge pays once per player.
 - Call `dingn.ready()` once the game can be played.
 
 The full guide and SDK reference: <https://dingn.com/developers/>.

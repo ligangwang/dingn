@@ -222,6 +222,7 @@ dingn.locale; // "en" | "zh-CN"
 dingn.player; // { signedIn, name, avatar }
 await dingn.storage.set("best", 12); // this device
 await dingn.progress.save({ level: 3 }); // the player's account (signed in only)
+await dingn.rewards.unlock("level-10"); // a badge from game.json
 dingn.requestSignIn();
 dingn.ready(); // hides the loading screen
 ```
@@ -233,6 +234,42 @@ its pages. It cannot read the website's cookies, storage or page. Use
 game sends is checked by `src/lib/game-bridge.ts`. Keys and sizes are
 limited, and a game can reach only its own storage
 (`dingn.game.<id>.<key>`) and progress (`accounts/{uid}.game_progress_<id>`).
+
+## Badges and coins
+
+Players earn dingn coins and badges for passing levels. Coins are one balance
+for the whole site, shown next to the player's avatar; badges show on the
+game's page and the player's account page. A game lists the badges it can
+award in `game.json`:
+
+```json
+"badges": [
+  { "id": "level-10", "tier": "silver", "level": 10,
+    "title": { "en": "Clear level 10", "zh": "通过第 10 关" } },
+  { "id": "trex", "tier": "gold", "icon": "boss",
+    "title": { "en": "Beat the T-Rex", "zh": "打败霸王龙" } }
+]
+```
+
+- `tier` is `bronze`, `silver`, `gold` or `diamond`. dingn draws the medal:
+  a level badge shows its `level` number, and any other badge shows an `icon`
+  (`boss`, `stars`, `star`, `squad`, `trophy`, `crown`, `bolt`, `heart`,
+  `target` or `clock`).
+- dingn, not the game, sets what a badge pays, by tier and the same in every
+  game: bronze 10 coins, silver 25, gold 50, diamond 100 (`TIER_COINS`).
+  Review checks that a badge's tier matches how hard it is to earn.
+- Up to 50 badges, paying at most 1,000 coins in all.
+- The game calls `dingn.rewards.unlock(id)` when the player earns one. dingn
+  shows a "Badge earned" popup over the game and returns `{ new, coins }`;
+  `new` is false when the player already had it.
+
+Games run in the player's browser, so dingn cannot prove a level was really
+passed. `scripts/rewards.mjs` limits what cheating can win instead: only
+badges in the published `game.json` of the version being played count, each
+pays once per player, coins per game are capped, and a version dingn has not
+reviewed only answers with `test: true` and saves nothing. Each player's coins
+and badges are in Firestore `rewards/{uid}`, which only the server can change.
+To switch a game's rewards off, set `rewards: "off"` on its registry record.
 
 ## One-time Google Cloud setup
 
@@ -253,8 +290,14 @@ gcloud projects add-iam-policy-binding dingn-193716 \
   --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
   --role=roles/datastore.user
 
-# Block browser access to the registry.
-firebase deploy --only firestore:rules --project dingn-193716
+# Let the deploy account upload the Firestore rules: every website deploy
+# (the Deploy Cloud Run job) uploads firestore.rules before the new code.
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
+  --role=roles/firebaserules.admin
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
+  --role=roles/serviceusage.serviceUsageConsumer
 ```
 
 The website's runtime account already reads Firestore, so it needs no change.

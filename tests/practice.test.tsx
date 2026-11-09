@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
+  useOptionalSession: () => mocks.session,
 }));
 vi.mock("../src/lib/repository", () => mocks);
 vi.mock("next/navigation", () => ({

@@ -12,6 +12,8 @@
 //   await dingn.storage.set("best", 12);  // this device only
 //   await dingn.progress.save({ level }); // follows a signed-in player
 //   dingn.requestSignIn();
+//   await dingn.rewards.unlock("level-10"); // a badge from game.json, once
+//   await dingn.rewards.list();           // the game's badges, and which are earned
 //   dingn.navigate("/");                  // leave the game for a dingn page
 //   dingn.ready();                        // hide the website's loading screen
 //
@@ -99,6 +101,10 @@ function connectToHost(host, timeout) {
         load: () => request("progress.load"),
         save: (data) => request("progress.save", { data }),
       },
+      rewards: {
+        unlock: (id) => request("rewards.unlock", { id }),
+        list: () => request("rewards.list"),
+      },
       requestSignIn: () => notify("signIn"),
       navigate: (path) => notify("navigate", { path }),
       ready: () => notify("ready"),
@@ -129,6 +135,7 @@ function standalone() {
       set: async (key, value) => void memory.set(key, JSON.stringify(value)),
     },
     progress: { load: async () => null, save: signedOut },
+    rewards: { unlock: signedOut, list: async () => [] },
     requestSignIn() {},
     navigate(path) {
       location.href = path;

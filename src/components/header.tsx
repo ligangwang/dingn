@@ -13,6 +13,7 @@ import {
 } from "./icons";
 import { LevelBadge } from "./xp";
 import { Avatar } from "./avatar";
+import { CoinCount } from "./rewards";
 export function Header() {
   const { t, href: to } = useLocale();
 
@@ -47,6 +48,7 @@ export function Header() {
         ))}
         {ready && isAdmin && <AdminMenu key={path} path={path} />}
         {ready && user && <LevelBadge />}
+        {ready && user && <CoinCount />}
         <div className="account-controls">
           <LanguageSwitcher />
           {ready && user ? (

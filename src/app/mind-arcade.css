@@ -786,6 +786,76 @@ nav a.account-link:hover {
   padding: 4px 10px;
   white-space: nowrap;
 }
+/* Coins and badges (src/components/rewards.tsx) */
+nav a.coin-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffe08a;
+  border: 1px solid #ffe08a55;
+  border-radius: 20px;
+  padding: 3px 10px 3px 5px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+nav a.coin-count:hover {
+  box-shadow: 0 0 0 3px #ffe08a33;
+}
+/* Narrow menus stack icons over labels; the coin count stays one row. */
+@media (max-width: 620px) {
+  nav > a.coin-count {
+    flex-direction: row;
+    gap: 4px;
+    padding: 3px 8px 3px 4px;
+  }
+}
+/* Phones have no room for it in the menu; the account page shows the coins. */
+@media (max-width: 480px) {
+  nav > a.coin-count {
+    display: none;
+  }
+}
+.coin,
+.badge-medal {
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+}
+.badge-shelf h2 {
+  margin-top: 0;
+}
+.badge-shelf-coins {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.1rem;
+}
+.badge-shelf-coins strong {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+}
+.badge-grid {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 16px;
+}
+.badge-grid li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.badge-grid li a {
+  font-size: 0.8rem;
+}
 .xp-note {
   margin-top: 14px;
   color: #c1c5d2;

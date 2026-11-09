@@ -73,6 +73,7 @@ export function DevPlayground() {
   const counter = useRef(0);
   // The test player's saved data. It lasts until this page closes.
   const storage = useRef(new Map<string, string>());
+  const badges = useRef(new Set<string>());
   const progress = useRef<string | null>(null);
 
   useEffect(() => {
@@ -111,6 +112,7 @@ export function DevPlayground() {
   }
   function clearData() {
     storage.current.clear();
+    badges.current.clear();
     progress.current = null;
     reload();
   }
@@ -137,6 +139,23 @@ export function DevPlayground() {
     signIn: () => setSignedIn(true),
     navigate: () => {},
     ready: () => setReady(true),
+    // The playground has no game.json, so any badge id unlocks once, as a
+    // test that pays nothing and saves nothing.
+    rewards: {
+      unlock: async (id) => {
+        const first = !badges.current.has(id);
+        badges.current.add(id);
+        return { new: first, coins: 0, test: true };
+      },
+      list: async () =>
+        [...badges.current].map((id) => ({
+          id,
+          tier: "bronze",
+          coins: 0,
+          title: id,
+          earned: true,
+        })),
+    },
   };
 
   useEffect(() => {
