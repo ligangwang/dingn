@@ -538,10 +538,16 @@ test("developers upload from scripts and CI with an upload key", async () => {
     ana: { developer: true },
     bob: {},
   };
+  const disabled = new Set();
   const users = {
     async getUser(uid) {
       if (!accounts[uid]) throw new Error("not found");
-      return { uid, email: `${uid}@example.com`, customClaims: accounts[uid] };
+      return {
+        uid,
+        email: `${uid}@example.com`,
+        customClaims: accounts[uid],
+        disabled: disabled.has(uid),
+      };
     },
   };
   const ana = { uid: "ana", email: "ana@example.com", developer: true };
@@ -617,6 +623,13 @@ test("developers upload from scripts and CI with an upload key", async () => {
   accounts.ana = { developerBlocked: true };
   assert.equal((await keyUpload(key, gameZip("comet", "1.0.1"))).status, 403);
   accounts.ana = { developer: true };
+  // So does disabling the account.
+  disabled.add("ana");
+  assert.equal(
+    (await keyUpload(key, gameZip("comet", "1.0.1"))).body.error,
+    "invalid-key",
+  );
+  disabled.delete("ana");
 
   const revoked = await keys({ action: "revoke", id });
   assert.deepEqual(revoked.body.keys, []);

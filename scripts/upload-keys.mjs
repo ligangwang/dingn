@@ -99,6 +99,8 @@ export async function keyClaims(req, users, now = new Date().toISOString()) {
   } catch {
     throw new ApiError(401, "invalid-key");
   }
+  // A disabled account cannot sign in, so its keys stop working too.
+  if (user.disabled) throw new ApiError(401, "invalid-key");
   const claims = user.customClaims ?? {};
   if (claims.developerBlocked === true)
     throw new ApiError(403, "developer-blocked");
