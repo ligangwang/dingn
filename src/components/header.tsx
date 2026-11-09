@@ -29,7 +29,7 @@ export function Header() {
           ["/logic/", "Logic", LogicIcon] as const,
           ["/memory-ladder/", "Memory", MemoryIcon] as const,
           ["/decisions/", "Decisions", DecisionIcon] as const,
-          ["/crowd/", "Crowd Rush", CrowdIcon] as const,
+          ["/crowd/", "Action", CrowdIcon] as const,
           ...(ready && isAdmin
             ? [["/admin/feedback/", "Feedback", MailIcon] as const]
             : []),
