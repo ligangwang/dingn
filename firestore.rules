@@ -4,7 +4,12 @@ service cloud.firestore {
     // remain excluded so old billing data cannot become writable.
     match /{collection}/{document=**} {
       allow read, write: if request.auth != null
-        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products', 'shopOrders', 'shopInventory']);
+        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products', 'shopOrders', 'shopInventory', 'games']);
+    }
+    // The game registry is written only by the game publisher (Admin SDK) and
+    // read by the dingn server, which serves it at /api/games.
+    match /games/{document=**} {
+      allow read, write: if false;
     }
     match /shopOrders/{document=**} {
       allow read, write: if false;

@@ -138,6 +138,12 @@ export const pages = {
     en: { title: "Analytics opt-out" },
     zh: { title: "关闭访问统计" },
   },
+  "/play/": {
+    // Every published game plays here, at /play/<id>/.
+    index: false,
+    en: { title: "Play" },
+    zh: { title: "开始游戏" },
+  },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },

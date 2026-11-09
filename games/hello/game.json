@@ -1,0 +1,10 @@
+{
+  "id": "hello",
+  "version": "1.0.0",
+  "title": { "en": "Star Tap", "zh": "点星星" },
+  "description": {
+    "en": "Tap the star as many times as you can in ten seconds.",
+    "zh": "十秒内尽可能多地点中星星。"
+  },
+  "entry": "index.html"
+}

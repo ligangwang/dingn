@@ -403,5 +403,11 @@
   "Unicorn": "独角兽",
   "Dragon": "龙",
   "Robot": "机器人",
-  "Rocket": "火箭"
+  "Rocket": "火箭",
+  "Loading game…": "游戏加载中…",
+  "Game not found": "找不到这个游戏",
+  "This game is not available right now.": "这个游戏暂时无法使用。",
+  "Find another game →": "去找其他游戏 →",
+  "Beta": "测试版",
+  "Full screen": "全屏"
 }
