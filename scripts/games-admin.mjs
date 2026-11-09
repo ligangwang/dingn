@@ -26,6 +26,8 @@ export const adminGameRoutes = [
   "/api/admin/games/update",
   "/api/admin/developers",
   "/api/admin/developers/update",
+  "/api/admin/admins",
+  "/api/admin/admins/update",
   "/api/admin/reports",
   "/api/admin/reports/update",
 ];
@@ -122,6 +124,45 @@ async function developers(pathname, body, users) {
   );
   console.log("games admin developer", body.action, user.uid);
   return { developer: { uid: user.uid, email: user.email ?? email } };
+}
+
+/**
+ * Admin access: the `admin: true` claim, which opens these pages and the
+ * feedback inbox. Each request reads the account's claims afresh, so a change
+ * takes effect on that account's next request. An admin cannot remove their
+ * own access, so the site always keeps at least the admin making changes.
+ */
+async function admins(pathname, body, users, self) {
+  if (pathname === "/api/admin/admins") {
+    const list = [];
+    let pageToken;
+    do {
+      const page = await users.listUsers(1000, pageToken);
+      for (const user of page.users)
+        if (user.customClaims?.admin === true)
+          list.push({ uid: user.uid, email: user.email ?? "" });
+      pageToken = page.pageToken;
+    } while (pageToken);
+    return { admins: list.sort((a, b) => a.email.localeCompare(b.email)) };
+  }
+  const email = typeof body.email === "string" ? body.email.trim() : "";
+  if (!email || !["add", "remove"].includes(body.action))
+    throw new ApiError(400, "invalid-request");
+  let user;
+  try {
+    user = await users.getUserByEmail(email);
+  } catch {
+    throw new ApiError(404, "user-not-found");
+  }
+  if (body.action === "remove" && user.uid === self)
+    throw new ApiError(400, "cannot-remove-self");
+  const { admin: _old, ...claims } = user.customClaims ?? {};
+  await users.setCustomUserClaims(
+    user.uid,
+    body.action === "add" ? { ...claims, admin: true } : claims,
+  );
+  console.log("games admin admin", body.action, user.uid);
+  return { admin: { uid: user.uid, email: user.email ?? email } };
 }
 
 const reasonOf = (value) => {
@@ -333,6 +374,12 @@ export async function handleAdminGames(
         res,
         200,
         await developers(pathname, body, users ?? (await firebaseAuth())),
+      );
+    if (pathname.startsWith("/api/admin/admins"))
+      return send(
+        res,
+        200,
+        await admins(pathname, body, users ?? (await firebaseAuth()), admin.uid),
       );
     if (pathname === "/api/admin/reports")
       return send(res, 200, { reports: await openReports() });

@@ -154,6 +154,8 @@ export function safeDestination(value: string | null, locale: Locale = "en") {
     "/account/",
     "/",
     "/admin/feedback/",
+    "/admin/games/",
+    "/admin/users/",
     "/logic/",
     "/decisions/",
     "/crowd/",

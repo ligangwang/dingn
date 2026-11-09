@@ -185,6 +185,11 @@ export const pages = {
     en: { title: "Games admin" },
     zh: { title: "游戏管理" },
   },
+  "/admin/users/": {
+    index: false,
+    en: { title: "Users admin" },
+    zh: { title: "用户管理" },
+  },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },
