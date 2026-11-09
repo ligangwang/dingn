@@ -386,6 +386,31 @@ test("admins grant and remove developer access by email", async () => {
     ).status,
     404,
   );
+
+  // Admins: granting keeps other claims, and an admin cannot remove themself.
+  claims.u1 = { admin: true };
+  claims.u3 = { developer: true };
+  const granted = await adminCall("/api/admin/admins/update", {
+    email: "u3@example.com",
+    action: "add",
+  });
+  assert.equal(granted.status, 200);
+  assert.deepEqual(claims.u3, { developer: true, admin: true });
+  assert.deepEqual(
+    (await adminCall("/api/admin/admins", {})).body.admins.map((a) => a.uid),
+    ["u1", "u2", "u3"],
+  );
+  const self = await adminCall("/api/admin/admins/update", {
+    email: "u1@example.com",
+    action: "remove",
+  });
+  assert.deepEqual([self.status, self.body.error], [400, "cannot-remove-self"]);
+  assert.deepEqual(claims.u1, { admin: true });
+  await adminCall("/api/admin/admins/update", {
+    email: "u3@example.com",
+    action: "remove",
+  });
+  assert.deepEqual(claims.u3, { developer: true });
 });
 
 test("every uploaded file is sandboxed, whatever its type or case", async () => {

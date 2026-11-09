@@ -57,6 +57,18 @@ export async function changeDeveloper(email: string, action: "add" | "remove") {
   ).developer;
 }
 
+export type Admin = { uid: string; email: string };
+
+export async function listAdmins() {
+  return (await api<{ admins: Admin[] }>("/api/admin/admins")).admins;
+}
+
+export async function changeAdmin(email: string, action: "add" | "remove") {
+  return (
+    await api<{ admin: Admin }>("/api/admin/admins/update", { email, action })
+  ).admin;
+}
+
 export type Report = {
   id: string;
   game: string;

@@ -485,7 +485,8 @@ h2 {
   width: 52px;
   height: 52px;
 }
-nav > a {
+nav > a,
+.admin-menu > summary {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -700,7 +701,8 @@ nav > a {
     display: inline;
     font-size: 12px;
   }
-  nav > a {
+  nav > a,
+  .admin-menu > summary {
     flex-direction: column;
     gap: 2px;
     padding: 6px 8px;
@@ -719,7 +721,8 @@ nav > a {
   .nav-label {
     font-size: 11px;
   }
-  nav > a {
+  nav > a,
+  .admin-menu > summary {
     padding: 6px 5px;
   }
 }
@@ -727,7 +730,8 @@ nav > a {
   .nav-label {
     display: none;
   }
-  nav > a {
+  nav > a,
+  .admin-menu > summary {
     padding: 8px;
   }
 }

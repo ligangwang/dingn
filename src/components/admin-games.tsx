@@ -3,19 +3,17 @@
 // every published version of every game, with buttons to make a version live
 // (a release, an approval or a rollback), send an upload back, set or clear
 // the beta, show or hide a game in the catalog, and take a game down.
+// Who may upload or administer is on the Users page (admin-users.tsx).
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocale } from "./locale";
 import { useSession } from "./session";
 import {
-  changeDeveloper,
   changeGame,
   closeReport,
-  listDevelopers,
   listGames,
   listReports,
   type AdminGame,
-  type Developer,
   type GameChange,
   type Report,
 } from "@/lib/admin-games";
@@ -35,6 +33,22 @@ const titleIn = (game: AdminGame, version: string, zh: boolean) => {
 };
 
 export function AdminGames() {
+  const { user } = useSession();
+  return (
+    <AdminOnly path="/admin/games/">
+      <GameList key={user?.uid} />
+    </AdminOnly>
+  );
+}
+
+/** Shows `children` only to a signed-in admin; asks anyone else to sign in. */
+export function AdminOnly({
+  path,
+  children,
+}: {
+  path: string;
+  children: ReactNode;
+}) {
   const { t, href } = useLocale();
   const { user, ready, isAdmin } = useSession();
   if (!ready)
@@ -51,7 +65,7 @@ export function AdminGames() {
           <p>{t("Sign in with an account that has admin access.")}</p>
           <Link
             className="button"
-            href={`${href("/signin/")}?next=${encodeURIComponent(href("/admin/games/"))}`}
+            href={`${href("/signin/")}?next=${encodeURIComponent(href(path))}`}
           >
             {t("Sign in")}
           </Link>
@@ -63,12 +77,12 @@ export function AdminGames() {
       <div className="center-page">
         <section className="panel signin-panel">
           <h1>{t("Admin access required")}</h1>
-          <p>{t("Your account does not have permission to manage games.")}</p>
+          <p>{t("Your account does not have permission to manage dingn.")}</p>
           <Link href={href("/")}>{t("Back to games")}</Link>
         </section>
       </div>
     );
-  return <GameList key={user.uid} />;
+  return <>{children}</>;
 }
 
 function GameList() {
@@ -149,128 +163,7 @@ function GameList() {
           apply={apply}
         />
       ))}
-      <Developers />
     </div>
-  );
-}
-
-/** Who may upload games on /developers/games/. */
-function Developers() {
-  const { t } = useLocale();
-  const [list, setList] = useState<Developer[] | null>(null);
-  const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState({ error: false, text: "" });
-
-  useEffect(() => {
-    listDevelopers()
-      .then(setList)
-      .catch(() =>
-        setMessage({
-          error: true,
-          text: t("Developers could not be loaded. Try again."),
-        }),
-      );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function change(target: string, action: "add" | "remove") {
-    setBusy(true);
-    setMessage({ error: false, text: "" });
-    try {
-      const developer = await changeDeveloper(target, action);
-      setList((current) => {
-        const others = (current ?? []).filter((d) => d.uid !== developer.uid);
-        return action === "add"
-          ? [...others, developer].sort((a, b) =>
-              a.email.localeCompare(b.email),
-            )
-          : others;
-      });
-      if (action === "add") setEmail("");
-      setMessage({
-        error: false,
-        text:
-          action === "add"
-            ? t(`${developer.email} can upload games now.`)
-            : t(`${developer.email} can no longer upload games.`),
-      });
-    } catch (error) {
-      setMessage({
-        error: true,
-        text:
-          (error as { code?: string }).code === "user-not-found"
-            ? t(
-                "No dingn account uses that email. Ask them to sign in once first.",
-              )
-            : t("That change could not be saved. Try again."),
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section className="panel admin-game" aria-labelledby="admin-developers">
-      <h2 id="admin-developers">{t("Developers")}</h2>
-      <p className="admin-game-meta">
-        {t(
-          "Developers sign up at /developers/games/ by accepting the developer agreement, or you add them here. Removing one also stops them from signing up again.",
-        )}
-      </p>
-      {message.text && (
-        <p
-          role={message.error ? "alert" : "status"}
-          className={message.error ? "error" : undefined}
-        >
-          {message.text}
-        </p>
-      )}
-      <form
-        className="admin-developer-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (email.trim()) void change(email.trim(), "add");
-        }}
-      >
-        <label htmlFor="developer-email">{t("Account email")}</label>
-        <input
-          id="developer-email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          autoComplete="off"
-        />
-        <button type="submit" className="button small" disabled={busy}>
-          {t("Allow uploads")}
-        </button>
-      </form>
-      {list && list.length === 0 && <p>{t("No developers yet.")}</p>}
-      {list && list.length > 0 && (
-        <ul className="admin-developers">
-          {list.map((developer) => (
-            <li key={developer.uid}>
-              {developer.email || developer.uid}{" "}
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={busy}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      t(`Stop ${developer.email} from uploading games?`),
-                    )
-                  )
-                    void change(developer.email, "remove");
-                }}
-              >
-                {t("Remove")}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 

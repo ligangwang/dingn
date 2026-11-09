@@ -8,8 +8,8 @@ import {
   CrowdIcon,
   DecisionIcon,
   LogicIcon,
-  MailIcon,
   MemoryIcon,
+  ShieldIcon,
 } from "./icons";
 import { LevelBadge } from "./xp";
 import { Avatar } from "./avatar";
@@ -30,9 +30,6 @@ export function Header() {
           ["/memory-ladder/", "Memory", MemoryIcon] as const,
           ["/decisions/", "Decisions", DecisionIcon] as const,
           ["/crowd/", "Action", CrowdIcon] as const,
-          ...(ready && isAdmin
-            ? [["/admin/feedback/", "Feedback", MailIcon] as const]
-            : []),
         ].map(([href, label, Icon]) => (
           <Link
             key={href}
@@ -48,6 +45,7 @@ export function Header() {
             <span className="nav-label">{t(label)}</span>
           </Link>
         ))}
+        {ready && isAdmin && <AdminMenu key={path} path={path} />}
         {ready && user && <LevelBadge />}
         <div className="account-controls">
           <LanguageSwitcher />
@@ -71,5 +69,41 @@ export function Header() {
         </div>
       </nav>
     </header>
+  );
+}
+
+/** The admin pages, in a menu only admins see. */
+function AdminMenu({ path }: { path: string }) {
+  const { t, href: to } = useLocale();
+  const here = (href: string) =>
+    path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
+  const items = [
+    ["/admin/games/", "Games"],
+    ["/admin/users/", "Users"],
+    ["/admin/feedback/", "Feedback"],
+  ] as const;
+  const inside = items.some(([href]) => here(href));
+  return (
+    <details className="admin-menu">
+      <summary
+        aria-label={t("Admin")}
+        aria-current={inside ? "page" : undefined}
+      >
+        <ShieldIcon className="nav-icon" size={18} />
+        <span className="nav-label">{t("Admin")}</span>
+      </summary>
+      <ul>
+        {items.map(([href, label]) => (
+          <li key={href}>
+            <Link
+              href={to(href)}
+              aria-current={here(href) ? "page" : undefined}
+            >
+              {t(label)}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

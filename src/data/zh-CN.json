@@ -411,7 +411,7 @@
   "Beta": "测试版",
   "Full screen": "全屏",
   "Action": "动作",
-  "Your account does not have permission to manage games.": "你的账号没有管理游戏的权限。",
+  "Your account does not have permission to manage dingn.": "你的账号没有管理 dingn 的权限。",
   "Games could not be loaded. Try again.": "游戏列表加载失败，请重试。",
   "That change could not be saved. Try again.": "更改未能保存，请重试。",
   "ADMIN": "管理",
@@ -640,5 +640,18 @@
   "Revoke": "撤销",
   "Revoke {0}? Anything using it will stop uploading.": "撤销 {0}？使用它的程序将无法再上传。",
   "Uploading from GitHub or a script": "从 GitHub 或脚本上传",
-  "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "在“我的游戏”中创建上传密钥，然后用它发送 zip。这样上传的版本与其他上传一样需要审核。在 GitHub Action 中，把密钥存为名为 DINGN_UPLOAD_KEY 的 secret："
+  "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "在“我的游戏”中创建上传密钥，然后用它发送 zip。这样上传的版本与其他上传一样需要审核。在 GitHub Action 中，把密钥存为名为 DINGN_UPLOAD_KEY 的 secret：",
+  "Admin": "管理",
+  "Users": "用户",
+  "Admins": "管理员",
+  "Make admin": "设为管理员",
+  "(you)": "（你）",
+  "Choose who can upload games and who can run dingn. A person must have signed in to dingn once before you can change their access.": "选择谁可以上传游戏、谁可以管理 dingn。对方需要先登录过一次 dingn，你才能更改其权限。",
+  "Admins could not be loaded. Try again.": "无法加载管理员列表，请重试。",
+  "{0} is an admin now.": "{0} 现在是管理员了。",
+  "{0} is no longer an admin.": "{0} 不再是管理员。",
+  "You cannot remove your own admin access.": "你不能移除自己的管理员权限。",
+  "Admins can review and take down games, change anyone's access, including other admins', and read feedback. Only make someone an admin if you trust them with all of dingn.": "管理员可以审核和下架游戏、更改任何人的权限（包括其他管理员），并阅读反馈。只把你完全信任的人设为管理员。",
+  "Make {0} an admin?": "将 {0} 设为管理员？",
+  "Remove {0}'s admin access?": "移除 {0} 的管理员权限？"
 }
