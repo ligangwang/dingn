@@ -438,3 +438,41 @@ test("the agreement page shows the version that sign-up records", async () => {
     new RegExp(`AGREEMENT_VERSION = "${uploads.AGREEMENT_VERSION}"`),
   );
 });
+
+test("admins upload dingn's own games, which stay dingn's", async () => {
+  await registry.updateRecord("rush", (r) =>
+    registry.addVersion(
+      r,
+      registry.validateManifest({
+        id: "rush",
+        version: "1.0.0",
+        title: { en: "Rush", zh: "冲" },
+      }),
+    ),
+  );
+  const kim = { uid: "kim", email: "kim@example.com", developer: true };
+  assert.equal(
+    (
+      await developerCall(
+        "/api/developer/games/upload",
+        gameZip("rush", "1.1.0"),
+        kim,
+      )
+    ).body.error,
+    "not-your-game",
+  );
+  const boss = { uid: "boss", email: "boss@example.com", admin: true };
+  const up = await developerCall(
+    "/api/developer/games/upload",
+    gameZip("rush", "1.1.0"),
+    boss,
+  );
+  assert.equal(up.status, 200, JSON.stringify(up.body));
+  const record = await registry.getRecord("rush");
+  assert.equal(record.owner, undefined);
+  assert.equal(record.beta, "1.1.0");
+  assert.equal(record.live, "1.0.0");
+  assert.equal(registry.publicGame(record, "beta").preview, false);
+  const mine = await developerCall("/api/developer/games", {}, boss);
+  assert.ok(mine.body.games.some((g) => g.id === "rush"));
+});

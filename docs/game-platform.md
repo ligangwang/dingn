@@ -114,7 +114,9 @@ The developer uploads a zip of their built game on `/developers/games/`
    file types (`types` in `scripts/game-registry.mjs`) and safe names.
 2. The id and version are reserved in the registry. A game belongs to the
    developer who first uploads its id (`owner`), so nobody else can upload to
-   it, and dingn's own games (no owner) cannot be uploaded to.
+   it. dingn's own games (no owner) take uploads only from admins, and stay
+   dingn's, so a game can also live in its own repository and be published
+   from there by uploading its zip.
 3. The files are stored at `games/<id>/<version>/` like any published version,
    and the version becomes the game's beta.
 
