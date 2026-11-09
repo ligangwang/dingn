@@ -54,6 +54,9 @@ type Float = {
  */
 export function CrowdGame() {
   const { t } = useLocale();
+  // the 3D scene paints words onto crates, so it reads the current language
+  const tRef = useRef(t);
+  tRef.current = t;
   // Levels past FREE_LEVELS need an account; progress then syncs to it.
   const session = useOptionalSession();
   const user = session?.user ?? null;
@@ -173,6 +176,7 @@ export function CrowdGame() {
           setNoGl(true);
           return;
         }
+        scene.translate = (text) => tRef.current(text);
         sceneRef.current = scene;
         if (process.env.NODE_ENV === "development")
           (window as unknown as { __crowdScene?: CrowdScene }).__crowdScene =

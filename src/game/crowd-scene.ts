@@ -936,6 +936,8 @@ class BlockView {
   constructor(
     readonly block: Block,
     rewardTex?: THREE.Texture,
+    /** Word painted on a weapon crate, already in the player's language. */
+    private title = "",
   ) {
     const up = block.upgrade;
     const crate = block.reward > 0 || !!up;
@@ -1008,7 +1010,7 @@ class BlockView {
       ctx.font = `900 ${Math.round(h * 0.26)}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillText(power ? "POWER" : "RATE", w / 2, h * 0.08);
+      ctx.fillText(this.title, w / 2, h * 0.08, w - 28);
     } else if (crate) {
       ctx.fillStyle = "#f0a541";
       ctx.fillRect(0, 0, w, h);
@@ -1073,9 +1075,9 @@ function labelTexture(text: string, color: string) {
     ctx.textBaseline = "middle";
     ctx.lineWidth = 12;
     ctx.strokeStyle = "#000000aa";
-    ctx.strokeText(text, 128, 66);
+    ctx.strokeText(text, 128, 66, 240);
     ctx.fillStyle = color;
-    ctx.fillText(text, 128, 66);
+    ctx.fillText(text, 128, 66, 240);
   }
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -1112,6 +1114,12 @@ export class CrowdScene {
   private resScale = 1;
   private frameAvg = 1 / 60;
   private frameClock = 0;
+
+  /**
+   * Translates the English words painted into the 3D world (crate labels)
+   * into the player's language. Read whenever a level is built.
+   */
+  translate: (text: string) => string = (text) => text;
 
   constructor(canvas: HTMLCanvasElement) {
     const lite =
@@ -1436,16 +1444,20 @@ export class CrowdScene {
         this.gates.push(g);
         this.level.add(g.group);
       } else if (th.kind === "block") {
+        const power = th.upgrade === "power";
         const tex = th.upgrade
           ? labelTexture(
-              th.upgrade === "power" ? "DMG+" : "RATE+",
-              th.upgrade === "power" ? "#ffb08a" : "#9fe8ff",
+              this.translate(power ? "DMG+" : "RATE+"),
+              power ? "#ffb08a" : "#9fe8ff",
             )
           : th.reward
             ? labelTexture(`+${th.reward}`, "#fff36a")
             : undefined;
         if (tex) this.levelMats.push(new THREE.SpriteMaterial({ map: tex }));
-        const b = new BlockView(th, tex);
+        const title = th.upgrade
+          ? this.translate(power ? "POWER" : "RATE")
+          : "";
+        const b = new BlockView(th, tex, title);
         this.blocks.set(th.id, b);
         this.level.add(b.group);
       }

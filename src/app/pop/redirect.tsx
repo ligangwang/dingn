@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Text } from "@/components/locale";
 export function PopRedirect() {
   const router = useRouter();
   useEffect(() => {
@@ -10,7 +11,9 @@ export function PopRedirect() {
   return (
     <main style={{ padding: 32, textAlign: "center" }}>
       <p>
-        <Link href="/crowd/">Crowd Rush</Link>
+        <Link href="/crowd/">
+          <Text>Crowd Rush</Text>
+        </Link>
       </p>
     </main>
   );

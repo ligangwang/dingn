@@ -18,12 +18,15 @@ const mocks = vi.hoisted(() => ({
   readCrowdProgress: vi.fn(),
   saveCrowdProgress: vi.fn(),
   webgl: true,
+  scene: null as { translate: (text: string) => string } | null,
 }));
 // A stand-in for the three.js scene, so overlays stay up while a test runs.
 vi.mock("../src/game/crowd-scene", () => ({
   CrowdScene: class {
+    translate = (text: string) => text;
     constructor() {
       if (!mocks.webgl) throw new Error("no WebGL");
+      mocks.scene = this;
     }
     resize() {}
     load() {}
@@ -184,6 +187,22 @@ test("the page is translated into Simplified Chinese", async () => {
     await screen.findByRole("heading", { name: catalog["Crowd Rush"] }),
   ).toBeTruthy();
   expect(screen.getAllByText("第 1 关").length).toBeGreaterThan(0);
+  localStorage.removeItem("dingn.locale");
+});
+
+test("words painted on the 3D crates are translated into Simplified Chinese", async () => {
+  history.replaceState({}, "", "/crowd/?lang=zh-CN");
+  mocks.scene = null;
+  render(
+    <LocaleProvider>
+      <CrowdGame />
+    </LocaleProvider>,
+  );
+  await waitFor(() => expect(mocks.scene).not.toBeNull());
+  await waitFor(() => expect(mocks.scene!.translate("RATE")).toBe("射速"));
+  expect(mocks.scene!.translate("POWER")).toBe("伤害");
+  expect(mocks.scene!.translate("RATE+")).toBe("射速+");
+  expect(mocks.scene!.translate("DMG+")).toBe("伤害+");
   localStorage.removeItem("dingn.locale");
 });
 
