@@ -11,9 +11,8 @@
 // who removes a developer also blocks them from signing up again.
 //
 // A game uploaded this way belongs to the developer who first uploaded its
-// id: `owner` on the registry record. Nobody else can upload to it. dingn's
-// own games (no owner) take uploads only from admins, so one of them can live
-// in its own repository and be published by uploading its zip.
+// id: `owner` on the registry record. Nobody else can upload to it, and games
+// published from the repository (which have no owner) cannot be uploaded to.
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ApiError, readBody, refresh, validateOrigin } from "./api.mjs";
@@ -112,10 +111,7 @@ export function prepareUpload(zipped) {
 export function reserveUpload(record, manifest, developer, now = Date.now()) {
   if (record?.status === "removed")
     throw new UploadError(403, "game-removed", manifest.id);
-  // dingn's own games (no owner) take uploads only from admins, and stay
-  // dingn's: an admin's upload does not make the game theirs.
-  const dingnGame = !!record && !record.owner;
-  if (dingnGame ? !developer.admin : record && record.owner !== developer.uid)
+  if (record && record.owner !== developer.uid)
     throw new UploadError(403, "not-your-game", manifest.id);
   if (record?.versions?.[manifest.version])
     throw new UploadError(409, "version-exists", manifest.version);
@@ -129,7 +125,8 @@ export function reserveUpload(record, manifest, developer, now = Date.now()) {
     beta: null,
     versions: {},
     ...record,
-    ...(dingnGame ? {} : { owner: developer.uid, ownerEmail: developer.email }),
+    owner: developer.uid,
+    ownerEmail: developer.email,
     pending: {
       ...record?.pending,
       [manifest.version]: { startedAt: new Date(now).toISOString() },
@@ -176,10 +173,8 @@ export function finishUpload(
   developer,
   now = new Date().toISOString(),
 ) {
-  const allowed = record?.owner
-    ? record.owner === developer.uid
-    : !!record && developer.admin === true;
-  if (!allowed) throw new UploadError(403, "not-your-game", manifest.id);
+  if (!record || record.owner !== developer.uid)
+    throw new UploadError(403, "not-your-game", manifest.id);
   const { [manifest.version]: _done, ...pending } = record.pending ?? {};
   const next = addVersion({ ...record, pending }, manifest, {
     channel: "beta",
@@ -329,14 +324,7 @@ export async function handleDeveloperGames(
       throw new ApiError(401, "invalid-credential");
     }
     const isDeveloper = claims.developer === true || claims.admin === true;
-    const developer = {
-      uid: claims.uid,
-      email: claims.email ?? "",
-      admin: claims.admin === true,
-    };
-    // Admins also upload dingn's own games (records with no owner).
-    const mine = (r) =>
-      r.owner === developer.uid || (developer.admin && !r.owner);
+    const developer = { uid: claims.uid, email: claims.email ?? "" };
 
     if (body) {
       if (!isDeveloper)
@@ -353,7 +341,9 @@ export async function handleDeveloperGames(
           agreement: AGREEMENT_VERSION,
           games: [],
         });
-      const owned = (await listRecords()).filter(mine);
+      const owned = (await listRecords()).filter(
+        (r) => r.owner === developer.uid,
+      );
       const games = (
         await Promise.all(
           owned.map(async (r) =>

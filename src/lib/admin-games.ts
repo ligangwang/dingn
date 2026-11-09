@@ -28,7 +28,8 @@ export type GameChange =
   | { action: "set-live" | "set-beta"; version: string }
   | { action: "clear-beta" | "list" | "unlist" | "restore" }
   | { action: "reject"; version: string; reason: string }
-  | { action: "take-down"; reason: string };
+  | { action: "take-down"; reason: string }
+  | { action: "transfer"; email: string };
 
 export async function listGames() {
   return (await api<{ games: AdminGame[] }>("/api/admin/games")).games;

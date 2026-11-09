@@ -619,5 +619,9 @@
   "{0} is back.": "{0} 已恢复。",
   "{0} was taken down.": "{0} 已下架。",
   "{0} {1} was sent back.": "{0} {1} 已退回修改。",
-  "Changes": "协议变更"
+  "Changes": "协议变更",
+  "Transfer to a developer": "转交给开发者",
+  "Email of the developer account that will publish this game. It must have signed up as a developer.": "将发布此游戏的开发者账号邮箱。该账号必须已注册为开发者。",
+  "{0} now belongs to {1}.": "{0} 现在属于 {1}。",
+  "That account is not a developer yet. Sign it up on My games first, by accepting the developer agreement.": "该账号还不是开发者。请先在“我的游戏”中接受开发者协议完成注册。"
 }

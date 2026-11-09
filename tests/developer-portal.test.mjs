@@ -439,7 +439,7 @@ test("the agreement page shows the version that sign-up records", async () => {
   );
 });
 
-test("admins upload dingn's own games, which stay dingn's", async () => {
+test("admins transfer dingn's own game to a developer, who publishes it like any other", async () => {
   await registry.updateRecord("rush", (r) =>
     registry.addVersion(
       r,
@@ -450,7 +450,36 @@ test("admins upload dingn's own games, which stay dingn's", async () => {
       }),
     ),
   );
+  const accounts = {
+    kim: { developer: true },
+    lee: {},
+  };
+  const users = {
+    async getUserByEmail(email) {
+      const uid = email.split("@")[0];
+      if (!accounts[uid]) throw new Error("not found");
+      return { uid, email, customClaims: accounts[uid] };
+    },
+  };
+  const transfer = (email) =>
+    new Promise((resolve) =>
+      admin.handleAdminGames(
+        request("/api/admin/games/update", {
+          id: "rush",
+          action: "transfer",
+          email,
+        }),
+        response(resolve),
+        "/api/admin/games/update",
+        {
+          verify: async () => ({ uid: "boss", admin: true }),
+          exchange: async () => "t",
+          users,
+        },
+      ),
+    );
   const kim = { uid: "kim", email: "kim@example.com", developer: true };
+  // Before the transfer it is dingn's: nobody can upload to it.
   assert.equal(
     (
       await developerCall(
@@ -461,18 +490,39 @@ test("admins upload dingn's own games, which stay dingn's", async () => {
     ).body.error,
     "not-your-game",
   );
-  const boss = { uid: "boss", email: "boss@example.com", admin: true };
+  assert.equal(
+    (await transfer("nobody@example.com")).body.error,
+    "user-not-found",
+  );
+  assert.equal(
+    (await transfer("lee@example.com")).body.error,
+    "not-a-developer",
+  );
+  const done = await transfer("kim@example.com");
+  assert.equal(done.status, 200);
+  assert.equal(done.body.game.owner, "kim@example.com");
+  // What dingn already published stays reviewed: no preview notice.
+  assert.equal(
+    registry.publicGame(await registry.getRecord("rush")).preview,
+    false,
+  );
+  assert.ok(
+    (await mail()).some(
+      (m) =>
+        m.to.includes("kim@example.com") && /now yours/.test(m.message.subject),
+    ),
+  );
+
   const up = await developerCall(
     "/api/developer/games/upload",
     gameZip("rush", "1.1.0"),
-    boss,
+    kim,
   );
   assert.equal(up.status, 200, JSON.stringify(up.body));
-  const record = await registry.getRecord("rush");
-  assert.equal(record.owner, undefined);
-  assert.equal(record.beta, "1.1.0");
-  assert.equal(record.live, "1.0.0");
-  assert.equal(registry.publicGame(record, "beta").preview, false);
-  const mine = await developerCall("/api/developer/games", {}, boss);
-  assert.ok(mine.body.games.some((g) => g.id === "rush"));
+  assert.equal(up.body.game.beta, "1.1.0");
+  assert.equal(up.body.game.live, "1.0.0");
+  assert.equal(
+    registry.publicGame(await registry.getRecord("rush"), "beta").preview,
+    true,
+  );
 });

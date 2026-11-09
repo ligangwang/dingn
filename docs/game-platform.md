@@ -114,9 +114,7 @@ The developer uploads a zip of their built game on `/developers/games/`
    file types (`types` in `scripts/game-registry.mjs`) and safe names.
 2. The id and version are reserved in the registry. A game belongs to the
    developer who first uploads its id (`owner`), so nobody else can upload to
-   it. dingn's own games (no owner) take uploads only from admins, and stay
-   dingn's, so a game can also live in its own repository and be published
-   from there by uploading its zip.
+   it, and dingn's own games (no owner) cannot be uploaded to.
 3. The files are stored at `games/<id>/<version>/` like any published version,
    and the version becomes the game's beta.
 
@@ -128,6 +126,17 @@ inside dingn's player with its notices.
 
 Limits (`LIMITS`): a developer can own 10 games and upload 20 versions in
 24 hours. Admins have no limits.
+
+### Moving a game to its own repository
+
+dingn's own games (no owner) are published from this repository by CI. To
+publish one the same way as an outside developer, from its own repository,
+an admin uses **Transfer to a developer** on its card in `/admin/games/` and
+enters the email of a developer account (it must have signed up). The game
+then belongs to that account: its existing versions stay reviewed and keep
+playing, and new versions are uploaded on `/developers/games/` and approved
+in the review queue like any other game. Remove its folder from `games/`
+afterwards so CI stops publishing it.
 
 ### Review queue
 
