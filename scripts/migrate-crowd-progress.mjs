@@ -28,6 +28,10 @@ export function crowdrushProgress(account) {
   return null;
 }
 
+/** Firestore's failed update-time precondition (gRPC code 9). */
+const changedMeanwhile = (error) =>
+  error?.code === 9 || error?.code === "failed-precondition";
+
 /**
  * Walks every account, page by page. Each write only applies if the account
  * has not changed since it was read, so a player saving at that moment wins.
@@ -52,8 +56,10 @@ export async function migrate(db, { apply = false, log = console.log } = {}) {
           { lastUpdateTime: snap.updateTime },
         );
         counts.written += 1;
-      } catch {
-        // Changed since it was read: it is picked up by the next run.
+      } catch (error) {
+        // Changed since it was read: it is picked up by the next run. Any
+        // other failure (permissions, quota, an outage) stops the run.
+        if (!changedMeanwhile(error)) throw error;
         counts.changed += 1;
       }
     }

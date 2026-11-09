@@ -27,7 +27,7 @@ test("picks the newest Crowd Rush save and never replaces a crowdrush one", () =
 });
 
 /** A small stand-in for Firestore's accounts collection. */
-function fakeDb(accounts, { changed = [] } = {}) {
+function fakeDb(accounts, { changed = [], broken = [] } = {}) {
   const docs = Object.entries(accounts)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([id]) => ({
@@ -36,8 +36,10 @@ function fakeDb(accounts, { changed = [] } = {}) {
       data: () => accounts[id],
       ref: {
         async update(fields, { lastUpdateTime }) {
+          if (broken.includes(id))
+            throw Object.assign(new Error("PERMISSION_DENIED"), { code: 7 });
           if (changed.includes(id) || lastUpdateTime !== `t-${id}`)
-            throw new Error("FAILED_PRECONDITION");
+            throw Object.assign(new Error("FAILED_PRECONDITION"), { code: 9 });
           Object.assign(accounts[id], fields);
         },
       },
@@ -82,4 +84,16 @@ test("dry run counts, apply writes once, and a second run does nothing", async (
   assert.equal(again.migrate, 1);
   assert.equal(again.written, 1);
   assert.equal((await migrate(fakeDb(accounts), quiet)).migrate, 0);
+});
+
+test("a failure other than a concurrent change stops the run", async () => {
+  const accounts = { a: { crowd_level: 1 }, b: { crowd_level: 2 } };
+  await assert.rejects(
+    migrate(fakeDb(accounts, { broken: ["a"] }), {
+      apply: true,
+      log: () => {},
+    }),
+    /PERMISSION_DENIED/,
+  );
+  assert.equal(accounts.b.game_progress_crowdrush, undefined);
 });
