@@ -37,6 +37,8 @@ export type BridgeContext = {
   loadProgress: () => Promise<string | null>;
   saveProgress: (json: string) => Promise<void>;
   signIn: () => void;
+  /** Opens a dingn page (an already checked site path such as "/"). */
+  navigate: (path: string) => void;
   ready: () => void;
 };
 
@@ -50,8 +52,41 @@ export const isGameRequest = (data: unknown): data is GameRequest =>
 /** Where a game's device storage lives in the website's localStorage. */
 export const storageKey = (gameId: string, key: string) =>
   `dingn.game.${gameId}.${key}`;
+/**
+ * Device storage a game had before it moved to the platform, read when the
+ * game has not saved that key through the SDK yet. The old values are plain
+ * strings, not JSON.
+ */
+export const LEGACY_STORAGE: Record<string, Record<string, string>> = {
+  crowd: {
+    level: "dingn.crowd.level",
+    best: "dingn.crowd.best",
+    sound: "dingn.crowd.sound",
+  },
+};
+/** A same-site path a game may send the player to: "/word/", never "//evil". */
+export const SITE_PATH = /^\/(?!\/)[A-Za-z0-9\-._~/]*$/;
 /** The `accounts/{uid}` field that holds a game's progress. */
 export const progressField = (gameId: string) => `game_progress_${gameId}`;
+
+/**
+ * A signed-in player's saved progress for a game, as JSON text. Crowd Rush
+ * saved to `crowd_level` and `crowd_best` before it moved to the platform, so
+ * those are used until it saves through the SDK.
+ */
+export function accountProgress(
+  gameId: string,
+  account: Record<string, unknown> | null | undefined,
+): string | null {
+  const value = account?.[progressField(gameId)];
+  if (typeof value === "string") return value;
+  if (gameId === "crowd" && account && account.crowd_level != null)
+    return JSON.stringify({
+      level: account.crowd_level,
+      best: account.crowd_best ?? 0,
+    });
+  return null;
+}
 
 class BridgeError extends Error {
   constructor(
@@ -104,11 +139,13 @@ async function answer(
         locale: ctx.locale,
         player: ctx.player,
       };
-    case "storage.get":
-      return decode(
-        ctx.storage?.getItem(storageKey(ctx.gameId, key(request.params))) ??
-          null,
-      );
+    case "storage.get": {
+      const k = key(request.params);
+      const saved = ctx.storage?.getItem(storageKey(ctx.gameId, k)) ?? null;
+      if (saved != null) return decode(saved);
+      const legacy = LEGACY_STORAGE[ctx.gameId]?.[k];
+      return (legacy && ctx.storage?.getItem(legacy)) ?? null;
+    }
     case "storage.set": {
       const k = key(request.params);
       const json = encode(request.params?.value);
@@ -133,6 +170,16 @@ async function answer(
     case "signIn":
       ctx.signIn();
       return null;
+    case "navigate": {
+      const path = request.params?.path;
+      if (typeof path !== "string" || !SITE_PATH.test(path))
+        throw new BridgeError(
+          "invalid",
+          'Only dingn pages, such as "/", can be opened.',
+        );
+      ctx.navigate(path);
+      return null;
+    }
     case "ready":
       ctx.ready();
       return null;

@@ -1,0 +1,10 @@
+{
+  "id": "crowd",
+  "version": "1.0.0",
+  "title": { "en": "Crowd Rush", "zh": "人潮突击" },
+  "description": {
+    "en": "A 3D crowd runner: grow your squad through number gates, blast crates and monsters, and take down the boss at the end of every level.",
+    "zh": "3D 人潮跑酷：穿过数字门壮大队伍，击碎箱子和怪物，在每关结尾打败首领。"
+  },
+  "entry": "index.html"
+}

@@ -8,6 +8,7 @@ import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { database, doc, getDoc, setDoc } from "@/lib/database";
 import {
+  accountProgress,
   handleGameRequest,
   isGameRequest,
   progressField,
@@ -37,7 +38,8 @@ export function gameIdFromPath(pathname: string) {
 const SANDBOX =
   "allow-scripts allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-forms";
 
-export function GameHost() {
+/** Plays the game in the URL (/play/<id>/), or `gameId` on a game's own page. */
+export function GameHost({ gameId }: { gameId?: string } = {}) {
   const { locale, t, href } = useLocale();
   const session = useOptionalSession();
   const frame = useRef<HTMLIFrameElement>(null);
@@ -48,7 +50,7 @@ export function GameHost() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const id = gameIdFromPath(location.pathname);
+    const id = gameId ?? gameIdFromPath(location.pathname);
     const requested = new URLSearchParams(location.search).get("v") ?? "";
     if (!id) return setState({ status: "missing" });
     let active = true;
@@ -105,8 +107,7 @@ export function GameHost() {
     loadProgress: async () => {
       if (!user) return null;
       const data = (await getDoc(doc(database, "accounts", user.uid))).data();
-      const value = data?.[progressField(game.id)];
-      return typeof value === "string" ? value : null;
+      return accountProgress(game.id, data);
     },
     saveProgress: async (json) => {
       if (!user) throw new Error("signed_out");
@@ -115,6 +116,9 @@ export function GameHost() {
         { [progressField(game.id)]: json },
         { merge: true },
       );
+    },
+    navigate: (path) => {
+      location.href = href(path);
     },
     signIn: () => {
       location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;

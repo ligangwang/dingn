@@ -60,3 +60,23 @@
   color: #fff;
   pointer-events: none;
 }
+/* On a phone the game takes the screen below the site header. */
+@media (max-width: 640px) {
+  .play-ready {
+    padding-inline: 8px;
+    gap: 8px;
+  }
+  .play-bar h1 {
+    font-size: 1.15rem;
+  }
+  .play-stage {
+    height: calc(100svh - 150px);
+    min-height: 420px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .play-stage {
+    height: calc(100svh - 16px);
+    min-height: 300px;
+  }
+}

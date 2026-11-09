@@ -326,6 +326,7 @@ const types = {
   ".woff2": "font/woff2",
   ".wasm": "application/wasm",
   ".txt": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
 };
 
 /**

@@ -134,6 +134,7 @@ mkdirSync(staging, { recursive: true });
 if (pkg?.scripts?.build) {
   if (existsSync(path.join(gameDir, "package-lock.json")))
     run("npm", ["ci"], { cwd: gameDir });
+  if (pkg.scripts.test) run("npm", ["test"], { cwd: gameDir });
   run("npm", ["run", "build"], { cwd: gameDir });
   const dist = path.join(gameDir, "dist");
   if (!existsSync(dist)) fail(`games/${id}: the build did not create dist/`);
