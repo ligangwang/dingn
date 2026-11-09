@@ -4,6 +4,7 @@ import { SessionProvider } from "@/components/session";
 import { Header } from "@/components/header";
 import { LegacyRoutes } from "@/components/legacy-routes";
 import { Analytics } from "@/components/analytics";
+import { DevelopersLink } from "@/components/developers";
 import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import "./mind-arcade.css";
@@ -33,7 +34,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Text>dingn · A world of games. A spark of adventure.</Text> ·{" "}
               <a href="/models/crowd/CREDITS.md">
                 <Text>Credits</Text>
-              </a>
+              </a>{" "}
+              · <DevelopersLink />
             </footer>
             <Analytics />
           </SessionProvider>

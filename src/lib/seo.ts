@@ -144,6 +144,24 @@ export const pages = {
     en: { title: "Play" },
     zh: { title: "开始游戏" },
   },
+  "/developers/": {
+    index: true,
+    en: {
+      title: "Make a game for dingn",
+      description:
+        "Build a web game for dingn with the dingn game SDK: the starter game, the SDK reference and a playground to test your game.",
+    },
+    zh: {
+      title: "为 dingn 制作游戏",
+      description:
+        "用 dingn 游戏 SDK 为 dingn 制作网页游戏：入门游戏、SDK 参考和测试游戏的试玩场。",
+    },
+  },
+  "/developers/playground/": {
+    index: false,
+    en: { title: "Game playground" },
+    zh: { title: "游戏试玩场" },
+  },
   "/admin/games/": {
     index: false,
     en: { title: "Games admin" },
@@ -173,6 +191,7 @@ export const sitemapPaths: PagePath[] = [
   "/word/",
   "/card/",
   "/feedback/",
+  "/developers/",
 ];
 
 /** Absolute URLs of one page in every language, for hreflang alternates. */

@@ -7,6 +7,8 @@ RUN npm ci
 COPY next.config.ts tsconfig.json next-env.d.ts ./
 COPY src ./src
 COPY public ./public
+COPY packages/game-sdk ./packages/game-sdk
+COPY scripts/build-sdk.mjs ./scripts/
 RUN npm run build
 
 FROM node:24-alpine AS runtime
