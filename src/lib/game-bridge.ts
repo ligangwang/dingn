@@ -65,6 +65,14 @@ export const LEGACY_STORAGE: Record<string, Record<string, string>> = {
   },
 };
 /**
+ * Games that took over another game's players: Crowd Rush moved from the
+ * `crowd` id to `crowdrush`. Until the new game saves a key or its progress,
+ * the old game's (including its pre-platform saves) are read instead, so every
+ * player keeps their level the first time they open the new game.
+ */
+export const MIGRATED_FROM: Record<string, string> = { crowdrush: "crowd" };
+
+/**
  * A same-site path a game may send the player to: "/word/", never "//evil",
  * and no "//" anywhere, since adding or removing the /zh prefix could turn
  * "/zh//evil" into "//evil".
@@ -89,7 +97,26 @@ export function accountProgress(
       level: account.crowd_level,
       best: account.crowd_best ?? 0,
     });
-  return null;
+  const from = MIGRATED_FROM[gameId];
+  return from ? accountProgress(from, account) : null;
+}
+
+/**
+ * A game's saved device value for `k`: its own, else its pre-platform one,
+ * else the one of the game it took over from.
+ */
+function deviceValue(
+  storage: BridgeContext["storage"],
+  gameId: string,
+  k: string,
+): unknown {
+  const saved = storage?.getItem(storageKey(gameId, k)) ?? null;
+  if (saved != null) return decode(saved);
+  const legacy = LEGACY_STORAGE[gameId]?.[k];
+  const old = legacy ? (storage?.getItem(legacy) ?? null) : null;
+  if (old != null) return old;
+  const from = MIGRATED_FROM[gameId];
+  return from ? deviceValue(storage, from, k) : null;
 }
 
 class BridgeError extends Error {
@@ -144,11 +171,7 @@ async function answer(
         player: ctx.player,
       };
     case "storage.get": {
-      const k = key(request.params);
-      const saved = ctx.storage?.getItem(storageKey(ctx.gameId, k)) ?? null;
-      if (saved != null) return decode(saved);
-      const legacy = LEGACY_STORAGE[ctx.gameId]?.[k];
-      return (legacy && ctx.storage?.getItem(legacy)) ?? null;
+      return deviceValue(ctx.storage, ctx.gameId, key(request.params));
     }
     case "storage.set": {
       const k = key(request.params);

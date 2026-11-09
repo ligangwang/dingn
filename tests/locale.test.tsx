@@ -12,6 +12,7 @@ import { safeDestination } from "../src/lib/models";
 import { pageMetadata } from "../src/lib/seo";
 import {
   developerRedirect,
+  movedPage,
   localizedRedirect,
 } from "../scripts/locale-redirect.mjs";
 import games from "../src/data/mind-games.json";
@@ -91,13 +92,26 @@ test("the server redirects legacy language URLs permanently", () => {
   expect(localizedRedirect("/en")).toBe("/");
 });
 test("every Chinese page declares its own canonical URL and hreflang alternates", () => {
-  const meta = pageMetadata("/crowd/", "zh-CN");
-  expect(meta.alternates?.canonical).toBe("https://dingn.com/zh/crowd/");
+  const meta = pageMetadata("/logic/", "zh-CN");
+  expect(meta.alternates?.canonical).toBe("https://dingn.com/zh/logic/");
   expect(meta.alternates?.languages).toEqual({
-    en: "https://dingn.com/crowd/",
-    "zh-CN": "https://dingn.com/zh/crowd/",
-    "x-default": "https://dingn.com/crowd/",
+    en: "https://dingn.com/logic/",
+    "zh-CN": "https://dingn.com/zh/logic/",
+    "x-default": "https://dingn.com/logic/",
   });
+});
+
+test("Crowd Rush's old addresses move to its game page", () => {
+  expect(movedPage("/crowd/")).toBe("/play/crowdrush/");
+  expect(movedPage("/crowd")).toBe("/play/crowdrush/");
+  expect(movedPage("/zh/crowd/?from=home")).toBe(
+    "/zh/play/crowdrush/?from=home",
+  );
+  expect(movedPage("/pop/")).toBe("/play/crowdrush/");
+  expect(movedPage("/play/crowd/")).toBe("/play/crowdrush/");
+  expect(movedPage("/play/crowdrush/")).toBeNull();
+  expect(movedPage("/crowded/")).toBeNull();
+  expect(movedPage("/word/")).toBeNull();
 });
 
 test("developer.dingn.com and dev.dingn.com open the developer pages", () => {

@@ -84,7 +84,7 @@ export function Home() {
             </p>
             <strong>{t("Play decision room →")}</strong>
           </Link>
-          <Link href={href("/crowd/")} className="arena crowd-arena">
+          <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
             <CrowdIcon className="arena-symbol" size={52} />
             <p className="eyebrow">{t("04 / ACTION")}</p>
             <h2>{t("Grow your squad.")}</h2>

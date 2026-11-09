@@ -29,7 +29,7 @@ export function Header() {
           ["/logic/", "Logic", LogicIcon] as const,
           ["/memory-ladder/", "Memory", MemoryIcon] as const,
           ["/decisions/", "Decisions", DecisionIcon] as const,
-          ["/crowd/", "Action", CrowdIcon] as const,
+          ["/play/crowdrush/", "Action", CrowdIcon] as const,
         ].map(([href, label, Icon]) => (
           <Link
             key={href}
