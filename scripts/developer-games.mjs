@@ -32,7 +32,7 @@ import {
 } from "./game-registry.mjs";
 import { ZIP_LIMITS, ZipError, unzip } from "./zip.mjs";
 import { queueMail, reviewers } from "./mail.mjs";
-import { mergeDoc } from "./platform-store.mjs";
+import { mergeDoc, updateDoc } from "./platform-store.mjs";
 import { playsFor } from "./game-stats.mjs";
 
 export const developerGameRoutes = [
@@ -134,24 +134,36 @@ export function reserveUpload(record, manifest, developer, now = Date.now()) {
   };
 }
 
+const DAY_MS = 86_400_000;
+
 /**
- * Checks a developer's upload against LIMITS, given the games they own.
- * Throws UploadError.
+ * Takes one upload from a developer's quota (LIMITS), given their quota
+ * record (`developers/{uid}`: `games` and recent `uploads`) and the games
+ * they own in the registry. Returns the updated quota record, or throws
+ * UploadError. Runs inside a transaction on the quota record, so uploads at
+ * the same time cannot get past the limits together.
  */
-export function checkLimits(owned, manifest, developer, now = Date.now()) {
-  if (!owned.some((r) => r.id === manifest.id) && owned.length >= LIMITS.games)
+export function takeQuota(quota, owned, manifest, developer, now = Date.now()) {
+  const games = new Set([...(quota?.games ?? []), ...owned.map((r) => r.id)]);
+  if (!games.has(manifest.id) && games.size >= LIMITS.games)
     throw new UploadError(403, "too-many-games", String(LIMITS.games));
-  const dayAgo = now - 86_400_000;
-  let recent = 0;
-  for (const record of owned) {
-    for (const v of Object.values(record.versions ?? {}))
-      if (v.uploadedBy === developer.uid && Date.parse(v.publishedAt) > dayAgo)
-        recent++;
-    for (const p of Object.values(record.pending ?? {}))
-      if (Date.parse(p.startedAt) > dayAgo) recent++;
-  }
-  if (recent >= LIMITS.uploadsPerDay)
+  // A developer's first quota record starts from their uploads so far.
+  const seeded =
+    quota?.uploads ??
+    owned.flatMap((record) =>
+      Object.values(record.versions ?? {})
+        .filter((v) => v.uploadedBy === developer.uid)
+        .map((v) => v.publishedAt),
+    );
+  const uploads = seeded.filter((t) => now - Date.parse(t) < DAY_MS);
+  if (uploads.length >= LIMITS.uploadsPerDay)
     throw new UploadError(429, "upload-limit", String(LIMITS.uploadsPerDay));
+  games.add(manifest.id);
+  return {
+    ...quota,
+    games: [...games].sort(),
+    uploads: [...uploads, new Date(now).toISOString()],
+  };
 }
 
 /** Adds the stored version as the game's beta. */
@@ -361,15 +373,30 @@ export async function handleDeveloperGames(
       throw error;
     }
     const { manifest, files } = prepareUpload(zipped);
-    if (claims.admin !== true)
-      checkLimits(
-        (await listRecords()).filter((r) => r.owner === developer.uid),
-        manifest,
-        developer,
+    if (claims.admin !== true) {
+      const owned = (await listRecords()).filter(
+        (r) => r.owner === developer.uid,
       );
-    await updateRecord(manifest.id, (record) =>
-      reserveUpload(record, manifest, developer),
-    );
+      await updateDoc("developers", developer.uid, (quota) =>
+        takeQuota(quota, owned, manifest, developer),
+      );
+      try {
+        await updateRecord(manifest.id, (record) =>
+          reserveUpload(record, manifest, developer),
+        );
+      } catch (error) {
+        // A game id they could not upload to does not count as one of theirs.
+        if (!owned.some((r) => r.id === manifest.id))
+          await updateDoc("developers", developer.uid, (quota) => ({
+            ...quota,
+            games: (quota?.games ?? []).filter((id) => id !== manifest.id),
+          })).catch(() => {});
+        throw error;
+      }
+    } else
+      await updateRecord(manifest.id, (record) =>
+        reserveUpload(record, manifest, developer),
+      );
     const names = Object.keys(files);
     for (let i = 0; i < names.length; i += 8)
       await Promise.all(

@@ -137,14 +137,23 @@ test("developers can own up to 10 games and upload 20 versions a day", () => {
       owner: "kim",
       versions: {},
     }));
-  assert.doesNotThrow(() => uploads.checkLimits(games(9), manifest, dev));
+  const quota = uploads.takeQuota(null, games(9), manifest, dev);
+  assert.equal(quota.games.length, 10);
+  assert.equal(quota.uploads.length, 1);
+  // The quota record counts the games reserved by uploads still running.
   assert.throws(
-    () => uploads.checkLimits(games(10), manifest, dev),
+    () =>
+      uploads.takeQuota(
+        quota,
+        games(9),
+        { id: "other", version: "1.0.0" },
+        dev,
+      ),
     /too-many-games/,
   );
   // A new version of a game they already own is not a new game.
   assert.doesNotThrow(() =>
-    uploads.checkLimits(games(10), { id: "g3", version: "2.0.0" }, dev),
+    uploads.takeQuota(quota, games(9), { id: "g3", version: "2.0.0" }, dev),
   );
   const now = Date.parse("2026-11-09T12:00:00Z");
   const busy = {
@@ -160,17 +169,20 @@ test("developers can own up to 10 games and upload 20 versions a day", () => {
       ]),
     ),
   };
+  const next = { id: "g0", version: "2.0.0" };
   assert.throws(
-    () => uploads.checkLimits([busy], { id: "g0", version: "2.0.0" }, dev, now),
+    () => uploads.takeQuota(null, [busy], next, dev, now),
     /upload-limit/,
   );
   assert.doesNotThrow(() =>
-    uploads.checkLimits(
-      [busy],
-      { id: "g0", version: "2.0.0" },
-      dev,
-      now + 86_400_000,
-    ),
+    uploads.takeQuota(null, [busy], next, dev, now + 86_400_000),
+  );
+  let record = null;
+  for (let i = 0; i < 20; i++)
+    record = uploads.takeQuota(record, [], next, dev, now + i);
+  assert.throws(
+    () => uploads.takeQuota(record, [], next, dev, now + 30),
+    /upload-limit/,
   );
 });
 

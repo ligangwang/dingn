@@ -45,6 +45,28 @@ export async function mergeDoc(collection, id, data) {
     .set(data, { merge: true });
 }
 
+/**
+ * Replaces a document with `change(current)` (current is null when it does not
+ * exist yet). In Firestore this runs in a transaction, so changes at the same
+ * time cannot lose each other. Returns the new document.
+ */
+export async function updateDoc(collection, id, change) {
+  if (localDir()) {
+    const all = await readLocal(collection);
+    all[id] = change(all[id] ?? null);
+    await writeLocal(collection, all);
+    return all[id];
+  }
+  const db = await firestore();
+  const ref = db.collection(collection).doc(id);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const next = change(snap.exists ? snap.data() : null);
+    tx.set(ref, next);
+    return next;
+  });
+}
+
 /** Adds a document with a new id and returns the id. */
 export async function addDoc(collection, data) {
   if (localDir()) {
