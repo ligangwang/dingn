@@ -65,6 +65,10 @@ version of each game, with buttons to make a version live (release or roll
 back), set or clear the beta, and show or hide a game in the catalog. It
 cannot upload new versions: those always come from the repository through CI.
 
+## Search engines
+
+Every game plays on the one exported page, `/play/index.html`, which says noindex. When the server sends `/play/<id>/` for a game that is **listed** and whose live version is reviewed (or belongs to dingn), it fills in that game's title and description from `game.json`, plus its own canonical, hreflang and Open Graph addresses, and switches it to `index, follow` (`scripts/game-seo.mjs`). `/sitemap.xml` gets the same games added in both languages. Hidden, previewed and taken-down games stay noindex. If the registry can't be read within two seconds, the page goes out as exported.
+
 ## Trying it locally
 
 ```sh

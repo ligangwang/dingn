@@ -263,6 +263,8 @@ async function cached(key, load) {
   return value;
 }
 export const clearRegistryCache = () => cache.clear();
+/** Every game's record, from the short cache. */
+export const cachedRecords = () => cached("list", listRecords);
 /** One game's record, from the short cache. */
 export const cachedRecord = (id) => cached(`game:${id}`, () => getRecord(id));
 
