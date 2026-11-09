@@ -82,8 +82,44 @@ starter game to download (`/sdk/v1/starter.zip`, from
 runs a game from any http(s) address, such as a developer's
 `http://localhost:5173/`, in the same sandbox as `/play/<id>/`. It answers
 SDK calls through the same bridge, with a test player and storage that lasts
-until the page closes, and logs every call. Publishing by outside developers
-(uploading on dingn, with a review) is the next step and does not exist yet.
+until the page closes, and logs every call.
+
+### Uploads by invited developers
+
+Admins invite a developer on `/admin/games/` (Developers), which gives the
+account the `developer: true` claim. The developer uploads a zip of their
+built game on `/developers/games/` (`scripts/developer-games.mjs`):
+
+1. The zip is checked: at most 20 MB zipped, 50 MB unpacked and 1000 files;
+   `game.json` and the entry page at the top (or inside one folder); only web
+   file types (`types` in `scripts/game-registry.mjs`) and safe names.
+2. The id and version are reserved in the registry. A game belongs to the
+   developer who first uploads its id (`owner`), so nobody else can upload to
+   it, and dingn's own games (no owner) cannot be uploaded to.
+3. The files are stored at `games/<id>/<version>/` like any published version,
+   and the version becomes the game's beta.
+
+An upload is a preview until an admin makes it live (`reviewedAt` on the
+version): `/play/<id>/` shows a "not reviewed yet" notice on previews, and a
+new game has no live version, so only its `?v=` links play it. Game pages
+opened directly at `/g/…` redirect to the player, so a game always appears
+inside dingn's player with its notices.
+
+The website's runtime account needs two extra roles for uploads, granted
+once:
+
+```sh
+gcloud storage buckets add-iam-policy-binding gs://dingn-193716-games \
+  --member=serviceAccount:dingn-web-runtime@dingn-193716.iam.gserviceaccount.com \
+  --role=roles/storage.objectAdmin
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member=serviceAccount:dingn-web-runtime@dingn-193716.iam.gserviceaccount.com \
+  --role=roles/firebaseauth.admin
+```
+
+The first lets the server store uploaded files. The second lets admins grant
+developer access. Writing the registry uses the account's existing
+Firestore access.
 
 ## Writing a game
 

@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   },
   listGames: vi.fn(),
   changeGame: vi.fn(),
+  listDevelopers: vi.fn(),
+  changeDeveloper: vi.fn(),
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
@@ -20,6 +22,8 @@ vi.mock("../src/components/session", () => ({
 vi.mock("../src/lib/admin-games", () => ({
   listGames: mocks.listGames,
   changeGame: mocks.changeGame,
+  listDevelopers: mocks.listDevelopers,
+  changeDeveloper: mocks.changeDeveloper,
 }));
 
 const title = { en: "Crowd Rush", zh: "人潮突击" };
@@ -29,9 +33,20 @@ const crowd: AdminGame = {
   live: "1.0.0",
   beta: "1.1.0",
   updatedAt: null,
+  owner: null,
   versions: [
-    { version: "1.1.0", title, publishedAt: "2026-11-09T03:50:00Z" },
-    { version: "1.0.0", title, publishedAt: "2026-11-08T03:50:00Z" },
+    {
+      version: "1.1.0",
+      title,
+      publishedAt: "2026-11-09T03:50:00Z",
+      reviewed: true,
+    },
+    {
+      version: "1.0.0",
+      title,
+      publishedAt: "2026-11-08T03:50:00Z",
+      reviewed: true,
+    },
   ],
 };
 
@@ -39,6 +54,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.session = { user: { uid: "admin" }, ready: true, isAdmin: true };
   mocks.listGames.mockResolvedValue([crowd]);
+  mocks.listDevelopers.mockResolvedValue([]);
 });
 afterEach(() => {
   cleanup();

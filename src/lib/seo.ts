@@ -157,6 +157,11 @@ export const pages = {
         "用 dingn 游戏 SDK 为 dingn 制作网页游戏：入门游戏、SDK 参考和测试游戏的试玩场。",
     },
   },
+  "/developers/games/": {
+    index: false,
+    en: { title: "My games" },
+    zh: { title: "我的游戏" },
+  },
   "/developers/playground/": {
     index: false,
     en: { title: "Game playground" },

@@ -148,3 +148,22 @@
 .dev-log-error {
   color: #b42318;
 }
+
+/* My games */
+.dev-upload label {
+  font-weight: 600;
+}
+.dev-upload input[type="file"] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+}
+.dev-done {
+  color: var(--green);
+}
+.dev-game {
+  margin-top: 20px;
+}
+.dev-game h3 {
+  margin-bottom: 4px;
+}

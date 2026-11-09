@@ -24,6 +24,8 @@ export type PublishedGame = {
   description: { en: string; zh: string };
   entry: string;
   url: string;
+  /** An outside developer's upload that dingn has not reviewed yet. */
+  preview?: boolean;
 };
 
 /** The game id in /play/<id>/ or /zh/play/<id>/. */
@@ -202,6 +204,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           {t("Full screen")}
         </button>
       </div>
+      {state.game.preview && (
+        <p className="play-preview" role="note">
+          {t(
+            "Preview: an outside developer made this version, and dingn has not reviewed it yet. Never enter a password or payment details in a game.",
+          )}
+        </p>
+      )}
       <div className="play-stage">
         {!loaded && <p className="play-status">{t("Loading game…")}</p>}
         <iframe

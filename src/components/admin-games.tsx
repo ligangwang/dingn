@@ -7,9 +7,12 @@ import { useEffect, useState } from "react";
 import { useLocale } from "./locale";
 import { useSession } from "./session";
 import {
+  changeDeveloper,
   changeGame,
+  listDevelopers,
   listGames,
   type AdminGame,
+  type Developer,
   type GameChange,
 } from "@/lib/admin-games";
 
@@ -87,7 +90,7 @@ function GameList() {
       <h1>{t("Games")}</h1>
       <p className="lede">
         {t(
-          "New versions are published from GitHub. Here you choose which published version players get. Changes reach players within about 30 seconds.",
+          "New versions come from GitHub or from invited developers' uploads. Here you choose which version players get: making a developer's upload live is how you approve it. Changes reach players within about 30 seconds.",
         )}
       </p>
       <p role="status" aria-live="polite" className="admin-games-notice">
@@ -108,7 +111,128 @@ function GameList() {
           apply={apply}
         />
       ))}
+      <Developers />
     </div>
+  );
+}
+
+/** Who may upload games on /developers/games/. */
+function Developers() {
+  const { t } = useLocale();
+  const [list, setList] = useState<Developer[] | null>(null);
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState({ error: false, text: "" });
+
+  useEffect(() => {
+    listDevelopers()
+      .then(setList)
+      .catch(() =>
+        setMessage({
+          error: true,
+          text: t("Developers could not be loaded. Try again."),
+        }),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function change(target: string, action: "add" | "remove") {
+    setBusy(true);
+    setMessage({ error: false, text: "" });
+    try {
+      const developer = await changeDeveloper(target, action);
+      setList((current) => {
+        const others = (current ?? []).filter((d) => d.uid !== developer.uid);
+        return action === "add"
+          ? [...others, developer].sort((a, b) =>
+              a.email.localeCompare(b.email),
+            )
+          : others;
+      });
+      if (action === "add") setEmail("");
+      setMessage({
+        error: false,
+        text:
+          action === "add"
+            ? t(`${developer.email} can upload games now.`)
+            : t(`${developer.email} can no longer upload games.`),
+      });
+    } catch (error) {
+      setMessage({
+        error: true,
+        text:
+          (error as { code?: string }).code === "user-not-found"
+            ? t(
+                "No dingn account uses that email. Ask them to sign in once first.",
+              )
+            : t("That change could not be saved. Try again."),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel admin-game" aria-labelledby="admin-developers">
+      <h2 id="admin-developers">{t("Developers")}</h2>
+      <p className="admin-game-meta">
+        {t(
+          "Invited developers can upload games at /developers/games/. Their uploads wait for you here as betas.",
+        )}
+      </p>
+      {message.text && (
+        <p
+          role={message.error ? "alert" : "status"}
+          className={message.error ? "error" : undefined}
+        >
+          {message.text}
+        </p>
+      )}
+      <form
+        className="admin-developer-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (email.trim()) void change(email.trim(), "add");
+        }}
+      >
+        <label htmlFor="developer-email">{t("Account email")}</label>
+        <input
+          id="developer-email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="off"
+        />
+        <button type="submit" className="button small" disabled={busy}>
+          {t("Allow uploads")}
+        </button>
+      </form>
+      {list && list.length === 0 && <p>{t("No developers yet.")}</p>}
+      {list && list.length > 0 && (
+        <ul className="admin-developers">
+          {list.map((developer) => (
+            <li key={developer.uid}>
+              {developer.email || developer.uid}{" "}
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      t(`Stop ${developer.email} from uploading games?`),
+                    )
+                  )
+                    void change(developer.email, "remove");
+                }}
+              >
+                {t("Remove")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -143,6 +267,7 @@ function GameCard({
             <code>{game.id}</code> · {t(`Live: ${game.live ?? t("none")}`)} ·{" "}
             {t(`Beta: ${game.beta ?? t("none")}`)} ·{" "}
             {listed ? t("Shown in the catalog") : t("Hidden from the catalog")}
+            {game.owner && <> · {t(`Uploaded by ${game.owner}`)}</>}
           </p>
         </div>
         <div className="admin-game-actions">
@@ -203,6 +328,11 @@ function GameCard({
                   )}
                   {isBeta && (
                     <span className="admin-tag beta">{t("Beta")}</span>
+                  )}
+                  {!v.reviewed && (
+                    <span className="admin-tag review">
+                      {t("Needs review")}
+                    </span>
                   )}
                 </th>
                 <td>{date(v.publishedAt)}</td>

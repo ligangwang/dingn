@@ -931,6 +931,30 @@ input[type="radio"] {
   background: #ffe08a;
   color: #3a2c00;
 }
+.admin-tag.review {
+  background: #ffd1c2;
+  color: #5a1a00;
+}
+.admin-developer-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.admin-developer-form input {
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 240px;
+}
+.admin-developers {
+  padding-left: 18px;
+}
+.admin-developers li {
+  margin-bottom: 6px;
+}
 .feedback-list {
   display: grid;
   gap: 20px;

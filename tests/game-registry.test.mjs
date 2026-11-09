@@ -142,7 +142,15 @@ test("the API serves the live, beta or a pinned version, and the sandboxed files
     page.headers["Content-Security-Policy"],
     /allow-same-origin/,
   );
-  assert.match(page.headers["Cache-Control"], /immutable/);
+  // Pages are rechecked (a direct visit redirects to the player); every
+  // other published file never changes.
+  assert.equal(page.headers["Cache-Control"], "no-cache");
+  assert.equal(page.headers.Vary, "Sec-Fetch-Dest");
+  await writeFile(path.join(files, "main.js"), "1");
+  assert.match(
+    (await call("/g/hello/1.0.0/main.js")).headers["Cache-Control"],
+    /immutable/,
+  );
   assert.equal((await call("/g/hello/1.0.0/missing.js")).status, 404);
   assert.equal((await call("/g/hello/1.0.0/../../registry.json")).status, 404);
 });
