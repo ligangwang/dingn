@@ -11,16 +11,23 @@ import {
   VERSION,
   clearRegistryCache,
   compareVersions,
+  isPreview,
   listRecords,
   pointChannel,
   updateRecord,
 } from "./game-registry.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
-export const adminGameRoutes = ["/api/admin/games", "/api/admin/games/update"];
+export const adminGameRoutes = [
+  "/api/admin/games",
+  "/api/admin/games/update",
+  "/api/admin/developers",
+  "/api/admin/developers/update",
+];
 
 let authPromise;
-async function auth() {
+/** The Firebase Admin SDK's auth, shared with the developer uploads API. */
+export async function firebaseAuth() {
   authPromise ??= (async () => {
     const { initializeApp, getApps } = await import("firebase-admin/app");
     const { getAuth } = await import("firebase-admin/auth");
@@ -53,14 +60,52 @@ export function adminGame(record) {
     live: record.live ?? null,
     beta: record.beta ?? null,
     updatedAt: record.updatedAt ?? null,
+    // The outside developer who uploads this game, if it is not dingn's own.
+    owner: record.owner ? (record.ownerEmail ?? record.owner) : null,
     versions: Object.entries(record.versions ?? {})
       .map(([version, v]) => ({
         version,
         title: v.title,
         publishedAt: v.publishedAt ?? null,
+        reviewed: !isPreview(record, v),
       }))
       .sort((a, b) => compareVersions(b.version, a.version)),
   };
+}
+
+/**
+ * Developer access: the `developer: true` claim on an account, which lets it
+ * upload games on /developers/games/. `users` is the Admin SDK's auth.
+ */
+async function developers(pathname, body, users) {
+  if (pathname === "/api/admin/developers") {
+    const list = [];
+    let pageToken;
+    do {
+      const page = await users.listUsers(1000, pageToken);
+      for (const user of page.users)
+        if (user.customClaims?.developer === true)
+          list.push({ uid: user.uid, email: user.email ?? "" });
+      pageToken = page.pageToken;
+    } while (pageToken);
+    return { developers: list.sort((a, b) => a.email.localeCompare(b.email)) };
+  }
+  const email = typeof body.email === "string" ? body.email.trim() : "";
+  if (!email || !["add", "remove"].includes(body.action))
+    throw new ApiError(400, "invalid-request");
+  let user;
+  try {
+    user = await users.getUserByEmail(email);
+  } catch {
+    throw new ApiError(404, "user-not-found");
+  }
+  const { developer: _old, ...claims } = user.customClaims ?? {};
+  await users.setCustomUserClaims(
+    user.uid,
+    body.action === "add" ? { ...claims, developer: true } : claims,
+  );
+  console.log("games admin developer", body.action, user.uid);
+  return { developer: { uid: user.uid, email: user.email ?? email } };
 }
 
 /** Applies one admin change to a record. Throws ApiError for a bad request. */
@@ -115,7 +160,7 @@ export async function handleAdminGames(
   req,
   res,
   pathname,
-  { verify, exchange = refresh } = {},
+  { verify, exchange = refresh, users } = {},
 ) {
   try {
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
@@ -124,9 +169,15 @@ export async function handleAdminGames(
     await requireAdmin(
       req,
       res,
-      verify ?? (async (t) => (await auth()).verifyIdToken(t)),
+      verify ?? (async (t) => (await firebaseAuth()).verifyIdToken(t)),
       exchange,
     );
+    if (pathname.startsWith("/api/admin/developers"))
+      return send(
+        res,
+        200,
+        await developers(pathname, body, users ?? (await firebaseAuth())),
+      );
     if (pathname === "/api/admin/games") {
       const records = await listRecords();
       return send(res, 200, {

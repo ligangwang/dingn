@@ -174,13 +174,35 @@ export function Developers() {
       </p>
 
       <h2>{t("Publishing on dingn")}</h2>
+      <ol className="dev-steps">
+        <li>
+          {t(
+            "Zip your game's folder, with game.json and index.html at the top. For a game with a build step, zip the built files.",
+          )}
+        </li>
+        <li>
+          {t(
+            "Upload the zip on My games. It becomes a preview that you can try and share right away.",
+          )}
+        </li>
+        <li>
+          {t(
+            "dingn reviews the preview and makes it live. For every update, raise version in game.json and upload again.",
+          )}
+        </li>
+      </ol>
       <p>
         {t(
-          "Publishing for outside developers is coming soon: you will upload your game on dingn, and it goes live after a review. To be among the first, tell us about your game.",
+          "Uploading is open to invited developers for now. Tell us about your game and we will invite you.",
         )}
       </p>
-      <p>
-        <Link href={href("/feedback/")}>{t("Tell us about your game →")}</Link>
+      <p className="dev-actions">
+        <Link className="button" href={href("/developers/games/")}>
+          {t("My games")}
+        </Link>
+        <Link className="button secondary" href={href("/feedback/")}>
+          {t("Tell us about your game →")}
+        </Link>
       </p>
     </div>
   );

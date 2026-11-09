@@ -98,6 +98,10 @@ export function resolveVersion(record, requested) {
   return { version, ...published[version] };
 }
 
+/** True for an outside developer's version that was never made live. */
+export const isPreview = (record, version) =>
+  !!record?.owner && !version?.reviewedAt;
+
 /** What the website receives about one game: never the full history. */
 export function publicGame(record, requested) {
   const resolved = resolveVersion(record, requested);
@@ -109,6 +113,9 @@ export function publicGame(record, requested) {
     description: resolved.description,
     entry: resolved.entry,
     url: `/g/${record.id}/${resolved.version}/${resolved.entry}`,
+    // A version an outside developer uploaded that dingn has not made live
+    // yet. The player page says so.
+    preview: isPreview(record, resolved),
   };
 }
 
@@ -195,6 +202,8 @@ export function addVersion(
     publishedAt: now,
   };
   return {
+    // Keeps fields such as an outside developer's ownership.
+    ...record,
     id: manifest.id,
     // "listed" games appear in the catalog; "unlisted" ones play only by URL.
     status:
@@ -226,7 +235,15 @@ export function pointChannel(
           .join(", ") || "none"
       }`,
     );
-  return { ...record, [channel]: version, updatedAt: now };
+  // Making a version live is how dingn approves a developer's upload.
+  const versions =
+    channel === "live" && !record.versions[version].reviewedAt
+      ? {
+          ...record.versions,
+          [version]: { ...record.versions[version], reviewedAt: now },
+        }
+      : record.versions;
+  return { ...record, versions, [channel]: version, updatedAt: now };
 }
 
 // ---- HTTP: the registry API and the game files ----
@@ -308,7 +325,7 @@ export async function handleGames(req, res, pathname) {
   }
 }
 
-const types = {
+export const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
@@ -317,13 +334,28 @@ const types = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".ico": "image/x-icon",
+  ".avif": "image/avif",
   ".webp": "image/webp",
   ".glb": "model/gltf-binary",
   ".gltf": "model/gltf+json",
   ".mp3": "audio/mpeg",
   ".ogg": "audio/ogg",
   ".wav": "audio/wav",
+  ".m4a": "audio/mp4",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".woff": "font/woff",
   ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+  ".bin": "application/octet-stream",
+  ".csv": "text/csv; charset=utf-8",
+  ".xml": "application/xml",
+  ".atlas": "text/plain; charset=utf-8",
+  ".fnt": "text/plain; charset=utf-8",
   ".wasm": "application/wasm",
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
@@ -373,7 +405,13 @@ function fileHeaders(file) {
     "X-Content-Type-Options": "nosniff",
     "Cross-Origin-Resource-Policy": "cross-origin",
   };
-  if (file.endsWith(".html")) headers["Content-Security-Policy"] = GAME_CSP;
+  if (file.endsWith(".html")) {
+    headers["Content-Security-Policy"] = GAME_CSP;
+    // Pages are checked on every request, because the same URL either plays
+    // in the player's frame or redirects to the player (serveGameFile).
+    headers["Cache-Control"] = "no-cache";
+    headers["Vary"] = "Sec-Fetch-Dest";
+  }
   return headers;
 }
 
@@ -385,6 +423,16 @@ async function serveGameFile(req, res, pathname) {
     return;
   }
   const { id, version, file } = parsed;
+  // A game page opened on its own in a tab goes to the player page instead,
+  // so a game is always shown inside dingn's player, with its notices.
+  if (file.endsWith(".html") && req.headers["sec-fetch-dest"] === "document") {
+    res.writeHead(302, {
+      Location: `/play/${id}/?v=${version}`,
+      "Cache-Control": "no-store",
+    });
+    res.end();
+    return;
+  }
   if (localDir()) {
     const root = path.join(localDir(), "games", id, version);
     const target = path.resolve(root, file);

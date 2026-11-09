@@ -110,7 +110,7 @@ export async function readBody(req) {
     throw new ApiError(400, "invalid-request");
   }
 }
-export function validateOrigin(req) {
+export function validateOrigin(req, contentType = "application/json") {
   const allowed = secure
     ? [
         "https://dingn.com",
@@ -122,7 +122,7 @@ export function validateOrigin(req) {
   if (
     !allowed.includes(req.headers.origin) ||
     req.headers["x-dingn-request"] !== "1" ||
-    !req.headers["content-type"]?.startsWith("application/json")
+    !req.headers["content-type"]?.startsWith(contentType)
   )
     throw new ApiError(403, "invalid-origin");
 }

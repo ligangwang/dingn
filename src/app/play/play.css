@@ -80,3 +80,11 @@
     min-height: 300px;
   }
 }
+.play-preview {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #ffd1c2;
+  color: #5a1a00;
+  font-size: 0.85rem;
+}
