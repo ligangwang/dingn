@@ -262,7 +262,10 @@ export function createBillingHandler(getServices = productionServices) {
       const body = await readBody(req),
         token = await refresh(req, res),
         deps = await getServices();
-      const { uid } = await deps.auth.verifyIdToken(token, true);
+      // refresh() has just exchanged the session with Google, which rejects
+      // disabled/revoked sessions. Verify that fresh token locally as the game
+      // API does; checkRevoked would additionally require Auth admin IAM access.
+      const { uid } = await deps.auth.verifyIdToken(token);
       let data;
       if (path === "/api/billing/items") data = await catalog(deps);
       else if (path === "/api/billing/inventory")

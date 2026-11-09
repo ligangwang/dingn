@@ -296,3 +296,46 @@ test("refund after ownership revokes the item, and expiry cannot revoke a paid i
     "revoked",
   );
 });
+test("signed-in empty shop works without Auth admin permissions", async () => {
+  const original = globalThis.fetch;
+  const verified = [];
+  globalThis.fetch = async (url) => {
+    assert.match(
+      String(url),
+      /^https:\/\/securetoken.googleapis.com\/v1\/token/,
+    );
+    return {
+      ok: true,
+      json: async () => ({
+        id_token: "fresh-google-token",
+        refresh_token: "refresh-next",
+      }),
+    };
+  };
+  deps.auth.verifyIdToken = async (...args) => {
+    verified.push(args);
+    if (args[1]) throw new Error("auth/insufficient-permission");
+    return { uid: "alice" };
+  };
+  deps.stripe = null;
+  deps.items = [];
+  try {
+    const headers = {
+      origin: "http://127.0.0.1:3001",
+      "x-dingn-request": "1",
+      "content-type": "application/json",
+      cookie: "dingn-session=refresh-test",
+    };
+    for (const path of ["/api/billing/items", "/api/billing/inventory"]) {
+      const result = await request(path, "{}", headers);
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body, []);
+    }
+    assert.deepEqual(verified, [
+      ["fresh-google-token"],
+      ["fresh-google-token"],
+    ]);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
