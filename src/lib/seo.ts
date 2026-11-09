@@ -144,6 +144,11 @@ export const pages = {
     en: { title: "Play" },
     zh: { title: "开始游戏" },
   },
+  "/admin/games/": {
+    index: false,
+    en: { title: "Games admin" },
+    zh: { title: "游戏管理" },
+  },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },
