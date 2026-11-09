@@ -624,5 +624,21 @@
   "Email of the developer account that will publish this game. It must have signed up as a developer.": "将发布此游戏的开发者账号邮箱。该账号必须已注册为开发者。",
   "{0} now belongs to {1}.": "{0} 现在属于 {1}。",
   "That account is not a developer yet. Sign it up on My games first, by accepting the developer agreement.": "该账号还不是开发者。请先在“我的游戏”中接受开发者协议完成注册。",
-  "That game already belongs to a developer.": "该游戏已属于一位开发者。"
+  "That game already belongs to a developer.": "该游戏已属于一位开发者。",
+  "Upload keys": "上传密钥",
+  "Upload keys could not be loaded.": "无法加载上传密钥。",
+  "You can have up to 5 keys. Revoke one first.": "最多可以有 5 个密钥。请先撤销一个。",
+  "That did not work. Try again.": "操作没有成功，请重试。",
+  "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Send the zip to https://dingn.com/api/developer/games/upload with the header Authorization: Bearer followed by the key. Keep keys secret, for example as a GitHub secret.": "密钥让脚本或 GitHub Action 上传你的游戏，审核和限额与本页相同。把 zip 发送到 https://dingn.com/api/developer/games/upload，并带上请求头 Authorization: Bearer 加上密钥。请妥善保管密钥，例如存为 GitHub secret。",
+  "Copy your new key now. dingn shows it only once.": "请立即复制新密钥。dingn 只显示一次。",
+  "Key name": "密钥名称",
+  "Key name, such as GitHub Actions": "密钥名称，例如 GitHub Actions",
+  "Create key": "创建密钥",
+  "Created {0}": "创建于 {0}",
+  "last used {0}": "上次使用于 {0}",
+  "never used": "从未使用",
+  "Revoke": "撤销",
+  "Revoke {0}? Anything using it will stop uploading.": "撤销 {0}？使用它的程序将无法再上传。",
+  "Uploading from GitHub or a script": "从 GitHub 或脚本上传",
+  "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "在“我的游戏”中创建上传密钥，然后用它发送 zip。这样上传的版本与其他上传一样需要审核。在 GitHub Action 中，把密钥存为名为 DINGN_UPLOAD_KEY 的 secret："
 }

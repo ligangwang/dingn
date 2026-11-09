@@ -118,6 +118,15 @@ The developer uploads a zip of their built game on `/developers/games/`
 3. The files are stored at `games/<id>/<version>/` like any published version,
    and the version becomes the game's beta.
 
+A developer can also upload from a script or CI with an **upload key**
+(`scripts/upload-keys.mjs`). They create one on `/developers/games/` (up to 5,
+each shown once; only a SHA-256 hash is stored in `developers/{uid}.keys`) and
+send the zip to `/api/developer/games/upload` with
+`Authorization: Bearer dgk.<uid>.<id>.<secret>`. Such a request has no session
+and skips the browser origin check. Every use reads the account's current
+claims, so removing or blocking a developer stops their keys at once. The
+upload then follows the same steps, limits and review as one from the page.
+
 An upload is a preview until an admin makes it live (`reviewedAt` on the
 version): `/play/<id>/` shows a "not reviewed yet" notice on previews, and a
 new game has no live version, so only its `?v=` links play it. Game pages

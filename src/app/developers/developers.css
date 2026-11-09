@@ -181,3 +181,23 @@
   margin: 0 0 8px;
   opacity: 0.8;
 }
+
+/* Upload keys */
+.dev-keys {
+  margin-top: 36px;
+  max-width: 680px;
+}
+.dev-key {
+  display: block;
+  overflow-wrap: anywhere;
+  user-select: all;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.dev-key-list {
+  padding-left: 18px;
+}
+.dev-key-list li {
+  margin: 6px 0;
+}
