@@ -30,3 +30,23 @@ export function translate(text: string, locale: Locale): string {
   }
   return text;
 }
+/** Chinese pages live under /zh/; English keeps the original, unprefixed URLs. */
+export const zhPrefix = "/zh";
+export function localeFromPath(pathname: string | null | undefined): Locale {
+  return pathname === zhPrefix || pathname?.startsWith(zhPrefix + "/")
+    ? "zh-CN"
+    : "en";
+}
+/** The language-neutral path, e.g. "/zh/word/" → "/word/". */
+export function stripLocale(pathname: string): string {
+  if (pathname === zhPrefix || pathname === zhPrefix + "/") return "/";
+  return pathname.startsWith(zhPrefix + "/")
+    ? pathname.slice(zhPrefix.length)
+    : pathname;
+}
+/** The URL of a site path in a language, e.g. ("/word/", "zh-CN") → "/zh/word/". */
+export function localePath(path: string, locale: Locale): string {
+  if (!path.startsWith("/") || path.startsWith("//")) return path;
+  const bare = stripLocale(path);
+  return locale === "zh-CN" ? zhPrefix + bare : bare;
+}

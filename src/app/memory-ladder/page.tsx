@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
 import { WarmUp } from "@/components/warm-up";
-export const metadata: Metadata = { title: "Memory Ladder · 记忆阶梯" };
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata("/memory-ladder/", "en");
 export default function MemoryLadderPage() {
   return (
     <div className="container mind-page">

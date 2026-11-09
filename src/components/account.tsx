@@ -10,7 +10,7 @@ import { ItemShop } from "./item-shop";
 import { avatarPresets, friendlyError } from "@/lib/models";
 import { Avatar } from "./avatar";
 function Settings() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { user, profile, profileError, updateProfile, logout } = useSession();
   const router = useRouter();
@@ -38,7 +38,7 @@ function Settings() {
     setError("");
     try {
       await logout();
-      router.push("/");
+      router.push(href("/"));
     } catch (e) {
       setError(friendlyError(e));
       setBusy(false);
@@ -101,7 +101,7 @@ function Settings() {
         )}
       </form>
       <ItemShop />
-      <Link className="button" href="/#games">
+      <Link className="button" href={href("/#games")}>
         {t("Play games →")}
       </Link>
       <button className="text-button" onClick={leave} disabled={busy}>
@@ -111,7 +111,7 @@ function Settings() {
   );
 }
 export function Account() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   return (
     <AuthGate returnTo="/account/">

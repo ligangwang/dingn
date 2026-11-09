@@ -1,3 +1,4 @@
+import { localePath, stripLocale, type Locale } from "./i18n";
 export type CardSide = "OneSide" | "TwoSides";
 export type Profile = { userName: string; cardSide: CardSide; avatar: string };
 /** Preset avatars a player can pick. "" means the default (sign-in photo, else initials). */
@@ -144,7 +145,7 @@ export function shuffle<T>(items: readonly T[], random = Math.random): T[] {
   }
   return copy;
 }
-export function safeDestination(value: string | null) {
+export function safeDestination(value: string | null, locale: Locale = "en") {
   return [
     "/memory-ladder/",
     "/word/",
@@ -156,9 +157,9 @@ export function safeDestination(value: string | null) {
     "/logic/",
     "/decisions/",
     "/crowd/",
-  ].includes(value ?? "")
+  ].includes(stripLocale(value ?? ""))
     ? value!
-    : "/";
+    : localePath("/", locale);
 }
 export function friendlyError(error: unknown): string {
   const code =

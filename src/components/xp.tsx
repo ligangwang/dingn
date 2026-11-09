@@ -93,12 +93,14 @@ export function XpSummary({
   signedIn: boolean;
   returnTo: string;
 }) {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   if (!signedIn)
     return (
       <p className="xp-note">
-        <Link href={`/signin/?next=${encodeURIComponent(returnTo)}`}>
+        <Link
+          href={`${href("/signin/")}?next=${encodeURIComponent(href(returnTo))}`}
+        >
           {t("Sign in")}
         </Link>{" "}
         {t("to earn XP and join the leaderboard.")}
@@ -138,7 +140,7 @@ export function XpSummary({
 }
 
 export function LevelBadge() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { stats } = useSession();
   if (!stats) return null;
@@ -155,7 +157,7 @@ export function LevelBadge() {
 }
 
 export function Leaderboard({ title = "Top players" }: { title?: string }) {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   // Refetch whenever this player's XP changes so fresh scores show up.
   const xp = useSession().stats?.xp;
