@@ -678,6 +678,8 @@
   "coins": "金币",
   "LEVEL": "关卡",
   "Badge earned": "获得徽章",
+  "{0} badges earned": "获得 {0} 枚徽章",
+  "{0} and {1} more": "{0}，另有 {1} 枚",
   "Test badge (not saved)": "测试徽章（不保存）",
   "Badges in this game": "本游戏的徽章",
   "{0} of {1} earned": "已获得 {0}/{1}",

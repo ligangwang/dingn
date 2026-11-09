@@ -804,6 +804,32 @@ nav a.coin-count {
 nav a.coin-count:hover {
   box-shadow: 0 0 0 3px #ffe08a33;
 }
+/* A game just paid out: the count jumps and glows while it counts up. */
+nav a.coin-count.bump {
+  animation: coin-count-bump 0.9s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+nav a.coin-count.bump .coin {
+  animation: coin-count-spin 0.9s ease-out;
+}
+@keyframes coin-count-bump {
+  30% {
+    transform: scale(1.18);
+    box-shadow:
+      0 0 0 6px #ffe08a44,
+      0 0 18px #ffe08a88;
+  }
+}
+@keyframes coin-count-spin {
+  to {
+    transform: rotateY(720deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  nav a.coin-count.bump,
+  nav a.coin-count.bump .coin {
+    animation: none;
+  }
+}
 /* Narrow menus stack icons over labels; the coin count stays one row. */
 @media (max-width: 620px) {
   nav > a.coin-count {

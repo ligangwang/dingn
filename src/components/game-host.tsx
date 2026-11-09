@@ -16,10 +16,13 @@ import {
 import {
   addToWallet,
   loadWallet,
+  MERGE_TOAST_MS,
+  mergeToasts,
   unlockBadge,
   type BadgeDef,
+  type EarnedToast,
 } from "@/lib/rewards";
-import { BadgeToast, GameBadges, type EarnedToast } from "./rewards";
+import { BadgeToast, GameBadges } from "./rewards";
 import {
   accountProgress,
   BridgeError,
@@ -85,11 +88,30 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   const [toast, setToast] = useState<EarnedToast | null>(null);
   const toasts = useRef<EarnedToast[]>([]);
   const toastKey = useRef(0);
+  // When a game awards several badges at once (a returning player catching
+  // up on past levels), they share one popup instead of a popup each.
+  const toastShownAt = useRef(0);
   function showToast(next: EarnedToast) {
-    toasts.current.push(next);
-    setToast((shown) => shown ?? toasts.current.shift() ?? null);
+    const queued = toasts.current;
+    if (queued.length) {
+      queued[queued.length - 1] = mergeToasts(queued[queued.length - 1], next);
+      return;
+    }
+    setToast((shown) => {
+      if (!shown) {
+        toastShownAt.current = Date.now();
+        return next;
+      }
+      if (Date.now() - toastShownAt.current < MERGE_TOAST_MS) {
+        toastShownAt.current = Date.now();
+        return mergeToasts(shown, next);
+      }
+      queued.push(next);
+      return shown;
+    });
   }
   function nextToast() {
+    toastShownAt.current = Date.now();
     setToast(toasts.current.shift() ?? null);
   }
 
@@ -189,6 +211,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           if (user) addToWallet(user.uid, game.id, result, def);
           showToast({
             key: ++toastKey.current,
+            count: 1,
             badge: def,
             coins: result.coins,
             test: !!result.test,

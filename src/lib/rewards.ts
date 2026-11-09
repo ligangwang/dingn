@@ -38,6 +38,38 @@ export type Unlock = {
   test?: boolean;
 };
 
+/** A "Badge earned" popup on the player page. */
+export type EarnedToast = {
+  key: number;
+  /** How many badges this popup stands for (several arrive together). */
+  count: number;
+  badge: BadgeDef;
+  coins: number;
+  test: boolean;
+};
+
+// Badges awarded within this long of the popup appearing join it, so a
+// returning player who catches up on past levels sees one popup, not ten.
+export const MERGE_TOAST_MS = 1500;
+const TIER_RANK: Record<Tier, number> = {
+  bronze: 0,
+  silver: 1,
+  gold: 2,
+  diamond: 3,
+};
+
+/** One popup for two awards: the higher-tier badge shows, coins add up. */
+export function mergeToasts(a: EarnedToast, b: EarnedToast): EarnedToast {
+  return {
+    key: b.key,
+    count: a.count + b.count,
+    badge:
+      TIER_RANK[b.badge.tier] >= TIER_RANK[a.badge.tier] ? b.badge : a.badge,
+    coins: a.coins + b.coins,
+    test: a.test || b.test,
+  };
+}
+
 export const fetchWallet = () => api<Wallet>("/api/rewards/me");
 export const unlockBadge = (game: string, version: string, badge: string) =>
   api<Unlock>("/api/rewards/unlock", { game, version, badge });

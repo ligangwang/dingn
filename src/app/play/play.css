@@ -182,9 +182,154 @@
     transform: translateY(-16px) scale(0.92);
   }
 }
+/* The reward animation: the medal flips in over a spinning burst of light,
+   sparkles fly off it, a shine sweeps the popup, and coins jump out of the
+   coin chip while it counts up. */
+.badge-toast {
+  position: relative;
+  overflow: visible;
+  --glow: #f3c85c;
+}
+.badge-toast.tier-bronze {
+  --glow: #e3a06a;
+}
+.badge-toast.tier-silver {
+  --glow: #dfe7ee;
+}
+.badge-toast.tier-diamond {
+  --glow: #9fe8ff;
+}
+.badge-toast::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    #ffffff2e 50%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  animation: badge-shine 1.1s 0.35s ease-out both;
+}
+.badge-toast-medal {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.badge-toast-medal .badge-medal {
+  position: relative;
+  animation: badge-medal-in 0.8s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  filter: drop-shadow(0 0 10px var(--glow));
+}
+.badge-toast-rays {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--glow) 0deg 9deg,
+    transparent 9deg 30deg
+  );
+  mask: radial-gradient(circle, #000 18%, transparent 68%);
+  opacity: 0;
+  animation:
+    badge-rays-in 0.5s 0.1s ease-out forwards,
+    badge-rays-spin 6s linear infinite;
+}
+.badge-toast-spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff6cf;
+  box-shadow: 0 0 8px var(--glow);
+  opacity: 0;
+  animation: badge-spark 0.8s var(--d) ease-out forwards;
+}
+.badge-toast-coins {
+  position: relative;
+  animation: badge-coins-pop 0.5s 0.25s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.badge-toast-coin-fly {
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  opacity: 0;
+  animation: badge-coin-fly 0.9s var(--d) cubic-bezier(0.3, 0.7, 0.5, 1)
+    forwards;
+}
+@keyframes badge-medal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotateY(540deg);
+  }
+  60% {
+    transform: scale(1.25) rotateY(0deg);
+  }
+}
+@keyframes badge-rays-in {
+  to {
+    opacity: 0.55;
+  }
+}
+@keyframes badge-rays-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes badge-spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), var(--y)) scale(0.3);
+  }
+}
+@keyframes badge-shine {
+  to {
+    background-position: -120% 0;
+  }
+}
+@keyframes badge-coins-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+@keyframes badge-coin-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) rotate(200deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--x) * 1.4), calc(var(--y) * 0.3))
+      rotate(360deg);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .badge-toast {
+  .badge-toast,
+  .badge-toast::after,
+  .badge-toast-medal .badge-medal,
+  .badge-toast-coins {
     animation: none;
+  }
+  .badge-toast-rays,
+  .badge-toast-spark,
+  .badge-toast-coin-fly {
+    display: none;
   }
 }
 /* The badges a game offers, under the game. */
