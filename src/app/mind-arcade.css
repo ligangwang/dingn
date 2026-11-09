@@ -430,6 +430,10 @@ select {
   background: #f3f4f8;
   color: #202735;
 }
+/* The light theme's hover uses --canvas, which is dark here. */
+.google-button:hover:not(:disabled) {
+  background: #ffffff;
+}
 input:not([type="radio"]),
 .word-choices button,
 .practice-link {
