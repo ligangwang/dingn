@@ -19,6 +19,8 @@ export type DingnGame = {
   /** Saved to the signed-in player's account, up to 16 KB as JSON. save() rejects with code "signed_out" otherwise. */
   progress: { load(): Promise<Json>; save(data: Json): Promise<void> };
   requestSignIn(): void;
+  /** Leaves the game for a dingn page, such as "/" for the game list. The website keeps the player's language. */
+  navigate(path: string): void;
   ready(): void;
 };
 export declare function connect(options?: {

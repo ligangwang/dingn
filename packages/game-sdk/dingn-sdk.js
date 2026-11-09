@@ -12,6 +12,7 @@
 //   await dingn.storage.set("best", 12);  // this device only
 //   await dingn.progress.save({ level }); // follows a signed-in player
 //   dingn.requestSignIn();
+//   dingn.navigate("/");                  // leave the game for a dingn page
 //   dingn.ready();                        // hide the website's loading screen
 //
 // Opened on its own (not inside dingn), connect() still works in a local
@@ -99,6 +100,7 @@ function connectToHost(host, timeout) {
         save: (data) => request("progress.save", { data }),
       },
       requestSignIn: () => notify("signIn"),
+      navigate: (path) => notify("navigate", { path }),
       ready: () => notify("ready"),
     };
     return game;
@@ -128,6 +130,9 @@ function standalone() {
     },
     progress: { load: async () => null, save: signedOut },
     requestSignIn() {},
+    navigate(path) {
+      location.href = path;
+    },
     ready() {},
   };
 }

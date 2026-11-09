@@ -1,0 +1,253 @@
+/* The game fills its frame: the website draws the title and the frame. */
+.crowd-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.crowd-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #9fd3ff;
+  isolation: isolate;
+  overscroll-behavior: contain;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.crowd-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline-offset: -4px;
+}
+.crowd-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+.crowd-level {
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  background: #0b1426aa;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+.crowd-hud-left {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.crowd-weapon {
+  display: inline-flex;
+  gap: 4px;
+}
+.crowd-weapon b {
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 9px;
+}
+.crowd-weapon .power {
+  background: #c8322ccc;
+}
+.crowd-weapon .rate {
+  background: #178cccc0;
+}
+.crowd-hud button {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 13px;
+  color: #fff;
+  background: #0b1426aa;
+  border: 1px solid #ffffff3a;
+  border-radius: 999px;
+  padding: 6px 13px;
+  cursor: pointer;
+}
+.crowd-hud button[aria-pressed="false"] {
+  color: #b9c2cc;
+}
+.crowd-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(400px, calc(100% - 32px));
+  padding: 26px 24px;
+  border-radius: 22px;
+  background: #101a2ef0;
+  border: 1px solid #ffffff26;
+  box-shadow: 0 20px 50px #0007;
+  text-align: center;
+  color: #e8edf6;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+}
+.crowd-overlay h2 {
+  font-size: 28px;
+  margin: 6px 0 10px;
+}
+.crowd-overlay p {
+  margin: 0 0 16px;
+  color: #c4ccda;
+}
+.crowd-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.crowd-overlay .crowd-stars {
+  font-size: 40px;
+  letter-spacing: 6px;
+  color: #ffd34d;
+  margin: 0 !important;
+}
+.crowd-stars span {
+  color: #ffffff30;
+}
+.crowd-hint {
+  margin: 0;
+  padding: 6px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #9aa3b5;
+}
+@media (max-width: 640px) {
+  .crowd-hud {
+    padding: 8px 10px;
+  }
+  .crowd-level,
+  .crowd-hud button {
+    font-size: 13px;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .crowd-overlay {
+    padding: 18px 16px;
+    border-radius: 18px;
+  }
+  .crowd-overlay h2 {
+    font-size: 22px;
+    margin: 4px 0 8px;
+  }
+  .crowd-overlay .button,
+  .crowd-overlay .secondary-button {
+    min-height: 44px;
+  }
+}
+.crowd3d-stage {
+  background: #8fd0ff;
+}
+.crowd3d-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.crowd3d-labels span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  font-weight: 900;
+  will-change: transform;
+}
+.crowd3d-count {
+  font-size: 17px;
+  color: #fff;
+  background: #0f3d78e6;
+  border: 2px solid #ffffffb0;
+  border-radius: 999px;
+  padding: 2px 11px;
+  box-shadow: 0 3px 8px #0004;
+}
+.crowd3d-count.rival {
+  background: #8a1820e6;
+}
+.crowd3d-float {
+  font-size: 22px;
+  text-shadow:
+    0 2px 0 #0009,
+    0 0 6px #0006;
+}
+.crowd3d-float.big {
+  font-size: 34px;
+}
+.crowd3d-bars {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, 60%);
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+.crowd3d-progress,
+.crowd3d-boss {
+  border-radius: 999px;
+  background: #0b1426aa;
+  overflow: hidden;
+}
+.crowd3d-progress {
+  height: 12px;
+}
+.crowd3d-progress div {
+  height: 100%;
+  background: #7cff6b;
+  border-radius: 999px;
+}
+.crowd3d-boss {
+  height: 16px;
+}
+.crowd3d-boss[hidden] {
+  display: none;
+}
+.crowd3d-boss div {
+  height: 100%;
+  background: #b27bff;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  min-width: 24px;
+}
+.crowd3d-boss div[data-hit="1"] {
+  background: #ffb3d0;
+}
+@media (max-width: 520px) {
+  .crowd3d-bars {
+    top: 54px;
+    width: calc(100% - 32px);
+  }
+}
+/* a phone on its side: the stage takes the whole screen height */
+@media (max-height: 500px) and (orientation: landscape) {
+  .crowd-overlay {
+    padding: 14px 18px;
+  }
+  .crowd-overlay h2 {
+    font-size: 20px;
+    margin: 2px 0 6px;
+  }
+}

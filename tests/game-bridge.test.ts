@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  accountProgress,
   handleGameRequest,
   isGameRequest,
   MAX_VALUE,
@@ -24,6 +25,7 @@ function context(signedIn: boolean) {
     loadProgress: async () => saved.at(-1) ?? null,
     saveProgress: async (json) => void saved.push(json),
     signIn: () => void calls.push("signIn"),
+    navigate: (path) => void calls.push(`navigate ${path}`),
     ready: () => void calls.push("ready"),
   };
   return { ctx, store, saved, calls };
@@ -119,4 +121,59 @@ test("notifications get no reply, unknown methods get an error", async () => {
   assert.deepEqual(calls, ["ready", "signIn"]);
   const reply = await handleGameRequest(ask("account.delete"), ctx);
   assert.equal(reply && "error" in reply && reply.error.code, "unknown_method");
+});
+
+test("a game can only send the player to a dingn page", async () => {
+  const { ctx, calls } = context(false);
+  await handleGameRequest(ask("navigate", { path: "/zh/word/" }), ctx);
+  for (const path of [
+    "//evil.example/",
+    "https://evil.example/",
+    "javascript:alert(1)",
+    "/zh//example.org/",
+    "/a//b",
+    "/a b",
+    3,
+  ]) {
+    const reply = await handleGameRequest(ask("navigate", { path }), ctx);
+    assert.ok(reply && "error" in reply, String(path));
+  }
+  assert.deepEqual(calls, ["navigate /zh/word/"]);
+});
+
+test("Crowd Rush keeps progress saved before it moved to the platform", async () => {
+  const { ctx, store } = context(false);
+  ctx.gameId = "crowd";
+  store.set("dingn.crowd.level", "7");
+  store.set("dingn.crowd.sound", "off");
+  const get = async (key: string) => {
+    const reply = await handleGameRequest(ask("storage.get", { key }), ctx);
+    return reply && "result" in reply ? reply.result : "error";
+  };
+  assert.equal(await get("level"), "7");
+  assert.equal(await get("sound"), "off");
+  assert.equal(await get("best"), null);
+  // once the game saves through the SDK, that value wins
+  await handleGameRequest(
+    ask("storage.set", { key: "level", value: "9" }),
+    ctx,
+  );
+  assert.equal(await get("level"), "9");
+  // other games never see Crowd Rush's old keys
+  ctx.gameId = "hello";
+  assert.equal(await get("level"), null);
+
+  assert.equal(
+    accountProgress("crowd", { crowd_level: 12, crowd_best: 11 }),
+    '{"level":12,"best":11}',
+  );
+  assert.equal(
+    accountProgress("crowd", {
+      crowd_level: 12,
+      game_progress_crowd: '{"level":20}',
+    }),
+    '{"level":20}',
+  );
+  assert.equal(accountProgress("hello", { crowd_level: 12 }), null);
+  assert.equal(accountProgress("crowd", undefined), null);
 });
