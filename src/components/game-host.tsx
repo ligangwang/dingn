@@ -118,7 +118,10 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       );
     },
     navigate: (path) => {
-      location.href = href(path);
+      // The bridge already checked the path; check the final URL again so a
+      // game can never send the player to another site.
+      const target = new URL(href(path), location.origin);
+      if (target.origin === location.origin) location.href = target.href;
     },
     signIn: () => {
       location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;

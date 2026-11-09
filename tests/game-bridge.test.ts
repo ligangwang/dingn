@@ -130,6 +130,8 @@ test("a game can only send the player to a dingn page", async () => {
     "//evil.example/",
     "https://evil.example/",
     "javascript:alert(1)",
+    "/zh//example.org/",
+    "/a//b",
     "/a b",
     3,
   ]) {

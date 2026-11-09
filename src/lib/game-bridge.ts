@@ -64,8 +64,12 @@ export const LEGACY_STORAGE: Record<string, Record<string, string>> = {
     sound: "dingn.crowd.sound",
   },
 };
-/** A same-site path a game may send the player to: "/word/", never "//evil". */
-export const SITE_PATH = /^\/(?!\/)[A-Za-z0-9\-._~/]*$/;
+/**
+ * A same-site path a game may send the player to: "/word/", never "//evil",
+ * and no "//" anywhere, since adding or removing the /zh prefix could turn
+ * "/zh//evil" into "//evil".
+ */
+export const SITE_PATH = /^(?!.*\/\/)\/[A-Za-z0-9\-._~/]*$/;
 /** The `accounts/{uid}` field that holds a game's progress. */
 export const progressField = (gameId: string) => `game_progress_${gameId}`;
 
