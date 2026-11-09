@@ -934,7 +934,7 @@ class BlockView {
   private hp = -1;
   private mats: THREE.Material[];
   private geos: THREE.BufferGeometry[] = [];
-  private sprite?: THREE.Sprite<THREE.SpriteMaterial>;
+  private sprite?: THREE.Sprite;
   constructor(
     readonly block: Block,
     rewardTex?: THREE.Texture,
