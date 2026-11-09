@@ -1,7 +1,7 @@
 import { handleApi } from "./api.mjs";
 import { handleBilling } from "./billing.mjs";
 import { gameRoutes, handleGameApi } from "./game-api.mjs";
-import { localizedRedirect } from "./locale-redirect.mjs";
+import { developerRedirect, localizedRedirect } from "./locale-redirect.mjs";
 import { handleGames, isGamesPath } from "./game-registry.mjs";
 import { adminGameRoutes, handleAdminGames } from "./games-admin.mjs";
 import {
@@ -42,6 +42,12 @@ const types = {
 http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
+    const developer = developerRedirect(req.headers, req.url);
+    if (developer) {
+      res.writeHead(301, { Location: developer, "Cache-Control": "no-cache" });
+      res.end();
+      return;
+    }
     if (pathname.startsWith("/api/billing/")) {
       void handleBilling(req, res);
       return;

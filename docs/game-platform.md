@@ -75,6 +75,11 @@ npm run preview -- --local-games               # http://127.0.0.1:3001/play/hell
 
 ## Outside developers
 
+`developer.dingn.com` and `dev.dingn.com` redirect to these pages
+(`developerRedirect` in `scripts/locale-redirect.mjs`) once the domain is
+added to Firebase Hosting (Hosting → Add custom domain, serving the same
+site, not Firebase's own redirect).
+
 The SDK is public at `https://dingn.com/sdk/v1/dingn-sdk.js`, readable from
 any origin and cached for an hour. `/developers/` is the guide, with a
 starter game to download (`/sdk/v1/starter.zip`, from

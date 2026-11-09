@@ -18,3 +18,29 @@ export function localizedRedirect(requestUrl) {
   }
   return pathname + url.search;
 }
+
+/** Short addresses for the developer pages, on their own (sub)domains. */
+export const DEVELOPER_HOSTS = ["developer.dingn.com", "dev.dingn.com"];
+
+/**
+ * Where a request to a developer address goes on dingn.com: its root opens
+ * the developer guide, and its other pages are the developer pages
+ * (developer.dingn.com/playground/ → dingn.com/developers/playground/).
+ * Returns null for any other host. Firebase Hosting passes the visitor's
+ * host in X-Forwarded-Host.
+ */
+export function developerRedirect(headers, requestUrl) {
+  const host = String(headers["x-forwarded-host"] || headers.host || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, "");
+  if (!DEVELOPER_HOSTS.includes(host)) return null;
+  const url = new URL(requestUrl, "http://localhost");
+  const zh = url.pathname === "/zh" || url.pathname.startsWith("/zh/");
+  let rest = zh ? url.pathname.slice(3) || "/" : url.pathname;
+  // Links that already name a dingn.com page keep it.
+  if (!/^\/(developers|sdk|play|g)(\/|$)/.test(rest))
+    rest = "/developers" + (rest === "/" ? "/" : rest);
+  return `https://dingn.com${zh ? "/zh" : ""}${rest}${url.search}`;
+}
