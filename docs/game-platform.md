@@ -15,14 +15,14 @@ dingn.com/play/<id>/ ── /api/games/<id> ──▶ live version ──▶ san
 
 ## Parts
 
-| Part                     | Where                                         | What it does                                                                               |
-| ------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Game                     | `games/<id>/`                                 | `game.json` plus the game's files, or a `package.json` whose `build` script writes `dist/` |
-| Game SDK                 | `packages/game-sdk/`                          | The only way a game talks to dingn: locale, player, storage, progress, sign-in             |
-| Publisher                | `scripts/publish-game.mjs`                    | Builds, checks, uploads and updates the registry                                           |
-| Registry and file server | `scripts/game-registry.mjs`                   | `GET /api/games`, `GET /api/games/<id>?v=`, and game files at `/g/<id>/<version>/…`        |
-| Player page              | `src/components/game-host.tsx`, `/play/<id>/` | Runs the game in a sandboxed frame and answers its SDK requests (`src/lib/game-bridge.ts`) |
-| CI                       | `.github/workflows/games.yml`                 | Publishes changed games on merge to main, plus manual beta and rollback                    |
+| Part                     | Where                                               | What it does                                                                                                                                                                                                              |
+| ------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Game                     | `games/<id>/`                                       | `game.json` plus the game's files, or a `package.json` whose `build` script writes `dist/`                                                                                                                                |
+| Game SDK                 | `packages/game-sdk/`                                | The only way a game talks to dingn: locale, player, storage, progress, sign-in                                                                                                                                            |
+| Publisher                | `scripts/publish-game.mjs`                          | Builds, checks, uploads and updates the registry                                                                                                                                                                          |
+| Registry and file server | `scripts/game-registry.mjs`                         | `GET /api/games`, `GET /api/games/<id>?v=`, and game files at `/g/<id>/<version>/…`                                                                                                                                       |
+| Player page              | `src/components/game-host.tsx`, `/play/<id>/`       | Runs the game in a sandboxed frame and answers its SDK requests (`src/lib/game-bridge.ts`)                                                                                                                                |
+| CI                       | `.github/workflows/website.yml` (Publish games job) | Publishes changed games on merge to main, plus manual beta and rollback. It shares the website's workflow because Google Cloud accepts deploys only from that workflow; a change to games alone skips the website deploy. |
 
 ## game.json
 
@@ -57,7 +57,7 @@ New games are unlisted: they play at `/play/<id>/` but are not in
 
 In CI, merging a change to `games/<id>/` with a new version publishes it as
 live. To ship a beta or roll back without a local `gcloud`, go to Actions →
-Games → Run workflow.
+Website → Run workflow, and fill in the game id and action.
 
 ## Trying it locally
 

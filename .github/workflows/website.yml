@@ -1,23 +1,75 @@
 name: Website
 
+# One workflow deploys both the website and the games: Google Cloud only
+# accepts deploys from this workflow. Each part runs only when its files
+# change, so changing a game publishes it without redeploying the website.
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
-    # Games publish on their own (games.yml); changing only a game never
-    # redeploys the website.
-    paths-ignore:
-      - 'games/**'
-      - 'packages/game-sdk/**'
   workflow_dispatch:
+    inputs:
+      game:
+        description: Game id (folder under games/). Leave empty to redeploy the website.
+        required: false
+      action:
+        description: What to do with that game
+        type: choice
+        options: [publish, publish-beta, set-live, set-beta, list, unlist]
+        default: publish
+      version:
+        description: Version for set-live or set-beta (a rollback is set-live with an older version)
+        required: false
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Find changes
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.find.outputs.site }}
+      games: ${{ steps.find.outputs.games }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - id: find
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          INPUT_GAME: ${{ inputs.game }}
+        run: |
+          all_games() { for d in games/*/; do [ -f "$d/game.json" ] && basename "$d"; done; }
+          if [ "$EVENT" = workflow_dispatch ]; then
+            if [ -n "$INPUT_GAME" ]; then site=false; games="$INPUT_GAME"; else site=true; games=""; fi
+          else
+            from="${BASE:-$BEFORE}"
+            if [ -z "$from" ] || ! files=$(git diff --name-only "$from" HEAD 2>/dev/null); then
+              files=$(git ls-files)
+            fi
+            site=false
+            echo "$files" | grep -qvE '^(games/|packages/game-sdk/|docs/)' && site=true
+            # The SDK, the publisher and this workflow affect every game;
+            # publishing skips versions that are already published.
+            if echo "$files" | grep -qE '^(packages/game-sdk/|scripts/publish-game.mjs|scripts/game-registry.mjs|\.github/workflows/website.yml)'; then
+              games=$(all_games)
+            else
+              games=$(echo "$files" | grep '^games/' | cut -d/ -f2 | sort -u | while read -r id; do [ -f "games/$id/game.json" ] && echo "$id"; done)
+            fi
+          fi
+          games=$(echo $games)
+          echo "site=$site" >> "$GITHUB_OUTPUT"
+          echo "games=$games" >> "$GITHUB_OUTPUT"
+          echo "Website: $site. Games: ${games:-none}"
+
   validate:
     name: Validate website
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -37,8 +89,8 @@ jobs:
 
   deploy:
     name: Deploy Cloud Run
-    needs: validate
-    if: github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [changes, validate]
+    if: needs.changes.outputs.site == 'true' && github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
@@ -84,3 +136,60 @@ jobs:
             curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "$url$path" --output /dev/null
           done
           printf 'Deployed commit `%s` to [dingn](%s).\n' "$GITHUB_SHA" "$url" >> "$GITHUB_STEP_SUMMARY"
+
+  games:
+    name: Publish games
+    needs: changes
+    if: needs.changes.outputs.games != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: dingn-games-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GAMES_BUCKET: dingn-193716-games
+      FIREBASE_PROJECT_ID: dingn-193716
+      IDS: ${{ needs.changes.outputs.games }}
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Build and check (no upload)
+        if: env.PUBLISH != 'true'
+        run: |
+          for id in $IDS; do
+            GAMES_LOCAL_DIR="$RUNNER_TEMP/games" npm run publish:game -- "$id" --dry-run
+          done
+      - name: Authenticate with GitHub OIDC
+        if: env.PUBLISH == 'true'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: dingn-193716
+          workload_identity_provider: projects/211238433635/locations/global/workloadIdentityPools/dingn-github/providers/github
+          service_account: dingn-github-deploy@dingn-193716.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        if: env.PUBLISH == 'true'
+      - name: Publish
+        if: env.PUBLISH == 'true'
+        env:
+          ACTION: ${{ inputs.action || 'publish' }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          for id in $IDS; do
+            case "$ACTION" in
+              publish) npm run publish:game -- "$id" --if-new ;;
+              publish-beta) npm run publish:game -- "$id" --beta ;;
+              set-live) npm run publish:game -- "$id" --set-live "$VERSION" ;;
+              set-beta) npm run publish:game -- "$id" --set-beta "$VERSION" ;;
+              list) npm run publish:game -- "$id" --listed ;;
+              unlist) npm run publish:game -- "$id" --unlisted ;;
+            esac
+            printf -- '- `%s`: %s %s\n' "$id" "$ACTION" "$VERSION" >> "$GITHUB_STEP_SUMMARY"
+          done
