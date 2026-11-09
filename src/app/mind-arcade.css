@@ -787,7 +787,12 @@ nav a.account-link:hover {
   white-space: nowrap;
 }
 /* Coins and badges (src/components/rewards.tsx) */
-nav a.coin-count {
+nav .wallet {
+  position: relative;
+}
+nav .coin-count {
+  cursor: pointer;
+  background: transparent;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -801,14 +806,14 @@ nav a.coin-count {
   white-space: nowrap;
   text-decoration: none;
 }
-nav a.coin-count:hover {
+nav .coin-count:hover {
   box-shadow: 0 0 0 3px #ffe08a33;
 }
 /* A game just paid out: the count jumps and glows while it counts up. */
-nav a.coin-count.bump {
+nav .coin-count.bump {
   animation: coin-count-bump 0.9s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
-nav a.coin-count.bump .coin {
+nav .coin-count.bump .coin {
   animation: coin-count-spin 0.9s ease-out;
 }
 @keyframes coin-count-bump {
@@ -825,24 +830,58 @@ nav a.coin-count.bump .coin {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  nav a.coin-count.bump,
-  nav a.coin-count.bump .coin {
+  nav .coin-count.bump,
+  nav .coin-count.bump .coin {
     animation: none;
   }
 }
 /* Narrow menus stack icons over labels; the coin count stays one row. */
 @media (max-width: 620px) {
-  nav > a.coin-count {
+  nav .wallet > .coin-count {
     flex-direction: row;
     gap: 4px;
     padding: 3px 8px 3px 4px;
   }
 }
-/* Phones have no room for it in the menu; the account page shows the coins. */
+/* Phones have room only for the coin itself, which still opens the wallet. */
 @media (max-width: 480px) {
-  nav > a.coin-count {
+  nav .wallet > .coin-count {
+    padding: 3px;
+  }
+  nav .wallet > .coin-count span {
     display: none;
   }
+}
+/* The wallet that opens from the coin count. */
+.wallet-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: min(320px, calc(100vw - 24px));
+  padding: 14px 16px 12px;
+  border-radius: 14px;
+  background: #1d2420;
+  color: #fff;
+  border: 1px solid #ffffff1f;
+  box-shadow: 0 16px 40px #0009;
+  text-align: left;
+  animation: badge-toast-in 0.25s ease-out;
+}
+@media (max-width: 480px) {
+  .wallet-panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: var(--wallet-top, 64px);
+    width: auto;
+  }
+}
+.wallet-more {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #ffe08a;
 }
 .coin,
 .badge-medal {
@@ -853,34 +892,63 @@ nav a.coin-count.bump .coin {
 .badge-shelf h2 {
   margin-top: 0;
 }
-.badge-shelf-coins {
+.wallet-coins {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 1.1rem;
+  margin: 0 0 6px;
+  font-size: 1.05rem;
 }
-.badge-shelf-coins strong {
+.wallet-coins strong {
   font-family: var(--font-display);
   font-size: 1.6rem;
 }
-.badge-grid {
+.wallet-summary.compact .wallet-coins strong {
+  font-size: 1.3rem;
+}
+.wallet-summary h3 {
+  margin: 14px 0 8px;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.wallet-summary h3 small {
+  margin-left: 4px;
+  letter-spacing: 0;
+  opacity: 0.8;
+}
+.wallet-summary .muted {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+.wallet-badges {
   list-style: none;
-  margin: 16px 0 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.wallet-items {
+  list-style: none;
+  margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: 16px;
+  gap: 6px;
 }
-.badge-grid li {
+.wallet-items li {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #ffffff10;
   font-size: 0.9rem;
 }
-.badge-grid li a {
-  font-size: 0.8rem;
+.wallet-items small {
+  opacity: 0.7;
 }
 .xp-note {
   margin-top: 14px;

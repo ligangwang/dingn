@@ -73,6 +73,7 @@ export function DevPlayground() {
   const counter = useRef(0);
   // The test player's saved data. It lasts until this page closes.
   const storage = useRef(new Map<string, string>());
+  const bought = useRef(new Set<string>());
   const badges = useRef(new Set<string>());
   const progress = useRef<string | null>(null);
 
@@ -139,8 +140,8 @@ export function DevPlayground() {
     signIn: () => setSignedIn(true),
     navigate: () => {},
     ready: () => setReady(true),
-    // The playground has no game.json, so any badge id unlocks once, as a
-    // test that pays nothing and saves nothing.
+    // The playground has no game.json, so any badge id unlocks once and any
+    // item can be bought, as tests that pay, charge and save nothing.
     rewards: {
       unlock: async (id) => {
         const first = !badges.current.has(id);
@@ -154,6 +155,18 @@ export function DevPlayground() {
           coins: 0,
           title: id,
           earned: true,
+        })),
+      spend: async (id) => {
+        const first = !bought.current.has(id);
+        bought.current.add(id);
+        return { new: first, coins: 0, test: true };
+      },
+      shop: async () =>
+        [...bought.current].map((id) => ({
+          id,
+          price: 0,
+          title: id,
+          owned: true,
         })),
     },
   };

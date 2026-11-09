@@ -26,7 +26,27 @@ export type BadgeDef = {
   title: { en: string; zh: string };
 };
 export type EarnedBadge = BadgeDef & { game: string; at: string };
-export type Wallet = { coins: number; badges: EarnedBadge[] };
+/** An upgrade a game sells for coins, from its game.json `shop`. */
+export type ShopDef = {
+  id: string;
+  price: number;
+  requires?: string;
+  title: { en: string; zh: string };
+};
+export type Wallet = {
+  coins: number;
+  badges: EarnedBadge[];
+  /** Upgrades the player owns, newest first. */
+  items: { game: string; id: string; title?: { en: string; zh: string } }[];
+};
+export type Spend = {
+  new: boolean;
+  /** Coins this purchase cost. */
+  coins: number;
+  /** The player's coins afterwards, or null for a test purchase. */
+  balance: number | null;
+  test?: boolean;
+};
 export type Unlock = {
   badge: Omit<BadgeDef, "coins">;
   new: boolean;
@@ -70,7 +90,10 @@ export function mergeToasts(a: EarnedToast, b: EarnedToast): EarnedToast {
   };
 }
 
-export const fetchWallet = () => api<Wallet>("/api/rewards/me");
+export const fetchWallet = () =>
+  api<Wallet>("/api/rewards/me").then((w) => ({ ...w, items: w.items ?? [] }));
+export const spendCoins = (game: string, version: string, item: string) =>
+  api<Spend>("/api/rewards/spend", { game, version, item });
 export const unlockBadge = (game: string, version: string, badge: string) =>
   api<Unlock>("/api/rewards/unlock", { game, version, badge });
 
@@ -123,6 +146,7 @@ export function addToWallet(
 ) {
   if (uid !== owner || !wallet || !unlock.new || unlock.test) return;
   publish({
+    ...wallet,
     coins: unlock.balance ?? wallet.coins + unlock.coins,
     badges: [
       {
@@ -134,5 +158,20 @@ export function addToWallet(
       },
       ...wallet.badges.filter((b) => !(b.game === game && b.id === def.id)),
     ],
+  });
+}
+
+/** Records an upgrade the server just sold in the shared wallet. */
+export function spendFromWallet(
+  uid: string,
+  game: string,
+  spend: Spend,
+  def: ShopDef,
+) {
+  if (uid !== owner || !wallet || !spend.new || spend.test) return;
+  publish({
+    ...wallet,
+    coins: spend.balance ?? wallet.coins - spend.coins,
+    items: [{ game, id: def.id, title: def.title }, ...wallet.items],
   });
 }

@@ -271,6 +271,34 @@ reviewed only answers with `test: true` and saves nothing. Each player's coins
 and badges are in Firestore `rewards/{uid}`, which only the server can change.
 To switch a game's rewards off, set `rewards: "off"` on its registry record.
 
+### Spending coins on upgrades
+
+Players spend coins on upgrades a game sells, such as a stronger weapon. A
+game lists them in `game.json`; each is bought once and kept:
+
+```json
+"shop": [
+  { "id": "power-1", "price": 60,
+    "title": { "en": "Power +1", "zh": "火力 +1" } },
+  { "id": "power-2", "price": 150, "requires": "power-1",
+    "title": { "en": "Power +2", "zh": "火力 +2" } }
+]
+```
+
+- Up to 30 items, each priced from 1 to 1,000 coins. `requires` names an item
+  listed earlier that must be bought first, for tiers.
+- The game calls `dingn.rewards.spend(id)`. dingn itself asks the player
+  "Buy Power +1?" over the game, so a game can never spend coins without the
+  player pressing Buy. It returns `{ new, coins }`, or fails with the code
+  `cancelled`, `not_enough_coins`, `requires` or `signed_out`.
+- `dingn.rewards.shop()` lists the items and which ones the player owns. The
+  game applies what is owned (for example, more damage).
+- The server charges and records a purchase in one Firestore transaction, so
+  coins can't go below zero or be spent twice. A version dingn has not
+  reviewed only answers with `test: true` and charges nothing.
+- `rewards/{uid}` keeps `spent`, so coins earned in all are `coins + spent`;
+  spending never lowers what a player has earned.
+
 ## One-time Google Cloud setup
 
 Run these once with an owner account before the first publish:

@@ -23,6 +23,25 @@ export type BadgeUnlock = {
   /** True in a version dingn has not reviewed, or in the playground: nothing was saved. */
   test?: boolean;
 };
+/** An upgrade from the `shop` in the game's game.json, in the player's language. */
+export type ShopItem = {
+  id: string;
+  /** dingn coins. */
+  price: number;
+  /** An upgrade that must be bought first. */
+  requires?: string;
+  title: string;
+  /** Bought by the signed-in player. Upgrades are bought once and kept. */
+  owned: boolean;
+};
+export type Purchase = {
+  /** False when the player already owned it: nothing was charged. */
+  new: boolean;
+  /** dingn coins this purchase cost. */
+  coins: number;
+  /** True in a version dingn has not reviewed, or in the playground: nothing was charged. */
+  test?: boolean;
+};
 export type DingnGame = {
   gameId: string;
   version: string;
@@ -42,10 +61,19 @@ export type DingnGame = {
    * Badges and dingn coins. List badges in game.json; unlock(id) awards one to
    * the signed-in player (each pays once) and dingn shows a "Badge earned"
    * popup. unlock() rejects with code "signed_out" for a signed-out player.
+   * Players spend coins on upgrades listed in game.json's `shop`.
    */
   rewards: {
     unlock(id: string): Promise<BadgeUnlock>;
     list(): Promise<Badge[]>;
+    /**
+     * Buys an upgrade from game.json's `shop` with the player's dingn coins.
+     * dingn asks the player to confirm first. Rejects with code "cancelled"
+     * (the player said no), "not_enough_coins", "requires" (buy the upgrade
+     * it requires first) or "signed_out".
+     */
+    spend(id: string): Promise<Purchase>;
+    shop(): Promise<ShopItem[]>;
   };
   requestSignIn(): void;
   /** Leaves the game for a dingn page, such as "/" for the game list. The website keeps the player's language. */
