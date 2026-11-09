@@ -19,6 +19,7 @@ import {
   type Block,
   type Gate,
   type Monster,
+  type Upgrade,
   type World,
 } from "./crowd-core";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -933,6 +934,7 @@ class BlockView {
   private hp = -1;
   private mats: THREE.Material[];
   private geos: THREE.BufferGeometry[] = [];
+  private sprite?: THREE.Sprite<THREE.SpriteMaterial>;
   constructor(
     readonly block: Block,
     rewardTex?: THREE.Texture,
@@ -987,6 +989,7 @@ class BlockView {
       sprite.position.y = H + 0.55;
       this.group.add(sprite);
       this.mats.push(sprite.material);
+      this.sprite = sprite;
     }
     this.group.position.set(block.x * ROAD, 0, -block.z);
     this.paint();
@@ -1057,8 +1060,20 @@ class BlockView {
     ctx.fillText(String(b.hp), w / 2, ty);
     this.tex.needsUpdate = true;
   }
+  /** Repaints a weapon crate's words, e.g. after the language changes. */
+  relabel(title: string, labelTex: THREE.Texture) {
+    this.title = title;
+    this.hp = -1;
+    this.paint();
+    if (this.sprite) {
+      this.sprite.material.map?.dispose();
+      this.sprite.material.map = labelTex;
+      this.sprite.material.needsUpdate = true;
+    } else labelTex.dispose();
+  }
   dispose() {
     this.tex.dispose();
+    this.sprite?.material.map?.dispose();
     for (const m of this.mats) m.dispose();
     for (const g of this.geos) g.dispose();
   }
@@ -1444,23 +1459,37 @@ export class CrowdScene {
         this.gates.push(g);
         this.level.add(g.group);
       } else if (th.kind === "block") {
-        const power = th.upgrade === "power";
-        const tex = th.upgrade
-          ? labelTexture(
-              this.translate(power ? "DMG+" : "RATE+"),
-              power ? "#ffb08a" : "#9fe8ff",
-            )
+        const words = th.upgrade && this.upgradeWords(th.upgrade);
+        const tex = words
+          ? words.tex
           : th.reward
             ? labelTexture(`+${th.reward}`, "#fff36a")
             : undefined;
-        if (tex) this.levelMats.push(new THREE.SpriteMaterial({ map: tex }));
-        const title = th.upgrade
-          ? this.translate(power ? "POWER" : "RATE")
-          : "";
-        const b = new BlockView(th, tex, title);
+        const b = new BlockView(th, tex, words ? words.title : "");
         this.blocks.set(th.id, b);
         this.level.add(b.group);
       }
+    }
+  }
+
+  /** The translated words for a weapon crate: on the box and above it. */
+  private upgradeWords(up: Upgrade) {
+    const power = up === "power";
+    return {
+      title: this.translate(power ? "POWER" : "RATE"),
+      tex: labelTexture(
+        this.translate(power ? "DMG+" : "RATE+"),
+        power ? "#ffb08a" : "#9fe8ff",
+      ),
+    };
+  }
+
+  /** Repaints crate words in the current language without restarting. */
+  relabel() {
+    for (const b of this.blocks.values()) {
+      if (!b.block.upgrade) continue;
+      const { title, tex } = this.upgradeWords(b.block.upgrade);
+      b.relabel(title, tex);
     }
   }
 

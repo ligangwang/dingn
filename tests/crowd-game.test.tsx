@@ -30,6 +30,7 @@ vi.mock("../src/game/crowd-scene", () => ({
     }
     resize() {}
     load() {}
+    relabel() {}
     loadModels = () => Promise.resolve();
     render() {}
     project = () => ({ x: 0, y: 0, visible: false });

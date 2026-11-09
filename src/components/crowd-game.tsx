@@ -53,7 +53,7 @@ type Float = {
  * crowd-core; this component handles input, sound, the HUD and overlays.
  */
 export function CrowdGame() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   // the 3D scene paints words onto crates, so it reads the current language
   const tRef = useRef(t);
   tRef.current = t;
@@ -70,6 +70,10 @@ export function CrowdGame() {
   const bossBarRef = useRef<HTMLDivElement>(null);
   const bossFillRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<CrowdScene | null>(null);
+  // repaint crate words when the language changes mid-level
+  useEffect(() => {
+    sceneRef.current?.relabel();
+  }, [locale]);
   const sfx = useRef<Sfx | null>(null);
   const world = useRef<World>(newLevel(1));
   const fx = useRef({
