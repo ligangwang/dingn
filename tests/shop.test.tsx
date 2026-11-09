@@ -81,7 +81,7 @@ it("shows honest empty catalog without upgrade offers", async () => {
 it("shows errors rather than pretending there are no items", async () => {
   mocks.api.mockRejectedValue(new Error("offline"));
   render(<ItemShop />);
-  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect((await screen.findAllByRole("alert")).length).toBe(2);
 });
 it("formats one-time prices using currency units", () => {
   expect(formatPrice(item)).toBe("$3.00");
@@ -101,4 +101,18 @@ it("renders the item shop in Chinese", async () => {
   expect(await screen.findByText("测试披风")).toBeTruthy();
   expect(screen.queryByText("Game items")).toBeNull();
   localStorage.removeItem("dingn.locale");
+});
+
+it("shows empty shop even when history fails, without claiming no purchases", async () => {
+  mocks.api.mockImplementation(async (path: string) => {
+    if (path.endsWith("/items")) return [];
+    throw new Error("history unavailable");
+  });
+  render(<ItemShop />);
+  expect(await screen.findByText(/No items are available yet/)).toBeTruthy();
+  expect(
+    await screen.findByText(/Purchase history could not be loaded/),
+  ).toBeTruthy();
+  expect(screen.queryByText("No purchases yet.")).toBeNull();
+  expect(screen.queryByText(/The item shop could not be loaded/)).toBeNull();
 });

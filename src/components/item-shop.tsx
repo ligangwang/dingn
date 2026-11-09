@@ -12,21 +12,29 @@ import {
 export function ItemShop() {
   const { t, locale } = useLocale();
   const [items, setItems] = useState<Item[] | null>(null);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[] | null>(null);
   const [error, setError] = useState("");
+  const [historyError, setHistoryError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const lock = useRef(false);
   const load = useCallback(async () => {
-    try {
-      const [nextItems, nextPurchases] = await Promise.all([
-        readItems(),
-        readInventory(),
-      ]);
-      setItems(nextItems);
-      setPurchases(nextPurchases);
+    const [catalog, history] = await Promise.allSettled([
+      readItems(),
+      readInventory(),
+    ]);
+    if (catalog.status === "fulfilled") {
+      setItems(catalog.value);
       setError("");
-    } catch {
+    } else {
       setError("The item shop could not be loaded. Please try again.");
+    }
+    if (history.status === "fulfilled") {
+      setPurchases(history.value);
+      setHistoryError("");
+    } else {
+      setHistoryError(
+        "Purchase history could not be loaded. Please try again.",
+      );
     }
   }, []);
   useEffect(() => {
@@ -83,7 +91,7 @@ export function ItemShop() {
       ) : (
         <div className="shop-items">
           {items.map((item) => {
-            const owned = purchases.some(
+            const owned = purchases?.some(
               (p) => p.itemId === item.id && p.status === "owned",
             );
             return (
@@ -92,7 +100,9 @@ export function ItemShop() {
                 <p>{item.description[locale] || item.description.en}</p>
                 <button
                   className="button"
-                  disabled={owned || !!busy}
+                  disabled={
+                    owned || !!busy || purchases === null || !!historyError
+                  }
                   onClick={() => void buy(item)}
                 >
                   {owned
@@ -107,7 +117,13 @@ export function ItemShop() {
         </div>
       )}
       <h3>{t("Your purchases")}</h3>
-      {purchases.length ? (
+      {historyError ? (
+        <p role="alert" className="error">
+          {t(historyError)}
+        </p>
+      ) : purchases === null ? (
+        <p role="status">{t("Loading purchases…")}</p>
+      ) : purchases.length ? (
         <ul>
           {purchases.map((p) => (
             <li key={p.id}>

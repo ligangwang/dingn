@@ -382,5 +382,7 @@
   "You cleared all 20 digits!": "你完成了全部 20 位数字！",
   "That was your last life. See how you did.": "这是最后一条命了，看看你的成绩。",
   "Longest recall: {0} digits · {1} correct rounds": "最长记忆：{0} 位数字 · 答对 {1} 轮",
-  "Memory Ladder{0}: {1} digits recalled. Can you beat it? https://dingn.com/#warm-up": "记忆阶梯{0}：记住了 {1} 位数字。你能超过我吗？https://dingn.com/memory-ladder/?lang=zh-CN"
+  "Memory Ladder{0}: {1} digits recalled. Can you beat it? https://dingn.com/#warm-up": "记忆阶梯{0}：记住了 {1} 位数字。你能超过我吗？https://dingn.com/memory-ladder/?lang=zh-CN",
+  "Purchase history could not be loaded. Please try again.": "无法加载购买记录，请重试。",
+  "Loading purchases…": "正在加载购买记录…"
 }
