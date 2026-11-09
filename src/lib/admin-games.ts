@@ -83,11 +83,11 @@ export type Player = {
   lastActive: string | null;
 };
 
-/** One page of players; pass the previous page's `next` for the one after. */
-export async function listPlayers(pageToken: string | null = null) {
-  return await api<{ players: Player[]; next: string | null }>(
+/** One page (from 1) of players, most recently active first. */
+export async function listPlayers(page = 1) {
+  return await api<{ players: Player[]; total: number; pages: number }>(
     "/api/admin/players",
-    pageToken ? { pageToken } : {},
+    { page },
   );
 }
 

@@ -412,17 +412,76 @@ test("admins grant and remove developer access by email", async () => {
   });
   assert.deepEqual(claims.u3, { developer: true });
 
-  // Players: every account, a page at a time, with roles and dates.
+  // Players: every account, most recently active first, a page at a time.
   const listed = await adminCall("/api/admin/players", {});
   assert.equal(listed.status, 200);
   const u1 = listed.body.players.find((p) => p.uid === "u1");
   assert.equal(u1.admin, true);
   assert.equal(u1.developer, false);
-  assert.equal(listed.body.next, null);
+  assert.equal(listed.body.pages, 1);
   assert.equal(
-    (await adminCall("/api/admin/players", { pageToken: 5 })).status,
+    (await adminCall("/api/admin/players", { page: 0 })).status,
     400,
   );
+});
+
+test("the admin Players page sorts by last active and pages through everyone", async () => {
+  const admin = await import("../scripts/games-admin.mjs");
+  const when = (day) =>
+    day ? `2026-11-${String(day).padStart(2, "0")}T00:00:00Z` : undefined;
+  const accounts = Array.from({ length: 120 }, (_, i) => ({
+    uid: `p${i}`,
+    email: `p${i}@x.com`,
+    metadata: {
+      creationTime: when(1),
+      lastRefreshTime: i === 7 ? when(9) : i === 3 ? undefined : when(2),
+    },
+  }));
+  const users = {
+    async listUsers(max, token) {
+      const start = token ? Number(token) : 0;
+      const end = start + max;
+      return {
+        users: accounts.slice(start, end),
+        pageToken: end < accounts.length ? String(end) : undefined,
+      };
+    },
+  };
+  const call = (body) =>
+    new Promise((resolve) => {
+      const req = Object.assign(Readable.from([JSON.stringify(body)]), {
+        method: "POST",
+        headers: {
+          origin,
+          "x-dingn-request": "1",
+          "content-type": "application/json",
+        },
+      });
+      let status = 0;
+      void admin.handleAdminGames(
+        req,
+        {
+          setHeader() {},
+          writeHead: (s) => (status = s),
+          end: (b) => resolve({ status, body: JSON.parse(b) }),
+        },
+        "/api/admin/players",
+        {
+          verify: async () => ({ uid: "a", admin: true }),
+          exchange: async () => "t",
+          users,
+        },
+      );
+    });
+  const first = await call({ page: 1 });
+  assert.equal(first.status, 200, JSON.stringify(first.body));
+  assert.deepEqual([first.body.total, first.body.pages], [120, 3]);
+  assert.equal(first.body.players.length, 50);
+  assert.equal(first.body.players[0].uid, "p7");
+  const last = await call({ page: 3 });
+  assert.equal(last.body.players.length, 20);
+  // Never active sorts after everyone who was.
+  assert.equal(last.body.players.at(-1).uid, "p3");
 });
 
 test("every uploaded file is sandboxed, whatever its type or case", async () => {

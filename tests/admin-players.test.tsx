@@ -42,15 +42,16 @@ it("never loads players for non-admins", () => {
 });
 
 it("lists players with their roles and pages forward and back", async () => {
-  mocks.listPlayers.mockImplementation(async (token: string | null) =>
-    token === "p2"
-      ? { players: [player("cy")], next: null }
+  mocks.listPlayers.mockImplementation(async (page: number) =>
+    page === 2
+      ? { players: [player("cy")], total: 51, pages: 2 }
       : {
           players: [
             player("ada", { admin: true, developer: true, name: "Ada" }),
             player("bo"),
           ],
-          next: "p2",
+          total: 51,
+          pages: 2,
         },
   );
   render(<AdminPlayers />);
@@ -58,7 +59,8 @@ it("lists players with their roles and pages forward and back", async () => {
   expect(screen.getByText("Admin, Developer")).toBeTruthy();
   expect(screen.getAllByText("Google")).toHaveLength(2);
   expect(screen.getAllByText("Never")).toHaveLength(2);
-  expect(screen.getByText("Page 1")).toBeTruthy();
+  expect(screen.getByText("Page 1 of 2")).toBeTruthy();
+  expect(screen.getByText("51 players")).toBeTruthy();
   expect(
     (screen.getByRole("button", { name: "Previous" }) as HTMLButtonElement)
       .disabled,
@@ -66,8 +68,8 @@ it("lists players with their roles and pages forward and back", async () => {
 
   await userEvent.click(screen.getByRole("button", { name: "Next" }));
   expect(await screen.findByText("cy@x.com")).toBeTruthy();
-  expect(mocks.listPlayers).toHaveBeenLastCalledWith("p2");
-  expect(screen.getByText("Page 2")).toBeTruthy();
+  expect(mocks.listPlayers).toHaveBeenLastCalledWith(2);
+  expect(screen.getByText("Page 2 of 2")).toBeTruthy();
   expect(
     (screen.getByRole("button", { name: "Next" }) as HTMLButtonElement)
       .disabled,
@@ -75,14 +77,14 @@ it("lists players with their roles and pages forward and back", async () => {
 
   await userEvent.click(screen.getByRole("button", { name: "Previous" }));
   expect(await screen.findByText("bo@x.com")).toBeTruthy();
-  expect(mocks.listPlayers).toHaveBeenLastCalledWith(null);
+  expect(mocks.listPlayers).toHaveBeenLastCalledWith(1);
 });
 
 it("can retry or go back after a page fails to load", async () => {
   mocks.listPlayers
-    .mockResolvedValueOnce({ players: [player("ada")], next: "p2" })
+    .mockResolvedValueOnce({ players: [player("ada")], total: 51, pages: 2 })
     .mockRejectedValueOnce(new Error("offline"))
-    .mockResolvedValueOnce({ players: [player("cy")], next: null });
+    .mockResolvedValueOnce({ players: [player("cy")], total: 51, pages: 2 });
   render(<AdminPlayers />);
   await screen.findByText("ada@x.com");
   await userEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -93,5 +95,5 @@ it("can retry or go back after a page fails to load", async () => {
   ).toBe(false);
   await userEvent.click(screen.getByRole("button", { name: "Try again" }));
   expect(await screen.findByText("cy@x.com")).toBeTruthy();
-  expect(mocks.listPlayers).toHaveBeenLastCalledWith("p2");
+  expect(mocks.listPlayers).toHaveBeenLastCalledWith(2);
 });
