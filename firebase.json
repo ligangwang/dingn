@@ -1,29 +1,13 @@
 {
-  "firestore": { "rules": "firestore.rules" },
-  "emulators": { "firestore": { "port": 8088 }, "ui": { "enabled": false } },
-  "hosting": {
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "trailingSlash": true,
-    "rewrites": [
-      {
-        "source": "**",
-        "run": { "serviceId": "dingn-web", "region": "us-central1" }
-      }
-    ],
-    "headers": [
-      {
-        "source": "/_next/static/**",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public,max-age=31536000,immutable"
-          }
-        ]
-      },
-      {
-        "source": "/flutter_service_worker.js",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      }
-    ]
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8088
+    },
+    "ui": {
+      "enabled": false
+    }
   }
 }

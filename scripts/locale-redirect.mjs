@@ -26,8 +26,8 @@ export const DEVELOPER_HOSTS = ["developer.dingn.com", "dev.dingn.com"];
  * Where a request to a developer address goes on dingn.com: its root opens
  * the developer guide, and its other pages are the developer pages
  * (developer.dingn.com/playground/ → dingn.com/developers/playground/).
- * Returns null for any other host. Firebase Hosting passes the visitor's
- * host in X-Forwarded-Host.
+ * Returns null for any other host. Cloud Run's domain mapping keeps the
+ * visitor's host in Host; X-Forwarded-Host covers a proxy in front.
  */
 export function developerRedirect(headers, requestUrl) {
   const host = String(headers["x-forwarded-host"] || headers.host || "")

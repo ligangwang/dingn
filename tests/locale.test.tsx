@@ -117,7 +117,7 @@ test("developer.dingn.com and dev.dingn.com open the developer pages", () => {
   expect(at("developer.dingn.com", "/developers")).toBe(
     "https://dingn.com/developers",
   );
-  // Firebase Hosting sends the visitor's host in X-Forwarded-Host.
+  // A proxy in front sends the visitor's host in X-Forwarded-Host.
   expect(at("Developer.dingn.com", "/", "x-forwarded-host")).toBe(
     "https://dingn.com/developers/",
   );
