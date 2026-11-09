@@ -53,26 +53,6 @@ export const isGameRequest = (data: unknown): data is GameRequest =>
 export const storageKey = (gameId: string, key: string) =>
   `dingn.game.${gameId}.${key}`;
 /**
- * Device storage a game had before it moved to the platform, read when the
- * game has not saved that key through the SDK yet. The old values are plain
- * strings, not JSON.
- */
-export const LEGACY_STORAGE: Record<string, Record<string, string>> = {
-  crowd: {
-    level: "dingn.crowd.level",
-    best: "dingn.crowd.best",
-    sound: "dingn.crowd.sound",
-  },
-};
-/**
- * Games that took over another game's players: Crowd Rush moved from the
- * `crowd` id to `crowdrush`. Until the new game saves a key or its progress,
- * the old game's (including its pre-platform saves) are read instead, so every
- * player keeps their level the first time they open the new game.
- */
-export const MIGRATED_FROM: Record<string, string> = { crowdrush: "crowd" };
-
-/**
  * A same-site path a game may send the player to: "/word/", never "//evil",
  * and no "//" anywhere, since adding or removing the /zh prefix could turn
  * "/zh//evil" into "//evil".
@@ -81,42 +61,13 @@ export const SITE_PATH = /^(?!.*\/\/)\/[A-Za-z0-9\-._~/]*$/;
 /** The `accounts/{uid}` field that holds a game's progress. */
 export const progressField = (gameId: string) => `game_progress_${gameId}`;
 
-/**
- * A signed-in player's saved progress for a game, as JSON text. Crowd Rush
- * saved to `crowd_level` and `crowd_best` before it moved to the platform, so
- * those are used until it saves through the SDK.
- */
+/** A signed-in player's saved progress for a game, as JSON text. */
 export function accountProgress(
   gameId: string,
   account: Record<string, unknown> | null | undefined,
 ): string | null {
   const value = account?.[progressField(gameId)];
-  if (typeof value === "string") return value;
-  if (gameId === "crowd" && account && account.crowd_level != null)
-    return JSON.stringify({
-      level: account.crowd_level,
-      best: account.crowd_best ?? 0,
-    });
-  const from = MIGRATED_FROM[gameId];
-  return from ? accountProgress(from, account) : null;
-}
-
-/**
- * A game's saved device value for `k`: its own, else its pre-platform one,
- * else the one of the game it took over from.
- */
-function deviceValue(
-  storage: BridgeContext["storage"],
-  gameId: string,
-  k: string,
-): unknown {
-  const saved = storage?.getItem(storageKey(gameId, k)) ?? null;
-  if (saved != null) return decode(saved);
-  const legacy = LEGACY_STORAGE[gameId]?.[k];
-  const old = legacy ? (storage?.getItem(legacy) ?? null) : null;
-  if (old != null) return old;
-  const from = MIGRATED_FROM[gameId];
-  return from ? deviceValue(storage, from, k) : null;
+  return typeof value === "string" ? value : null;
 }
 
 class BridgeError extends Error {
@@ -171,7 +122,8 @@ async function answer(
         player: ctx.player,
       };
     case "storage.get": {
-      return deviceValue(ctx.storage, ctx.gameId, key(request.params));
+      const k = key(request.params);
+      return decode(ctx.storage?.getItem(storageKey(ctx.gameId, k)) ?? null);
     }
     case "storage.set": {
       const k = key(request.params);
