@@ -1,0 +1,10 @@
+{
+  "id": "mygame",
+  "version": "1.0.0",
+  "title": { "en": "My Game", "zh": "我的游戏" },
+  "description": {
+    "en": "Tap as fast as you can for five seconds.",
+    "zh": "五秒内尽可能快地点击。"
+  },
+  "entry": "index.html"
+}

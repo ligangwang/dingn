@@ -91,3 +91,5 @@ gha-creds-*.json
 .games-local/
 .games-build/
 games/*/dist/
+# Built from packages/game-sdk by scripts/build-sdk.mjs
+public/sdk/

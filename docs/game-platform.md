@@ -73,6 +73,18 @@ npm run build
 npm run preview -- --local-games               # http://127.0.0.1:3001/play/hello/
 ```
 
+## Outside developers
+
+The SDK is public at `https://dingn.com/sdk/v1/dingn-sdk.js`, readable from
+any origin and cached for an hour. `/developers/` is the guide, with a
+starter game to download (`/sdk/v1/starter.zip`, from
+`packages/game-sdk/starter/`) and the SDK reference. `/developers/playground/`
+runs a game from any http(s) address, such as a developer's
+`http://localhost:5173/`, in the same sandbox as `/play/<id>/`. It answers
+SDK calls through the same bridge, with a test player and storage that lasts
+until the page closes, and logs every call. Publishing by outside developers
+(uploading on dingn, with a review) is the next step and does not exist yet.
+
 ## Writing a game
 
 A static game imports `./dingn-sdk.js`, which the publisher adds next to it.

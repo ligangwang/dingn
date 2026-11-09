@@ -35,7 +35,7 @@ export function gameIdFromPath(pathname: string) {
 
 // What a sandboxed frame may do. It has no allow-same-origin, so the game runs
 // in its own opaque origin, cut off from the website's cookies and storage.
-const SANDBOX =
+export const SANDBOX =
   "allow-scripts allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-forms";
 
 /** Plays the game in the URL (/play/<id>/), or `gameId` on a game's own page. */

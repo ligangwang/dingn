@@ -1,0 +1,150 @@
+.dev-page {
+  max-width: 880px;
+  padding-top: 40px;
+  padding-bottom: 48px;
+  line-height: 1.7;
+}
+.dev-page h1 {
+  font-size: 36px;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  margin: 0 0 16px;
+}
+.dev-page h2 {
+  margin-top: 36px;
+  font-size: 22px;
+}
+.dev-lead {
+  font-size: 16px;
+  color: var(--muted);
+}
+.dev-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0;
+}
+.button.secondary {
+  background: transparent;
+  color: var(--green);
+}
+.button.secondary:hover {
+  background: var(--sage);
+  color: var(--green);
+}
+.dev-page pre {
+  background: #172013;
+  color: #e9f7d0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.dev-page :not(pre) > code {
+  background: var(--sage);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 0.92em;
+}
+.dev-steps li {
+  margin-bottom: 8px;
+}
+.dev-table-wrap {
+  overflow-x: auto;
+}
+.dev-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.dev-table th,
+.dev-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 8px;
+  border-top: 1px solid var(--line);
+}
+.dev-table td:first-child {
+  white-space: pre-line;
+  min-width: 220px;
+}
+.dev-table td:first-child code {
+  background: none;
+  padding: 0;
+}
+
+/* Playground */
+.dev-load label {
+  font-weight: 600;
+}
+.dev-load-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.dev-load-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.dev-hint,
+.dev-empty,
+.dev-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+.dev-problem {
+  color: #b42318;
+}
+.dev-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.dev-controls input:not([type="checkbox"]),
+.dev-controls select {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.dev-controls button {
+  font: inherit;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--green);
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+}
+.dev-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.dev-stage iframe {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0d0f1a;
+}
+.dev-log ol {
+  font-size: 13px;
+  padding-left: 32px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.dev-log li {
+  word-break: break-word;
+}
+.dev-log-error {
+  color: #b42318;
+}

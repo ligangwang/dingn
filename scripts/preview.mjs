@@ -31,6 +31,9 @@ const types = {
   ".png": "image/png",
   ".ttf": "font/ttf",
   ".ico": "image/x-icon",
+  ".ts": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
+  ".zip": "application/zip",
 };
 http
   .createServer((req, res) => {
@@ -145,7 +148,12 @@ http
       "Content-Type",
       types[path.extname(target)] || "application/octet-stream",
     );
-    res.setHeader("Cache-Control", "no-cache");
+    if (pathname.startsWith("/sdk/") && res.statusCode !== 404) {
+      // Games load the SDK from their own sandboxed (opaque) origin and from
+      // developers' computers, so it must be readable from any origin.
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+    } else res.setHeader("Cache-Control", "no-cache");
     createReadStream(target)
       .on("error", () => {
         res.statusCode = 404;
