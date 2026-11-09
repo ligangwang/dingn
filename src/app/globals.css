@@ -997,6 +997,26 @@ input[type="radio"] {
   border-radius: 8px;
   min-width: 240px;
 }
+.admin-table-scroll {
+  overflow-x: auto;
+}
+.admin-players th,
+.admin-players td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+.admin-players th[scope="row"] {
+  white-space: normal;
+  min-width: 180px;
+  font-weight: normal;
+}
+.admin-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
 .admin-developers {
   padding-left: 18px;
 }

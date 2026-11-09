@@ -69,6 +69,28 @@ export async function changeAdmin(email: string, action: "add" | "remove") {
   ).admin;
 }
 
+export type Player = {
+  uid: string;
+  email: string;
+  name: string;
+  providers: string[];
+  admin: boolean;
+  developer: boolean;
+  developerBlocked: boolean;
+  disabled: boolean;
+  createdAt: string | null;
+  lastSignIn: string | null;
+  lastActive: string | null;
+};
+
+/** One page of players; pass the previous page's `next` for the one after. */
+export async function listPlayers(pageToken: string | null = null) {
+  return await api<{ players: Player[]; next: string | null }>(
+    "/api/admin/players",
+    pageToken ? { pageToken } : {},
+  );
+}
+
 export type Report = {
   id: string;
   game: string;

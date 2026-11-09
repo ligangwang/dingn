@@ -411,6 +411,18 @@ test("admins grant and remove developer access by email", async () => {
     action: "remove",
   });
   assert.deepEqual(claims.u3, { developer: true });
+
+  // Players: every account, a page at a time, with roles and dates.
+  const listed = await adminCall("/api/admin/players", {});
+  assert.equal(listed.status, 200);
+  const u1 = listed.body.players.find((p) => p.uid === "u1");
+  assert.equal(u1.admin, true);
+  assert.equal(u1.developer, false);
+  assert.equal(listed.body.next, null);
+  assert.equal(
+    (await adminCall("/api/admin/players", { pageToken: 5 })).status,
+    400,
+  );
 });
 
 test("every uploaded file is sandboxed, whatever its type or case", async () => {

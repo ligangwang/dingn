@@ -190,6 +190,11 @@ export const pages = {
     en: { title: "Users admin" },
     zh: { title: "用户管理" },
   },
+  "/admin/players/": {
+    index: false,
+    en: { title: "Players admin" },
+    zh: { title: "玩家管理" },
+  },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },
