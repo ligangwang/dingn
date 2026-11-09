@@ -238,6 +238,9 @@ export function applyChange(
 export function transferGame(record, user, now = new Date().toISOString()) {
   if (!record) throw new ApiError(404, "not-found");
   if (record.status === "removed") throw new ApiError(400, "game-removed");
+  // Only dingn's own games move. Re-transferring would mark a developer's
+  // unreviewed uploads as reviewed, so a stale page or API call is refused.
+  if (record.owner) throw new ApiError(400, "already-owned");
   const versions = Object.fromEntries(
     Object.entries(record.versions ?? {}).map(([version, v]) => [
       version,

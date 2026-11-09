@@ -106,11 +106,13 @@ function GameList() {
           ? t(
               "No dingn account uses that email. Ask them to sign in once first.",
             )
-          : code === "not-a-developer"
-            ? t(
-                "That account is not a developer yet. Sign it up on My games first, by accepting the developer agreement.",
-              )
-            : t("That change could not be saved. Try again."),
+          : code === "already-owned"
+            ? t("That game already belongs to a developer.")
+            : code === "not-a-developer"
+              ? t(
+                  "That account is not a developer yet. Sign it up on My games first, by accepting the developer agreement.",
+                )
+              : t("That change could not be saved. Try again."),
       );
       return false;
     } finally {

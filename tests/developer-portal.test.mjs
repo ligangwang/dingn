@@ -525,4 +525,10 @@ test("admins transfer dingn's own game to a developer, who publishes it like any
     registry.publicGame(await registry.getRecord("rush"), "beta").preview,
     true,
   );
+  // A second transfer (a stale admin page) must not mark 1.1.0 as reviewed.
+  assert.equal((await transfer("kim@example.com")).body.error, "already-owned");
+  assert.equal(
+    registry.publicGame(await registry.getRecord("rush"), "beta").preview,
+    true,
+  );
 });
