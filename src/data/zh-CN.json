@@ -673,5 +673,16 @@
   "Next": "下一页",
   "Every dingn account, including developers and admins, most recently active first. Change who can upload or administer on the Users page.": "所有 dingn 账号，包括开发者和管理员，最近活跃的排在前面。要更改上传或管理权限，请前往“用户”页面。",
   "Page {0} of {1}": "第 {0} 页，共 {1} 页",
-  "{0} players": "共 {0} 位玩家"
+  "{0} players": "共 {0} 位玩家",
+  "{0} coins": "{0} 金币",
+  "coins": "金币",
+  "LEVEL": "关卡",
+  "Badge earned": "获得徽章",
+  "Test badge (not saved)": "测试徽章（不保存）",
+  "Badges in this game": "本游戏的徽章",
+  "{0} of {1} earned": "已获得 {0}/{1}",
+  "Badges and coins": "徽章和金币",
+  "Pass levels in games to earn badges and coins.": "在游戏中过关即可获得徽章和金币。",
+  "Find a game →": "找个游戏玩 →",
+  "Awards a badge listed in your game.json, such as \"level-10\". Each badge pays its dingn coins once per player, and dingn shows a \"Badge earned\" popup. unlock() fails with the code \"signed_out\" when no one is signed in. list() gives your badges and which ones the player has.": "颁发 game.json 中列出的徽章，例如 \"level-10\"。每个徽章对每位玩家只发一次 dingn 金币，dingn 会弹出“获得徽章”提示。没有玩家登录时，unlock() 会以代码 \"signed_out\" 失败。list() 返回游戏的徽章以及玩家已获得哪些。"
 }

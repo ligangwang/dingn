@@ -4,7 +4,7 @@ service cloud.firestore {
     // remain excluded so old billing data cannot become writable.
     match /{collection}/{document=**} {
       allow read, write: if request.auth != null
-        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products', 'shopOrders', 'shopInventory', 'games', 'developers', 'gameReports', 'gameStats', 'mail']);
+        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products', 'shopOrders', 'shopInventory', 'games', 'developers', 'gameReports', 'gameStats', 'mail', 'rewards']);
     }
     // The game registry is written only by the game publisher (Admin SDK) and
     // read by the dingn server, which serves it at /api/games.
@@ -23,6 +23,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /mail/{document=**} {
+      allow read, write: if false;
+    }
+    // Coins and badges (scripts/rewards.mjs): only the dingn server changes
+    // them, so a player can never give themselves coins.
+    match /rewards/{document=**} {
       allow read, write: if false;
     }
     match /shopOrders/{document=**} {

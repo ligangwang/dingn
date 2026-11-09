@@ -14,7 +14,15 @@ import {
   type ReportReason,
 } from "@/lib/game-reports";
 import {
+  addToWallet,
+  loadWallet,
+  unlockBadge,
+  type BadgeDef,
+} from "@/lib/rewards";
+import { BadgeToast, GameBadges, type EarnedToast } from "./rewards";
+import {
   accountProgress,
+  BridgeError,
   handleGameRequest,
   isGameRequest,
   progressField,
@@ -32,7 +40,24 @@ export type PublishedGame = {
   url: string;
   /** An outside developer's upload that dingn has not reviewed yet. */
   preview?: boolean;
+  /** The badges this version can award (scripts/rewards.mjs). */
+  badges?: BadgeDef[];
 };
+
+/** The bridge error for a failed badge unlock (codes from scripts/rewards.mjs). */
+function rewardError(error: unknown) {
+  const code = (error as { code?: string })?.code ?? "";
+  if (code === "sign-in-required" || code === "invalid-credential")
+    return new BridgeError("signed_out", "Sign in to earn badges.");
+  if (code === "unknown-badge")
+    return new BridgeError(
+      "invalid",
+      "That badge is not in this version's game.json.",
+    );
+  if (code === "too-many-requests")
+    return new BridgeError("too_many", "Too many badges at once. Try later.");
+  return new BridgeError("unavailable", "Badges are unavailable right now.");
+}
 
 /** The game id in /play/<id>/ or /zh/play/<id>/. */
 export function gameIdFromPath(pathname: string) {
@@ -56,6 +81,17 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     | { status: "ready"; game: PublishedGame; pinned: string }
   >({ status: "loading" });
   const [loaded, setLoaded] = useState(false);
+  const stage = useRef<HTMLDivElement>(null);
+  const [toast, setToast] = useState<EarnedToast | null>(null);
+  const toasts = useRef<EarnedToast[]>([]);
+  const toastKey = useRef(0);
+  function showToast(next: EarnedToast) {
+    toasts.current.push(next);
+    setToast((shown) => shown ?? toasts.current.shift() ?? null);
+  }
+  function nextToast() {
+    setToast(toasts.current.shift() ?? null);
+  }
 
   useEffect(() => {
     const id = gameId ?? gameIdFromPath(location.pathname);
@@ -135,6 +171,50 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;
     },
     ready: () => setLoaded(true),
+    rewards: {
+      unlock: async (id) => {
+        const def = game.badges?.find((b) => b.id === id);
+        if (!def)
+          throw new BridgeError(
+            "invalid",
+            "That badge is not in this version's game.json.",
+          );
+        let result;
+        try {
+          result = await unlockBadge(game.id, game.version, id);
+        } catch (error) {
+          throw rewardError(error);
+        }
+        if (result.new) {
+          if (user) addToWallet(user.uid, game.id, result, def);
+          showToast({
+            key: ++toastKey.current,
+            badge: def,
+            coins: result.coins,
+            test: !!result.test,
+          });
+        }
+        return {
+          new: result.new,
+          coins: result.coins,
+          ...(result.test ? { test: true } : {}),
+        };
+      },
+      list: async () => {
+        const wallet = user ? await loadWallet(user.uid) : null;
+        const earned = new Set(
+          wallet?.badges.filter((b) => b.game === game.id).map((b) => b.id),
+        );
+        return (game.badges ?? []).map((b) => ({
+          id: b.id,
+          tier: b.tier,
+          ...(b.level != null ? { level: b.level } : { icon: b.icon }),
+          coins: b.coins,
+          title: locale === "zh-CN" ? b.title.zh : b.title.en,
+          earned: earned.has(b.id),
+        }));
+      },
+    },
   };
 
   useEffect(() => {
@@ -210,7 +290,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         <button
           type="button"
           className="play-fullscreen"
-          onClick={() => void frame.current?.requestFullscreen?.()}
+          // The stage, not just the frame, so badge popups show in full screen.
+          onClick={() => void stage.current?.requestFullscreen?.()}
         >
           {t("Full screen")}
         </button>
@@ -222,7 +303,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           )}
         </p>
       )}
-      <div className="play-stage">
+      <div className="play-stage" ref={stage}>
         {!loaded && <p className="play-status">{t("Loading game…")}</p>}
         <iframe
           ref={frame}
@@ -233,7 +314,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           allowFullScreen
           onLoad={() => setTimeout(() => setLoaded(true), 4000)}
         />
+        <BadgeToast toast={toast} gameTitle={title} onDone={nextToast} />
       </div>
+      <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
       <ReportGame game={state.game} signedIn={!!user} />
     </div>
   );

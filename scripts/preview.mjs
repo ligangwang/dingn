@@ -16,6 +16,7 @@ import {
 } from "./developer-games.mjs";
 import { handleGameReports, reportRoutes } from "./game-reports.mjs";
 import { handleGamePlays, startFlushing, statsRoutes } from "./game-stats.mjs";
+import { handleRewards, rewardRoutes } from "./rewards.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -93,6 +94,10 @@ http
     }
     if (reportRoutes.includes(pathname)) {
       void handleGameReports(req, res);
+      return;
+    }
+    if (rewardRoutes.includes(pathname)) {
+      void handleRewards(req, res, pathname);
       return;
     }
     if (statsRoutes.includes(pathname)) {

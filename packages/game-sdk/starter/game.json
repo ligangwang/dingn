@@ -6,5 +6,13 @@
     "en": "Tap as fast as you can for five seconds.",
     "zh": "五秒内尽可能快地点击。"
   },
-  "entry": "index.html"
+  "entry": "index.html",
+  "badges": [
+    {
+      "id": "taps-30",
+      "tier": "bronze",
+      "icon": "bolt",
+      "title": { "en": "30 taps in one round", "zh": "一轮点击 30 次" }
+    }
+  ]
 }

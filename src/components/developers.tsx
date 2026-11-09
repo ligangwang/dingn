@@ -39,6 +39,10 @@ const REFERENCE: [string, string][] = [
     'Saves JSON to the signed-in player\'s account, so it follows them to any device. Up to 16 KB. save() fails with the code "signed_out" when no one is signed in.',
   ],
   [
+    "dingn.rewards.unlock(id)\ndingn.rewards.list()",
+    'Awards a badge listed in your game.json, such as "level-10". Each badge pays its dingn coins once per player, and dingn shows a "Badge earned" popup. unlock() fails with the code "signed_out" when no one is signed in. list() gives your badges and which ones the player has.',
+  ],
+  [
     "dingn.requestSignIn()",
     "Sends the player to sign in. They come back to your game afterwards.",
   ],

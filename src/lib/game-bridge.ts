@@ -8,6 +8,8 @@ export const PROTOCOL = 1;
 /** Largest stored value or progress save, as JSON. */
 export const MAX_VALUE = 16 * 1024;
 const KEY = /^[A-Za-z0-9._-]{1,64}$/;
+/** Mirrors BADGE_ID in scripts/game-registry.mjs. */
+const BADGE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 export type Player = { signedIn: boolean; name: string; avatar: string };
 export type GameRequest = {
@@ -40,6 +42,25 @@ export type BridgeContext = {
   /** Opens a dingn page (an already checked site path such as "/"). */
   navigate: (path: string) => void;
   ready: () => void;
+  /**
+   * Coins and badges (src/lib/rewards.ts). `unlock` records a badge for the
+   * signed-in player; `list` gives the game's badges and which are earned.
+   * Left out where rewards are not available.
+   */
+  rewards?: {
+    unlock: (badge: string) => Promise<RewardResult>;
+    list: () => Promise<RewardBadge[]>;
+  };
+};
+export type RewardResult = { new: boolean; coins: number; test?: boolean };
+export type RewardBadge = {
+  id: string;
+  tier: string;
+  level?: number;
+  icon?: string;
+  coins: number;
+  title: string;
+  earned: boolean;
 };
 
 export const isGameRequest = (data: unknown): data is GameRequest =>
@@ -70,7 +91,7 @@ export function accountProgress(
   return typeof value === "string" ? value : null;
 }
 
-class BridgeError extends Error {
+export class BridgeError extends Error {
   constructor(
     readonly code: string,
     message: string,
@@ -145,6 +166,23 @@ async function answer(
         throw new BridgeError("signed_out", "Sign in to save progress.");
       await ctx.saveProgress(encode(request.params?.data));
       return null;
+    }
+    case "rewards.list":
+      if (!ctx.rewards)
+        throw new BridgeError("unavailable", "Rewards are not available here.");
+      return ctx.rewards.list();
+    case "rewards.unlock": {
+      const id = request.params?.id;
+      if (typeof id !== "string" || !BADGE_ID.test(id))
+        throw new BridgeError(
+          "invalid",
+          "Badge ids are 1-40 lowercase letters, digits or dashes.",
+        );
+      if (!ctx.player.signedIn)
+        throw new BridgeError("signed_out", "Sign in to earn badges.");
+      if (!ctx.rewards)
+        throw new BridgeError("unavailable", "Rewards are not available here.");
+      return ctx.rewards.unlock(id);
     }
     case "signIn":
       ctx.signIn();

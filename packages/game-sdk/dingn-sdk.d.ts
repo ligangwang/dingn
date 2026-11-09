@@ -3,6 +3,26 @@ export type Locale = "en" | "zh-CN";
 export type Player = { signedIn: boolean; name: string; avatar: string };
 export type Json =
   null | boolean | number | string | Json[] | { [key: string]: Json };
+export type BadgeTier = "bronze" | "silver" | "gold" | "diamond";
+/** A badge from the game's game.json, in the player's language. */
+export type Badge = {
+  id: string;
+  tier: BadgeTier;
+  /** A level badge shows this number; other badges show `icon`. */
+  level?: number;
+  icon?: string;
+  coins: number;
+  title: string;
+  earned: boolean;
+};
+export type BadgeUnlock = {
+  /** False when the player already had this badge. */
+  new: boolean;
+  /** dingn coins this unlock paid. */
+  coins: number;
+  /** True in a version dingn has not reviewed, or in the playground: nothing was saved. */
+  test?: boolean;
+};
 export type DingnGame = {
   gameId: string;
   version: string;
@@ -18,6 +38,15 @@ export type DingnGame = {
   };
   /** Saved to the signed-in player's account, up to 16 KB as JSON. save() rejects with code "signed_out" otherwise. */
   progress: { load(): Promise<Json>; save(data: Json): Promise<void> };
+  /**
+   * Badges and dingn coins. List badges in game.json; unlock(id) awards one to
+   * the signed-in player (each pays once) and dingn shows a "Badge earned"
+   * popup. unlock() rejects with code "signed_out" for a signed-out player.
+   */
+  rewards: {
+    unlock(id: string): Promise<BadgeUnlock>;
+    list(): Promise<Badge[]>;
+  };
   requestSignIn(): void;
   /** Leaves the game for a dingn page, such as "/" for the game list. The website keeps the player's language. */
   navigate(path: string): void;

@@ -163,3 +163,56 @@ test("a game reads only its own saves", async () => {
     '{"level":21}',
   );
 });
+
+test("a game unlocks badges for a signed-in player only", async () => {
+  const unlocked: string[] = [];
+  const withRewards = (signedIn: boolean) => {
+    const { ctx } = context(signedIn);
+    ctx.rewards = {
+      unlock: async (id) => {
+        unlocked.push(id);
+        return { new: true, coins: 40 };
+      },
+      list: async () => [],
+    };
+    return ctx;
+  };
+  const code = (reply: Awaited<ReturnType<typeof handleGameRequest>>) =>
+    reply && "error" in reply ? reply.error.code : "ok";
+
+  const ok = await handleGameRequest(
+    ask("rewards.unlock", { id: "level-10" }),
+    withRewards(true),
+  );
+  assert.deepEqual(ok && "result" in ok && ok.result, { new: true, coins: 40 });
+  assert.equal(
+    code(
+      await handleGameRequest(
+        ask("rewards.unlock", { id: "level-10" }),
+        withRewards(false),
+      ),
+    ),
+    "signed_out",
+  );
+  for (const id of ["", "Level 10", "../x", 7, "a".repeat(41)])
+    assert.equal(
+      code(
+        await handleGameRequest(
+          ask("rewards.unlock", { id }),
+          withRewards(true),
+        ),
+      ),
+      "invalid",
+    );
+  // Where the host has no rewards (an old page), the game hears so.
+  assert.equal(
+    code(
+      await handleGameRequest(
+        ask("rewards.unlock", { id: "level-10" }),
+        context(true).ctx,
+      ),
+    ),
+    "unavailable",
+  );
+  assert.deepEqual(unlocked, ["level-10"]);
+});

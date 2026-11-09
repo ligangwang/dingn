@@ -20,6 +20,92 @@ export const VERSION = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
 const MAX_TITLE = 80,
   MAX_DESCRIPTION = 300;
 
+// Badges a game can award (scripts/rewards.mjs). dingn draws them, so a game
+// picks a tier and either a level number or one of these icons.
+export const BADGE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
+export const TIERS = ["bronze", "silver", "gold", "diamond"];
+export const BADGE_ICONS = [
+  "boss",
+  "stars",
+  "star",
+  "squad",
+  "trophy",
+  "crown",
+  "bolt",
+  "heart",
+  "target",
+  "clock",
+];
+export const MAX_BADGES = 50;
+/**
+ * What a badge pays. dingn sets it by tier, the same in every game, so no game
+ * can pay more than another for the same effort; review checks the tiers.
+ */
+export const TIER_COINS = { bronze: 10, silver: 25, gold: 50, diamond: 100 };
+/** Most coins all of one game's badges can pay together. */
+export const MAX_GAME_COINS = 1000;
+const MAX_BADGE_TITLE = 60;
+
+/** Checks a game.json `badges` list. Adds what is wrong to `problems`. */
+export function validateBadges(raw, problems) {
+  if (raw == null) return [];
+  if (!Array.isArray(raw) || raw.length > MAX_BADGES) {
+    problems.push(`badges must be a list of up to ${MAX_BADGES}`);
+    return [];
+  }
+  const seen = new Set();
+  let total = 0;
+  const badges = raw.map((b, i) => {
+    const at = `badges[${i}]`;
+    const badge = b && typeof b === "object" ? b : {};
+    if (typeof badge.id !== "string" || !BADGE_ID.test(badge.id))
+      problems.push(
+        `${at}.id must be 1-40 lowercase letters, digits or dashes`,
+      );
+    else if (seen.has(badge.id))
+      problems.push(`${at}.id "${badge.id}" is used twice`);
+    seen.add(badge.id);
+    if (!TIERS.includes(badge.tier))
+      problems.push(`${at}.tier must be one of ${TIERS.join(", ")}`);
+    const hasLevel = badge.level != null,
+      hasIcon = badge.icon != null;
+    if (hasLevel === hasIcon)
+      problems.push(`${at} needs either a level or an icon`);
+    if (
+      hasLevel &&
+      !(
+        Number.isInteger(badge.level) &&
+        badge.level >= 1 &&
+        badge.level <= 9999
+      )
+    )
+      problems.push(`${at}.level must be a whole number from 1 to 9999`);
+    if (hasIcon && !BADGE_ICONS.includes(badge.icon))
+      problems.push(`${at}.icon must be one of ${BADGE_ICONS.join(", ")}`);
+    const coins = TIER_COINS[badge.tier] ?? 0;
+    total += coins;
+    for (const lang of ["en", "zh"])
+      if (!text(badge.title?.[lang], MAX_BADGE_TITLE))
+        problems.push(
+          `${at}.title.${lang} is required (up to ${MAX_BADGE_TITLE} characters)`,
+        );
+    return {
+      id: badge.id,
+      tier: badge.tier,
+      ...(hasLevel ? { level: badge.level } : { icon: badge.icon }),
+      coins,
+      title: { en: badge.title?.en?.trim(), zh: badge.title?.zh?.trim() },
+    };
+  });
+  if (total > MAX_GAME_COINS)
+    problems.push(
+      `badges pay ${total} coins in all (${Object.entries(TIER_COINS)
+        .map(([tier, n]) => `${tier} ${n}`)
+        .join(", ")}); a game can pay at most ${MAX_GAME_COINS}`,
+    );
+  return badges;
+}
+
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 export const bucket = () => process.env.GAMES_BUCKET || "dingn-193716-games";
 export const localDir = () =>
@@ -69,6 +155,7 @@ export function validateManifest(raw) {
     entry.includes("..")
   )
     problems.push("entry must be a relative .html path");
+  const badges = validateBadges(m.badges, problems);
   if (problems.length)
     throw new Error(`game.json is invalid:\n- ${problems.join("\n- ")}`);
   return {
@@ -80,6 +167,7 @@ export function validateManifest(raw) {
       zh: m.description?.zh?.trim() ?? "",
     },
     entry,
+    badges,
   };
 }
 
@@ -115,6 +203,8 @@ export function publicGame(record, requested) {
     description: resolved.description,
     entry: resolved.entry,
     url: `/g/${record.id}/${resolved.version}/${resolved.entry}`,
+    // The badges this version can award, for the player page.
+    badges: resolved.badges ?? [],
     // A version an outside developer uploaded that dingn has not made live
     // yet. The player page says so.
     preview: isPreview(record, resolved),
@@ -202,6 +292,7 @@ export function addVersion(
     title: manifest.title,
     description: manifest.description,
     entry: manifest.entry,
+    ...(manifest.badges?.length ? { badges: manifest.badges } : {}),
     publishedAt: now,
   };
   return {
