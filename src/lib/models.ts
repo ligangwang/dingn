@@ -1,5 +1,30 @@
 export type CardSide = "OneSide" | "TwoSides";
-export type Profile = { userName: string; cardSide: CardSide };
+export type Profile = { userName: string; cardSide: CardSide; avatar: string };
+/** Preset avatars a player can pick. "" means the default (sign-in photo, else initials). */
+export const avatarPresets = [
+  { id: "fox", emoji: "🦊", color: "#ff9f43" },
+  { id: "panda", emoji: "🐼", color: "#dfe6e9" },
+  { id: "tiger", emoji: "🐯", color: "#fdcb6e" },
+  { id: "frog", emoji: "🐸", color: "#55efc4" },
+  { id: "octopus", emoji: "🐙", color: "#fd79a8" },
+  { id: "owl", emoji: "🦉", color: "#a29bfe" },
+  { id: "koala", emoji: "🐨", color: "#81ecec" },
+  { id: "monkey", emoji: "🐵", color: "#e17055" },
+  { id: "unicorn", emoji: "🦄", color: "#f8a5c2" },
+  { id: "dragon", emoji: "🐲", color: "#00b894" },
+  { id: "robot", emoji: "🤖", color: "#74b9ff" },
+  { id: "rocket", emoji: "🚀", color: "#6c5ce7" },
+] as const;
+export const avatarChoices = [
+  "",
+  "initials",
+  ...avatarPresets.map((a) => a.id),
+];
+function avatarFromData(value: unknown) {
+  return typeof value === "string" && avatarChoices.includes(value)
+    ? value
+    : "";
+}
 export type NumberEntry = {
   number: string;
   words: string[];
@@ -12,11 +37,16 @@ export type WordEntry = {
   number: string;
   definitions: Record<string, string[]>;
 };
-export const defaultProfile: Profile = { userName: "", cardSide: "OneSide" };
+export const defaultProfile: Profile = {
+  userName: "",
+  cardSide: "OneSide",
+  avatar: "",
+};
 export function profileFromData(data: Record<string, unknown> = {}): Profile {
   return {
     userName: typeof data.user_name === "string" ? data.user_name : "",
     cardSide: data.card_side === "TwoSides" ? "TwoSides" : "OneSide",
+    avatar: avatarFromData(data.avatar),
   };
 }
 export function numberFromData(
@@ -59,6 +89,7 @@ export function profileRecord(profile: Profile) {
   return {
     user_name: profile.userName.trim().slice(0, 80),
     card_side: profile.cardSide,
+    avatar: avatarFromData(profile.avatar),
   };
 }
 export const soundGuide = [
