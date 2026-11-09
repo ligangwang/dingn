@@ -1,0 +1,43 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #0d0f1a;
+  color: #f4f4ff;
+  font-family: system-ui, sans-serif;
+}
+main {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 16px;
+}
+#star {
+  font-size: 72px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 0;
+  background: #2a2f55;
+  color: #ffd84d;
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+#star:active {
+  transform: scale(0.92);
+}
+#star:disabled {
+  opacity: 0.4;
+}
+button:not(#star) {
+  font: inherit;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 0;
+  background: #6c5ce7;
+  color: #fff;
+  cursor: pointer;
+}

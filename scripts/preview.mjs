@@ -2,6 +2,7 @@ import { handleApi } from "./api.mjs";
 import { handleBilling } from "./billing.mjs";
 import { gameRoutes, handleGameApi } from "./game-api.mjs";
 import { localizedRedirect } from "./locale-redirect.mjs";
+import { handleGames, isGamesPath } from "./game-registry.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -11,6 +12,10 @@ import http from "node:http";
 import https from "node:https";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import path from "node:path";
+// `npm run preview -- --local-games` plays games published with
+// `npm run publish:game -- <id> --local` instead of the production registry.
+if (process.argv.includes("--local-games"))
+  process.env.GAMES_LOCAL_DIR ||= path.resolve(".games-local");
 const root = path.resolve("out"),
   port = Number(process.env.PORT || 3001),
   host = process.env.HOST || "127.0.0.1";
@@ -31,6 +36,10 @@ http
     const pathname = new URL(req.url, "http://localhost").pathname;
     if (pathname.startsWith("/api/billing/")) {
       void handleBilling(req, res);
+      return;
+    }
+    if (isGamesPath(pathname)) {
+      void handleGames(req, res, pathname);
       return;
     }
     if (gameRoutes.includes(pathname)) {
@@ -93,16 +102,29 @@ http
       return;
     }
     let target;
-    try {
-      target = path.resolve(
-        root,
-        "." + decodeURIComponent(new URL(req.url, "http://localhost").pathname),
-      );
-    } catch {
-      res.writeHead(400);
-      res.end();
-      return;
+    // Every published game shares the one exported player page.
+    const play = /^\/(zh\/)?play\/[a-z][a-z0-9]{1,30}\/?$/.exec(pathname);
+    if (play) {
+      if (!pathname.endsWith("/")) {
+        const url = new URL(req.url, "http://localhost");
+        res.writeHead(308, { Location: pathname + "/" + url.search });
+        res.end();
+        return;
+      }
+      target = path.join(root, play[1] ? "zh" : "", "play", "index.html");
     }
+    if (!target)
+      try {
+        target = path.resolve(
+          root,
+          "." +
+            decodeURIComponent(new URL(req.url, "http://localhost").pathname),
+        );
+      } catch {
+        res.writeHead(400);
+        res.end();
+        return;
+      }
     if (target !== root && !target.startsWith(root + path.sep)) {
       res.writeHead(403);
       res.end();

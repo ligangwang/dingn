@@ -1,0 +1,62 @@
+.play-page {
+  padding-block: 24px;
+}
+.play-ready {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-inline: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.play-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.play-bar h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  flex: 1;
+}
+.play-version {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ffe08a;
+  color: #3a2c00;
+}
+.play-fullscreen {
+  font: inherit;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.play-stage {
+  position: relative;
+  height: min(78vh, 760px);
+  min-height: 360px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0d0f1a;
+}
+.play-stage iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.play-stage .play-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #fff;
+  pointer-events: none;
+}

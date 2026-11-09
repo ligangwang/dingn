@@ -14,7 +14,7 @@ before(async () => {
   });
 });
 after(async () => env?.cleanup());
-it("blocks forged purchases, ownership, Stripe records and XP even for the matching player", async () => {
+it("blocks forged purchases, ownership, Stripe records, XP and the game registry even for the matching player", async () => {
   for (const ctx of [
     env.unauthenticatedContext(),
     env.authenticatedContext("alice"),
@@ -27,6 +27,7 @@ it("blocks forged purchases, ownership, Stripe records and XP even for the match
       "products/prod1",
       "players/alice",
       "plays/play1",
+      "games/crowd",
     ]) {
       const ref = doc(ctx.firestore(), path);
       await assertFails(setDoc(ref, { status: "owned" }));

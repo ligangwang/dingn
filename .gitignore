@@ -86,3 +86,8 @@ playwright-report/
 .env*
 !.env.example
 gha-creds-*.json
+
+# Game platform: local registry and publish staging
+.games-local/
+.games-build/
+games/*/dist/

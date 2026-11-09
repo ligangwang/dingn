@@ -1,0 +1,212 @@
+"use client";
+// Plays a game published on the dingn game platform. The page is the same for
+// every game: it asks the registry which version is live, runs that version in
+// a sandboxed frame, and answers the game's SDK requests (src/lib/game-bridge).
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useLocale } from "./locale";
+import { useOptionalSession } from "./session";
+import { database, doc, getDoc, setDoc } from "@/lib/database";
+import {
+  handleGameRequest,
+  isGameRequest,
+  progressField,
+  PROTOCOL,
+  type BridgeContext,
+  type Player,
+} from "@/lib/game-bridge";
+
+export type PublishedGame = {
+  id: string;
+  version: string;
+  title: { en: string; zh: string };
+  description: { en: string; zh: string };
+  entry: string;
+  url: string;
+};
+
+/** The game id in /play/<id>/ or /zh/play/<id>/. */
+export function gameIdFromPath(pathname: string) {
+  return (
+    /^\/(?:zh\/)?play\/([a-z][a-z0-9]{1,30})\/?$/.exec(pathname)?.[1] ?? ""
+  );
+}
+
+// What a sandboxed frame may do. It has no allow-same-origin, so the game runs
+// in its own opaque origin, cut off from the website's cookies and storage.
+const SANDBOX =
+  "allow-scripts allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-forms";
+
+export function GameHost() {
+  const { locale, t, href } = useLocale();
+  const session = useOptionalSession();
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [state, setState] = useState<
+    | { status: "loading" | "missing" | "error" }
+    | { status: "ready"; game: PublishedGame; pinned: string }
+  >({ status: "loading" });
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const id = gameIdFromPath(location.pathname);
+    const requested = new URLSearchParams(location.search).get("v") ?? "";
+    if (!id) return setState({ status: "missing" });
+    let active = true;
+    fetch(
+      `/api/games/${id}${requested ? `?v=${encodeURIComponent(requested)}` : ""}`,
+    )
+      .then(async (response) => {
+        if (!active) return;
+        if (response.status === 404) return setState({ status: "missing" });
+        if (!response.ok) throw new Error("unavailable");
+        setState({
+          status: "ready",
+          game: await response.json(),
+          pinned: requested,
+        });
+      })
+      .catch(() => active && setState({ status: "error" }));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const game = state.status === "ready" ? state.game : null;
+  const title = game
+    ? locale === "zh-CN"
+      ? game.title.zh
+      : game.title.en
+    : "";
+  useEffect(() => {
+    if (title) document.title = `${title} · dingn`;
+  }, [title]);
+
+  const user = session?.user ?? null;
+  const player: Player = {
+    signedIn: !!user,
+    name: session?.profile.userName || user?.displayName || "",
+    avatar: user?.photoURL || "",
+  };
+  // The bridge reads the latest values through a ref, so the message listener
+  // is attached once per game.
+  const context = useRef<BridgeContext | null>(null);
+  context.current = game && {
+    gameId: game.id,
+    version: game.version,
+    locale,
+    player,
+    storage: (() => {
+      try {
+        return window.localStorage;
+      } catch {
+        return null;
+      }
+    })(),
+    loadProgress: async () => {
+      if (!user) return null;
+      const data = (await getDoc(doc(database, "accounts", user.uid))).data();
+      const value = data?.[progressField(game.id)];
+      return typeof value === "string" ? value : null;
+    },
+    saveProgress: async (json) => {
+      if (!user) throw new Error("signed_out");
+      await setDoc(
+        doc(database, "accounts", user.uid),
+        { [progressField(game.id)]: json },
+        { merge: true },
+      );
+    },
+    signIn: () => {
+      location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;
+    },
+    ready: () => setLoaded(true),
+  };
+
+  useEffect(() => {
+    if (!game) return;
+    function onMessage(event: MessageEvent) {
+      const target = frame.current?.contentWindow;
+      // Only the game's own frame, which runs in an opaque ("null") origin.
+      if (!target || event.source !== target || !isGameRequest(event.data))
+        return;
+      const ctx = context.current;
+      if (!ctx) return;
+      void handleGameRequest(event.data, ctx).then((reply) => {
+        if (reply) target.postMessage(reply, "*");
+      });
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [game?.id, game?.version]);
+
+  // Tell the game when the player signs in or out.
+  const playerKey = JSON.stringify(player);
+  const firstPlayer = useRef(true);
+  useEffect(() => {
+    if (firstPlayer.current) {
+      firstPlayer.current = false;
+      return;
+    }
+    frame.current?.contentWindow?.postMessage(
+      { dingn: "host", v: PROTOCOL, event: "player", data: player },
+      "*",
+    );
+  }, [playerKey]);
+
+  if (state.status === "loading")
+    return (
+      <div className="container play-page">
+        <p className="play-status">{t("Loading game…")}</p>
+      </div>
+    );
+  if (state.status !== "ready")
+    return (
+      <div className="container play-page">
+        <h1>
+          {state.status === "missing"
+            ? t("Game not found")
+            : t("This game is not available right now.")}
+        </h1>
+        <p>
+          <Link href={href("/")}>{t("Find another game →")}</Link>
+        </p>
+      </div>
+    );
+
+  const testing = state.pinned
+    ? state.pinned === "beta"
+      ? t("Beta")
+      : state.pinned
+    : "";
+  return (
+    <div className="play-page play-ready">
+      <div className="play-bar">
+        <h1>{title}</h1>
+        {testing && (
+          <span className="play-version" title={state.game.version}>
+            {testing} · {state.game.version}
+          </span>
+        )}
+        <button
+          type="button"
+          className="play-fullscreen"
+          onClick={() => void frame.current?.requestFullscreen?.()}
+        >
+          {t("Full screen")}
+        </button>
+      </div>
+      <div className="play-stage">
+        {!loaded && <p className="play-status">{t("Loading game…")}</p>}
+        <iframe
+          ref={frame}
+          src={state.game.url}
+          title={title}
+          sandbox={SANDBOX}
+          allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope"
+          allowFullScreen
+          onLoad={() => setTimeout(() => setLoaded(true), 4000)}
+        />
+      </div>
+    </div>
+  );
+}
