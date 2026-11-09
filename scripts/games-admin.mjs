@@ -173,40 +173,51 @@ const dateOrNull = (value) => {
   return Number.isNaN(time) ? null : new Date(time).toISOString();
 };
 
+const player = (user) => {
+  const claims = user.customClaims ?? {};
+  return {
+    uid: user.uid,
+    email: user.email ?? "",
+    name: user.displayName ?? "",
+    providers: (user.providerData ?? []).map((p) => p.providerId),
+    admin: claims.admin === true,
+    developer: claims.developer === true,
+    developerBlocked: claims.developerBlocked === true,
+    disabled: user.disabled === true,
+    createdAt: dateOrNull(user.metadata?.creationTime),
+    lastSignIn: dateOrNull(user.metadata?.lastSignInTime),
+    // Every signed-in request refreshes the token, so this is when they
+    // were last on dingn.
+    lastActive: dateOrNull(user.metadata?.lastRefreshTime),
+  };
+};
+const seen = (p) => p.lastActive ?? p.lastSignIn ?? p.createdAt ?? "";
+
 /**
- * One page of every account, in Firebase's order (by uid), with what an
- * admin needs to know: roles, sign-in method and when they were last seen.
- * `pageToken` is the `next` of the page before.
+ * One page (`page`, from 1) of every account, most recently active first,
+ * with what an admin needs to know: roles, sign-in method and when they were
+ * last seen. Firebase lists accounts only by uid, so this reads them all and
+ * sorts; that is fine for thousands of accounts.
  */
 async function players(body, users) {
-  const token = body.pageToken;
-  if (
-    token !== undefined &&
-    token !== null &&
-    (typeof token !== "string" || !token || token.length > 2000)
-  )
+  const page = body.page ?? 1;
+  if (!Number.isInteger(page) || page < 1)
     throw new ApiError(400, "invalid-request");
-  const page = await users.listUsers(PLAYERS_PER_PAGE, token || undefined);
+  const all = [];
+  let pageToken;
+  do {
+    const batch = await users.listUsers(1000, pageToken);
+    for (const user of batch.users) all.push(player(user));
+    pageToken = batch.pageToken;
+  } while (pageToken);
+  all.sort(
+    (a, b) => seen(b).localeCompare(seen(a)) || a.email.localeCompare(b.email),
+  );
+  const start = (page - 1) * PLAYERS_PER_PAGE;
   return {
-    players: page.users.map((user) => {
-      const claims = user.customClaims ?? {};
-      return {
-        uid: user.uid,
-        email: user.email ?? "",
-        name: user.displayName ?? "",
-        providers: (user.providerData ?? []).map((p) => p.providerId),
-        admin: claims.admin === true,
-        developer: claims.developer === true,
-        developerBlocked: claims.developerBlocked === true,
-        disabled: user.disabled === true,
-        createdAt: dateOrNull(user.metadata?.creationTime),
-        lastSignIn: dateOrNull(user.metadata?.lastSignInTime),
-        // Every signed-in request refreshes the token, so this is when they
-        // were last on dingn.
-        lastActive: dateOrNull(user.metadata?.lastRefreshTime),
-      };
-    }),
-    next: page.pageToken ?? null,
+    players: all.slice(start, start + PLAYERS_PER_PAGE),
+    total: all.length,
+    pages: Math.max(1, Math.ceil(all.length / PLAYERS_PER_PAGE)),
   };
 }
 

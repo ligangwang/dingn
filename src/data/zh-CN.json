@@ -665,12 +665,13 @@
   "Joined": "注册时间",
   "Last sign-in": "上次登录",
   "Last active": "上次活跃",
-  "Every dingn account, including developers and admins. Change who can upload or administer on the Users page.": "所有 dingn 账号，包括开发者和管理员。要更改上传或管理权限，请前往“用户”页面。",
   "Players could not be loaded. Try again.": "无法加载玩家列表，请重试。",
   "Loading players…": "正在加载玩家…",
   "No players yet.": "还没有玩家。",
   "Pages": "分页",
   "Previous": "上一页",
   "Next": "下一页",
-  "Page {0}": "第 {0} 页"
+  "Every dingn account, including developers and admins, most recently active first. Change who can upload or administer on the Users page.": "所有 dingn 账号，包括开发者和管理员，最近活跃的排在前面。要更改上传或管理权限，请前往“用户”页面。",
+  "Page {0} of {1}": "第 {0} 页，共 {1} 页",
+  "{0} players": "共 {0} 位玩家"
 }

@@ -1,6 +1,7 @@
 "use client";
-// Players admin: every dingn account, page by page, with its roles and when
-// it joined and was last seen. Changing access stays on the Users page.
+// Players admin: every dingn account, most recently active first, page by
+// page, with its roles and when it joined and was last seen. "Last sign-in" is
+// when they last signed in; "Last active" is their last visit while signed in. Changing access stays on the Users page.
 import { useEffect, useState } from "react";
 import { AdminOnly } from "./admin-games";
 import { useLocale } from "./locale";
@@ -24,9 +25,9 @@ export function AdminPlayers() {
 
 function PlayerList() {
   const { t, locale } = useLocale();
-  // tokens[i] opens page i + 1; page 1 needs none.
-  const [tokens, setTokens] = useState<(string | null)[]>([null]);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [error, setError] = useState(false);
   // Bumped by Try again, to load the same page once more.
@@ -36,13 +37,12 @@ function PlayerList() {
     let current = true;
     setPlayers(null);
     setError(false);
-    listPlayers(tokens[page])
-      .then(({ players, next }) => {
+    listPlayers(page)
+      .then((result) => {
         if (!current) return;
-        setPlayers(players);
-        setTokens((list) =>
-          next && list.length === page + 1 ? [...list, next] : list,
-        );
+        setPlayers(result.players);
+        setPages(result.pages);
+        setTotal(result.total);
       })
       .catch(() => current && setError(true));
     return () => {
@@ -67,7 +67,7 @@ function PlayerList() {
     ]
       .filter(Boolean)
       .join(", ") || t("Player");
-  const hasNext = tokens.length > page + 1;
+  const hasNext = page < pages;
   const loading = !players && !error;
 
   return (
@@ -76,9 +76,10 @@ function PlayerList() {
       <h1>{t("Players")}</h1>
       <p className="lede">
         {t(
-          "Every dingn account, including developers and admins. Change who can upload or administer on the Users page.",
+          "Every dingn account, including developers and admins, most recently active first. Change who can upload or administer on the Users page.",
         )}
       </p>
+      {total > 0 && <p>{t(`${total} players`)}</p>}
       {error && (
         <p role="alert" className="error">
           {t("Players could not be loaded. Try again.")}{" "}
@@ -132,12 +133,12 @@ function PlayerList() {
         <button
           type="button"
           className="secondary-button"
-          disabled={page === 0 || loading}
+          disabled={page === 1 || loading}
           onClick={() => setPage(page - 1)}
         >
           {t("Previous")}
         </button>
-        <span>{t(`Page ${page + 1}`)}</span>
+        <span>{t(`Page ${page} of ${pages}`)}</span>
         <button
           type="button"
           className="secondary-button"
