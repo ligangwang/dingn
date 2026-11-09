@@ -121,6 +121,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   // The "Spend coins?" question a game's rewards.spend() is waiting on.
   const [ask, setAsk] = useState<SpendAsk | null>(null);
   const asking = useRef(false);
+  // Upgrades "bought" in an unreviewed version during this visit.
+  const tried = useRef(new Set<string>());
   function confirmSpend(item: ShopDef, balance: number) {
     // One question at a time: a second purchase while one is open is a no.
     if (asking.current) return Promise.resolve(false);
@@ -283,6 +285,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             "The shop is unavailable right now.",
           );
         const owns = (item: string) =>
+          tried.current.has(item) ||
           wallet.items.some((i) => i.game === game.id && i.id === item);
         if (owns(id)) return { new: false, coins: 0 };
         if (def.requires && !owns(def.requires))
@@ -301,6 +304,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         } catch (error) {
           throw spendError(error);
         }
+        // An unreviewed version's purchases are only pretend, but remembered
+        // for this visit so its developer can try every tier.
+        if (result.test) tried.current.add(id);
         spendFromWallet(user.uid, game.id, result, def);
         return {
           new: result.new,
@@ -315,9 +321,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           price: i.price,
           ...(i.requires ? { requires: i.requires } : {}),
           title: locale === "zh-CN" ? i.title.zh : i.title.en,
-          owned: !!wallet?.items.some(
-            (o) => o.game === game.id && o.id === i.id,
-          ),
+          owned:
+            tried.current.has(i.id) ||
+            !!wallet?.items.some((o) => o.game === game.id && o.id === i.id),
         }));
       },
       list: async () => {

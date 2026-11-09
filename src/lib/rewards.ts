@@ -161,17 +161,23 @@ export function addToWallet(
   });
 }
 
-/** Records an upgrade the server just sold in the shared wallet. */
+/**
+ * Records an upgrade the server sold, or says the player already owned (say,
+ * bought in another tab), in the shared wallet.
+ */
 export function spendFromWallet(
   uid: string,
   game: string,
   spend: Spend,
   def: ShopDef,
 ) {
-  if (uid !== owner || !wallet || !spend.new || spend.test) return;
+  if (uid !== owner || !wallet || spend.test) return;
+  const has = wallet.items.some((i) => i.game === game && i.id === def.id);
   publish({
     ...wallet,
-    coins: spend.balance ?? wallet.coins - spend.coins,
-    items: [{ game, id: def.id, title: def.title }, ...wallet.items],
+    coins: spend.balance ?? wallet.coins - (spend.new ? spend.coins : 0),
+    items: has
+      ? wallet.items
+      : [{ game, id: def.id, title: def.title }, ...wallet.items],
   });
 }
