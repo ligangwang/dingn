@@ -1,4 +1,4 @@
-import { LocaleProvider, Text } from "@/components/locale";
+import { LocaleHtml, LocaleProvider, Text } from "@/components/locale";
 import type { Metadata } from "next";
 import { SessionProvider } from "@/components/session";
 import { Header } from "@/components/header";
@@ -8,6 +8,7 @@ import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import "./mind-arcade.css";
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dingn.com"),
   title: {
     default: "dingn — Games & Adventures | 游戏与冒险",
     template: "%s · dingn",
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <LocaleHtml>
       <body>
         <LocaleProvider>
           <a className="skip-link" href="#main">
@@ -38,6 +39,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </SessionProvider>
         </LocaleProvider>
       </body>
-    </html>
+    </LocaleHtml>
   );
 }

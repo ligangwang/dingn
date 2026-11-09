@@ -1,5 +1,6 @@
 import { Practice } from "@/components/practice";
-export const metadata = { title: "Numbers" };
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata("/number/", "en");
 export default function Page() {
   return <Practice mode="number" />;
 }

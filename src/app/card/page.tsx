@@ -1,5 +1,6 @@
 import { Practice } from "@/components/practice";
-export const metadata = { title: "Playing cards" };
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata("/card/", "en");
 export default function Page() {
   return <Practice mode="card" />;
 }

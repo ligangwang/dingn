@@ -7,7 +7,7 @@ import { useSession } from "./session";
 import { readFeedbackPage, type FeedbackCursor } from "@/lib/admin-feedback";
 
 export function AdminFeedback() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { user, ready, isAdmin } = useSession();
   if (!ready)
@@ -22,7 +22,10 @@ export function AdminFeedback() {
         <section className="panel signin-panel">
           <h1>{t("Admin sign-in")}</h1>
           <p>{t("Sign in with an account that has admin access.")}</p>
-          <Link className="button" href="/signin/?next=%2Fadmin%2Ffeedback%2F">
+          <Link
+            className="button"
+            href={`${href("/signin/")}?next=${encodeURIComponent(href("/admin/feedback/"))}`}
+          >
             {t("Sign in")}
           </Link>
         </section>
@@ -34,7 +37,7 @@ export function AdminFeedback() {
         <section className="panel signin-panel">
           <h1>{t("Admin access required")}</h1>
           <p>{t("Your account does not have permission to view feedback.")}</p>
-          <Link href="/">{t("Back to games")}</Link>
+          <Link href={href("/")}>{t("Back to games")}</Link>
         </section>
       </div>
     );
@@ -42,7 +45,7 @@ export function AdminFeedback() {
 }
 
 function Inbox() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { user, profile } = useSession();
   const [cursors, setCursors] = useState<(FeedbackCursor | undefined)[]>([

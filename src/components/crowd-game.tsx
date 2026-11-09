@@ -53,7 +53,7 @@ type Float = {
  * crowd-core; this component handles input, sound, the HUD and overlays.
  */
 export function CrowdGame() {
-  const { t, locale } = useLocale();
+  const { t, href, locale } = useLocale();
   // the 3D scene paints words onto crates, so it reads the current language
   const tRef = useRef(t);
   tRef.current = t;
@@ -580,7 +580,7 @@ export function CrowdGame() {
           </p>
         </div>
         <div className="crowd-links">
-          <Link href="/">{t("Back to games")}</Link>
+          <Link href={href("/")}>{t("Back to games")}</Link>
         </div>
       </div>
       <div className="crowd-stage crowd3d-stage" ref={stageRef}>
@@ -636,7 +636,7 @@ export function CrowdGame() {
           <div className="crowd-overlay">
             <h2>{t("3D isn't available here")}</h2>
             <p>{t("Crowd Rush needs WebGL, which this browser can't draw.")}</p>
-            <Link href="/" className="button">
+            <Link href={href("/")} className="button">
               {t("Back to games")}
             </Link>
           </div>

@@ -14,13 +14,13 @@ import {
 import { LevelBadge } from "./xp";
 import { Avatar } from "./avatar";
 export function Header() {
-  const { t, locale } = useLocale();
+  const { t, href: to } = useLocale();
 
   const path = usePathname();
   const { user, ready, profile, isAdmin } = useSession();
   return (
     <header className="site-header">
-      <Link className="brand" href="/" aria-label={t("dingn home")}>
+      <Link className="brand" href={to("/")} aria-label={t("dingn home")}>
         <img src="/dingn-mark.svg" width="34" height="34" alt="" />
         {t("dingn")}
       </Link>
@@ -36,10 +36,10 @@ export function Header() {
         ].map(([href, label, Icon]) => (
           <Link
             key={href}
-            href={href}
+            href={to(href)}
             aria-label={t(label)}
             aria-current={
-              path.replace(/\/$/, "") === href.replace(/\/$/, "")
+              path.replace(/\/$/, "") === to(href).replace(/\/$/, "")
                 ? "page"
                 : undefined
             }
@@ -54,7 +54,7 @@ export function Header() {
           {ready && user ? (
             <Link
               className="account-link"
-              href="/account/"
+              href={to("/account/")}
               aria-label={t("Your account")}
             >
               <Avatar
@@ -64,7 +64,7 @@ export function Header() {
               />
             </Link>
           ) : (
-            <Link className="button small" href="/signin/">
+            <Link className="button small" href={to("/signin/")}>
               {t("Sign in")}
             </Link>
           )}

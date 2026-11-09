@@ -178,7 +178,7 @@ test("sound preference is remembered", async () => {
 });
 
 test("the page is translated into Simplified Chinese", async () => {
-  history.replaceState({}, "", "/crowd/?lang=zh-CN");
+  history.replaceState({}, "", "/zh/crowd/");
   render(
     <LocaleProvider>
       <CrowdGame />
@@ -208,7 +208,7 @@ test("words painted on the 3D crates are translated into Simplified Chinese", as
 });
 
 test("the sign-in prompt is translated into Simplified Chinese", async () => {
-  history.replaceState({}, "", "/crowd/?lang=zh-CN");
+  history.replaceState({}, "", "/zh/crowd/");
   localStorage.setItem("dingn.crowd.level", "6");
   render(
     <LocaleProvider>

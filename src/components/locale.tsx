@@ -6,49 +6,79 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { translate, type Locale } from "@/lib/i18n";
+import { usePathname } from "next/navigation";
+import { localeFromPath, localePath, translate, type Locale } from "@/lib/i18n";
+const storageKey = "dingn.locale";
+const normalize = (value: string | null | undefined): Locale =>
+  value?.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
 const LocaleContext = createContext({
   locale: "en" as Locale,
   setLocale: (_locale: Locale) => {},
 });
-export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>("en");
-  useEffect(() => {
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem("dingn.locale");
-    } catch {}
-    const requested = new URLSearchParams(window.location.search).get("lang");
-    const value = requested || saved || navigator.language;
-    if (requested) {
-      try {
-        localStorage.setItem(
-          "dingn.locale",
-          requested.toLowerCase().startsWith("zh") ? "zh-CN" : "en",
-        );
-      } catch {}
-    }
-    setLocale(value?.toLowerCase().startsWith("zh") ? "zh-CN" : "en");
-    const changed = (event: StorageEvent) => {
-      if (event.key === "dingn.locale")
-        setLocale(event.newValue === "zh-CN" ? "zh-CN" : "en");
-    };
-    window.addEventListener("storage", changed);
-    return () => window.removeEventListener("storage", changed);
-  }, []);
+/** The same page in another language, keeping query and hash (minus the legacy ?lang=). */
+function urlFor(locale: Locale) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("lang");
+  return localePath(url.pathname, locale) + url.search + url.hash;
+}
+/**
+ * The page's language comes from its URL: Chinese pages live under /zh/ and
+ * English pages keep the original URLs, so each language can be indexed.
+ */
+export function LocaleProvider({
+  children,
+  locale: fixed,
+}: {
+  children: ReactNode;
+  locale?: Locale;
+}) {
+  const pathname = usePathname();
+  // Set while switching in place, until the router reports the new URL.
+  const [switched, setSwitched] = useState<Locale | null>(null);
+  useEffect(() => setSwitched(null), [pathname]);
+  const locale =
+    switched ??
+    fixed ??
+    localeFromPath(
+      pathname ?? (typeof window === "undefined" ? "/" : location.pathname),
+    );
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
-  function change(value: Locale) {
-    setLocale(value);
-    const url = new URL(window.location.href);
-    if (url.searchParams.has("lang")) {
-      url.searchParams.set("lang", value);
-      window.history.replaceState(window.history.state, "", url);
-    }
+  useEffect(() => {
+    let saved: string | null = null;
     try {
-      localStorage.setItem("dingn.locale", value);
+      saved = localStorage.getItem(storageKey);
     } catch {}
+    // Old ?lang= links (the server normally redirects these already).
+    const requested = new URLSearchParams(location.search).get("lang");
+    if (requested) {
+      try {
+        localStorage.setItem(storageKey, normalize(requested));
+      } catch {}
+      show(normalize(requested));
+      return;
+    }
+    // English URLs are the default: send visitors who chose Chinese, or whose
+    // browser prefers it, to the Chinese page. An explicit /zh/ URL always wins.
+    if (locale === "en" && normalize(saved || navigator.language) === "zh-CN")
+      show("zh-CN");
+    // Only on first load: in-app links already stay in the current language.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  function change(value: Locale) {
+    try {
+      localStorage.setItem(storageKey, value);
+    } catch {}
+    show(value);
+  }
+  // Swap to the other language's URL without a reload, so a game in progress
+  // keeps its state; reloading or sharing the link opens that URL directly.
+  function show(value: Locale) {
+    try {
+      history.replaceState(history.state, "", urlFor(value));
+    } catch {}
+    if (value !== locale) setSwitched(value);
   }
   return (
     <LocaleContext.Provider value={{ locale, setLocale: change }}>
@@ -56,9 +86,22 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     </LocaleContext.Provider>
   );
 }
+/** The root <html>, with lang matching the page's URL so crawlers see it in the HTML. */
+export function LocaleHtml({ children }: { children: ReactNode }) {
+  return (
+    <html lang={localeFromPath(usePathname())} suppressHydrationWarning>
+      {children}
+    </html>
+  );
+}
 export function useLocale() {
   const value = useContext(LocaleContext);
-  return { ...value, t: (text: string) => translate(text, value.locale) };
+  return {
+    ...value,
+    t: (text: string) => translate(text, value.locale),
+    /** A site path in the current language, e.g. "/word/" → "/zh/word/". */
+    href: (path: string) => localePath(path, value.locale),
+  };
 }
 export function Text({ children }: { children: string }) {
   return <>{useLocale().t(children)}</>;

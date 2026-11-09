@@ -8,7 +8,7 @@ import { submitFeedback } from "@/lib/feedback";
 import { friendlyError } from "@/lib/models";
 
 export function Feedback() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { user, ready, login } = useSession();
   const [message, setMessage] = useState("");
@@ -95,7 +95,7 @@ export function Feedback() {
             ) : (
               <>
                 <p>{t("Sign in to submit. Your draft will stay here.")}</p>
-                <Link className="button" href="/signin/">
+                <Link className="button" href={href("/signin/")}>
                   {t("Sign in with email")}
                 </Link>
                 <button
@@ -116,7 +116,7 @@ export function Feedback() {
           </p>
         )}
       </section>
-      <Link className="quiet-link" href="/">
+      <Link className="quiet-link" href={href("/")}>
         {t("Back to games")}
       </Link>
     </div>
