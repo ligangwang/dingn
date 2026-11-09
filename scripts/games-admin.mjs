@@ -131,6 +131,22 @@ const reasonOf = (value) => {
   return reason;
 };
 
+/** The developer account with this email. Throws ApiError. */
+async function developerByEmail(value, users) {
+  const email = typeof value === "string" ? value.trim() : "";
+  if (!email) throw new ApiError(400, "invalid-request");
+  let user;
+  try {
+    user = await users.getUserByEmail(email);
+  } catch {
+    throw new ApiError(404, "user-not-found");
+  }
+  // They must have signed up (accepting the agreement) or been added.
+  if (user.customClaims?.developer !== true)
+    throw new ApiError(400, "not-a-developer");
+  return { uid: user.uid, email: user.email ?? email };
+}
+
 /** Applies one admin change to a record. Throws ApiError for a bad request. */
 export function applyChange(
   record,
@@ -214,6 +230,33 @@ export function applyChange(
   }
 }
 
+/**
+ * Gives a game to a developer, so it is published like any developer's game:
+ * from their uploads, through the review queue. The versions it already has
+ * were published by dingn, so they count as reviewed.
+ */
+export function transferGame(record, user, now = new Date().toISOString()) {
+  if (!record) throw new ApiError(404, "not-found");
+  if (record.status === "removed") throw new ApiError(400, "game-removed");
+  // Only dingn's own games move. Re-transferring would mark a developer's
+  // unreviewed uploads as reviewed, so a stale page or API call is refused.
+  if (record.owner) throw new ApiError(400, "already-owned");
+  const versions = Object.fromEntries(
+    Object.entries(record.versions ?? {}).map(([version, v]) => [
+      version,
+      { ...v, reviewedAt: v.reviewedAt ?? v.publishedAt ?? now },
+    ]),
+  );
+  return {
+    ...record,
+    versions,
+    pending: {},
+    owner: user.uid,
+    ownerEmail: user.email ?? "",
+    updatedAt: now,
+  };
+}
+
 /** Tells an outside developer what happened to their game. */
 export function ownerMail(before, after, { action, version }) {
   const to = after.owner ? after.ownerEmail : "";
@@ -241,6 +284,12 @@ export function ownerMail(before, after, { action, version }) {
       to,
       subject: `${title(after.live ?? after.beta)} was taken down from dingn`,
       text: `dingn took ${after.id} down, so players can no longer open it:\n\n${after.removedReason}\n\nReply to this email if you think this is a mistake.`,
+    };
+  if (action === "transfer")
+    return {
+      to,
+      subject: `${after.id} is now yours on dingn`,
+      text: `dingn gave you ${after.id}. Upload its new versions at https://dingn.com/developers/games/, and dingn reviews each one before it goes live.`,
     };
   if (action === "restore")
     return {
@@ -302,9 +351,17 @@ export async function handleAdminGames(
     if (typeof body.id !== "string" || !ID.test(body.id))
       throw new ApiError(400, "invalid-request");
     let before = null;
+    let change = applyChange;
+    if (body.action === "transfer") {
+      const user = await developerByEmail(
+        body.email,
+        users ?? (await firebaseAuth()),
+      );
+      change = (record) => transferGame(record, user);
+    }
     const updated = await updateRecord(body.id, (record) => {
       before = record;
-      return applyChange(record, body);
+      return change(record, body);
     });
     clearRegistryCache();
     console.log("games admin", body.id, body.action, body.version ?? "");

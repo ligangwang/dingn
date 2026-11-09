@@ -216,3 +216,23 @@ it("takes a reported game down and closes the report", async () => {
   const card = screen.getByRole("region", { name: "Sky Hop" });
   expect(within(card).getByRole("button", { name: "Restore" })).toBeTruthy();
 });
+
+it("transfers dingn's own game to a developer", async () => {
+  vi.spyOn(window, "prompt").mockReturnValue(" studio@example.com ");
+  mocks.changeGame.mockResolvedValue({ ...crowd, owner: "studio@example.com" });
+  render(<AdminGames />);
+  const card = await screen.findByRole("region", { name: "Crowd Rush" });
+  await userEvent.click(
+    within(card).getByRole("button", { name: "Transfer to a developer" }),
+  );
+  expect(mocks.changeGame).toHaveBeenCalledWith("crowd", {
+    action: "transfer",
+    email: "studio@example.com",
+  });
+  expect(
+    await screen.findByText("Crowd Rush now belongs to studio@example.com."),
+  ).toBeTruthy();
+  expect(
+    within(card).queryByRole("button", { name: "Transfer to a developer" }),
+  ).toBeNull();
+});

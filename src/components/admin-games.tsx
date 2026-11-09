@@ -99,8 +99,21 @@ function GameList() {
       );
       setNotice(done);
       return true;
-    } catch {
-      setError(t("That change could not be saved. Try again."));
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      setError(
+        code === "user-not-found"
+          ? t(
+              "No dingn account uses that email. Ask them to sign in once first.",
+            )
+          : code === "already-owned"
+            ? t("That game already belongs to a developer.")
+            : code === "not-a-developer"
+              ? t(
+                  "That account is not a developer yet. Sign it up on My games first, by accepting the developer agreement.",
+                )
+              : t("That change could not be saved. Try again."),
+      );
       return false;
     } finally {
       setBusy("");
@@ -570,6 +583,30 @@ function GameCard({
                 }
               >
                 {t("Clear beta")}
+              </button>
+            )}
+            {!game.owner && (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => {
+                  const email = window
+                    .prompt(
+                      t(
+                        "Email of the developer account that will publish this game. It must have signed up as a developer.",
+                      ),
+                    )
+                    ?.trim();
+                  if (email)
+                    void apply(
+                      game,
+                      { action: "transfer", email },
+                      t(`${title} now belongs to ${email}.`),
+                    );
+                }}
+              >
+                {t("Transfer to a developer")}
               </button>
             )}
             <button

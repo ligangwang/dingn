@@ -438,3 +438,97 @@ test("the agreement page shows the version that sign-up records", async () => {
     new RegExp(`AGREEMENT_VERSION = "${uploads.AGREEMENT_VERSION}"`),
   );
 });
+
+test("admins transfer dingn's own game to a developer, who publishes it like any other", async () => {
+  await registry.updateRecord("rush", (r) =>
+    registry.addVersion(
+      r,
+      registry.validateManifest({
+        id: "rush",
+        version: "1.0.0",
+        title: { en: "Rush", zh: "冲" },
+      }),
+    ),
+  );
+  const accounts = {
+    kim: { developer: true },
+    lee: {},
+  };
+  const users = {
+    async getUserByEmail(email) {
+      const uid = email.split("@")[0];
+      if (!accounts[uid]) throw new Error("not found");
+      return { uid, email, customClaims: accounts[uid] };
+    },
+  };
+  const transfer = (email) =>
+    new Promise((resolve) =>
+      admin.handleAdminGames(
+        request("/api/admin/games/update", {
+          id: "rush",
+          action: "transfer",
+          email,
+        }),
+        response(resolve),
+        "/api/admin/games/update",
+        {
+          verify: async () => ({ uid: "boss", admin: true }),
+          exchange: async () => "t",
+          users,
+        },
+      ),
+    );
+  const kim = { uid: "kim", email: "kim@example.com", developer: true };
+  // Before the transfer it is dingn's: nobody can upload to it.
+  assert.equal(
+    (
+      await developerCall(
+        "/api/developer/games/upload",
+        gameZip("rush", "1.1.0"),
+        kim,
+      )
+    ).body.error,
+    "not-your-game",
+  );
+  assert.equal(
+    (await transfer("nobody@example.com")).body.error,
+    "user-not-found",
+  );
+  assert.equal(
+    (await transfer("lee@example.com")).body.error,
+    "not-a-developer",
+  );
+  const done = await transfer("kim@example.com");
+  assert.equal(done.status, 200);
+  assert.equal(done.body.game.owner, "kim@example.com");
+  // What dingn already published stays reviewed: no preview notice.
+  assert.equal(
+    registry.publicGame(await registry.getRecord("rush")).preview,
+    false,
+  );
+  assert.ok(
+    (await mail()).some(
+      (m) =>
+        m.to.includes("kim@example.com") && /now yours/.test(m.message.subject),
+    ),
+  );
+
+  const up = await developerCall(
+    "/api/developer/games/upload",
+    gameZip("rush", "1.1.0"),
+    kim,
+  );
+  assert.equal(up.status, 200, JSON.stringify(up.body));
+  assert.equal(up.body.game.beta, "1.1.0");
+  assert.equal(up.body.game.live, "1.0.0");
+  assert.equal(
+    registry.publicGame(await registry.getRecord("rush"), "beta").preview,
+    true,
+  );
+  // A second transfer (a stale admin page) must not mark 1.1.0 as reviewed.
+  assert.equal((await transfer("kim@example.com")).body.error, "already-owned");
+  assert.equal(
+    registry.publicGame(await registry.getRecord("rush"), "beta").preview,
+    true,
+  );
+});

@@ -127,6 +127,17 @@ inside dingn's player with its notices.
 Limits (`LIMITS`): a developer can own 10 games and upload 20 versions in
 24 hours. Admins have no limits.
 
+### Moving a game to its own repository
+
+dingn's own games (no owner) are published from this repository by CI. To
+publish one the same way as an outside developer, from its own repository,
+an admin uses **Transfer to a developer** on its card in `/admin/games/` and
+enters the email of a developer account (it must have signed up). The game
+then belongs to that account: its existing versions stay reviewed and keep
+playing, and new versions are uploaded on `/developers/games/` and approved
+in the review queue like any other game. Remove its folder from `games/`
+afterwards so CI stops publishing it.
+
 ### Review queue
 
 `/admin/games/` lists uploads waiting for review. **Approve** makes the
