@@ -393,6 +393,12 @@ export function parseGamePath(pathname) {
 export const GAME_CSP =
   "sandbox allow-scripts allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-forms; frame-ancestors 'self'";
 
+/** File types a browser can open as a page that runs scripts. */
+const isPage = (file) =>
+  [".html", ".htm", ".xhtml", ".svg", ".xml"].includes(
+    path.extname(file).toLowerCase(),
+  );
+
 function fileHeaders(file) {
   const headers = {
     "Content-Type":
@@ -404,9 +410,11 @@ function fileHeaders(file) {
     "Access-Control-Allow-Origin": "*",
     "X-Content-Type-Options": "nosniff",
     "Cross-Origin-Resource-Policy": "cross-origin",
+    // Every game file is sandboxed, whatever its type, so no file a game
+    // ships can ever run with dingn's origin.
+    "Content-Security-Policy": GAME_CSP,
   };
-  if (file.endsWith(".html")) {
-    headers["Content-Security-Policy"] = GAME_CSP;
+  if (isPage(file)) {
     // Pages are checked on every request, because the same URL either plays
     // in the player's frame or redirects to the player (serveGameFile).
     headers["Cache-Control"] = "no-cache";
@@ -425,7 +433,7 @@ async function serveGameFile(req, res, pathname) {
   const { id, version, file } = parsed;
   // A game page opened on its own in a tab goes to the player page instead,
   // so a game is always shown inside dingn's player, with its notices.
-  if (file.endsWith(".html") && req.headers["sec-fetch-dest"] === "document") {
+  if (isPage(file) && req.headers["sec-fetch-dest"] === "document") {
     res.writeHead(302, {
       Location: `/play/${id}/?v=${version}`,
       "Cache-Control": "no-store",

@@ -390,6 +390,52 @@ test("admins grant and remove developer access by email", async () => {
   );
 });
 
+test("every uploaded file is sandboxed, whatever its type or case", async () => {
+  const ada = { uid: "ada", email: "ada@example.com", developer: true };
+  const result = await upload(
+    deflatedZip({
+      "game.json": gameJson("cloudhop", "1.1.0"),
+      "index.html": "<p>hop</p>",
+      "attack.HTML": "<script>alert(1)</script>",
+      "attack.svg":
+        "<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>",
+      "img/a.png": "png",
+    }),
+    ada,
+  );
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  const get = (file, dest) =>
+    new Promise((resolve) => {
+      const pathname = `/g/cloudhop/1.1.0/${file}`;
+      const req = Object.assign(new EventEmitter(), {
+        method: "GET",
+        url: pathname,
+        headers: dest ? { "sec-fetch-dest": dest } : {},
+      });
+      const res = Object.assign(new EventEmitter(), {
+        headersSent: false,
+        writeHead(status, headers) {
+          this.status = status;
+          this.headers = headers;
+        },
+        write() {
+          return true;
+        },
+        end() {
+          resolve(this);
+        },
+      });
+      void registry.handleGames(req, res, pathname);
+    });
+  for (const file of ["attack.HTML", "attack.svg", "img/a.png"]) {
+    const res = await get(file);
+    assert.equal(res.status, 200, file);
+    assert.match(res.headers["Content-Security-Policy"], /^sandbox /, file);
+  }
+  for (const file of ["attack.HTML", "attack.svg"])
+    assert.equal((await get(file, "document")).status, 302, file);
+});
+
 test("a game page opened on its own goes to the player page", async () => {
   const req = Object.assign(new EventEmitter(), {
     method: "GET",
