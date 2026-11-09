@@ -1,6 +1,6 @@
 # dingn
 
-A website-first memory practice app built with Next.js, React, and TypeScript. Uses the existing `dingn-193716` Firebase project for Google sign-in, Firestore data, and hosting.
+A website-first memory practice app built with Next.js, React, and TypeScript. Uses the existing `dingn-193716` Firebase project for Google sign-in and Firestore data. The site itself runs on Cloud Run.
 
 ## Local development
 
@@ -115,11 +115,7 @@ external setup steps; adding this code alone does not activate sales.
 
 ## Hosting and cutover
 
-Firebase Hosting keeps the `dingn.com` domain, HTTPS, and reserved Firebase authentication endpoints. `firebase.json` forwards website requests to the `dingn-web` Cloud Run service in `us-central1`. It deliberately uploads no static files, so old Flutter files cannot take precedence over the rewrite. The rewrite follows Cloud Run traffic without pinning a revision; future GitHub deployments therefore update `dingn.com` automatically.
-
-```sh
-firebase deploy --only hosting --project dingn-193716
-```
+`dingn.com` is mapped straight to the `dingn-web` Cloud Run service in `us-central1`, which serves the whole site, including the Firebase authentication helper under `/__/auth/` (see below). Firebase Hosting is no longer used, so `firebase.json` only configures the Firestore rules and emulator. Every GitHub deployment updates `dingn.com` automatically.
 
 The cutover includes a retirement worker at the old `flutter_service_worker.js` path. It clears only Flutter's three named caches, unregisters itself, and refreshes controlled windows to avoid leaving returning visitors on the old app. Old `/#/word` and similar Flutter links forward to the corresponding new page.
 
@@ -135,7 +131,7 @@ Analytics runs by default with no consent banner. After deployment, open GA's Re
 
 ## Flutter reference and rollback
 
-The earlier Flutter app and visual refresh remain in `lib/`, `web/`, `android/`, and `ios/` as a migration reference. They are not bundled into the new website. Its configuration is preserved as `firebase.flutter.json`, which points to `build/web`. Firebase Hosting release history can roll back a live release; the retained Flutter source can also be rebuilt if needed. Do not remove the old implementation until the website cutover has been verified.
+The earlier Flutter app and visual refresh remain in `lib/`, `web/`, `android/`, and `ios/` as a migration reference. They are not bundled into the new website. The retained Flutter source can be rebuilt if needed. Do not remove the old implementation until the website cutover has been verified.
 
 ## Cloud Run deployment
 
@@ -155,7 +151,7 @@ npm run deploy:cloud-run
 
 Default service: `dingn-web`, region: `us-central1`, request-based billing, minimum instances: 0, maximum instances: 2, memory: 256 MiB, CPU: 1. Instance limits reduce scaling but are not a spending cap. Builds and image storage can also incur charges.
 
-After deployment, authorize the exact returned `run.app` hostname in Firebase Authentication and verify Google sign-in and data access. `dingn.com` reaches this service through Firebase Hosting, which also preserves the existing Firebase auth handler.
+After deployment, authorize the exact returned `run.app` hostname in Firebase Authentication and verify Google sign-in and data access. `dingn.com` is mapped straight to this service.
 
 ## Admin access
 
