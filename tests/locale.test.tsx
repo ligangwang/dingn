@@ -10,7 +10,10 @@ import {
 import { localeFromPath, localePath, translate } from "../src/lib/i18n";
 import { safeDestination } from "../src/lib/models";
 import { pageMetadata } from "../src/lib/seo";
-import { localizedRedirect } from "../scripts/locale-redirect.mjs";
+import {
+  developerRedirect,
+  localizedRedirect,
+} from "../scripts/locale-redirect.mjs";
 import games from "../src/data/mind-games.json";
 import catalog from "../src/data/zh-CN.json";
 afterEach(() => {
@@ -95,4 +98,29 @@ test("every Chinese page declares its own canonical URL and hreflang alternates"
     "zh-CN": "https://dingn.com/zh/crowd/",
     "x-default": "https://dingn.com/crowd/",
   });
+});
+
+test("developer.dingn.com and dev.dingn.com open the developer pages", () => {
+  const at = (host: string, url: string, header = "host") =>
+    developerRedirect({ [header]: host }, url);
+  expect(at("developer.dingn.com", "/")).toBe("https://dingn.com/developers/");
+  expect(at("dev.dingn.com", "/playground/")).toBe(
+    "https://dingn.com/developers/playground/",
+  );
+  expect(at("dev.dingn.com", "/zh/games/?x=1")).toBe(
+    "https://dingn.com/zh/developers/games/?x=1",
+  );
+  expect(at("dev.dingn.com", "/zh")).toBe("https://dingn.com/zh/developers/");
+  expect(at("developer.dingn.com", "/sdk/v1/dingn-sdk.js")).toBe(
+    "https://dingn.com/sdk/v1/dingn-sdk.js",
+  );
+  expect(at("developer.dingn.com", "/developers")).toBe(
+    "https://dingn.com/developers",
+  );
+  // Firebase Hosting sends the visitor's host in X-Forwarded-Host.
+  expect(at("Developer.dingn.com", "/", "x-forwarded-host")).toBe(
+    "https://dingn.com/developers/",
+  );
+  expect(at("dingn.com", "/")).toBeNull();
+  expect(at("dingn-web-hlue2fivja-uc.a.run.app", "/")).toBeNull();
 });
