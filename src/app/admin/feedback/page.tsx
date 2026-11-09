@@ -1,8 +1,6 @@
 import { AdminFeedback } from "@/components/admin-feedback";
-export const metadata = {
-  title: "Feedback inbox",
-  robots: { index: false, follow: false },
-};
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata("/admin/feedback/", "en");
 export default function Page() {
   return <AdminFeedback />;
 }

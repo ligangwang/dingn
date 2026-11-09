@@ -29,7 +29,7 @@ const titles = {
   card: "Playing cards",
 };
 export function Practice({ mode }: { mode: Mode }) {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const [digits, setDigits] = useState(1);
   const { user, profileError } = useSession();
@@ -38,7 +38,7 @@ export function Practice({ mode }: { mode: Mode }) {
       <div className="practice-page container">
         <div className="practice-heading">
           <div>
-            <Link className="back-link" href="/">
+            <Link className="back-link" href={href("/")}>
               {t("← All games")}
             </Link>
             <h1>{t(titles[mode])}</h1>
@@ -100,7 +100,7 @@ export function Practice({ mode }: { mode: Mode }) {
   );
 }
 function PracticeSession({ mode, digits }: { mode: Mode; digits: number }) {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { user } = useSession();
   const [numbers, setNumbers] = useState<NumberEntry[]>([]),

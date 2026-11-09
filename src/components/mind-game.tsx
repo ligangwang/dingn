@@ -19,7 +19,7 @@ type MindRound = {
 const games = mindGames as Record<"logic" | "decisions", MindRound[]>;
 
 export function MindGame({ mode }: { mode: keyof typeof games }) {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const rounds = games[mode];
   const [round, setRound] = useState(0),
@@ -80,7 +80,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
       : { href: "/logic/", label: "Next game: Logic" };
   return (
     <div className="mind-page container">
-      <Link href="/">{t("← All games")}</Link>
+      <Link href={href("/")}>{t("← All games")}</Link>
       <div className={`game-badge ${mode}`} aria-hidden="true">
         {mode === "logic" ? (
           <LogicIcon size={30} />
@@ -140,7 +140,7 @@ export function MindGame({ mode }: { mode: keyof typeof games }) {
                 <button className="button" onClick={restart}>
                   {t("Play again")}
                 </button>
-                <Link className="secondary-button" href={next.href}>
+                <Link className="secondary-button" href={href(next.href)}>
                   {t(next.label)} →
                 </Link>
               </div>

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "./session";
 import { friendlyError, safeDestination } from "@/lib/models";
 export function SignIn() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { user, ready, login, loginEmail } = useSession();
   const router = useRouter();
@@ -21,9 +21,10 @@ export function SignIn() {
       router.replace(
         safeDestination(
           new URLSearchParams(window.location.search).get("next"),
+          locale,
         ),
       );
-  }, [ready, user, router]);
+  }, [ready, user, router, locale]);
   async function submit(emailLogin = false) {
     setPending(true);
     setError("");
@@ -128,7 +129,7 @@ export function SignIn() {
             {t(error)}
           </p>
         )}
-        <Link className="quiet-link" href="/">
+        <Link className="quiet-link" href={href("/")}>
           {t("Back to games")}
         </Link>
       </section>
@@ -142,7 +143,7 @@ export function AuthGate({
   children: React.ReactNode;
   returnTo: string;
 }) {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
 
   const { user, ready } = useSession();
   if (!ready)
@@ -162,11 +163,11 @@ export function AuthGate({
           <p>{t("Sign in with your existing dingn account to continue.")}</p>
           <Link
             className="button"
-            href={`/signin/?next=${encodeURIComponent(returnTo)}`}
+            href={`${href("/signin/")}?next=${encodeURIComponent(href(returnTo))}`}
           >
             {t("Sign in to play")}
           </Link>
-          <Link className="quiet-link" href="/">
+          <Link className="quiet-link" href={href("/")}>
             {t("Back to games")}
           </Link>
         </section>

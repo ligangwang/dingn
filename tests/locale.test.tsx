@@ -7,7 +7,10 @@ import {
   LanguageSwitcher,
   Text,
 } from "../src/components/locale";
-import { translate } from "../src/lib/i18n";
+import { localeFromPath, localePath, translate } from "../src/lib/i18n";
+import { safeDestination } from "../src/lib/models";
+import { pageMetadata } from "../src/lib/seo";
+import { localizedRedirect } from "../scripts/locale-redirect.mjs";
 import games from "../src/data/mind-games.json";
 import catalog from "../src/data/zh-CN.json";
 afterEach(() => {
@@ -25,15 +28,13 @@ test("all authored game questions, explanations and word choices have Chinese tr
 });
 test("specific sentence templates take priority over generic digit templates", () => {
   expect(translate("Round 2 · 4 digits", "zh-CN")).toBe(
-    catalog["Round {0} · {1} digits"]
-      .replace("{0}", "2")
-      .replace("{1}", "4"),
+    catalog["Round {0} · {1} digits"].replace("{0}", "2").replace("{1}", "4"),
   );
   expect(translate("Remember 0, 0, 7", "zh-CN")).toContain("0, 0, 7");
   expect(translate("Mia's feedback", "zh-CN")).toBe("Mia's feedback");
 });
-test("explicit language switching persists and updates URL and document language", async () => {
-  history.replaceState({}, "", "/?lang=zh-CN");
+test("explicit language switching persists and moves to the other language's URL", async () => {
+  history.replaceState({}, "", "/zh/word/?x=1#top");
   render(
     <LocaleProvider>
       <LanguageSwitcher />
@@ -41,9 +42,57 @@ test("explicit language switching persists and updates URL and document language
     </LocaleProvider>,
   );
   expect(screen.getByText(catalog["Sign in"])).toBeTruthy();
+  expect(document.documentElement.lang).toBe("zh-CN");
   await userEvent.setup().selectOptions(screen.getByRole("combobox"), "en");
   expect(screen.getByText("Sign in")).toBeTruthy();
   expect(document.documentElement.lang).toBe("en");
   expect(localStorage.getItem("dingn.locale")).toBe("en");
-  expect(location.search).toBe("?lang=en");
+  expect(location.pathname + location.search + location.hash).toBe(
+    "/word/?x=1#top",
+  );
+});
+test("old ?lang= links open the Chinese URL and remember the choice", () => {
+  history.replaceState({}, "", "/crowd/?lang=zh-CN");
+  render(
+    <LocaleProvider>
+      <Text>Sign in</Text>
+    </LocaleProvider>,
+  );
+  expect(screen.getByText(catalog["Sign in"])).toBeTruthy();
+  expect(location.pathname + location.search).toBe("/zh/crowd/");
+  expect(localStorage.getItem("dingn.locale")).toBe("zh-CN");
+});
+test("language paths map between English and /zh/ URLs", () => {
+  expect(localePath("/word/", "zh-CN")).toBe("/zh/word/");
+  expect(localePath("/", "zh-CN")).toBe("/zh/");
+  expect(localePath("/zh/word/", "en")).toBe("/word/");
+  expect(localePath("/zh/", "en")).toBe("/");
+  expect(localePath("/zh/word/", "zh-CN")).toBe("/zh/word/");
+  expect(localePath("/zhuyin/", "en")).toBe("/zhuyin/");
+  expect(localeFromPath("/zh/")).toBe("zh-CN");
+  expect(localeFromPath("/zhuyin/")).toBe("en");
+  expect(safeDestination("/zh/logic/")).toBe("/zh/logic/");
+  expect(safeDestination("https://evil.example/", "zh-CN")).toBe("/zh/");
+});
+test("the server redirects legacy language URLs permanently", () => {
+  expect(localizedRedirect("/word/")).toBeNull();
+  expect(localizedRedirect("/zh/word/")).toBeNull();
+  expect(localizedRedirect("/word/?lang=zh-CN")).toBe("/zh/word/");
+  expect(localizedRedirect("/?lang=zh-CN&a=1")).toBe("/zh/?a=1");
+  expect(localizedRedirect("/zh/crowd/?lang=en")).toBe("/crowd/");
+  expect(localizedRedirect("/zh/?lang=en")).toBe("/");
+  expect(localizedRedirect("/account/?purchase=pending&lang=zh-CN")).toBe(
+    "/zh/account/?purchase=pending",
+  );
+  expect(localizedRedirect("/en/word/")).toBe("/word/");
+  expect(localizedRedirect("/en")).toBe("/");
+});
+test("every Chinese page declares its own canonical URL and hreflang alternates", () => {
+  const meta = pageMetadata("/crowd/", "zh-CN");
+  expect(meta.alternates?.canonical).toBe("https://dingn.com/zh/crowd/");
+  expect(meta.alternates?.languages).toEqual({
+    en: "https://dingn.com/crowd/",
+    "zh-CN": "https://dingn.com/zh/crowd/",
+    "x-default": "https://dingn.com/crowd/",
+  });
 });

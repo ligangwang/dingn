@@ -109,6 +109,7 @@ export async function checkout(deps, uid, itemId, locale) {
     return record;
   });
   const metadata = { orderId: order.id, uid, itemId: order.itemId };
+  const accountPath = order.locale === "zh-CN" ? "/zh/account/" : "/account/";
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",
@@ -119,8 +120,8 @@ export async function checkout(deps, uid, itemId, locale) {
       payment_intent_data: { metadata },
       expires_at: Math.floor(order.expiresAt / 1000),
       locale: order.locale === "zh-CN" ? "zh" : "en",
-      success_url: `https://dingn.com/account/?purchase=pending&lang=${order.locale}`,
-      cancel_url: `https://dingn.com/account/?purchase=cancelled&lang=${order.locale}`,
+      success_url: `https://dingn.com${accountPath}?purchase=pending`,
+      cancel_url: `https://dingn.com${accountPath}?purchase=cancelled`,
     },
     { idempotencyKey: `dingn-item-${order.id}` },
   );

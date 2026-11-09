@@ -1,6 +1,7 @@
 import { handleApi } from "./api.mjs";
 import { handleBilling } from "./billing.mjs";
 import { gameRoutes, handleGameApi } from "./game-api.mjs";
+import { localizedRedirect } from "./locale-redirect.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -83,6 +84,12 @@ http
       });
       req.on("aborted", () => upstream.destroy());
       req.pipe(upstream);
+      return;
+    }
+    const moved = localizedRedirect(req.url);
+    if (moved) {
+      res.writeHead(301, { Location: moved, "Cache-Control": "no-cache" });
+      res.end();
       return;
     }
     let target;

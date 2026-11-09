@@ -1,11 +1,7 @@
-import type { Metadata } from "next";
 import { CrowdGame } from "@/components/crowd-game";
 import "./crowd.css";
-export const metadata: Metadata = {
-  title: "Crowd Rush · 人潮突击",
-  description:
-    "A 3D crowd runner: grow your squad through number gates, blast crates and monsters, and take down the boss at the end of every level.",
-};
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata("/crowd/", "en");
 export default function CrowdPage() {
   return <CrowdGame />;
 }

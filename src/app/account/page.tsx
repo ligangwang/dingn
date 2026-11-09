@@ -1,5 +1,6 @@
 import { Account } from "@/components/account";
-export const metadata = { title: "Your account" };
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata("/account/", "en");
 export default function Page() {
   return <Account />;
 }

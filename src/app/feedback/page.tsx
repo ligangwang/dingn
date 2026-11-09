@@ -1,5 +1,6 @@
 import { Feedback } from "@/components/feedback";
-export const metadata = { title: "Share feedback" };
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata("/feedback/", "en");
 export default function Page() {
   return <Feedback />;
 }
