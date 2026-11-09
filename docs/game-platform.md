@@ -298,6 +298,9 @@ gcloud projects add-iam-policy-binding dingn-193716 \
 gcloud projects add-iam-policy-binding dingn-193716 \
   --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
   --role=roles/serviceusage.serviceUsageConsumer
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
+  --role=roles/serviceusage.serviceUsageViewer
 ```
 
 The website's runtime account already reads Firestore, so it needs no change.
