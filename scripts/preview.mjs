@@ -8,6 +8,8 @@ import {
   developerGameRoutes,
   handleDeveloperGames,
 } from "./developer-games.mjs";
+import { handleGameReports, reportRoutes } from "./game-reports.mjs";
+import { handleGamePlays, startFlushing, statsRoutes } from "./game-stats.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -39,6 +41,7 @@ const types = {
   ".md": "text/markdown; charset=utf-8",
   ".zip": "application/zip",
 };
+startFlushing();
 http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
@@ -58,6 +61,14 @@ http
     }
     if (developerGameRoutes.includes(pathname)) {
       void handleDeveloperGames(req, res, pathname);
+      return;
+    }
+    if (reportRoutes.includes(pathname)) {
+      void handleGameReports(req, res);
+      return;
+    }
+    if (statsRoutes.includes(pathname)) {
+      void handleGamePlays(req, res);
       return;
     }
     if (isGamesPath(pathname)) {

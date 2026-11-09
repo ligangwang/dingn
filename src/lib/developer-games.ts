@@ -6,10 +6,16 @@ export type DeveloperVersion = {
   title: { en: string; zh: string };
   publishedAt: string | null;
   reviewed: boolean;
+  /** Why dingn sent this version back, if it did. */
+  rejected: string | null;
 };
+export type Plays = { total: number; week: number; month: number };
 export type DeveloperGame = {
   id: string;
-  status: "listed" | "unlisted";
+  status: "listed" | "unlisted" | "removed";
+  /** Why dingn took the game down, if it did. */
+  removedReason: string | null;
+  plays: Plays | null;
   live: string | null;
   beta: string | null;
   versions: DeveloperVersion[];
@@ -20,10 +26,28 @@ export type UploadResult = {
   play: string;
 };
 
+export type MyGames = {
+  developer: boolean;
+  /** The developer agreement's current version. */
+  agreement: string;
+  /** Not a developer: an admin removed this account's access. */
+  blocked?: boolean;
+  /** Not a developer: whether the account's email is verified. */
+  emailVerified?: boolean;
+  limits?: { games: number; uploadsPerDay: number };
+  games: DeveloperGame[];
+};
+
 export async function listMyGames() {
-  return api<{ developer: boolean; games: DeveloperGame[] }>(
-    "/api/developer/games",
-  );
+  return api<MyGames>("/api/developer/games");
+}
+
+/** Signs the account up as a developer, accepting this agreement version. */
+export async function joinDevelopers(agreement: string) {
+  return api<{ developer: true }>("/api/developer/join", {
+    agree: true,
+    agreement,
+  });
 }
 
 /** Uploads a zipped game. Errors carry the server's `code` and `detail`. */

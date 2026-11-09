@@ -250,13 +250,10 @@ test("developers upload a zip and it becomes their game's beta", async () => {
     "js/main.js": "console.log(1)",
   });
 
-  assert.deepEqual(
-    (await call("/api/developer/games", {}, { claims: visitor })).body,
-    {
-      developer: false,
-      games: [],
-    },
-  );
+  const listed = (await call("/api/developer/games", {}, { claims: visitor }))
+    .body;
+  assert.equal(listed.developer, false);
+  assert.deepEqual(listed.games, []);
   assert.equal((await upload(zip, visitor)).status, 403);
   // Uploads must come from dingn's own pages.
   assert.equal(
@@ -378,7 +375,8 @@ test("admins grant and remove developer access by email", async () => {
     email: "u2@example.com",
     action: "remove",
   });
-  assert.deepEqual(claims.u2, { admin: true });
+  // It also stops the account from signing up again by itself.
+  assert.deepEqual(claims.u2, { admin: true, developerBlocked: true });
   assert.equal(
     (
       await adminCall("/api/admin/developers/update", {

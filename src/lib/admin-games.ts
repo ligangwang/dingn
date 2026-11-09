@@ -7,10 +7,16 @@ export type AdminVersion = {
   publishedAt: string | null;
   /** False for a developer's upload that was never made live. */
   reviewed: boolean;
+  /** Why it was sent back to the developer, if it was. */
+  rejected: string | null;
 };
+export type Plays = { total: number; week: number; month: number };
 export type AdminGame = {
   id: string;
-  status: "listed" | "unlisted";
+  status: "listed" | "unlisted" | "removed";
+  /** Why the game was taken down, if it was. */
+  removedReason: string | null;
+  plays: Plays | null;
   live: string | null;
   beta: string | null;
   updatedAt: string | null;
@@ -20,7 +26,9 @@ export type AdminGame = {
 };
 export type GameChange =
   | { action: "set-live" | "set-beta"; version: string }
-  | { action: "clear-beta" | "list" | "unlist" };
+  | { action: "clear-beta" | "list" | "unlist" | "restore" }
+  | { action: "reject"; version: string; reason: string }
+  | { action: "take-down"; reason: string };
 
 export async function listGames() {
   return (await api<{ games: AdminGame[] }>("/api/admin/games")).games;
@@ -46,4 +54,22 @@ export async function changeDeveloper(email: string, action: "add" | "remove") {
       action,
     })
   ).developer;
+}
+
+export type Report = {
+  id: string;
+  game: string;
+  version: string;
+  reason: "broken" | "offensive" | "unsafe" | "copyright" | "other";
+  details: string;
+  reporter: string;
+  createdAt: string;
+};
+
+export async function listReports() {
+  return (await api<{ reports: Report[] }>("/api/admin/reports")).reports;
+}
+
+export async function closeReport(id: string, action: "dismiss" | "resolve") {
+  await api("/api/admin/reports/update", { id, action });
 }

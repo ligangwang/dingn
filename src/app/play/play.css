@@ -88,3 +88,39 @@
   color: #5a1a00;
   font-size: 0.85rem;
 }
+
+.play-report {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.play-report .link-button {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: 0.75;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.play-report-form {
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+}
+.play-report-form fieldset {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+}
+.play-report-form textarea {
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.play-report-form p {
+  margin: 0;
+}
