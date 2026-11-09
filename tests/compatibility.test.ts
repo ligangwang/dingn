@@ -40,13 +40,22 @@ test("favorites retain leading zeroes and legacy document shape", () => {
 test("existing account preferences survive migration", () => {
   assert.deepEqual(
     profileFromData({ user_name: "Lee", card_side: "TwoSides" }),
-    { userName: "Lee", cardSide: "TwoSides" },
+    { userName: "Lee", cardSide: "TwoSides", avatar: "" },
   );
-  assert.deepEqual(profileFromData(), { userName: "", cardSide: "OneSide" });
-  assert.deepEqual(profileRecord({ userName: " Lee ", cardSide: "TwoSides" }), {
-    user_name: "Lee",
-    card_side: "TwoSides",
+  assert.deepEqual(profileFromData(), {
+    userName: "",
+    cardSide: "OneSide",
+    avatar: "",
   });
+  assert.deepEqual(
+    profileRecord({ userName: " Lee ", cardSide: "TwoSides", avatar: "fox" }),
+    { user_name: "Lee", card_side: "TwoSides", avatar: "fox" },
+  );
+  assert.equal(profileFromData({ avatar: "<script>" }).avatar, "");
+  assert.equal(
+    profileRecord({ userName: "", cardSide: "OneSide", avatar: "nope" }).avatar,
+    "",
+  );
 });
 test("legacy number and word records retain fields and tolerate absent optional fields", () => {
   assert.deepEqual(

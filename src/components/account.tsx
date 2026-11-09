@@ -7,13 +7,15 @@ import { useRouter } from "next/navigation";
 import { AuthGate } from "./auth";
 import { useSession } from "./session";
 import { ItemShop } from "./item-shop";
-import { friendlyError } from "@/lib/models";
+import { avatarPresets, friendlyError } from "@/lib/models";
+import { Avatar } from "./avatar";
 function Settings() {
   const { t, locale } = useLocale();
 
   const { user, profile, profileError, updateProfile, logout } = useSession();
   const router = useRouter();
   const [name, setName] = useState(profile.userName);
+  const [avatar, setAvatar] = useState(profile.avatar);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -23,7 +25,7 @@ function Settings() {
     setError("");
     setMessage("");
     try {
-      await updateProfile({ ...profile, userName: name });
+      await updateProfile({ ...profile, userName: name, avatar });
       setMessage("Your profile is saved.");
     } catch (e) {
       setError(friendlyError(e));
@@ -55,6 +57,31 @@ function Settings() {
         </p>
       )}
       <form className="panel" onSubmit={save}>
+        <fieldset className="avatar-picker" disabled={busy || !!profileError}>
+          <legend>{t("Avatar")}</legend>
+          <div className="avatar-options">
+            {[
+              ["", user?.photoURL ? "Sign-in photo" : "Initials"],
+              ...(user?.photoURL ? [["initials", "Initials"]] : []),
+              ...avatarPresets.map((a) => [
+                a.id,
+                a.id[0].toUpperCase() + a.id.slice(1),
+              ]),
+            ].map(([id, label]) => (
+              <button
+                key={id || "default"}
+                type="button"
+                className="avatar-option"
+                aria-pressed={avatar === id}
+                aria-label={t(label)}
+                title={t(label)}
+                onClick={() => setAvatar(id)}
+              >
+                <Avatar choice={id} name={name} user={user} size={48} />
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <label htmlFor="display-name">{t("Display name")}</label>
         <input
           id="display-name"

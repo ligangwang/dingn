@@ -12,6 +12,7 @@ import {
   MemoryIcon,
 } from "./icons";
 import { LevelBadge } from "./xp";
+import { Avatar } from "./avatar";
 export function Header() {
   const { t, locale } = useLocale();
 
@@ -56,9 +57,11 @@ export function Header() {
               href="/account/"
               aria-label={t("Your account")}
             >
-              {(profile.userName || user.displayName || user.email || "Me")
-                .slice(0, 2)
-                .toUpperCase()}
+              <Avatar
+                choice={profile.avatar}
+                name={profile.userName}
+                user={user}
+              />
             </Link>
           ) : (
             <Link className="button small" href="/signin/">
