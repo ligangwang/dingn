@@ -159,7 +159,7 @@ export function safeDestination(value: string | null, locale: Locale = "en") {
     "/admin/players/",
     "/logic/",
     "/decisions/",
-    "/crowd/",
+    "/play/crowdrush/",
   ].includes(stripLocale(value ?? ""))
     ? value!
     : localePath("/", locale);

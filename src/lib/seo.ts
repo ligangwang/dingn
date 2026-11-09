@@ -63,19 +63,6 @@ export const pages = {
       description: "权衡概率、管好预算，发现目标为什么重要。",
     },
   },
-  "/crowd/": {
-    index: true,
-    en: {
-      title: "Crowd Rush",
-      description:
-        "A 3D crowd runner: grow your squad through number gates, blast crates and monsters, and take down the boss at the end of every level.",
-    },
-    zh: {
-      title: "人潮突击",
-      description:
-        "3D 人潮跑酷：穿过数字门壮大队伍，击碎箱子和怪物，在每关结尾打败首领。",
-    },
-  },
   "/number/": {
     index: true,
     en: {
@@ -200,11 +187,6 @@ export const pages = {
     en: { title: "Feedback inbox" },
     zh: { title: "反馈收件箱" },
   },
-  "/pop/": {
-    index: false,
-    en: { title: "Crowd Rush" },
-    zh: { title: "人潮突击" },
-  },
 } satisfies Record<string, Page>;
 
 export type PagePath = keyof typeof pages;
@@ -214,7 +196,6 @@ export const sitemapPaths: PagePath[] = [
   "/memory-ladder/",
   "/logic/",
   "/decisions/",
-  "/crowd/",
   "/number/",
   "/word/",
   "/card/",

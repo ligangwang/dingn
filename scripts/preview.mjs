@@ -1,8 +1,18 @@
 import { handleApi } from "./api.mjs";
 import { handleBilling } from "./billing.mjs";
 import { gameRoutes, handleGameApi } from "./game-api.mjs";
-import { developerRedirect, localizedRedirect } from "./locale-redirect.mjs";
-import { handleGames, isGamesPath } from "./game-registry.mjs";
+import {
+  developerRedirect,
+  localizedRedirect,
+  movedPage,
+} from "./locale-redirect.mjs";
+import {
+  cachedRecord,
+  cachedRecords,
+  handleGames,
+  isGamesPath,
+} from "./game-registry.mjs";
+import { gamePageHtml, sitemapWithGames } from "./game-seo.mjs";
 import { adminGameRoutes, handleAdminGames } from "./games-admin.mjs";
 import {
   developerGameRoutes,
@@ -18,6 +28,7 @@ process.on("unhandledRejection", (error) => {
 import http from "node:http";
 import https from "node:https";
 import { createReadStream, existsSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 // `npm run preview -- --local-games` plays games published with
 // `npm run publish:game -- <id> --local` instead of the production registry.
@@ -26,6 +37,27 @@ if (process.argv.includes("--local-games"))
 const root = path.resolve("out"),
   port = Number(process.env.PORT || 3001),
   host = process.env.HOST || "127.0.0.1";
+/**
+ * Sends an exported file after `change(text)` fills in what only the server
+ * knows. If that fails or takes over two seconds (the registry is down, say),
+ * the file goes out as exported.
+ */
+async function sendFilled(res, file, type, change) {
+  const text = await readFile(file, "utf8");
+  let filled = text;
+  try {
+    filled = await Promise.race([
+      change(text),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 2000).unref(),
+      ),
+    ]);
+  } catch (error) {
+    console.error("page fill", error.message);
+  }
+  res.writeHead(200, { "Content-Type": type, "Cache-Control": "no-cache" });
+  res.end(filled);
+}
 const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript",
@@ -128,7 +160,7 @@ http
       req.pipe(upstream);
       return;
     }
-    const moved = localizedRedirect(req.url);
+    const moved = localizedRedirect(req.url) ?? movedPage(req.url);
     if (moved) {
       res.writeHead(301, { Location: moved, "Cache-Control": "no-cache" });
       res.end();
@@ -144,7 +176,29 @@ http
         res.end();
         return;
       }
-      target = path.join(root, play[1] ? "zh" : "", "play", "index.html");
+      const id = pathname.split("/").filter(Boolean).at(-1);
+      void sendFilled(
+        res,
+        path.join(root, play[1] ? "zh" : "", "play", "index.html"),
+        types[".html"],
+        async (html) => gamePageHtml(html, await cachedRecord(id), !!play[1]),
+      ).catch(() => {
+        res.writeHead(500);
+        res.end();
+      });
+      return;
+    }
+    if (pathname === "/sitemap.xml") {
+      void sendFilled(
+        res,
+        path.join(root, "sitemap.xml"),
+        types[".xml"],
+        async (xml) => sitemapWithGames(xml, await cachedRecords()),
+      ).catch(() => {
+        res.writeHead(500);
+        res.end();
+      });
+      return;
     }
     if (!target)
       try {

@@ -177,3 +177,46 @@ test("Crowd Rush keeps progress saved before it moved to the platform", async ()
   assert.equal(accountProgress("hello", { crowd_level: 12 }), null);
   assert.equal(accountProgress("crowd", undefined), null);
 });
+
+test("crowdrush picks up every Crowd Rush player's progress", async () => {
+  const { ctx, store } = context(false);
+  ctx.gameId = "crowdrush";
+  const get = async (key: string) => {
+    const reply = await handleGameRequest(ask("storage.get", { key }), ctx);
+    return reply && "result" in reply ? reply.result : "error";
+  };
+  // pre-platform saves, then the crowd game's own saves
+  store.set("dingn.crowd.sound", "off");
+  store.set("dingn.crowd.level", "3");
+  store.set("dingn.game.crowd.level", '"7"');
+  assert.equal(await get("sound"), "off");
+  assert.equal(await get("level"), "7");
+  assert.equal(await get("best"), null);
+  // crowdrush's own save wins and never touches the old one
+  await handleGameRequest(
+    ask("storage.set", { key: "level", value: "9" }),
+    ctx,
+  );
+  assert.equal(await get("level"), "9");
+  assert.equal(store.get("dingn.game.crowd.level"), '"7"');
+
+  assert.equal(
+    accountProgress("crowdrush", { crowd_level: 12, crowd_best: 11 }),
+    '{"level":12,"best":11}',
+  );
+  assert.equal(
+    accountProgress("crowdrush", {
+      crowd_level: 12,
+      game_progress_crowd: '{"level":20}',
+    }),
+    '{"level":20}',
+  );
+  assert.equal(
+    accountProgress("crowdrush", {
+      game_progress_crowd: '{"level":20}',
+      game_progress_crowdrush: '{"level":21}',
+    }),
+    '{"level":21}',
+  );
+  assert.equal(accountProgress("crowdrush", {}), null);
+});
