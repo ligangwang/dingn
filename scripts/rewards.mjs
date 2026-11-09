@@ -61,7 +61,9 @@ export function awardBadge(doc, game, badge, now = new Date().toISOString()) {
       doc: current,
       result: { new: false, coins: 0, balance: current.coins },
     };
-  const earned = current.games[game] ?? 0;
+  // Own properties only: a game id such as "constructor" must not read
+  // Object.prototype.
+  const earned = Object.hasOwn(current.games, game) ? current.games[game] : 0;
   // The tier's coins now, so dingn can change what a tier pays.
   const coins = Math.max(
     0,

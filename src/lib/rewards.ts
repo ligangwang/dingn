@@ -69,7 +69,9 @@ export function loadWallet(uid: string, force = false) {
     publish(null);
     return Promise.resolve(null);
   }
-  if (uid === owner && loading && !force) return loading;
+  // Once loaded, answer with the shared wallet, which unlocks keep current.
+  if (uid === owner && loading && !force)
+    return loading.then(() => (owner === uid ? wallet : null));
   owner = uid;
   loading = fetchWallet()
     .then((value) => {

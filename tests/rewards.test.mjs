@@ -104,11 +104,14 @@ test("a badge pays once, and a game's coins are capped", () => {
   // Another game has its own cap.
   step = rewards.awardBadge(step.doc, "pop", big, "2026-01-04");
   assert.equal(step.result.coins, 100);
+  // A game id that is also an Object.prototype name still starts at zero.
+  step = rewards.awardBadge(step.doc, "constructor", badge("a"), "2026-01-05");
+  assert.equal(step.result.coins, 25);
   const wallet = rewards.wallet(step.doc);
-  assert.equal(wallet.coins, 1100);
+  assert.equal(wallet.coins, 1125);
   assert.deepEqual(
     wallet.badges.map((b) => `${b.game}/${b.id}`),
-    ["pop/big", "rush/more", "rush/big", "rush/level-10"],
+    ["constructor/a", "pop/big", "rush/more", "rush/big", "rush/level-10"],
   );
 });
 
