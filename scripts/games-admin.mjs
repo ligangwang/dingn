@@ -28,6 +28,7 @@ export const adminGameRoutes = [
   "/api/admin/developers/update",
   "/api/admin/admins",
   "/api/admin/admins/update",
+  "/api/admin/players",
   "/api/admin/reports",
   "/api/admin/reports/update",
 ];
@@ -163,6 +164,50 @@ async function admins(pathname, body, users, self) {
   );
   console.log("games admin admin", body.action, user.uid);
   return { admin: { uid: user.uid, email: user.email ?? email } };
+}
+
+/** Players per page on the admin Players page. */
+export const PLAYERS_PER_PAGE = 50;
+const dateOrNull = (value) => {
+  const time = value ? Date.parse(value) : NaN;
+  return Number.isNaN(time) ? null : new Date(time).toISOString();
+};
+
+/**
+ * One page of every account, in Firebase's order (by uid), with what an
+ * admin needs to know: roles, sign-in method and when they were last seen.
+ * `pageToken` is the `next` of the page before.
+ */
+async function players(body, users) {
+  const token = body.pageToken;
+  if (
+    token !== undefined &&
+    token !== null &&
+    (typeof token !== "string" || !token || token.length > 2000)
+  )
+    throw new ApiError(400, "invalid-request");
+  const page = await users.listUsers(PLAYERS_PER_PAGE, token || undefined);
+  return {
+    players: page.users.map((user) => {
+      const claims = user.customClaims ?? {};
+      return {
+        uid: user.uid,
+        email: user.email ?? "",
+        name: user.displayName ?? "",
+        providers: (user.providerData ?? []).map((p) => p.providerId),
+        admin: claims.admin === true,
+        developer: claims.developer === true,
+        developerBlocked: claims.developerBlocked === true,
+        disabled: user.disabled === true,
+        createdAt: dateOrNull(user.metadata?.creationTime),
+        lastSignIn: dateOrNull(user.metadata?.lastSignInTime),
+        // Every signed-in request refreshes the token, so this is when they
+        // were last on dingn.
+        lastActive: dateOrNull(user.metadata?.lastRefreshTime),
+      };
+    }),
+    next: page.pageToken ?? null,
+  };
 }
 
 const reasonOf = (value) => {
@@ -375,11 +420,22 @@ export async function handleAdminGames(
         200,
         await developers(pathname, body, users ?? (await firebaseAuth())),
       );
+    if (pathname === "/api/admin/players")
+      return send(
+        res,
+        200,
+        await players(body, users ?? (await firebaseAuth())),
+      );
     if (pathname.startsWith("/api/admin/admins"))
       return send(
         res,
         200,
-        await admins(pathname, body, users ?? (await firebaseAuth()), admin.uid),
+        await admins(
+          pathname,
+          body,
+          users ?? (await firebaseAuth()),
+          admin.uid,
+        ),
       );
     if (pathname === "/api/admin/reports")
       return send(res, 200, { reports: await openReports() });

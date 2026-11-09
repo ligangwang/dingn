@@ -22,10 +22,15 @@ it("shows the Admin menu with games, users and feedback only to admins", () => {
   const menu = screen.getByText("Admin").closest("summary")!;
   expect(menu.getAttribute("aria-current")).toBe("page");
   expect(
-    ["Games", "Users", "Feedback"].map((name) =>
+    ["Games", "Users", "Players", "Feedback"].map((name) =>
       screen.getByRole("link", { name, hidden: true }).getAttribute("href"),
     ),
-  ).toEqual(["/admin/games", "/admin/users", "/admin/feedback"]);
+  ).toEqual([
+    "/admin/games",
+    "/admin/users",
+    "/admin/players",
+    "/admin/feedback",
+  ]);
   expect(
     screen
       .getByRole("link", { name: "Users", hidden: true })
