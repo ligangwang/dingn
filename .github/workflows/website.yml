@@ -123,6 +123,11 @@ jobs:
           workload_identity_provider: projects/211238433635/locations/global/workloadIdentityPools/dingn-github/providers/github
           service_account: dingn-github-deploy@dingn-193716.iam.gserviceaccount.com
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+      # Rules go live before the code that depends on them (for example the
+      # server-only `rewards` coins), and a failure stops the deploy. The
+      # deploy account needs roles/firebaserules.admin (docs/game-platform.md).
+      - name: Deploy Firestore rules
+        run: npx --yes firebase-tools@15.35.0 deploy --only firestore:rules --project "$PROJECT" --non-interactive
       - name: Push image
         run: |
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet

@@ -290,8 +290,14 @@ gcloud projects add-iam-policy-binding dingn-193716 \
   --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
   --role=roles/datastore.user
 
-# Block browser access to the registry.
-firebase deploy --only firestore:rules --project dingn-193716
+# Let the deploy account upload the Firestore rules: every website deploy
+# (the Deploy Cloud Run job) uploads firestore.rules before the new code.
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
+  --role=roles/firebaserules.admin
+gcloud projects add-iam-policy-binding dingn-193716 \
+  --member=serviceAccount:dingn-github-deploy@dingn-193716.iam.gserviceaccount.com \
+  --role=roles/serviceusage.serviceUsageConsumer
 ```
 
 The website's runtime account already reads Firestore, so it needs no change.
