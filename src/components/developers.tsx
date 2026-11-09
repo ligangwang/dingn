@@ -191,6 +191,18 @@ export function Developers() {
           )}
         </li>
       </ol>
+      <h3>{t("Uploading from GitHub or a script")}</h3>
+      <p>
+        {t(
+          "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:",
+        )}
+      </p>
+      <pre>
+        <code>{`curl --fail-with-body -X POST https://dingn.com/api/developer/games/upload \\
+  -H "Authorization: Bearer $DINGN_UPLOAD_KEY" \\
+  -H "Content-Type: application/zip" \\
+  --data-binary @my-game-1.0.0.zip`}</code>
+      </pre>
       <p>
         {t(
           "Anyone can sign up on My games by accepting the developer agreement.",

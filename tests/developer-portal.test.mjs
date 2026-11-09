@@ -532,3 +532,115 @@ test("admins transfer dingn's own game to a developer, who publishes it like any
     true,
   );
 });
+
+test("developers upload from scripts and CI with an upload key", async () => {
+  const accounts = {
+    ana: { developer: true },
+    bob: {},
+  };
+  const disabled = new Set();
+  const users = {
+    async getUser(uid) {
+      if (!accounts[uid]) throw new Error("not found");
+      return {
+        uid,
+        email: `${uid}@example.com`,
+        customClaims: accounts[uid],
+        disabled: disabled.has(uid),
+      };
+    },
+  };
+  const ana = { uid: "ana", email: "ana@example.com", developer: true };
+  const keys = (body, who = ana) =>
+    developerCall("/api/developer/keys", body, who, { users });
+  // A script's request: no browser origin, no session, just the key.
+  const keyUpload = (key, zip, type = "application/zip") =>
+    new Promise((resolve) =>
+      uploads.handleDeveloperGames(
+        Object.assign(Readable.from([zip]), {
+          method: "POST",
+          url: "/api/developer/games/upload",
+          headers: { authorization: `Bearer ${key}`, "content-type": type },
+          socket: { remoteAddress: "127.0.0.1" },
+        }),
+        response(resolve),
+        "/api/developer/games/upload",
+        {
+          users,
+          exchange: async () => assert.fail("a key needs no session"),
+          verify: async () => assert.fail("a key needs no session"),
+        },
+      ),
+    );
+
+  assert.equal(
+    (await keys({ action: "create", name: "CI" }, { uid: "bob" })).body.error,
+    "developer-required",
+  );
+  assert.equal(
+    (await keys({ action: "create", name: " " })).body.error,
+    "key-name-required",
+  );
+  const created = await keys({ action: "create", name: "GitHub Actions" });
+  assert.equal(created.status, 200);
+  const key = created.body.key;
+  assert.match(key, /^dgk\.ana\.[0-9a-f]{12}\.[A-Za-z0-9_-]{43}$/);
+  assert.deepEqual(Object.keys(created.body.keys[0]).sort(), [
+    "createdAt",
+    "id",
+    "lastUsedAt",
+    "name",
+  ]);
+  // Only a hash is stored.
+  const stored = await store.getDoc("developers", "ana");
+  assert.ok(!JSON.stringify(stored).includes(key.split(".")[3]));
+
+  const up = await keyUpload(key, gameZip("comet", "1.0.0"));
+  assert.equal(up.status, 200, JSON.stringify(up.body));
+  assert.equal(up.body.game.beta, "1.0.0");
+  assert.equal((await registry.getRecord("comet")).owner, "ana");
+  assert.equal(
+    registry.publicGame(await registry.getRecord("comet"), "beta").preview,
+    true,
+  );
+  const listed = await keys({ action: "list" });
+  assert.ok(listed.body.keys[0].lastUsedAt);
+
+  const [, , id, secret] = key.split(".");
+  const wrong = `dgk.ana.${id}.${secret.slice(1)}x`;
+  for (const bad of [wrong, "dgk.ana", `dgk.ana/x.${id}.${secret}`])
+    assert.equal(
+      (await keyUpload(bad, gameZip("comet", "1.0.1"))).body.error,
+      "invalid-key",
+    );
+  assert.equal(
+    (await keyUpload(key, gameZip("comet", "1.0.1"), "application/json")).body
+      .error,
+    "zip-required",
+  );
+
+  // Removing a developer stops their keys at once.
+  accounts.ana = { developerBlocked: true };
+  assert.equal((await keyUpload(key, gameZip("comet", "1.0.1"))).status, 403);
+  accounts.ana = { developer: true };
+  // So does disabling the account.
+  disabled.add("ana");
+  assert.equal(
+    (await keyUpload(key, gameZip("comet", "1.0.1"))).body.error,
+    "invalid-key",
+  );
+  disabled.delete("ana");
+
+  const revoked = await keys({ action: "revoke", id });
+  assert.deepEqual(revoked.body.keys, []);
+  assert.equal(
+    (await keyUpload(key, gameZip("comet", "1.0.1"))).body.error,
+    "invalid-key",
+  );
+
+  for (let i = 0; i < 5; i++) await keys({ action: "create", name: `k${i}` });
+  assert.equal(
+    (await keys({ action: "create", name: "one more" })).body.error,
+    "too-many-keys",
+  );
+});

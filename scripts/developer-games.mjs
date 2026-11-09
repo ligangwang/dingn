@@ -15,7 +15,13 @@
 // published from the repository (which have no owner) cannot be uploaded to.
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { ApiError, readBody, refresh, validateOrigin } from "./api.mjs";
+import {
+  ApiError,
+  readBody,
+  refresh,
+  throttle,
+  validateOrigin,
+} from "./api.mjs";
 import { firebaseAuth } from "./games-admin.mjs";
 import {
   addVersion,
@@ -34,11 +40,19 @@ import { ZIP_LIMITS, ZipError, unzip } from "./zip.mjs";
 import { queueMail, reviewers } from "./mail.mjs";
 import { mergeDoc, updateDoc } from "./platform-store.mjs";
 import { playsFor } from "./game-stats.mjs";
+import {
+  createKey,
+  hasUploadKey,
+  keyClaims,
+  listKeys,
+  revokeKey,
+} from "./upload-keys.mjs";
 
 export const developerGameRoutes = [
   "/api/developer/games",
   "/api/developer/games/upload",
   "/api/developer/join",
+  "/api/developer/keys",
 ];
 
 /** The developer agreement's version; /developers/agreement/ shows it. */
@@ -298,6 +312,12 @@ async function join(claims, body, users) {
  * POST /api/developer/games         → { developer, games } for the signed-in account
  * POST /api/developer/games/upload  → a zip body; adds it as the game's beta
  * POST /api/developer/join          → { agree: true, agreement } signs up
+ * POST /api/developer/keys          → { action: "list" | "create" | "revoke" }
+ *                                     manages upload keys (scripts/upload-keys.mjs)
+ *
+ * An upload may instead carry an upload key (`Authorization: Bearer dgk.…`)
+ * and no session, so scripts and CI can upload: no browser, so no origin
+ * check, and the key stands in for the session.
  *
  * `verify`, `exchange`, `save` and `users` replace the Admin SDK token check,
  * the session cookie exchange, file storage and user accounts in tests.
@@ -311,20 +331,45 @@ export async function handleDeveloperGames(
   try {
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
     const uploading = pathname === "/api/developer/games/upload";
-    validateOrigin(req, uploading ? "application/zip" : "application/json");
-    const body =
-      pathname === "/api/developer/join" ? await readBody(req) : null;
-    const token = await exchange(req, res);
+    const keyed = uploading && hasUploadKey(req);
     let claims;
-    try {
-      claims = await (
-        verify ?? (async (t) => (await firebaseAuth()).verifyIdToken(t))
-      )(token);
-    } catch {
-      throw new ApiError(401, "invalid-credential");
+    if (keyed) {
+      throttle(req);
+      if (!req.headers["content-type"]?.startsWith("application/zip"))
+        throw new ApiError(415, "zip-required");
+      claims = await keyClaims(req, users ?? (await firebaseAuth()));
+    } else {
+      validateOrigin(req, uploading ? "application/zip" : "application/json");
+    }
+    const body =
+      pathname === "/api/developer/join" || pathname === "/api/developer/keys"
+        ? await readBody(req)
+        : null;
+    if (!keyed) {
+      const token = await exchange(req, res);
+      try {
+        claims = await (
+          verify ?? (async (t) => (await firebaseAuth()).verifyIdToken(t))
+        )(token);
+      } catch {
+        throw new ApiError(401, "invalid-credential");
+      }
     }
     const isDeveloper = claims.developer === true || claims.admin === true;
     const developer = { uid: claims.uid, email: claims.email ?? "" };
+
+    if (pathname === "/api/developer/keys") {
+      if (!isDeveloper) throw new ApiError(403, "developer-required");
+      if (body.action === "create")
+        return send(res, 200, await createKey(developer.uid, body.name));
+      if (body.action === "revoke")
+        return send(
+          res,
+          200,
+          await revokeKey(developer.uid, String(body.id ?? "")),
+        );
+      return send(res, 200, { keys: await listKeys(developer.uid) });
+    }
 
     if (body) {
       if (!isDeveloper)

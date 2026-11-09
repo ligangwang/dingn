@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   listMyGames: vi.fn(),
   uploadGame: vi.fn(),
   joinDevelopers: vi.fn(),
+  listUploadKeys: vi.fn(),
+  createUploadKey: vi.fn(),
+  revokeUploadKey: vi.fn(),
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
@@ -20,6 +23,9 @@ vi.mock("../src/lib/developer-games", () => ({
   listMyGames: mocks.listMyGames,
   uploadGame: mocks.uploadGame,
   joinDevelopers: mocks.joinDevelopers,
+  listUploadKeys: mocks.listUploadKeys,
+  createUploadKey: mocks.createUploadKey,
+  revokeUploadKey: mocks.revokeUploadKey,
 }));
 
 const title = { en: "Sky Hop", zh: "跳跳云" };
@@ -51,6 +57,7 @@ const skyhop: DeveloperGame = {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.session = { user: { uid: "ada" }, ready: true };
+  mocks.listUploadKeys.mockResolvedValue({ keys: [] });
 });
 afterEach(() => {
   cleanup();
@@ -217,4 +224,33 @@ it("lets signed-in players report a game", async () => {
     version: "1.0.0",
   });
   history.replaceState({}, "", "/");
+});
+
+it("creates an upload key, shows it once, and revokes keys", async () => {
+  mocks.listMyGames.mockResolvedValue({ developer: true, games: [] });
+  const ci = {
+    id: "a1b2c3d4e5f6",
+    name: "GitHub Actions",
+    createdAt: "2026-11-09T10:00:00.000Z",
+    lastUsedAt: null,
+  };
+  mocks.createUploadKey.mockResolvedValue({
+    key: "dgk.ada.a1b2c3d4e5f6.secret",
+    keys: [ci],
+  });
+  mocks.revokeUploadKey.mockResolvedValue({ keys: [] });
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  render(<DeveloperGames />);
+
+  const create = await screen.findByRole("button", { name: "Create key" });
+  expect((create as HTMLButtonElement).disabled).toBe(true);
+  await userEvent.type(screen.getByLabelText("Key name"), "GitHub Actions");
+  await userEvent.click(create);
+  expect(mocks.createUploadKey).toHaveBeenCalledWith("GitHub Actions");
+  expect(await screen.findByText("dgk.ada.a1b2c3d4e5f6.secret")).toBeTruthy();
+  expect(screen.getByText(/never used/)).toBeTruthy();
+
+  await userEvent.click(screen.getByRole("button", { name: "Revoke" }));
+  expect(mocks.revokeUploadKey).toHaveBeenCalledWith("a1b2c3d4e5f6");
+  expect(screen.queryByText(/never used/)).toBeNull();
 });

@@ -8,10 +8,14 @@ import { useEffect, useState } from "react";
 import { useLocale } from "./locale";
 import { useSession } from "./session";
 import {
+  createUploadKey,
   joinDevelopers,
   listMyGames,
+  listUploadKeys,
+  revokeUploadKey,
   uploadGame,
   type DeveloperGame,
+  type UploadKey,
   type MyGames as MyGamesResult,
   type UploadResult,
 } from "@/lib/developer-games";
@@ -269,9 +273,128 @@ function MyGames() {
               </div>
             </section>
           ))}
+          <UploadKeys />
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Upload keys: upload from a script or CI (such as a GitHub Action) without
+ * this page. A new key is shown once; dingn keeps only a hash of it.
+ */
+function UploadKeys() {
+  const { t, locale } = useLocale();
+  const [keys, setKeys] = useState<UploadKey[] | null>(null);
+  const [name, setName] = useState("");
+  const [created, setCreated] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState("");
+  useEffect(() => {
+    listUploadKeys()
+      .then((result) => setKeys(result.keys))
+      .catch(() => setProblem(t("Upload keys could not be loaded.")));
+  }, []);
+
+  async function run(work: () => Promise<{ keys: UploadKey[]; key?: string }>) {
+    setBusy(true);
+    setProblem("");
+    try {
+      const result = await work();
+      setKeys(result.keys);
+      return result;
+    } catch (error) {
+      setProblem(
+        (error as { code?: string }).code === "too-many-keys"
+          ? t("You can have up to 5 keys. Revoke one first.")
+          : t("That did not work. Try again."),
+      );
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function create(event: React.FormEvent) {
+    event.preventDefault();
+    const result = await run(() => createUploadKey(name));
+    if (result?.key) {
+      setCreated(result.key);
+      setName("");
+    }
+  }
+  const date = (iso: string) =>
+    new Date(iso).toLocaleDateString(locale, { dateStyle: "medium" });
+
+  return (
+    <section className="dev-keys" aria-labelledby="dev-keys-title">
+      <h2 id="dev-keys-title">{t("Upload keys")}</h2>
+      <p>
+        {t(
+          "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Send the zip to https://dingn.com/api/developer/games/upload with the header Authorization: Bearer followed by the key. Keep keys secret, for example as a GitHub secret.",
+        )}
+      </p>
+      {created && (
+        <div role="status" className="dev-done">
+          <p>{t("Copy your new key now. dingn shows it only once.")}</p>
+          <code className="dev-key">{created}</code>
+        </div>
+      )}
+      <form className="dev-load-row" onSubmit={create}>
+        <label htmlFor="dev-key-name" className="sr-only">
+          {t("Key name")}
+        </label>
+        <input
+          id="dev-key-name"
+          value={name}
+          maxLength={60}
+          placeholder={t("Key name, such as GitHub Actions")}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <button
+          type="submit"
+          className="button"
+          disabled={busy || !name.trim()}
+        >
+          {t("Create key")}
+        </button>
+      </form>
+      {problem && (
+        <p role="alert" className="dev-problem">
+          {problem}
+        </p>
+      )}
+      {keys && keys.length > 0 && (
+        <ul className="dev-key-list">
+          {keys.map((key) => (
+            <li key={key.id}>
+              <strong>{key.name}</strong> {t(`Created ${date(key.createdAt)}`)}
+              {", "}
+              {key.lastUsedAt
+                ? t(`last used ${date(key.lastUsedAt)}`)
+                : t("never used")}{" "}
+              <button
+                type="button"
+                className="text-button"
+                disabled={busy}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      t(
+                        `Revoke ${key.name}? Anything using it will stop uploading.`,
+                      ),
+                    )
+                  )
+                    void run(() => revokeUploadKey(key.id));
+                }}
+              >
+                {t("Revoke")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

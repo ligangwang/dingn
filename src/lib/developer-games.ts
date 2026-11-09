@@ -67,3 +67,23 @@ export async function uploadGame(zip: Blob): Promise<UploadResult> {
   }
   return data as UploadResult;
 }
+
+export type UploadKey = {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+type KeysResult = { keys: UploadKey[]; key?: string };
+
+/** The developer's upload keys, for uploading from scripts and CI. */
+export async function listUploadKeys() {
+  return api<KeysResult>("/api/developer/keys", { action: "list" });
+}
+/** Creates a key. The full key is in `key`, and is never shown again. */
+export async function createUploadKey(name: string) {
+  return api<KeysResult>("/api/developer/keys", { action: "create", name });
+}
+export async function revokeUploadKey(id: string) {
+  return api<KeysResult>("/api/developer/keys", { action: "revoke", id });
+}
