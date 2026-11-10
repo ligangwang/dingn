@@ -325,3 +325,77 @@ test("players buy a version's upgrades through the API", async () => {
     ["shopgame/power-1"],
   );
 });
+
+test("a game pays coins for play only up to its daily allowance", () => {
+  const { DAILY_GAME_COINS } = registry;
+  let doc = { coins: 5, spent: 20, items: { "x/a": {} } };
+  const at = "2026-11-10T08:00:00.000Z";
+  const earn = (coins, game = "rush", now = at) => {
+    const next = rewards.earnCoins(doc, game, coins, now);
+    doc = next.doc;
+    return next.result;
+  };
+  assert.deepEqual(earn(10), {
+    coins: 10,
+    balance: 15,
+    left: DAILY_GAME_COINS - 10,
+  });
+  earn(10);
+  assert.equal(earn(10).left, 0);
+  // the allowance is spent: nothing more today
+  assert.deepEqual(earn(4), {
+    coins: 0,
+    balance: 5 + DAILY_GAME_COINS,
+    left: 0,
+  });
+  // each game has its own allowance, and it starts again tomorrow
+  assert.equal(earn(4, "other").coins, 4);
+  assert.equal(earn(4, "rush", "2026-11-11T01:00:00.000Z").coins, 4);
+  // the rest of the document stays
+  assert.equal(doc.spent, 20);
+  assert.ok(doc.items["x/a"]);
+  // a purchase keeps today's allowance
+  const bought = rewards.buyItem(doc, "rush", { id: "p", price: 1 }).doc;
+  assert.deepEqual(bought.daily, doc.daily);
+});
+
+test("games pay coins for play through the API", async () => {
+  await registry.updateRecord("earner", (r) =>
+    registry.addVersion(
+      r,
+      registry.validateManifest(manifest("earner", "1.0.0")),
+      { listed: true },
+    ),
+  );
+  registry.clearRegistryCache();
+  const earn = (coins, extra = {}) =>
+    call(
+      "/api/rewards/earn",
+      { game: "earner", version: "1.0.0", coins, ...extra },
+      "player9",
+    );
+  const first = await earn(3);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.coins, 3);
+  assert.equal(first.body.balance, 3);
+  for (const bad of [0, 11, 2.5, "3", null])
+    assert.equal((await earn(bad)).status, 400);
+  assert.equal((await earn(3, { version: "9.9.9" })).status, 404);
+  assert.equal((await call("/api/rewards/me", {}, "player9")).body.coins, 3);
+
+  await registry.updateRecord("moon2", (r) =>
+    registry.addVersion(
+      { owner: "dev1" },
+      registry.validateManifest(manifest("moon2", "1.0.0")),
+      { channel: "beta" },
+    ),
+  );
+  registry.clearRegistryCache();
+  const test = await call(
+    "/api/rewards/earn",
+    { game: "moon2", version: "1.0.0", coins: 5 },
+    "player9",
+  );
+  assert.equal(test.body.test, true);
+  assert.equal((await call("/api/rewards/me", {}, "player9")).body.coins, 3);
+});

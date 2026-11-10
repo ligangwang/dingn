@@ -179,6 +179,10 @@ test("a game unlocks badges for a signed-in player only", async () => {
         return { new: true, coins: 60 };
       },
       shop: async () => [],
+      earn: async (coins) => {
+        unlocked.push(`earn:${coins}`);
+        return { coins, left: 30 - coins };
+      },
     };
     return ctx;
   };
@@ -220,6 +224,36 @@ test("a game unlocks badges for a signed-in player only", async () => {
     "unavailable",
   );
   assert.deepEqual(unlocked, ["level-10"]);
+
+  // Coins for play: 1-10 whole coins, signed in only.
+  const earned = await handleGameRequest(
+    ask("rewards.earn", { coins: 3 }),
+    withRewards(true),
+  );
+  assert.deepEqual(earned && "result" in earned && earned.result, {
+    coins: 3,
+    left: 27,
+  });
+  for (const coins of [0, 11, 2.5, "3", -1])
+    assert.equal(
+      code(
+        await handleGameRequest(
+          ask("rewards.earn", { coins }),
+          withRewards(true),
+        ),
+      ),
+      "invalid",
+    );
+  assert.equal(
+    code(
+      await handleGameRequest(
+        ask("rewards.earn", { coins: 3 }),
+        withRewards(false),
+      ),
+    ),
+    "signed_out",
+  );
+  assert.deepEqual(unlocked, ["level-10", "earn:3"]);
 });
 test("a game spends coins only for a signed-in player, through the host", async () => {
   const spent: string[] = [];
@@ -235,6 +269,7 @@ test("a game spends coins only for a signed-in player, through the host", async 
       shop: async () => [
         { id: "power-1", price: 60, title: "Power +1", owned: false },
       ],
+      earn: async (coins) => ({ coins, left: 0 }),
     };
     return ctx;
   };
