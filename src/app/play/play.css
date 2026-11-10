@@ -176,6 +176,36 @@
   color: #ffe08a;
   font-weight: 700;
 }
+/* Coins a game paid for play, at the bottom of the game. */
+.coin-toast-slot {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 2;
+}
+.coin-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  background: #252e28f2;
+  color: #fff;
+  box-shadow: 0 12px 28px #0006;
+  white-space: nowrap;
+  animation: coin-toast-in 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.coin-toast .badge-toast-coins {
+  position: relative;
+}
+@keyframes coin-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+}
 @keyframes badge-toast-in {
   from {
     opacity: 0;

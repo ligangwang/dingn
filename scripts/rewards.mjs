@@ -14,6 +14,12 @@
 //     badges: { "<game>/<id>": … }, items: { "<game>/<id>": … } }
 // `coins` is the balance; coins earned in all = coins + spent.
 //
+// A game may also pay a few coins for play itself (rewards.earn), such as a
+// failed level that still got somewhere: POST /api/rewards/earn. That is
+// capped per game and player each UTC day (DAILY_GAME_COINS), kept in
+// `daily: { day: "YYYY-MM-DD", games: { <game>: coins } }`, and does not count
+// toward MAX_GAME_COINS, which is for badges.
+//
 // Players spend coins on upgrades a game sells (validateShop): POST
 // /api/rewards/spend. The player page asks the player to confirm first, so a
 // game cannot spend anyone's coins on its own.
@@ -26,7 +32,9 @@ import {
 } from "./api.mjs";
 import {
   BADGE_ID,
+  DAILY_GAME_COINS,
   ID,
+  MAX_EARN,
   MAX_GAME_COINS,
   TIER_COINS,
   VERSION,
@@ -38,6 +46,7 @@ import { getDoc, updateDoc } from "./platform-store.mjs";
 
 export const rewardRoutes = [
   "/api/rewards/unlock",
+  "/api/rewards/earn",
   "/api/rewards/spend",
   "/api/rewards/me",
 ];
@@ -105,6 +114,7 @@ export function awardBadge(doc, game, badge, now = new Date().toISOString()) {
  */
 export function buyItem(doc, game, item, now = new Date().toISOString()) {
   const current = {
+    ...(doc ?? {}),
     coins: doc?.coins ?? 0,
     spent: doc?.spent ?? 0,
     games: { ...(doc?.games ?? {}) },
@@ -132,6 +142,31 @@ export function buyItem(doc, game, item, now = new Date().toISOString()) {
   return {
     doc: current,
     result: { new: true, coins: item.price, balance: current.coins },
+  };
+}
+
+/**
+ * Pays a player coins for play (rewards.earn), up to the game's daily
+ * allowance. Returns the new document and what was paid: `coins` is less than
+ * asked once today's allowance runs out, and 0 after that.
+ */
+export function earnCoins(doc, game, coins, now = new Date().toISOString()) {
+  const day = now.slice(0, 10);
+  const daily = doc?.daily?.day === day ? doc.daily : { day, games: {} };
+  const today = Object.hasOwn(daily.games, game) ? daily.games[game] : 0;
+  const paid = Math.max(0, Math.min(coins, DAILY_GAME_COINS - today));
+  const current = {
+    ...(doc ?? {}),
+    coins: (doc?.coins ?? 0) + paid,
+    daily: { day, games: { ...daily.games, [game]: today + paid } },
+  };
+  return {
+    doc: current,
+    result: {
+      coins: paid,
+      balance: current.coins,
+      left: DAILY_GAME_COINS - today - paid,
+    },
   };
 }
 
@@ -170,6 +205,24 @@ export function findBadge(record, body) {
   const badge = (version.badges ?? []).find((b) => b.id === body.badge);
   if (!badge) throw new ApiError(404, "unknown-badge");
   return { badge, reviewed: !isPreview(record, version) };
+}
+
+/**
+ * Checks that a request names a published version of a game whose rewards
+ * are on, and says whether dingn has reviewed that version. Throws ApiError
+ * like findBadge.
+ */
+export function checkGame(record, body) {
+  if (
+    typeof body.game !== "string" ||
+    !ID.test(body.game) ||
+    typeof body.version !== "string" ||
+    !VERSION.test(body.version)
+  )
+    throw new ApiError(400, "invalid-request");
+  if (!publicGame(record, body.version)) throw new ApiError(404, "not-found");
+  if (record.rewards === "off") throw new ApiError(403, "rewards-off");
+  return !isPreview(record, record.versions[body.version]);
 }
 
 /**
@@ -228,6 +281,27 @@ export async function handleRewards(
     }
     if (pathname === "/api/rewards/me")
       return send(200, wallet(await getDoc("rewards", claims.uid)));
+
+    if (pathname === "/api/rewards/earn") {
+      const record = await cachedRecord(body.game);
+      const coins = body.coins;
+      if (!Number.isInteger(coins) || coins < 1 || coins > MAX_EARN)
+        throw new ApiError(400, "invalid-request");
+      const reviewed = checkGame(record, body);
+      // An unreviewed version can try it, but nothing is paid.
+      if (!reviewed)
+        return send(200, { coins, balance: null, left: null, test: true });
+      limit(claims.uid);
+      let earned;
+      await updateDoc("rewards", claims.uid, (doc) => {
+        const next = earnCoins(doc, body.game, coins);
+        earned = next.result;
+        return next.doc;
+      });
+      if (earned.coins)
+        console.log("earn", body.game, claims.uid, earned.coins);
+      return send(200, earned);
+    }
 
     if (pathname === "/api/rewards/spend") {
       const { item, reviewed } = findItem(await cachedRecord(body.game), body);

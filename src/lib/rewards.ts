@@ -47,6 +47,15 @@ export type Spend = {
   balance: number | null;
   test?: boolean;
 };
+/** Coins a game paid for play (rewards.earn), within its daily allowance. */
+export type Earn = {
+  coins: number;
+  /** The player's coins afterwards, or null for a test. */
+  balance: number | null;
+  /** What the game can still pay today, or null for a test. */
+  left: number | null;
+  test?: boolean;
+};
 export type Unlock = {
   badge: Omit<BadgeDef, "coins">;
   new: boolean;
@@ -94,6 +103,8 @@ export const fetchWallet = () =>
   api<Wallet>("/api/rewards/me").then((w) => ({ ...w, items: w.items ?? [] }));
 export const spendCoins = (game: string, version: string, item: string) =>
   api<Spend>("/api/rewards/spend", { game, version, item });
+export const earnCoins = (game: string, version: string, coins: number) =>
+  api<Earn>("/api/rewards/earn", { game, version, coins });
 export const unlockBadge = (game: string, version: string, badge: string) =>
   api<Unlock>("/api/rewards/unlock", { game, version, badge });
 
@@ -180,4 +191,10 @@ export function spendFromWallet(
       ? wallet.items
       : [{ game, id: def.id, title: def.title }, ...wallet.items],
   });
+}
+
+/** Adds coins a game just paid for play to the shared wallet. */
+export function earnToWallet(uid: string, earn: Earn) {
+  if (uid !== owner || !wallet || earn.test || !earn.coins) return;
+  publish({ ...wallet, coins: earn.balance ?? wallet.coins + earn.coins });
 }

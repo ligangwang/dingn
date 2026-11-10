@@ -47,6 +47,10 @@ const REFERENCE: [string, string][] = [
     'Sells an upgrade listed in your game.json "shop", such as "power-1", for the player\'s dingn coins. dingn asks the player to confirm first. spend() fails with the code "cancelled", "not_enough_coins", "requires" or "signed_out". shop() gives your upgrades and which ones the player owns.',
   ],
   [
+    "dingn.rewards.earn(coins)",
+    'Pays the signed-in player 1 to 10 dingn coins for play itself, such as a failed level that still got somewhere. Each game can pay a player up to 30 coins a day this way, on top of its badges; past that, earn() pays 0. dingn shows the coins over the game. It fails with the code "signed_out" when no one is signed in.',
+  ],
+  [
     "dingn.requestSignIn()",
     "Sends the player to sign in. They come back to your game afterwards.",
   ],

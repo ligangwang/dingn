@@ -42,6 +42,14 @@ export type Purchase = {
   /** True in a version dingn has not reviewed, or in the playground: nothing was charged. */
   test?: boolean;
 };
+export type Earning = {
+  /** dingn coins paid: less than asked, or 0, once today's allowance is used up. */
+  coins: number;
+  /** Coins this game can still pay the player today, or null in a test. */
+  left: number | null;
+  /** True in a version dingn has not reviewed, or in the playground: nothing was paid. */
+  test?: boolean;
+};
 export type DingnGame = {
   gameId: string;
   version: string;
@@ -74,6 +82,13 @@ export type DingnGame = {
      */
     spend(id: string): Promise<Purchase>;
     shop(): Promise<ShopItem[]>;
+    /**
+     * Pays the signed-in player 1-10 dingn coins for play itself, such as a
+     * failed level that still got somewhere. Each game can pay a player at
+     * most 30 coins a day this way, on top of its badges. Rejects with code
+     * "signed_out" for a signed-out player.
+     */
+    earn(coins: number): Promise<Earning>;
   };
   requestSignIn(): void;
   /** Leaves the game for a dingn page, such as "/" for the game list. The website keeps the player's language. */

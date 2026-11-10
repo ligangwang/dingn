@@ -16,6 +16,7 @@
 //   await dingn.rewards.list();           // the game's badges, and which are earned
 //   await dingn.rewards.spend("power-1"); // buy an upgrade from game.json's shop
 //   await dingn.rewards.shop();           // the shop, and which upgrades are owned
+//   await dingn.rewards.earn(3);          // a few coins for play, capped each day
 //   dingn.navigate("/");                  // leave the game for a dingn page
 //   dingn.ready();                        // hide the website's loading screen
 //
@@ -110,6 +111,7 @@ function connectToHost(host, timeout) {
         // dingn asks the player to confirm first, so allow time to answer.
         spend: (id) => request("rewards.spend", { id }, SPEND_TIMEOUT_MS),
         shop: () => request("rewards.shop"),
+        earn: (coins) => request("rewards.earn", { coins }),
       },
       requestSignIn: () => notify("signIn"),
       navigate: (path) => notify("navigate", { path }),
@@ -146,6 +148,7 @@ function standalone() {
       list: async () => [],
       spend: signedOut,
       shop: async () => [],
+      earn: signedOut,
     },
     requestSignIn() {},
     navigate(path) {

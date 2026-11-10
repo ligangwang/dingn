@@ -21,11 +21,19 @@ import {
   spendCoins,
   spendFromWallet,
   unlockBadge,
+  earnCoins,
+  earnToWallet,
   type BadgeDef,
   type EarnedToast,
   type ShopDef,
 } from "@/lib/rewards";
-import { BadgeToast, GameBadges, SpendConfirm, type SpendAsk } from "./rewards";
+import {
+  BadgeToast,
+  CoinToast,
+  GameBadges,
+  SpendConfirm,
+  type SpendAsk,
+} from "./rewards";
 import {
   accountProgress,
   BridgeError,
@@ -74,6 +82,16 @@ function spendError(error: unknown) {
   return new BridgeError("unavailable", "The shop is unavailable right now.");
 }
 
+/** The bridge error for failed coin earnings (codes from scripts/rewards.mjs). */
+function earnError(error: unknown) {
+  const code = (error as { code?: string })?.code ?? "";
+  if (code === "sign-in-required" || code === "invalid-credential")
+    return new BridgeError("signed_out", "Sign in to earn coins.");
+  if (code === "too-many-requests")
+    return new BridgeError("too_many", "Too many requests. Try later.");
+  return new BridgeError("unavailable", "Coins are unavailable right now.");
+}
+
 /** The bridge error for a failed badge unlock (codes from scripts/rewards.mjs). */
 function rewardError(error: unknown) {
   const code = (error as { code?: string })?.code ?? "";
@@ -115,6 +133,12 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   const [toast, setToast] = useState<EarnedToast | null>(null);
   const toasts = useRef<EarnedToast[]>([]);
   const toastKey = useRef(0);
+  // "+3 coins" when a game pays for play; quick payouts add up in one.
+  const [coinToast, setCoinToast] = useState<{
+    key: number;
+    coins: number;
+    test: boolean;
+  } | null>(null);
   // When a game awards several badges at once (a returning player catching
   // up on past levels), they share one popup instead of a popup each.
   const toastShownAt = useRef(0);
@@ -314,6 +338,26 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           ...(result.test ? { test: true } : {}),
         };
       },
+      earn: async (coins) => {
+        let result;
+        try {
+          result = await earnCoins(game.id, game.version, coins);
+        } catch (error) {
+          throw earnError(error);
+        }
+        if (user) earnToWallet(user.uid, result);
+        if (result.coins > 0)
+          setCoinToast((shown) => ({
+            key: ++toastKey.current,
+            coins: (shown?.coins ?? 0) + result.coins,
+            test: !!result.test,
+          }));
+        return {
+          coins: result.coins,
+          left: result.left,
+          ...(result.test ? { test: true } : {}),
+        };
+      },
       shop: async () => {
         const wallet = user ? await loadWallet(user.uid) : null;
         return (game.shop ?? []).map((i) => ({
@@ -441,6 +485,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           onLoad={() => setTimeout(() => setLoaded(true), 4000)}
         />
         <BadgeToast toast={toast} gameTitle={title} onDone={nextToast} />
+        <CoinToast toast={coinToast} onDone={() => setCoinToast(null)} />
         {ask && <SpendConfirm ask={ask} gameTitle={title} />}
       </div>
       <GameBadges game={state.game.id} badges={state.game.badges ?? []} />

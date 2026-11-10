@@ -44,6 +44,11 @@ export const MAX_BADGES = 50;
 export const TIER_COINS = { bronze: 10, silver: 25, gold: 50, diamond: 100 };
 /** Most coins all of one game's badges can pay together. */
 export const MAX_GAME_COINS = 1000;
+// Coins a game may pay a player each UTC day for play itself (rewards.earn),
+// such as a failed level that still got somewhere. Apart from MAX_GAME_COINS.
+export const DAILY_GAME_COINS = 30;
+// The most one rewards.earn call may ask for.
+export const MAX_EARN = 10;
 const MAX_BADGE_TITLE = 60;
 
 /** Checks a game.json `badges` list. Adds what is wrong to `problems`. */

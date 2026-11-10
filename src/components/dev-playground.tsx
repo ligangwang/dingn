@@ -168,6 +168,7 @@ export function DevPlayground() {
           title: id,
           owned: true,
         })),
+      earn: async (coins) => ({ coins, left: null, test: true }),
     },
   };
 

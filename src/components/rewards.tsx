@@ -238,6 +238,34 @@ function ToastCoins({ coins }: { coins: number }) {
   );
 }
 
+/** "+3 coins" over the game when it pays coins for play (rewards.earn). */
+export function CoinToast({
+  toast,
+  onDone,
+}: {
+  toast: { key: number; coins: number; test: boolean } | null;
+  onDone: () => void;
+}) {
+  const { t } = useLocale();
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(onDone, 3000);
+    return () => clearTimeout(timer);
+  }, [toast?.key]);
+  return (
+    <div className="coin-toast-slot" role="status" aria-live="polite">
+      {toast && (
+        <div className="coin-toast" key={toast.key}>
+          <span className="badge-toast-eyebrow">
+            {toast.test ? t("Test coins (not saved)") : t("Coins earned")}
+          </span>
+          <ToastCoins coins={toast.coins} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** The popup the player page shows when a game awards a badge. */
 export function BadgeToast({
   toast,

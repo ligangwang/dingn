@@ -10,6 +10,8 @@ export const MAX_VALUE = 16 * 1024;
 const KEY = /^[A-Za-z0-9._-]{1,64}$/;
 /** Mirrors BADGE_ID in scripts/game-registry.mjs. */
 const BADGE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
+/** The most coins one rewards.earn call may ask for (scripts/game-registry.mjs). */
+export const MAX_EARN = 10;
 
 export type Player = { signedIn: boolean; name: string; avatar: string };
 export type GameRequest = {
@@ -53,8 +55,11 @@ export type BridgeContext = {
     /** Asks the player to confirm, then buys an upgrade with their coins. */
     spend: (item: string) => Promise<SpendResult>;
     shop: () => Promise<ShopEntry[]>;
+    /** Pays the player a few coins for play, within a daily allowance. */
+    earn: (coins: number) => Promise<EarnResult>;
   };
 };
+export type EarnResult = { coins: number; left: number | null; test?: boolean };
 export type SpendResult = { new: boolean; coins: number; test?: boolean };
 export type ShopEntry = {
   id: string;
@@ -211,6 +216,24 @@ async function answer(
       if (!ctx.rewards)
         throw new BridgeError("unavailable", "Rewards are not available here.");
       return ctx.rewards.spend(id);
+    }
+    case "rewards.earn": {
+      const coins = request.params?.coins;
+      if (
+        typeof coins !== "number" ||
+        !Number.isInteger(coins) ||
+        coins < 1 ||
+        coins > MAX_EARN
+      )
+        throw new BridgeError(
+          "invalid",
+          `Earn 1-${MAX_EARN} whole coins at a time.`,
+        );
+      if (!ctx.player.signedIn)
+        throw new BridgeError("signed_out", "Sign in to earn coins.");
+      if (!ctx.rewards)
+        throw new BridgeError("unavailable", "Rewards are not available here.");
+      return ctx.rewards.earn(coins);
     }
     case "signIn":
       ctx.signIn();
