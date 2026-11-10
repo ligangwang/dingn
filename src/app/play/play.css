@@ -47,6 +47,39 @@
 .play-stage:fullscreen {
   border-radius: 0;
 }
+/* Where the browser has no full screen for a page element (iPhone Safari),
+   the stage fills the window instead. */
+.play-stage.window-full {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  height: auto;
+  min-height: 0;
+  border-radius: 0;
+}
+html.play-window-full,
+html.play-window-full body {
+  overflow: hidden;
+}
+.play-exit-full {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: #000a;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.play-exit-full:hover,
+.play-exit-full:focus-visible {
+  opacity: 1;
+}
 .play-stage iframe {
   position: absolute;
   inset: 0;

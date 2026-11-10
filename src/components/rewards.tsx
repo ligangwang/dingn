@@ -241,7 +241,13 @@ export const COINS_LAND_MS = 1300;
  */
 export function flyCoins(from: Element, coins: number) {
   const target = document.querySelector("nav .coin-count");
-  if (!target || document.fullscreenElement || reducedMotion()) return;
+  if (
+    !target ||
+    document.fullscreenElement ||
+    document.documentElement.classList.contains("play-window-full") ||
+    reducedMotion()
+  )
+    return;
   const a = from.getBoundingClientRect();
   const b = target.getBoundingClientRect();
   if (!b.width || !a.width) return;
