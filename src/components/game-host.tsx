@@ -130,6 +130,61 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   >({ status: "loading" });
   const [loaded, setLoaded] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
+  // Full screen: the browser's own where it works, otherwise (iPhone Safari,
+  // or a request the browser refuses) the stage simply fills the window.
+  const [full, setFull] = useState<"" | "native" | "window">("");
+  useEffect(() => {
+    const sync = () => {
+      const el =
+        document.fullscreenElement ??
+        (document as { webkitFullscreenElement?: Element })
+          .webkitFullscreenElement;
+      setFull((f) =>
+        el && el === stage.current ? "native" : f === "native" ? "" : f,
+      );
+    };
+    document.addEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync);
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      document.removeEventListener("webkitfullscreenchange", sync);
+    };
+  }, []);
+  useEffect(() => {
+    if (full !== "window") return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setFull("");
+    document.addEventListener("keydown", key);
+    document.documentElement.classList.add("play-window-full");
+    return () => {
+      document.removeEventListener("keydown", key);
+      document.documentElement.classList.remove("play-window-full");
+    };
+  }, [full]);
+  async function enterFullscreen() {
+    const el = stage.current as
+      | (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> })
+      | null;
+    if (!el) return;
+    const request = el.requestFullscreen ?? el.webkitRequestFullscreen;
+    try {
+      if (!request) throw new Error("unsupported");
+      await request.call(el);
+      setFull("native");
+    } catch {
+      setFull("window");
+    }
+    // Give the keyboard back to the game.
+    frame.current?.focus();
+  }
+  function exitFullscreen() {
+    if (full === "native") {
+      const d = document as Document & { webkitExitFullscreen?: () => void };
+      if (document.exitFullscreen)
+        void document.exitFullscreen().catch(() => {});
+      else d.webkitExitFullscreen?.();
+    }
+    setFull("");
+  }
   const [toast, setToast] = useState<EarnedToast | null>(null);
   const toasts = useRef<EarnedToast[]>([]);
   const toastKey = useRef(0);
@@ -461,7 +516,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           type="button"
           className="play-fullscreen"
           // The stage, not just the frame, so badge popups show in full screen.
-          onClick={() => void stage.current?.requestFullscreen?.()}
+          onClick={() => void enterFullscreen()}
         >
           {t("Full screen")}
         </button>
@@ -473,7 +528,21 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           )}
         </p>
       )}
-      <div className="play-stage" ref={stage}>
+      <div
+        className={full === "window" ? "play-stage window-full" : "play-stage"}
+        ref={stage}
+      >
+        {full && (
+          <button
+            type="button"
+            className="play-exit-full"
+            onClick={exitFullscreen}
+            aria-label={t("Exit full screen")}
+            title={t("Exit full screen")}
+          >
+            ✕
+          </button>
+        )}
         {!loaded && <p className="play-status">{t("Loading game…")}</p>}
         <iframe
           ref={frame}
