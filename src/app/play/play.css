@@ -176,11 +176,11 @@
   color: #ffe08a;
   font-weight: 700;
 }
-/* Coins a game paid for play, at the bottom of the game. */
+/* Coins a game paid for play, at the top of the game. */
 .coin-toast-slot {
   position: absolute;
   left: 50%;
-  bottom: 18px;
+  top: 14px;
   transform: translateX(-50%);
   pointer-events: none;
   z-index: 2;
@@ -203,7 +203,7 @@
 @keyframes coin-toast-in {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.92);
+    transform: translateY(-16px) scale(0.92);
   }
 }
 @keyframes badge-toast-in {
