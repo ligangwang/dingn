@@ -50,7 +50,18 @@ export type BridgeContext = {
   rewards?: {
     unlock: (badge: string) => Promise<RewardResult>;
     list: () => Promise<RewardBadge[]>;
+    /** Asks the player to confirm, then buys an upgrade with their coins. */
+    spend: (item: string) => Promise<SpendResult>;
+    shop: () => Promise<ShopEntry[]>;
   };
+};
+export type SpendResult = { new: boolean; coins: number; test?: boolean };
+export type ShopEntry = {
+  id: string;
+  price: number;
+  requires?: string;
+  title: string;
+  owned: boolean;
 };
 export type RewardResult = { new: boolean; coins: number; test?: boolean };
 export type RewardBadge = {
@@ -183,6 +194,23 @@ async function answer(
       if (!ctx.rewards)
         throw new BridgeError("unavailable", "Rewards are not available here.");
       return ctx.rewards.unlock(id);
+    }
+    case "rewards.shop":
+      if (!ctx.rewards)
+        throw new BridgeError("unavailable", "Rewards are not available here.");
+      return ctx.rewards.shop();
+    case "rewards.spend": {
+      const id = request.params?.id;
+      if (typeof id !== "string" || !BADGE_ID.test(id))
+        throw new BridgeError(
+          "invalid",
+          "Item ids are 1-40 lowercase letters, digits or dashes.",
+        );
+      if (!ctx.player.signedIn)
+        throw new BridgeError("signed_out", "Sign in to spend coins.");
+      if (!ctx.rewards)
+        throw new BridgeError("unavailable", "Rewards are not available here.");
+      return ctx.rewards.spend(id);
     }
     case "signIn":
       ctx.signIn();

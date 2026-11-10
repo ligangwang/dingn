@@ -368,3 +368,68 @@
   align-items: center;
   gap: 3px;
 }
+
+/* dingn's "Spend coins?" question over the game (SpendConfirm). */
+.spend-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #0b0f0db8;
+  animation: spend-fade 0.2s ease-out;
+}
+.spend-confirm {
+  width: min(360px, 100%);
+  padding: 22px 20px 18px;
+  border-radius: 18px;
+  background: #252e28;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 20px 48px #0008;
+  animation: badge-toast-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.spend-confirm h2 {
+  margin: 10px 0 6px;
+  font-size: 1.2rem;
+}
+.spend-confirm p {
+  margin: 0 0 16px;
+  color: #c9d0ca;
+  font-size: 0.92rem;
+}
+.spend-confirm-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.spend-confirm-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid #ffffff33;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.spend-confirm-buttons button.primary {
+  background: #ffe08a;
+  border-color: #ffe08a;
+  color: #2a2208;
+}
+@keyframes spend-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spend-confirm-backdrop,
+  .spend-confirm {
+    animation: none;
+  }
+}

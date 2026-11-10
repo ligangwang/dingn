@@ -43,6 +43,10 @@ const REFERENCE: [string, string][] = [
     'Awards a badge listed in your game.json, such as "level-10". Each badge pays its dingn coins once per player, and dingn shows a "Badge earned" popup. unlock() fails with the code "signed_out" when no one is signed in. list() gives your badges and which ones the player has.',
   ],
   [
+    "dingn.rewards.spend(id)\ndingn.rewards.shop()",
+    'Sells an upgrade listed in your game.json "shop", such as "power-1", for the player\'s dingn coins. dingn asks the player to confirm first. spend() fails with the code "cancelled", "not_enough_coins", "requires" or "signed_out". shop() gives your upgrades and which ones the player owns.',
+  ],
+  [
     "dingn.requestSignIn()",
     "Sends the player to sign in. They come back to your game afterwards.",
   ],

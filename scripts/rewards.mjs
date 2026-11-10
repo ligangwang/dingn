@@ -10,7 +10,13 @@
 // and an admin can switch a game's rewards off (record.rewards === "off").
 //
 // Each player has one server-only document, Firestore `rewards/{uid}`:
-//   { coins, games: { <game>: coins earned there }, badges: { "<game>/<id>": … } }
+//   { coins, spent, games: { <game>: coins earned there },
+//     badges: { "<game>/<id>": … }, items: { "<game>/<id>": … } }
+// `coins` is the balance; coins earned in all = coins + spent.
+//
+// Players spend coins on upgrades a game sells (validateShop): POST
+// /api/rewards/spend. The player page asks the player to confirm first, so a
+// game cannot spend anyone's coins on its own.
 import {
   ApiError,
   readBody,
@@ -30,7 +36,11 @@ import {
 } from "./game-registry.mjs";
 import { getDoc, updateDoc } from "./platform-store.mjs";
 
-export const rewardRoutes = ["/api/rewards/unlock", "/api/rewards/me"];
+export const rewardRoutes = [
+  "/api/rewards/unlock",
+  "/api/rewards/spend",
+  "/api/rewards/me",
+];
 // Unlocks per account per hour, on each server instance.
 const PER_HOUR = 120;
 const recent = new Map();
@@ -51,6 +61,7 @@ export const resetLimits = () => recent.clear();
  */
 export function awardBadge(doc, game, badge, now = new Date().toISOString()) {
   const current = {
+    ...(doc ?? {}),
     coins: doc?.coins ?? 0,
     games: { ...(doc?.games ?? {}) },
     badges: { ...(doc?.badges ?? {}) },
@@ -86,13 +97,54 @@ export function awardBadge(doc, game, badge, now = new Date().toISOString()) {
   };
 }
 
-/** A player's coins and badges, newest badge first. */
+/**
+ * Buys one upgrade with a player's coins. Returns the new document and what
+ * happened: `new` is false for an upgrade they already own (nothing is
+ * charged). Throws ApiError when they need an earlier upgrade first or do not
+ * have enough coins.
+ */
+export function buyItem(doc, game, item, now = new Date().toISOString()) {
+  const current = {
+    coins: doc?.coins ?? 0,
+    spent: doc?.spent ?? 0,
+    games: { ...(doc?.games ?? {}) },
+    badges: { ...(doc?.badges ?? {}) },
+    items: { ...(doc?.items ?? {}) },
+  };
+  const key = `${game}/${item.id}`;
+  if (current.items[key])
+    return {
+      doc: current,
+      result: { new: false, coins: 0, balance: current.coins },
+    };
+  if (item.requires && !current.items[`${game}/${item.requires}`])
+    throw new ApiError(409, "requires");
+  if (current.coins < item.price) throw new ApiError(402, "not-enough-coins");
+  current.items[key] = {
+    game,
+    id: item.id,
+    price: item.price,
+    title: item.title,
+    at: now,
+  };
+  current.coins -= item.price;
+  current.spent += item.price;
+  return {
+    doc: current,
+    result: { new: true, coins: item.price, balance: current.coins },
+  };
+}
+
+/** A player's coins, badges (newest first) and the upgrades they own. */
 export function wallet(doc) {
   return {
     coins: doc?.coins ?? 0,
     badges: Object.values(doc?.badges ?? {}).sort((a, b) =>
       b.at.localeCompare(a.at),
     ),
+    items: Object.values(doc?.items ?? {})
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .map(({ game, id, title }) => ({ game, id, title })),
   };
 }
 
@@ -118,6 +170,28 @@ export function findBadge(record, body) {
   const badge = (version.badges ?? []).find((b) => b.id === body.badge);
   if (!badge) throw new ApiError(404, "unknown-badge");
   return { badge, reviewed: !isPreview(record, version) };
+}
+
+/**
+ * Finds the upgrade a request names in the game version the player is
+ * playing. Throws ApiError like findBadge.
+ */
+export function findItem(record, body) {
+  if (
+    typeof body.game !== "string" ||
+    !ID.test(body.game) ||
+    typeof body.version !== "string" ||
+    !VERSION.test(body.version) ||
+    typeof body.item !== "string" ||
+    !BADGE_ID.test(body.item)
+  )
+    throw new ApiError(400, "invalid-request");
+  if (!publicGame(record, body.version)) throw new ApiError(404, "not-found");
+  if (record.rewards === "off") throw new ApiError(403, "rewards-off");
+  const version = record.versions[body.version];
+  const item = (version.shop ?? []).find((i) => i.id === body.item);
+  if (!item) throw new ApiError(404, "unknown-item");
+  return { item, reviewed: !isPreview(record, version) };
 }
 
 /** POST /api/rewards/unlock { game, version, badge } and POST /api/rewards/me */
@@ -154,6 +228,28 @@ export async function handleRewards(
     }
     if (pathname === "/api/rewards/me")
       return send(200, wallet(await getDoc("rewards", claims.uid)));
+
+    if (pathname === "/api/rewards/spend") {
+      const { item, reviewed } = findItem(await cachedRecord(body.game), body);
+      // An unreviewed version can try its shop, but nothing is charged.
+      if (!reviewed)
+        return send(200, {
+          new: true,
+          coins: item.price,
+          balance: null,
+          test: true,
+        });
+      limit(claims.uid);
+      let bought;
+      await updateDoc("rewards", claims.uid, (doc) => {
+        const next = buyItem(doc, body.game, item);
+        bought = next.result;
+        return next.doc;
+      });
+      if (bought.new)
+        console.log("purchase", body.game, item.id, claims.uid, item.price);
+      return send(200, bought);
+    }
 
     const { badge, reviewed } = findBadge(await cachedRecord(body.game), body);
     const shown = {

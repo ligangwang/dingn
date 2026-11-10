@@ -14,6 +14,8 @@
 //   dingn.requestSignIn();
 //   await dingn.rewards.unlock("level-10"); // a badge from game.json, once
 //   await dingn.rewards.list();           // the game's badges, and which are earned
+//   await dingn.rewards.spend("power-1"); // buy an upgrade from game.json's shop
+//   await dingn.rewards.shop();           // the shop, and which upgrades are owned
 //   dingn.navigate("/");                  // leave the game for a dingn page
 //   dingn.ready();                        // hide the website's loading screen
 //
@@ -21,6 +23,7 @@
 // mode: signed out, English, and storage that lasts until the page closes.
 export const PROTOCOL = 1;
 const TIMEOUT_MS = 10000;
+const SPEND_TIMEOUT_MS = 5 * 60 * 1000;
 
 /** @returns {Promise<DingnGame>} */
 export function connect({ timeout = TIMEOUT_MS } = {}) {
@@ -64,7 +67,7 @@ function connectToHost(host, timeout) {
     else call.resolve(msg.result);
   });
 
-  function request(method, params) {
+  function request(method, params, wait = timeout) {
     return new Promise((resolve, reject) => {
       const id = nextId++;
       const timer = setTimeout(() => {
@@ -72,7 +75,7 @@ function connectToHost(host, timeout) {
         reject(
           Object.assign(new Error("dingn did not answer"), { code: "timeout" }),
         );
-      }, timeout);
+      }, wait);
       pending.set(id, { resolve, reject, timer });
       // The host's origin is dingn.com, but a sandboxed frame cannot name it;
       // nothing sent here is secret.
@@ -104,6 +107,9 @@ function connectToHost(host, timeout) {
       rewards: {
         unlock: (id) => request("rewards.unlock", { id }),
         list: () => request("rewards.list"),
+        // dingn asks the player to confirm first, so allow time to answer.
+        spend: (id) => request("rewards.spend", { id }, SPEND_TIMEOUT_MS),
+        shop: () => request("rewards.shop"),
       },
       requestSignIn: () => notify("signIn"),
       navigate: (path) => notify("navigate", { path }),
@@ -135,7 +141,12 @@ function standalone() {
       set: async (key, value) => void memory.set(key, JSON.stringify(value)),
     },
     progress: { load: async () => null, save: signedOut },
-    rewards: { unlock: signedOut, list: async () => [] },
+    rewards: {
+      unlock: signedOut,
+      list: async () => [],
+      spend: signedOut,
+      shop: async () => [],
+    },
     requestSignIn() {},
     navigate(path) {
       location.href = path;

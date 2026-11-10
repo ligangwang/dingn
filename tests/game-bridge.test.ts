@@ -174,6 +174,11 @@ test("a game unlocks badges for a signed-in player only", async () => {
         return { new: true, coins: 40 };
       },
       list: async () => [],
+      spend: async (id) => {
+        unlocked.push(`spend:${id}`);
+        return { new: true, coins: 60 };
+      },
+      shop: async () => [],
     };
     return ctx;
   };
@@ -215,4 +220,53 @@ test("a game unlocks badges for a signed-in player only", async () => {
     "unavailable",
   );
   assert.deepEqual(unlocked, ["level-10"]);
+});
+test("a game spends coins only for a signed-in player, through the host", async () => {
+  const spent: string[] = [];
+  const withShop = (signedIn: boolean) => {
+    const { ctx } = context(signedIn);
+    ctx.rewards = {
+      unlock: async () => ({ new: true, coins: 0 }),
+      list: async () => [],
+      spend: async (id) => {
+        spent.push(id);
+        return { new: true, coins: 60 };
+      },
+      shop: async () => [
+        { id: "power-1", price: 60, title: "Power +1", owned: false },
+      ],
+    };
+    return ctx;
+  };
+  const code = (reply: Awaited<ReturnType<typeof handleGameRequest>>) =>
+    reply && "error" in reply ? reply.error.code : "ok";
+  const ok = await handleGameRequest(
+    ask("rewards.spend", { id: "power-1" }),
+    withShop(true),
+  );
+  assert.deepEqual(ok && "result" in ok && ok.result, { new: true, coins: 60 });
+  assert.equal(
+    code(
+      await handleGameRequest(
+        ask("rewards.spend", { id: "power-1" }),
+        withShop(false),
+      ),
+    ),
+    "signed_out",
+  );
+  assert.equal(
+    code(
+      await handleGameRequest(
+        ask("rewards.spend", { id: "../x" }),
+        withShop(true),
+      ),
+    ),
+    "invalid",
+  );
+  assert.deepEqual(spent, ["power-1"]);
+  const shop = await handleGameRequest(ask("rewards.shop"), withShop(false));
+  assert.equal(
+    shop && "result" in shop && (shop.result as unknown[]).length,
+    1,
+  );
 });

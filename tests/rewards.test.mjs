@@ -219,3 +219,109 @@ test("the player page learns which badges a game offers", async () => {
     ["level-10", "level-5"],
   );
 });
+
+const item = (id, price, extra = {}) => ({
+  id,
+  price,
+  title: { en: `Upgrade ${id}`, zh: `升级 ${id}` },
+  ...extra,
+});
+function shopProblems(shop) {
+  try {
+    registry.validateManifest({ ...manifest("rush", "1.0.0"), shop });
+    return "";
+  } catch (error) {
+    return error.message;
+  }
+}
+
+test("game.json shop items are checked", () => {
+  const ok = registry.validateManifest({
+    ...manifest("rush", "1.0.0"),
+    shop: [item("power-1", 60), item("power-2", 150, { requires: "power-1" })],
+  });
+  assert.deepEqual(ok.shop[1], {
+    id: "power-2",
+    price: 150,
+    requires: "power-1",
+    title: { en: "Upgrade power-2", zh: "升级 power-2" },
+  });
+  assert.deepEqual(
+    registry.validateManifest(manifest("rush", "1.0.0")).shop,
+    [],
+  );
+  assert.match(shopProblems([item("a", 0)]), /price/);
+  assert.match(shopProblems([item("a", 1.5)]), /price/);
+  assert.match(shopProblems([item("a", 1001)]), /price/);
+  assert.match(shopProblems([item("a", 5), item("a", 5)]), /used twice/);
+  // requires must point back, so tiers can't loop
+  assert.match(
+    shopProblems([item("a", 5, { requires: "b" }), item("b", 5)]),
+    /requires/,
+  );
+  assert.match(
+    shopProblems([item("a", 5, { title: { en: "x" } })]),
+    /title\.zh/,
+  );
+});
+
+test("buying an upgrade spends coins once, in order, never into debt", () => {
+  const p1 = item("power-1", 60);
+  const p2 = item("power-2", 150, { requires: "power-1" });
+  let doc = { coins: 200, games: { rush: 200 }, badges: {} };
+  assert.throws(() => rewards.buyItem(doc, "rush", p2), /requires/);
+  let step = rewards.buyItem(doc, "rush", p1, "2026-01-01");
+  assert.deepEqual(step.result, { new: true, coins: 60, balance: 140 });
+  step = rewards.buyItem(step.doc, "rush", p1);
+  assert.deepEqual(step.result, { new: false, coins: 0, balance: 140 });
+  assert.throws(
+    () => rewards.buyItem(step.doc, "rush", p2),
+    /not-enough-coins/,
+  );
+  // spending keeps what was earned: coins + spent
+  assert.equal(step.doc.spent, 60);
+  assert.equal(step.doc.games.rush, 200);
+  // earning more keeps the purchase
+  const earned = rewards.awardBadge(step.doc, "rush", badge("x"), "2026-01-02");
+  assert.equal(earned.doc.items["rush/power-1"].price, 60);
+  assert.deepEqual(rewards.wallet(earned.doc).items, [
+    { game: "rush", id: "power-1", title: p1.title },
+  ]);
+});
+
+test("players buy a version's upgrades through the API", async () => {
+  await registry.updateRecord("shopgame", (r) =>
+    registry.addVersion(
+      r,
+      registry.validateManifest({
+        ...manifest("shopgame", "1.0.0", [badge("level-10", { tier: "gold" })]),
+        shop: [item("power-1", 30)],
+      }),
+      { listed: true },
+    ),
+  );
+  registry.clearRegistryCache();
+  const spend = (itemId, uid = "buyer") =>
+    call(
+      "/api/rewards/spend",
+      { game: "shopgame", version: "1.0.0", item: itemId },
+      uid,
+    );
+  assert.equal((await spend("power-1")).status, 402);
+  await call(
+    "/api/rewards/unlock",
+    { game: "shopgame", version: "1.0.0", badge: "level-10" },
+    "buyer",
+  );
+  const bought = await spend("power-1");
+  assert.equal(bought.status, 200);
+  assert.deepEqual(bought.body, { new: true, coins: 30, balance: 20 });
+  assert.equal((await spend("power-1")).body.new, false);
+  assert.equal((await spend("nope")).status, 404);
+  const me = await call("/api/rewards/me", {}, "buyer");
+  assert.equal(me.body.coins, 20);
+  assert.deepEqual(
+    me.body.items.map((i) => `${i.game}/${i.id}`),
+    ["shopgame/power-1"],
+  );
+});

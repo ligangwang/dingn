@@ -106,6 +106,54 @@ export function validateBadges(raw, problems) {
   return badges;
 }
 
+// Upgrades a game sells for dingn coins (scripts/rewards.mjs). Each one is
+// bought once and kept, like a stronger weapon; `requires` names an upgrade
+// that must be bought first, for tiers such as power-1, power-2.
+export const MAX_SHOP_ITEMS = 30;
+export const MAX_PRICE = 1000;
+
+/** Checks a game.json `shop` list. Adds what is wrong to `problems`. */
+export function validateShop(raw, problems) {
+  if (raw == null) return [];
+  if (!Array.isArray(raw) || raw.length > MAX_SHOP_ITEMS) {
+    problems.push(`shop must be a list of up to ${MAX_SHOP_ITEMS}`);
+    return [];
+  }
+  const seen = new Set();
+  return raw.map((it, i) => {
+    const at = `shop[${i}]`;
+    const item = it && typeof it === "object" ? it : {};
+    if (typeof item.id !== "string" || !BADGE_ID.test(item.id))
+      problems.push(
+        `${at}.id must be 1-40 lowercase letters, digits or dashes`,
+      );
+    else if (seen.has(item.id))
+      problems.push(`${at}.id "${item.id}" is used twice`);
+    if (!(
+      Number.isInteger(item.price) &&
+      item.price >= 1 &&
+      item.price <= MAX_PRICE
+    ))
+      problems.push(
+        `${at}.price must be a whole number from 1 to ${MAX_PRICE}`,
+      );
+    if (item.requires != null && !seen.has(item.requires))
+      problems.push(`${at}.requires must name an item listed before it`);
+    seen.add(item.id);
+    for (const lang of ["en", "zh"])
+      if (!text(item.title?.[lang], MAX_BADGE_TITLE))
+        problems.push(
+          `${at}.title.${lang} is required (up to ${MAX_BADGE_TITLE} characters)`,
+        );
+    return {
+      id: item.id,
+      price: item.price,
+      ...(item.requires != null ? { requires: item.requires } : {}),
+      title: { en: item.title?.en?.trim(), zh: item.title?.zh?.trim() },
+    };
+  });
+}
+
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 export const bucket = () => process.env.GAMES_BUCKET || "dingn-193716-games";
 export const localDir = () =>
@@ -156,6 +204,7 @@ export function validateManifest(raw) {
   )
     problems.push("entry must be a relative .html path");
   const badges = validateBadges(m.badges, problems);
+  const shop = validateShop(m.shop, problems);
   if (problems.length)
     throw new Error(`game.json is invalid:\n- ${problems.join("\n- ")}`);
   return {
@@ -168,6 +217,7 @@ export function validateManifest(raw) {
     },
     entry,
     badges,
+    shop,
   };
 }
 
@@ -205,6 +255,8 @@ export function publicGame(record, requested) {
     url: `/g/${record.id}/${resolved.version}/${resolved.entry}`,
     // The badges this version can award, for the player page.
     badges: resolved.badges ?? [],
+    // The upgrades this version sells for coins.
+    shop: resolved.shop ?? [],
     // A version an outside developer uploaded that dingn has not made live
     // yet. The player page says so.
     preview: isPreview(record, resolved),
@@ -293,6 +345,7 @@ export function addVersion(
     description: manifest.description,
     entry: manifest.entry,
     ...(manifest.badges?.length ? { badges: manifest.badges } : {}),
+    ...(manifest.shop?.length ? { shop: manifest.shop } : {}),
     publishedAt: now,
   };
   return {

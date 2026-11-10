@@ -18,11 +18,14 @@ import {
   loadWallet,
   MERGE_TOAST_MS,
   mergeToasts,
+  spendCoins,
+  spendFromWallet,
   unlockBadge,
   type BadgeDef,
   type EarnedToast,
+  type ShopDef,
 } from "@/lib/rewards";
-import { BadgeToast, GameBadges } from "./rewards";
+import { BadgeToast, GameBadges, SpendConfirm, type SpendAsk } from "./rewards";
 import {
   accountProgress,
   BridgeError,
@@ -45,7 +48,31 @@ export type PublishedGame = {
   preview?: boolean;
   /** The badges this version can award (scripts/rewards.mjs). */
   badges?: BadgeDef[];
+  /** The upgrades this version sells for coins. */
+  shop?: ShopDef[];
 };
+
+/** The bridge error for a failed purchase (codes from scripts/rewards.mjs). */
+function spendError(error: unknown) {
+  const code = (error as { code?: string })?.code ?? "";
+  if (code === "not-enough-coins")
+    return new BridgeError("not_enough_coins", "Not enough coins.");
+  if (code === "requires")
+    return new BridgeError(
+      "requires",
+      "Buy the upgrade before this one first.",
+    );
+  if (code === "unknown-item")
+    return new BridgeError(
+      "invalid",
+      "That item is not in this version's game.json shop.",
+    );
+  if (code === "sign-in-required" || code === "invalid-credential")
+    return new BridgeError("signed_out", "Sign in to spend coins.");
+  if (code === "too-many-requests")
+    return new BridgeError("too_many", "Too many requests. Try later.");
+  return new BridgeError("unavailable", "The shop is unavailable right now.");
+}
 
 /** The bridge error for a failed badge unlock (codes from scripts/rewards.mjs). */
 function rewardError(error: unknown) {
@@ -91,6 +118,27 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   // When a game awards several badges at once (a returning player catching
   // up on past levels), they share one popup instead of a popup each.
   const toastShownAt = useRef(0);
+  // The "Spend coins?" question a game's rewards.spend() is waiting on.
+  const [ask, setAsk] = useState<SpendAsk | null>(null);
+  const asking = useRef(false);
+  // Upgrades "bought" in an unreviewed version during this visit.
+  const tried = useRef(new Set<string>());
+  function confirmSpend(item: ShopDef, balance: number) {
+    // One question at a time: a second purchase while one is open is a no.
+    if (asking.current) return Promise.resolve(false);
+    asking.current = true;
+    return new Promise<boolean>((resolve) =>
+      setAsk({
+        item,
+        balance,
+        answer: (yes) => {
+          asking.current = false;
+          setAsk(null);
+          resolve(yes);
+        },
+      }),
+    );
+  }
   function showToast(next: EarnedToast) {
     const queued = toasts.current;
     if (queued.length) {
@@ -223,6 +271,61 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           ...(result.test ? { test: true } : {}),
         };
       },
+      spend: async (id) => {
+        const def = game.shop?.find((i) => i.id === id);
+        if (!def)
+          throw new BridgeError(
+            "invalid",
+            "That item is not in this version's game.json shop.",
+          );
+        const wallet = user ? await loadWallet(user.uid) : null;
+        if (!user || !wallet)
+          throw new BridgeError(
+            "unavailable",
+            "The shop is unavailable right now.",
+          );
+        const owns = (item: string) =>
+          tried.current.has(item) ||
+          wallet.items.some((i) => i.game === game.id && i.id === item);
+        if (owns(id)) return { new: false, coins: 0 };
+        if (def.requires && !owns(def.requires))
+          throw new BridgeError(
+            "requires",
+            "Buy the upgrade before this one first.",
+          );
+        // An unreviewed version only pretends, so it may ask with any balance.
+        if (!game.preview && wallet.coins < def.price)
+          throw new BridgeError("not_enough_coins", "Not enough coins.");
+        if (!(await confirmSpend(def, wallet.coins)))
+          throw new BridgeError("cancelled", "The player did not buy it.");
+        let result;
+        try {
+          result = await spendCoins(game.id, game.version, id);
+        } catch (error) {
+          throw spendError(error);
+        }
+        // An unreviewed version's purchases are only pretend, but remembered
+        // for this visit so its developer can try every tier.
+        if (result.test) tried.current.add(id);
+        spendFromWallet(user.uid, game.id, result, def);
+        return {
+          new: result.new,
+          coins: result.coins,
+          ...(result.test ? { test: true } : {}),
+        };
+      },
+      shop: async () => {
+        const wallet = user ? await loadWallet(user.uid) : null;
+        return (game.shop ?? []).map((i) => ({
+          id: i.id,
+          price: i.price,
+          ...(i.requires ? { requires: i.requires } : {}),
+          title: locale === "zh-CN" ? i.title.zh : i.title.en,
+          owned:
+            tried.current.has(i.id) ||
+            !!wallet?.items.some((o) => o.game === game.id && o.id === i.id),
+        }));
+      },
       list: async () => {
         const wallet = user ? await loadWallet(user.uid) : null;
         const earned = new Set(
@@ -338,6 +441,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           onLoad={() => setTimeout(() => setLoaded(true), 4000)}
         />
         <BadgeToast toast={toast} gameTitle={title} onDone={nextToast} />
+        {ask && <SpendConfirm ask={ask} gameTitle={title} />}
       </div>
       <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
       <ReportGame game={state.game} signedIn={!!user} />

@@ -13,6 +13,7 @@ import {
   subscribeWallet,
   type BadgeDef,
   type EarnedToast,
+  type ShopDef,
   type Wallet,
 } from "@/lib/rewards";
 
@@ -64,6 +65,11 @@ export function CoinCount() {
   const { t, href, locale } = useLocale();
   const wallet = useWallet();
   const shown = useCountUp(wallet?.coins ?? 0);
+  const [open, setOpen] = useState(false);
+  // Where the panel starts on phones, where it spans the screen: just below
+  // the coin, wherever the menu has wrapped it.
+  const [top, setTop] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
   // Bump the count when a game pays out, not when the wallet first loads.
   const [bump, setBump] = useState(0);
   const prev = useRef<number | null>(null);
@@ -73,24 +79,125 @@ export function CoinCount() {
       setBump((b) => b + 1);
     prev.current = now;
   }, [wallet?.coins]);
+  // Close the wallet on a click elsewhere or Escape.
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", key);
+    };
+  }, [open]);
   if (!wallet) return null;
   const coins = wallet.coins.toLocaleString(locale);
   return (
-    <Link
-      key={bump}
-      className={bump ? "coin-count bump" : "coin-count"}
-      href={href("/account/#badges")}
-      aria-label={t(`${coins} coins`)}
-      title={t(`${coins} coins`)}
-    >
-      <Coin size={20} />
-      <span>
-        {new Intl.NumberFormat(locale, {
-          notation: "compact",
-          maximumFractionDigits: 1,
-        }).format(shown)}
-      </span>
-    </Link>
+    <div className="wallet" ref={box}>
+      <button
+        type="button"
+        key={bump}
+        className={bump ? "coin-count bump" : "coin-count"}
+        aria-label={t(`Wallet: ${coins} coins`)}
+        aria-expanded={open}
+        aria-controls="wallet-panel"
+        title={t(`${coins} coins`)}
+        onClick={(e) => {
+          setTop(e.currentTarget.getBoundingClientRect().bottom + 8);
+          setOpen((o) => !o);
+        }}
+      >
+        <Coin size={20} />
+        <span>
+          {new Intl.NumberFormat(locale, {
+            notation: "compact",
+            maximumFractionDigits: 1,
+          }).format(shown)}
+        </span>
+      </button>
+      {open && (
+        <div
+          className="wallet-panel"
+          id="wallet-panel"
+          style={{ "--wallet-top": `${top}px` } as CSSProperties}
+        >
+          <WalletSummary wallet={wallet} compact />
+          <Link
+            className="wallet-more"
+            href={href("/account/#badges")}
+            onClick={() => setOpen(false)}
+          >
+            {t("See everything in your account →")}
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** What is in a player's wallet: coins, badges and the upgrades they own. */
+export function WalletSummary({
+  wallet,
+  compact = false,
+}: {
+  wallet: Wallet;
+  compact?: boolean;
+}) {
+  const { t, locale } = useLocale();
+  const badges = compact ? wallet.badges.slice(0, 8) : wallet.badges;
+  return (
+    <div className={compact ? "wallet-summary compact" : "wallet-summary"}>
+      <p className="wallet-coins">
+        <Coin size={compact ? 32 : 40} />
+        <span>
+          <strong>{wallet.coins.toLocaleString(locale)}</strong> {t("coins")}
+        </span>
+      </p>
+      <h3>
+        {t("Badges")} <small>{wallet.badges.length}</small>
+      </h3>
+      {badges.length ? (
+        <ul className="wallet-badges">
+          {badges.map((badge) => (
+            <li
+              key={`${badge.game}/${badge.id}`}
+              title={`${titleOf(badge.title, locale)} · ${badge.game}`}
+            >
+              <BadgeMedal
+                tier={badge.tier}
+                level={badge.level}
+                icon={badge.icon}
+                levelText={t("LEVEL")}
+                size={compact ? 36 : 48}
+                label={titleOf(badge.title, locale)}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">
+          {t("Pass levels in games to earn badges and coins.")}
+        </p>
+      )}
+      <h3>
+        {t("Upgrades")} <small>{wallet.items.length}</small>
+      </h3>
+      {wallet.items.length ? (
+        <ul className="wallet-items">
+          {wallet.items.map((item) => (
+            <li key={`${item.game}/${item.id}`}>
+              <span>{item.title ? titleOf(item.title, locale) : item.id}</span>
+              <small>{item.game}</small>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">{t("Spend coins in games on upgrades.")}</p>
+      )}
+    </div>
   );
 }
 
@@ -193,6 +300,69 @@ export function BadgeToast({
   );
 }
 
+export type SpendAsk = {
+  item: ShopDef;
+  balance: number;
+  answer: (yes: boolean) => void;
+};
+
+/**
+ * dingn's own "Spend coins?" question, over the game. A game can only ask:
+ * the player's coins are spent only when they press Buy here.
+ */
+export function SpendConfirm({
+  ask,
+  gameTitle,
+}: {
+  ask: SpendAsk;
+  gameTitle: string;
+}) {
+  const { t, locale } = useLocale();
+  const buy = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    buy.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") ask.answer(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [ask]);
+  const name = titleOf(ask.item.title, locale);
+  const after = ask.balance - ask.item.price;
+  return (
+    <div className="spend-confirm-backdrop">
+      <div
+        className="spend-confirm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="spend-confirm-title"
+        aria-describedby="spend-confirm-text"
+      >
+        <Coin size={56} />
+        <h2 id="spend-confirm-title">{t(`Buy ${name}?`)}</h2>
+        <p id="spend-confirm-text">
+          {t(`${gameTitle} upgrade for ${ask.item.price} dingn coins.`)}{" "}
+          {after >= 0 &&
+            t(`You will have ${after.toLocaleString(locale)} coins left.`)}
+        </p>
+        <div className="spend-confirm-buttons">
+          <button type="button" onClick={() => ask.answer(false)}>
+            {t("Cancel")}
+          </button>
+          <button
+            type="button"
+            className="primary"
+            ref={buy}
+            onClick={() => ask.answer(true)}
+          >
+            <Coin size={18} /> {t(`Buy for ${ask.item.price}`)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** The badges a game offers, earned ones in color, on its player page. */
 export function GameBadges({
   game,
@@ -242,45 +412,22 @@ export function GameBadges({
   );
 }
 
-/** The account page's badges: every badge the player has, and their coins. */
+/** The account page's wallet: coins, every badge, and owned upgrades. */
 export function BadgeShelf() {
-  const { t, locale, href } = useLocale();
+  const { t, href } = useLocale();
   const wallet = useWallet();
   return (
     <section className="panel badge-shelf" id="badges">
-      <h2>{t("Badges and coins")}</h2>
+      <h2>{t("Your wallet")}</h2>
       {!wallet ? (
         <p className="muted">{t("Loading…")}</p>
       ) : (
         <>
-          <p className="badge-shelf-coins">
-            <Coin size={40} />
-            <span>
-              <strong>{wallet.coins.toLocaleString(locale)}</strong>{" "}
-              {t("coins")}
-            </span>
-          </p>
-          {!wallet.badges.length ? (
-            <p className="muted">
-              {t("Pass levels in games to earn badges and coins.")}{" "}
+          <WalletSummary wallet={wallet} />
+          {!wallet.badges.length && (
+            <p>
               <Link href={href("/#games")}>{t("Find a game →")}</Link>
             </p>
-          ) : (
-            <ul className="badge-grid">
-              {wallet.badges.map((badge) => (
-                <li key={`${badge.game}/${badge.id}`}>
-                  <BadgeMedal
-                    tier={badge.tier}
-                    level={badge.level}
-                    icon={badge.icon}
-                    levelText={t("LEVEL")}
-                    size={64}
-                  />
-                  <strong>{titleOf(badge.title, locale)}</strong>
-                  <Link href={href(`/play/${badge.game}/`)}>{badge.game}</Link>
-                </li>
-              ))}
-            </ul>
           )}
         </>
       )}
