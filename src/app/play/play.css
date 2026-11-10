@@ -463,3 +463,19 @@
     animation: none;
   }
 }
+
+/* Coins flying from a reward popup into the header's coin count. */
+.flying-coin {
+  position: fixed;
+  z-index: 1000;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px #0006);
+  will-change: transform, opacity;
+}
+.flying-coin svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}

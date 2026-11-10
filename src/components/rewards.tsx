@@ -64,20 +64,33 @@ function useCountUp(value: number, from = value, ms = 900) {
 export function CoinCount() {
   const { t, href, locale } = useLocale();
   const wallet = useWallet();
-  const shown = useCountUp(wallet?.coins ?? 0);
+  const [landed, setLanded] = useState(wallet?.coins ?? 0);
+  const shown = useCountUp(landed);
   const [open, setOpen] = useState(false);
   // Where the panel starts on phones, where it spans the screen: just below
   // the coin, wherever the menu has wrapped it.
   const [top, setTop] = useState(0);
   const box = useRef<HTMLDivElement>(null);
   // Bump the count when a game pays out, not when the wallet first loads.
+  // While a reward popup is up, coins fly from it into this count
+  // (flyCoins), so the new total waits until they land.
   const [bump, setBump] = useState(0);
-  const prev = useRef<number | null>(null);
+  const seen = useRef<number | null>(wallet?.coins ?? null);
   useEffect(() => {
     const now = wallet?.coins ?? null;
-    if (prev.current != null && now != null && now > prev.current)
-      setBump((b) => b + 1);
-    prev.current = now;
+    const before = seen.current;
+    seen.current = now;
+    if (now == null) return;
+    if (before == null || now <= before) return setLanded(now);
+    const flying = !!document.querySelector(".badge-toast-coins");
+    const timer = setTimeout(
+      () => {
+        setLanded(now);
+        setBump((b) => b + 1);
+      },
+      flying ? COINS_LAND_MS : 0,
+    );
+    return () => clearTimeout(timer);
   }, [wallet?.coins]);
   // Close the wallet on a click elsewhere or Escape.
   useEffect(() => {
@@ -218,11 +231,77 @@ const FLYING = Array.from({ length: 7 }, (_, i) => ({
   "--d": `${200 + i * 70}ms`,
 })) as CSSProperties[];
 
-/** "+25" with coins popping out, counting up from zero. */
+/** How long after a popup appears its coins land in the header's count. */
+export const COINS_LAND_MS = 1300;
+
+/**
+ * Coins flying from a popup's coin chip into the coin count in the header,
+ * which bumps as they land (CoinCount). Nothing flies when the count isn't
+ * on screen (signed out, or the game is full screen).
+ */
+export function flyCoins(from: Element, coins: number) {
+  const target = document.querySelector("nav .coin-count");
+  if (!target || document.fullscreenElement || reducedMotion()) return;
+  const a = from.getBoundingClientRect();
+  const b = target.getBoundingClientRect();
+  if (!b.width || !a.width) return;
+  const art = from.querySelector("svg");
+  const startX = a.left + 18;
+  const startY = a.top + a.height / 2;
+  const dx = b.left + 14 - startX;
+  const dy = b.top + b.height / 2 - startY;
+  const count = Math.min(12, Math.max(4, Math.round(coins / 4)));
+  for (let i = 0; i < count; i++) {
+    const coin = document.createElement("span");
+    coin.className = "flying-coin";
+    coin.setAttribute("aria-hidden", "true");
+    if (art) coin.append(art.cloneNode(true));
+    coin.style.left = `${startX - 11}px`;
+    coin.style.top = `${startY - 11}px`;
+    document.body.append(coin);
+    // burst out a little, then sweep up into the count along a curve
+    const spreadX = (Math.random() - 0.5) * 90;
+    const spreadY = -20 - Math.random() * 50;
+    const flight = coin.animate(
+      [
+        { transform: "translate(0, 0) scale(0.6)", opacity: 0 },
+        {
+          transform: `translate(${spreadX}px, ${spreadY}px) scale(1.15)`,
+          opacity: 1,
+          offset: 0.25,
+        },
+        {
+          transform: `translate(${spreadX + dx * 0.55}px, ${dy * 0.75}px) scale(0.95)`,
+          opacity: 1,
+          offset: 0.7,
+        },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.55)`, opacity: 0.9 },
+      ],
+      {
+        duration: 1000,
+        delay: i * 70,
+        easing: "cubic-bezier(0.45, 0, 0.3, 1)",
+        fill: "both",
+      },
+    );
+    flight.onfinish = flight.oncancel = () => coin.remove();
+  }
+}
+
+/** "+25" with coins popping out, counting up from zero, then flying home. */
 function ToastCoins({ coins }: { coins: number }) {
   const shown = useCountUp(coins, 0, 700);
+  const chip = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (chip.current) flyCoins(chip.current, coins);
+    }, 250);
+    return () => clearTimeout(timer);
+    // once per popup
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
-    <span className="badge-toast-coins">
+    <span className="badge-toast-coins" ref={chip}>
       {FLYING.map((style, i) => (
         <span
           key={i}
