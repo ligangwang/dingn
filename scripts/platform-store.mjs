@@ -67,6 +67,37 @@ export async function updateDoc(collection, id, change) {
   });
 }
 
+/**
+ * Like updateDoc for two documents at once: `change(a, b)` returns
+ * `[nextA, nextB]`, and both are written together (one Firestore
+ * transaction). Returns the new documents.
+ */
+export async function updateDocs([ca, ia], [cb, ib], change) {
+  if (localDir()) {
+    const [allA, allB] = [await readLocal(ca), await readLocal(cb)];
+    const [a, b] = change(allA[ia] ?? null, allB[ib] ?? null);
+    allA[ia] = a;
+    await writeLocal(ca, allA);
+    const fresh = ca === cb ? allA : allB;
+    fresh[ib] = b;
+    await writeLocal(cb, fresh);
+    return [a, b];
+  }
+  const db = await firestore();
+  const refA = db.collection(ca).doc(ia);
+  const refB = db.collection(cb).doc(ib);
+  return db.runTransaction(async (tx) => {
+    const [snapA, snapB] = await Promise.all([tx.get(refA), tx.get(refB)]);
+    const [a, b] = change(
+      snapA.exists ? snapA.data() : null,
+      snapB.exists ? snapB.data() : null,
+    );
+    tx.set(refA, a);
+    tx.set(refB, b);
+    return [a, b];
+  });
+}
+
 /** Adds a document with a new id and returns the id. */
 export async function addDoc(collection, data) {
   if (localDir()) {

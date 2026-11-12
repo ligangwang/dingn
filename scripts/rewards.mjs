@@ -20,6 +20,14 @@
 // `daily: { day: "YYYY-MM-DD", games: { <game>: coins } }`, and does not count
 // toward MAX_GAME_COINS, which is for badges.
 //
+// Every badge also adds account XP (BADGE_XP: twice the coins its tier pays),
+// so players of every game, not only dingn's brain games, level up their
+// account and their kingdom. The XP goes to Firestore `players/{uid}`, where
+// the brain games keep theirs; `xpPaid` in the rewards document counts what
+// was added, so settling twice (or a crash between the two writes) never pays
+// twice, and badges earned before badge XP existed are paid on the next one
+// (or by scripts/backfill-badge-xp.mjs).
+//
 // Players spend coins on upgrades a game sells (validateShop): POST
 // /api/rewards/spend. The player page asks the player to confirm first, so a
 // game cannot spend anyone's coins on its own.
@@ -42,7 +50,9 @@ import {
   isPreview,
   publicGame,
 } from "./game-registry.mjs";
-import { getDoc, updateDoc } from "./platform-store.mjs";
+import { getDoc, updateDoc, updateDocs } from "./platform-store.mjs";
+import { levelFor, publicName } from "./game-core.mjs";
+import { BADGE_XP } from "../src/data/kingdom.mjs";
 
 export const rewardRoutes = [
   "/api/rewards/unlock",
@@ -168,6 +178,49 @@ export function earnCoins(doc, game, coins, now = new Date().toISOString()) {
       left: DAILY_GAME_COINS - today - paid,
     },
   };
+}
+
+/** Account XP a player's badges have earned but not yet been paid. */
+export function badgeXpOwed(doc) {
+  const earned = Object.values(doc?.badges ?? {}).reduce(
+    (sum, b) => sum + (BADGE_XP[b.tier] ?? 0),
+    0,
+  );
+  return Math.max(0, earned - (doc?.xpPaid ?? 0));
+}
+
+/**
+ * Pays the XP a rewards document owes into the player's XP document. Returns
+ * the two new documents and the XP paid. `name` is the leaderboard name for a
+ * player who has none yet.
+ */
+export function payBadgeXp(doc, player, name) {
+  const owed = badgeXpOwed(doc);
+  if (!owed || !doc) return { doc, player, xp: 0 };
+  const xp = (player?.xp ?? 0) + owed;
+  return {
+    doc: { ...doc, xpPaid: (doc.xpPaid ?? 0) + owed },
+    player: {
+      ...(player ?? {}),
+      xp,
+      level: levelFor(xp),
+      badgeXp: (player?.badgeXp ?? 0) + owed,
+      ...(player?.name || !name ? {} : { name }),
+    },
+    xp: owed,
+  };
+}
+
+/** Pays a player's owed badge XP, in one transaction. Returns the XP paid. */
+export async function settleBadgeXp(uid, name = "") {
+  let paid = 0;
+  await updateDocs(["rewards", uid], ["players", uid], (doc, player) => {
+    const next = payBadgeXp(doc, player, name);
+    paid = next.xp;
+    // Nothing owed: write the documents back as they are.
+    return [next.doc ?? doc ?? {}, next.player ?? player ?? {}];
+  });
+  return paid;
 }
 
 /** A player's coins, badges (newest first) and the upgrades they own. */
@@ -349,9 +402,24 @@ export async function handleRewards(
       result = next.result;
       return next.doc;
     });
-    if (result.new)
+    if (result.new) {
       console.log("badge", body.game, badge.id, claims.uid, result.coins);
-    send(200, { badge: shown, ...result });
+      try {
+        const account = await getDoc("accounts", claims.uid);
+        await settleBadgeXp(
+          claims.uid,
+          publicName(account?.user_name, claims.name),
+        );
+      } catch (error) {
+        // The badge and its coins are saved; its XP is paid with the next one.
+        console.error("badge xp", error);
+      }
+    }
+    send(200, {
+      badge: shown,
+      ...result,
+      xp: result.new ? (BADGE_XP[badge.tier] ?? 0) : 0,
+    });
   } catch (error) {
     if (error instanceof ApiError)
       return send(error.status, { error: error.message });

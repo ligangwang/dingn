@@ -1,0 +1,327 @@
+/* The kingdom page: the 3D island fills the window under the header, with the
+   stage card, the build panel and notes floating over it. */
+.kingdom-page {
+  position: relative;
+  height: calc(100dvh - 77px);
+  min-height: 480px;
+  overflow: hidden;
+  background: linear-gradient(#3d6fb6, #9cc3e6 55%, #ffd9a8);
+  color: #fff;
+}
+.kingdom-canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+.kingdom-credit {
+  position: absolute;
+  z-index: 1;
+  left: 12px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1c242099;
+  font-size: 11px;
+  color: #fff;
+}
+.kingdom-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.kingdom-hud,
+.kingdom-panel,
+.kingdom-note,
+.kingdom-fallback {
+  position: absolute;
+  z-index: 2;
+  background: #1c2420cc;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid #ffffff22;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px #0004;
+}
+.kingdom-hud {
+  top: 20px;
+  left: 20px;
+  width: min(340px, calc(100% - 32px));
+  padding: 16px 18px;
+}
+.kingdom-hud h1 {
+  margin: 2px 0 6px;
+  font-size: 1.55rem;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+.kingdom-hud p {
+  margin: 0 0 10px;
+  color: #dfe6e0;
+  font-size: 0.95rem;
+}
+.kingdom-hud .button {
+  background: #ffe08a;
+  border-color: #ffe08a;
+  color: #2a2208;
+}
+.kingdom-eyebrow {
+  margin: 0 !important;
+  font-size: 0.72rem !important;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #ffe08a !important;
+}
+.kingdom-small {
+  font-size: 0.85rem !important;
+}
+.kingdom-progress {
+  height: 8px;
+  margin: 4px 0 8px;
+  border-radius: 99px;
+  background: #ffffff26;
+  overflow: hidden;
+}
+.kingdom-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffd36b, #ffb347);
+}
+
+.kingdom-panel {
+  top: 20px;
+  right: 20px;
+  bottom: 20px;
+  width: 280px;
+  padding: 14px 14px 10px;
+  display: flex;
+  flex-direction: column;
+}
+.kingdom-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.kingdom-panel h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #fff;
+}
+.kingdom-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.kingdom-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.kingdom-panel li button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #ffffff1f;
+  background: #ffffff10;
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+}
+.kingdom-panel li button:hover:not(:disabled) {
+  background: #ffffff22;
+}
+.kingdom-panel li button[aria-pressed="true"] {
+  border-color: #ffe08a;
+  background: #ffe08a26;
+}
+.kingdom-panel li button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.kingdom-item-name {
+  font-weight: 600;
+}
+.kingdom-item-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #e9dcae;
+  white-space: nowrap;
+}
+.kingdom-count {
+  color: #b9c2bb;
+}
+.kingdom-panel > p {
+  margin: 6px 2px 0;
+  color: #b9c2bb;
+}
+.kingdom-build-toggle,
+.kingdom-close {
+  display: none;
+}
+
+.kingdom-note {
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 12px 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.92rem;
+}
+.kingdom-note button {
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 0;
+  background: #ffe08a;
+  color: #2a2208;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kingdom-fallback {
+  left: 20px;
+  bottom: 20px;
+  padding: 12px 18px;
+}
+
+/* The "Build Market?" question (the same look as the games' Spend coins?). */
+.kingdom-confirm.spend-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #0b0f0d99;
+}
+.kingdom-confirm .spend-confirm {
+  width: min(360px, 100%);
+  padding: 22px 20px 18px;
+  border-radius: 18px;
+  background: #252e28;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 20px 48px #0008;
+}
+.kingdom-confirm h2 {
+  margin: 10px 0 6px;
+  font-size: 1.2rem;
+  color: #fff;
+}
+.kingdom-confirm p {
+  margin: 0 0 16px;
+  color: #c9d0ca;
+  font-size: 0.92rem;
+}
+.kingdom-confirm .spend-confirm-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.kingdom-confirm .spend-confirm-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid #ffffff33;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kingdom-confirm .spend-confirm-buttons button.primary {
+  background: #ffe08a;
+  border-color: #ffe08a;
+  color: #2a2208;
+}
+
+/* Phones: the stage card shrinks to the top, the build panel is a sheet. */
+@media (max-width: 760px) {
+  .kingdom-page {
+    /* The header wraps its links under the logo on phones. */
+    height: calc(100dvh - 144px);
+  }
+  .kingdom-close {
+    display: block;
+    margin-left: 12px;
+    padding: 0 6px;
+    border: 0;
+    background: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .kingdom-build-toggle[hidden] {
+    display: none;
+  }
+  .kingdom-panel .kingdom-coins {
+    margin-left: auto;
+  }
+  .kingdom-hud {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    padding: 12px 14px;
+  }
+  .kingdom-hud h1 {
+    font-size: 1.25rem;
+  }
+  .kingdom-build-toggle {
+    display: block;
+    position: absolute;
+    z-index: 3;
+    right: 16px;
+    bottom: 20px;
+    padding: 12px 22px;
+    border-radius: 99px;
+    border: 0;
+    background: #ffe08a;
+    color: #2a2208;
+    font: inherit;
+    font-weight: 700;
+    box-shadow: 0 8px 24px #0005;
+  }
+  .kingdom-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 55%;
+    border-radius: 18px 18px 0 0;
+    transform: translateY(105%);
+    transition: transform 0.25s ease-out;
+  }
+  .kingdom-panel.open {
+    transform: none;
+  }
+  .kingdom-note {
+    bottom: 84px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kingdom-panel {
+    transition: none;
+  }
+}

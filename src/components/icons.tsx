@@ -98,3 +98,14 @@ export function CrowdIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/** Kingdom: a castle with three towers. */
+export function CastleIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 21V9h4v3h2V9h6v3h2V9h4v12z" />
+      <path d="M9 9V5l3-2 3 2v4" />
+      <path d="M10.5 21v-4a1.5 1.5 0 0 1 3 0v4" />
+    </Svg>
+  );
+}
