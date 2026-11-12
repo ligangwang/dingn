@@ -55,6 +55,7 @@ export const BUILDINGS = [
   b("hall-city", "city", 500, 1, "Keep", "城堡主楼", { hall: true }),
   b("chapel", "city", 200, 1, "Chapel", "礼拜堂"),
   b("fountain", "city", 250, 1, "Fountain", "喷泉"),
+  b("clock", "city", 300, 1, "Clock tower", "钟楼"),
   b("hall-kingdom", "kingdom", 800, 1, "Castle", "城堡", { hall: true }),
   b("statue", "kingdom", 300, 2, "Knight statue", "骑士雕像"),
   b("hall-capital", "capital", 1200, 1, "Palace", "宫殿", { hall: true }),

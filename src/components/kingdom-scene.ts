@@ -11,13 +11,21 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import { HALL_RADIUS, landBounds, type StageId } from "@/data/kingdom.mjs";
+import {
+  HALL_RADIUS,
+  STAGE_IDS,
+  landBounds,
+  type StageId,
+} from "@/data/kingdom.mjs";
 import {
   PEOPLE,
+  balloon,
+  cityWall,
   loadModels,
   loadPeople,
   makeBuilding,
   makeHall,
+  peak,
   person,
   scenery,
 } from "./kingdom-models";
@@ -233,6 +241,16 @@ export class KingdomScene {
   private disposed = false;
   private ready = false;
   private peopleLoaded = false;
+  private sun!: THREE.DirectionalLight;
+  private radius = 12;
+  private centre = 0;
+  private islandKey = "";
+  private wallKey = "";
+  private mixers: { mixer: THREE.AnimationMixer; owner: THREE.Object3D }[] = [];
+  private balloons: THREE.Object3D[] = [];
+  private flock: THREE.Object3D[] = [];
+  private flockKey = "";
+  private dragonSpot = new THREE.Vector3();
   private pending: { state: SceneState; animate: boolean } | null = null;
   private previewId: string | null = null;
   private grid: THREE.LineSegments | null = null;
@@ -271,8 +289,9 @@ export class KingdomScene {
     this.scene.fog = new THREE.Fog("#d9d3df", 70, 300);
     this.scene.add(skyDome());
 
-    const hemi = new THREE.HemisphereLight("#cfe4ff", "#7a6a52", 1.1);
-    const sun = new THREE.DirectionalLight("#ffe2b8", 3.2);
+    const hemi = new THREE.HemisphereLight("#c4dcff", "#8a7350", 0.95);
+    const sun = new THREE.DirectionalLight("#ffdcae", 3.5);
+    this.sun = sun;
     sun.position.copy(SUN).multiplyScalar(40);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -280,7 +299,7 @@ export class KingdomScene {
     sc.left = sc.bottom = -16;
     sc.right = sc.top = 16;
     sc.near = 1;
-    sc.far = 120;
+    sc.far = 200;
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.03;
     this.scene.add(hemi, sun, sun.target);
@@ -345,6 +364,11 @@ export class KingdomScene {
     const done = () => {
       if (this.disposed) return;
       this.ready = true;
+      for (let i = 0; i < 2; i++) {
+        const b = balloon();
+        this.balloons.push(b);
+        this.scene.add(b);
+      }
       if (this.pending) this.set(this.pending.state, this.pending);
       this.preview(this.previewId);
       options.onReady?.();
@@ -363,8 +387,26 @@ export class KingdomScene {
     }
     this.pending = null;
     const first = !this.state;
-    if (!this.state || this.state.size !== state.size)
-      this.buildIsland(state.size);
+    const walled = STAGE_IDS.indexOf(state.hall) >= STAGE_IDS.indexOf("city");
+    const islandKey = `${state.size}:${walled}:${state.hall === "kingdom" || state.hall === "capital"}`;
+    if (this.islandKey !== islandKey) {
+      this.islandKey = islandKey;
+      this.buildIsland(state.size, walled, islandKey.endsWith("true"));
+    }
+    const wallKey = walled ? `${state.size}:${state.hall}` : "";
+    if (this.wallKey !== wallKey) {
+      this.wallKey = wallKey;
+      const old = this.buildings.getObjectByName("wall");
+      if (old) this.removeObject(old);
+      if (walled) {
+        const wall = cityWall(state.size, state.hall);
+        wall.name = "wall";
+        wall.position.set(this.centre, 0, this.centre);
+        this.adopt(wall);
+        this.buildings.add(wall);
+        if (animate && !first) this.dust(wall.position);
+      }
+    }
     this.state = state;
     if (this.hallShown !== state.hall) {
       this.placeHall(state.hall, animate && !first);
@@ -437,13 +479,24 @@ export class KingdomScene {
 
   // ---- building the world ----
 
-  private buildIsland(size: number) {
+  private buildIsland(size: number, walled: boolean, dragon: boolean) {
     this.island.clear();
     this.tileMeshes = [];
     const { lo, hi } = landBounds(size);
     const c = ((lo + hi) / 2) * T;
-    const radius = (size / 2 + 1.6) * T;
+    // Wide enough for the land's corners, the city wall and a meadow beyond.
+    const radius = (size * 0.707 + 1.7) * T;
+    this.radius = radius;
+    this.centre = c;
     const rand = seeded(7);
+    // The sun's shadows cover the whole island.
+    this.sun.position.set(c, 0, c).addScaledVector(SUN, 70);
+    this.sun.target.position.set(c, 0, c);
+    const sc = this.sun.shadow.camera;
+    sc.left = sc.bottom = -(radius + 3);
+    sc.right = sc.top = radius + 3;
+    sc.updateProjectionMatrix();
+    this.controls.maxDistance = radius * 4.2;
 
     // The grass top: a rounded slab, then the tiles of the land on it.
     const top = new THREE.Mesh(
@@ -468,37 +521,7 @@ export class KingdomScene {
     this.island.add(soil);
 
     // The rock underneath, a jagged cone.
-    const rockGeo = new THREE.ConeGeometry(
-      radius * 0.92,
-      radius * 2.1,
-      14,
-      5,
-      true,
-    );
-    const pos = rockGeo.attributes.position;
-    // Jitter by position, so the vertices a cone repeats (its seam and
-    // apex) move together and the rock stays closed.
-    const jitter = (x: number, y: number, z: number, n: number) => {
-      const h =
-        Math.sin(
-          Math.round(x * 10) * 12.9898 +
-            Math.round(y * 10) * 78.233 +
-            Math.round(z * 10) * 37.719 +
-            n,
-        ) * 43758.5453;
-      return h - Math.floor(h) - 0.5;
-    };
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const y = pos.getY(i);
-      const z = pos.getZ(i);
-      if (y > radius * 1.04 || y < -radius * 1.04) continue;
-      const k = 1 + jitter(x, y, z, 1) * 0.35;
-      pos.setXYZ(i, x * k, y + jitter(x, y, z, 2) * 0.6, z * k);
-    }
-    rockGeo.computeVertexNormals();
-    rockGeo.rotateX(Math.PI);
-    const rock = new THREE.Mesh(rockGeo, mat(C.rock));
+    const rock = rockCone(radius);
     rock.position.set(c, -1.5 - radius * 1.05, c);
     this.island.add(rock);
     for (let i = 0; i < 9; i++) {
@@ -564,11 +587,11 @@ export class KingdomScene {
 
     // Trees, bushes, flowers and rocks on the meadow round the land.
     const landHalf = (size / 2) * T;
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 110 + size * 22; i++) {
       const x = c + (rand() * 2 - 1) * radius;
       const z = c + (rand() * 2 - 1) * radius;
       const edge = Math.max(Math.abs(x - c), Math.abs(z - c));
-      if (edge < landHalf + 0.25) continue;
+      if (edge < landHalf + (walled ? 1.3 : 0.25)) continue;
       if (Math.hypot(x - c, z - c) > radius - 0.5) continue;
       const item = scenery(rand);
       item.position.set(x, 0, z);
@@ -613,7 +636,57 @@ export class KingdomScene {
       this.island.add(pool);
     }
 
-    this.controls.target.set(c, 0.8, c);
+    // Islets floating behind the kingdom: white cliffs with pines, far
+    // enough back to frame it without hiding it.
+    const islets: [number, number, number, number, number][] = [
+      [-1.25, -1.2, 2.5, 5.5, 2.6],
+      [0.35, -1.75, -1, 4, 1.9],
+      [1.5, -0.75, 1, 3.4, 1.5],
+    ];
+    for (const [fx, fz, y, r, s] of islets) {
+      const g = this.islet(r, rand);
+      g.position.set(c + fx * radius, y, c + fz * radius);
+      const cliff = peak(rand, s);
+      cliff.position.set(-r * 0.15, 0, -r * 0.1);
+      g.add(cliff);
+      if (s > 2) {
+        const second = peak(rand, s * 0.62);
+        second.position.set(r * 0.5, 0, r * 0.2);
+        g.add(second);
+      }
+      this.island.add(g);
+    }
+    // A bare rock off to the side, where the kingdom's dragon keeps watch.
+    if (dragon) {
+      const g = this.islet(2.6, rand, 0);
+      g.position.set(c + radius * 1.32, 2.2, c + radius * 0.25);
+      this.dragonSpot.copy(g.position);
+      this.island.add(g);
+    }
+
+    this.controls.target.set(c, 1.6, c);
+  }
+
+  /** A small floating islet: a grass top on a jagged rock, with some trees. */
+  private islet(r: number, rand: () => number, trees = 7) {
+    const g = new THREE.Group();
+    const top = new THREE.Mesh(
+      new THREE.CylinderGeometry(r, r * 0.94, 0.6, 18),
+      mat(trees ? C.meadow : C.rock),
+    );
+    top.position.y = -0.3;
+    top.receiveShadow = true;
+    const rock = rockCone(r);
+    rock.position.y = -0.6 - r * 1.05;
+    g.add(top, rock);
+    for (let i = 0; i < trees; i++) {
+      const a = rand() * Math.PI * 2;
+      const d = r * (0.45 + rand() * 0.45);
+      const item = scenery(rand);
+      item.position.set(Math.cos(a) * d, 0, Math.sin(a) * d);
+      g.add(item);
+    }
+    return g;
   }
 
   private placeHall(stage: StageId, animate: boolean) {
@@ -639,6 +712,15 @@ export class KingdomScene {
       if (o.userData.flame) this.flames.push(o as THREE.Mesh);
       if (o.userData.flag) this.flags.push(o as THREE.Mesh);
       if (o.userData.spin) this.spinners.push(o);
+      // Kit models with their own loop (fire, cloth) play it.
+      const tick = (
+        o.userData.clips as THREE.AnimationClip[] | undefined
+      )?.find((c) => c.name === "tick");
+      if (tick && !this.options.reducedMotion) {
+        const mixer = new THREE.AnimationMixer(o);
+        mixer.clipAction(tick).play();
+        this.mixers.push({ mixer, owner: obj });
+      }
     });
     const smoke = obj.userData.smoke as THREE.Vector3 | undefined;
     if (smoke && !this.options.reducedMotion) {
@@ -668,6 +750,7 @@ export class KingdomScene {
     this.flames = this.flames.filter((f) => !isChild(obj, f));
     this.flags = this.flags.filter((f) => !isChild(obj, f));
     this.spinners = this.spinners.filter((f) => !isChild(obj, f));
+    this.mixers = this.mixers.filter((m) => m.owner !== obj);
     this.smoke = this.smoke.filter((s) => {
       if (s.sprite.userData.owner !== obj) return true;
       this.scene.remove(s.sprite);
@@ -805,6 +888,46 @@ export class KingdomScene {
         speed: (i % 2 ? -1 : 1) * (0.42 + (i % 3) * 0.04),
       });
     }
+    this.creatures(stage);
+  }
+  /** Sheep on the meadow, and from the kingdom stage a dragon on its rock. */
+  private creatures(stage: StageId) {
+    const key = `${this.islandKey}:${stage}`;
+    if (this.flockKey === key) return;
+    this.flockKey = key;
+    for (const o of this.flock) {
+      this.scene.remove(o);
+      this.mixers = this.mixers.filter((m) => m.owner !== o);
+    }
+    this.flock = [];
+    const add = (name: "sheep" | "dragon", scale: number, t: number) => {
+      const p = person(name, scale);
+      if (p.idle) {
+        const mixer = new THREE.AnimationMixer(p.root);
+        mixer.clipAction(p.idle).play();
+        mixer.setTime(t);
+        this.mixers.push({ mixer, owner: p.obj });
+      }
+      this.scene.add(p.obj);
+      this.flock.push(p.obj);
+      return p.obj;
+    };
+    const rand = seeded(23);
+    const c = this.centre;
+    const rank = STAGE_IDS.indexOf(stage);
+    for (let i = 0; i < 3 + rank; i++) {
+      // The meadow between the land (or its wall) and the island's edge.
+      const a = rand() * Math.PI * 2;
+      const d = this.radius - 0.7 - rand() * 0.8;
+      const sheep = add("sheep", 1.15, i * 0.9);
+      sheep.position.set(c + Math.cos(a) * d, 0, c + Math.sin(a) * d);
+      sheep.rotation.y = rand() * 6;
+    }
+    if (rank >= STAGE_IDS.indexOf("kingdom")) {
+      const dragon = add("dragon", 2.6, 0);
+      dragon.position.copy(this.dragonSpot);
+      dragon.lookAt(c, this.dragonSpot.y, c);
+    }
   }
   /** A point d along the square lane round the hall's grounds. */
   private lane(d: number): [number, number, number] {
@@ -828,11 +951,14 @@ export class KingdomScene {
   private flyIn() {
     const target = this.controls.target.clone();
     // A tall phone screen needs the camera further back to fit the island.
-    const k = this.camera.aspect < 1 ? 1.95 : 1;
+    // The camera sits low, looking across the kingdom to the hall, and
+    // further back the bigger the island is.
+    const k =
+      (this.camera.aspect < 1 ? 1.95 : 1) * Math.max(1, this.radius / 12);
     const to = new THREE.Vector3(
-      target.x + 12.5 * k,
-      target.y + 11 * k,
-      target.z + 18.5 * k,
+      target.x + 13 * k,
+      target.y + 8.2 * k,
+      target.z + 19.5 * k,
     );
     if (this.options.reducedMotion) {
       this.camera.position.copy(to);
@@ -938,6 +1064,16 @@ export class KingdomScene {
     }
     for (const tex of this.waters) tex.offset.y += dt * 1.4;
     for (const s of this.spinners) s.rotation.z += dt * 0.6;
+    for (const m of this.mixers) m.mixer.update(dt);
+    this.balloons.forEach((b, i) => {
+      const a = time * 0.02 * (i ? -1 : 1) + i * 2.2 + 3.6;
+      const r = this.radius * (1.7 + i * 0.5);
+      b.position.set(
+        this.centre + Math.cos(a) * r,
+        11 + i * 5 + Math.sin(time * 0.3 + i) * 0.5,
+        this.centre + Math.sin(a) * r,
+      );
+    });
     for (const w of this.walkers) {
       w.d += w.speed * dt;
       const [x, z, heading] = this.lane(w.d);
@@ -1001,6 +1137,35 @@ export class KingdomScene {
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
     }
   }
+}
+
+/** A jagged cone of rock, point down, for the underside of an island. */
+function rockCone(radius: number) {
+  const geo = new THREE.ConeGeometry(radius * 0.92, radius * 2.1, 14, 5, true);
+  const pos = geo.attributes.position;
+  // Jitter by position, so the vertices a cone repeats (its seam and apex)
+  // move together and the rock stays closed.
+  const jitter = (x: number, y: number, z: number, n: number) => {
+    const h =
+      Math.sin(
+        Math.round(x * 10) * 12.9898 +
+          Math.round(y * 10) * 78.233 +
+          Math.round(z * 10) * 37.719 +
+          n,
+      ) * 43758.5453;
+    return h - Math.floor(h) - 0.5;
+  };
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    if (y > radius * 1.04 || y < -radius * 1.04) continue;
+    const k = 1 + jitter(x, y, z, 1) * 0.35;
+    pos.setXYZ(i, x * k, y + jitter(x, y, z, 2) * (radius / 20), z * k);
+  }
+  geo.computeVertexNormals();
+  geo.rotateX(Math.PI);
+  return new THREE.Mesh(geo, mat(C.rock));
 }
 
 function isChild(parent: THREE.Object3D, child: THREE.Object3D) {

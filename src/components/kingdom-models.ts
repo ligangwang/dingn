@@ -14,7 +14,6 @@ export const METER = 1 / 3; // world units per meter
 const FILES = {
   cottage: "thatched-cottage-0e63f5",
   house: "two-story-house-40f6dc",
-  tavern: "village-tavern-4e94e3",
   chapel: "stone-chapel-03e774",
   watchtower: "watchtower-140f78",
   windmill: "windmill-3aad49",
@@ -66,6 +65,14 @@ const FILES = {
   tradesman: "tradesman-1707b9",
   merchant: "merchant-6f606b",
   guard: "village-guard-5f0f6f",
+  greatHall: "village-hall-c6d3c8",
+  clock: "clock-tower-752081",
+  brazier: "flame-brazier-bbf74a",
+  peak: "karst-limestone-peak-ee1b76",
+  cypress: "columnar-evergreen-shrub-35a00b",
+  balloon: "hot-air-balloon-a2a511",
+  dragon: "red-fire-dragon-base",
+  sheep: "sheep-base",
 } as const;
 export type ModelName = keyof typeof FILES;
 export const PEOPLE: ModelName[] = [
@@ -107,14 +114,16 @@ function load(names: ModelName[], key: string) {
   loads.set(key, p);
   return p;
 }
+// The living things are the heaviest files, so they load second.
+const LIFE: ModelName[] = [...PEOPLE, "dragon", "sheep"];
 /** Loads the buildings and scenery once; later calls share the promise. */
 export const loadModels = () =>
   load(
-    (Object.keys(FILES) as ModelName[]).filter((n) => !PEOPLE.includes(n)),
+    (Object.keys(FILES) as ModelName[]).filter((n) => !LIFE.includes(n)),
     "world",
   );
-/** The walking villagers, loaded after the kingdom is on screen. */
-export const loadPeople = () => load(PEOPLE, "people");
+/** Villagers, sheep and the dragon, loaded after the kingdom is on screen. */
+export const loadPeople = () => load(LIFE, "people");
 
 /** A copy of a model, in meters. */
 export function model(name: ModelName): THREE.Object3D {
@@ -219,6 +228,13 @@ const ROOF = "#b8463a"; // the kit's red tiles
 const ROOF_DARK = "#8f3129";
 const GOLD = "#e8b84a";
 const WINDOW = "#2c3346";
+/** A window with the lamps lit inside, bright enough to bloom. */
+const lit = () =>
+  plain("#ffd9a0", {
+    emissive: "#ffb24a",
+    emissiveIntensity: 1.6,
+    roughness: 0.4,
+  });
 
 function mesh(
   geo: THREE.BufferGeometry,
@@ -329,10 +345,13 @@ function windows(
   const holder = new THREE.Group();
   for (let i = 0; i < count; i++) {
     const x = -w / 2 + (w / count) * (i + 0.5);
-    holder.add(mesh(geo, plain(WINDOW, { roughness: 0.4 }), x, y, 0));
-    holder.add(
-      mesh(top, plain(WINDOW, { roughness: 0.4 }), x, y + 0.7 * size, 0),
-    );
+    // Most windows have their lamps lit; a few stay dark.
+    const glass =
+      (i * 7 + Math.round(y * 3)) % 4 === 0
+        ? plain(WINDOW, { roughness: 0.4 })
+        : lit();
+    holder.add(mesh(geo, glass, x, y, 0));
+    holder.add(mesh(top, glass, x, y + 0.7 * size, 0));
   }
   holder.position.set(x0, 0, z);
   holder.rotation.y = ry;
@@ -738,6 +757,15 @@ const M: Record<string, Maker> = {
       put(g, "lamp", { x, z, ry: Math.atan2(x, z) + Math.PI });
     return finish(g);
   },
+  clock: () => {
+    const g = new THREE.Group();
+    g.add(mesh(new THREE.BoxGeometry(5.4, 0.2, 5.4), stone(2, 2), 0, 0.1, 0));
+    put(g, "clock", { y: 0.2, s: 1.25 });
+    put(g, "lamp", { x: -2.2, z: 2.2 });
+    put(g, "lamp", { x: 2.2, z: 2.2 });
+    put(g, "planter", { x: 0, z: 2.4 });
+    return finish(g);
+  },
   statue: () => {
     const g = new THREE.Group();
     g.add(
@@ -802,20 +830,19 @@ const HALLS: Record<StageId, () => THREE.Group> = {
   },
   town: () => {
     const g = new THREE.Group();
-    plaza(g, 8.6);
-    put(g, "tavern", { z: -2.6, s: 1.0 });
-    put(g, "lamp", { x: -5.5, z: 4 });
-    put(g, "lamp", { x: 5.5, z: 4 });
-    put(g, "flowerBed", { x: -3, z: 5.5, s: 1.3 });
-    put(g, "flowerBed", { x: 3, z: 5.5, s: 1.3 });
-    put(g, "cart", { x: 6.5, z: 6, ry: -0.8 });
-    put(g, "barrel", { x: -7, z: 2 });
-    put(g, "barrel", { x: -7.6, z: 2.8 });
-    put(g, "crate", { x: -6.8, z: 3.6, ry: 0.3 });
-    put(g, "signpost", { x: 0, z: 7.4, ry: 0.2 });
-    banner(g, -6.4, 0, -2.6, 9);
-    banner(g, 6.4, 0, -2.6, 9);
-    return finish(g, { smoke: new THREE.Vector3(-4.6, 11.5, -5.5) });
+    plaza(g, 8.8);
+    put(g, "greatHall", { z: -1.8, s: 0.95 });
+    put(g, "brazier", { x: -3, z: 5.6, s: 1.4 });
+    put(g, "brazier", { x: 3, z: 5.6, s: 1.4 });
+    put(g, "lamp", { x: -6.5, z: 6.5 });
+    put(g, "lamp", { x: 6.5, z: 6.5 });
+    put(g, "flowerBed", { x: -5.2, z: 5.6, s: 1.3 });
+    put(g, "flowerBed", { x: 5.2, z: 5.6, s: 1.3 });
+    put(g, "cart", { x: 7.2, z: 7.6, ry: -0.8 });
+    put(g, "signpost", { x: -7.4, z: 7.6, ry: 0.4 });
+    banner(g, -8, 0, 4, 8);
+    banner(g, 8, 0, 4, 8);
+    return finish(g, { smoke: new THREE.Vector3(4.6, 15.5, -3) });
   },
   city: () => {
     const g = new THREE.Group();
@@ -824,15 +851,18 @@ const HALLS: Record<StageId, () => THREE.Group> = {
     curtain(g, 7.6, 3.6, { r: 1.5, h: 6.5 });
     put(g, "lamp", { x: -2.6, z: 4.6 });
     put(g, "lamp", { x: 2.6, z: 4.6 });
-    put(g, "barrel", { x: 5, z: 3 });
-    put(g, "crate", { x: -5, z: 3, ry: 0.4 });
+    put(g, "brazier", { x: -4.6, z: 5.8, s: 1.4 });
+    put(g, "brazier", { x: 4.6, z: 5.8, s: 1.4 });
     banner(g, 0, 14.5, -1.5, 3.4);
     return finish(g);
   },
   kingdom: () => {
     const g = new THREE.Group();
     plaza(g, 7.4);
-    keep(g, 0, -2, 7.6, 15, { turrets: true, roof: 6 });
+    keep(g, 0, -2, 7.6, 18, { turrets: true, roof: 7, gold: true });
+    roundTower(g, 5.2, -4.6, 1.3, 13, { spire: 5, flag: "#2f5aa8" });
+    put(g, "brazier", { x: -4.4, z: 3.2, s: 1.4 });
+    put(g, "brazier", { x: 4.4, z: 3.2, s: 1.4 });
     // A great hall leaning on the keep.
     g.add(mesh(new THREE.BoxGeometry(4, 6, 6), stone(1.4, 2), -5, 3, -1));
     const hallRoof = mesh(
@@ -855,96 +885,118 @@ const HALLS: Record<StageId, () => THREE.Group> = {
     return finish(g);
   },
   capital: () => {
-    // The palace: royal blue slate and gold over pale stone, a long
-    // two-storey front with a great tower behind, inside a grand wall.
+    // The palace: royal blue slate and gold over pale stone. It stands on a
+    // raised terrace behind a wall: a long lamplit front, a cluster of
+    // spires of different heights, and a great tower with a crown on top.
     const g = new THREE.Group();
-    plaza(g, 8);
-    const BLUE = "#35558f";
+    plaza(g, 8.8);
+    const BLUE = "#2f4f8f";
     const gold = plain(GOLD, { metalness: 0.7, roughness: 0.3 });
-    keep(g, 0, -4.2, 5.6, 19, { roof: 9, gold: true, color: BLUE });
-    put(g, "crown", { y: 19 + 0.4 + 9 + 0.6, z: -4.2, s: 4.2 });
-    // The front range, with a tall entrance bay in the middle.
+    const UP = 2.2;
     g.add(
       mesh(
-        new THREE.BoxGeometry(12.4, 8.5, 4.6),
-        stone(4.2, 2.8),
+        new THREE.BoxGeometry(15.6, UP, 10.4),
+        stone(5, 0.8),
         0,
-        4.25,
-        -0.6,
+        UP / 2,
+        -2.6,
       ),
     );
     g.add(
-      mesh(new THREE.BoxGeometry(12.8, 0.4, 5), stone(4.2, 0.2), 0, 8.6, -0.6),
+      mesh(new THREE.BoxGeometry(16, 0.3, 10.8), stone(5, 0.1), 0, UP, -2.6),
+    );
+    for (let i = 0; i < 5; i++)
+      g.add(
+        mesh(
+          new THREE.BoxGeometry(6, UP - i * 0.44, 0.5),
+          stone(2, 0.6),
+          0,
+          (UP - i * 0.44) / 2,
+          2.85 + i * 0.5,
+        ),
+      );
+    const pal = new THREE.Group();
+    pal.position.y = UP;
+    g.add(pal);
+    keep(pal, 0, -4.4, 6, 25, {
+      turrets: true,
+      roof: 11,
+      gold: true,
+      color: BLUE,
+    });
+    put(pal, "crown", { y: 25 + 0.4 + 11 + 0.6, z: -4.4, s: 4.6 });
+    // The front range, with a tall entrance bay in the middle.
+    pal.add(mesh(new THREE.BoxGeometry(13, 9, 5), stone(4.4, 3), 0, 4.5, -1.2));
+    pal.add(
+      mesh(
+        new THREE.BoxGeometry(13.4, 0.4, 5.4),
+        stone(4.4, 0.2),
+        0,
+        9.1,
+        -1.2,
+      ),
     );
     const roof = mesh(
-      new THREE.CylinderGeometry(0.01, 4.4, 3.6, 4, 1),
+      new THREE.CylinderGeometry(0.01, 4.6, 4, 4, 1),
       plain(BLUE),
       0,
-      10.6,
-      -0.6,
+      11.3,
+      -1.2,
     );
     roof.rotation.y = Math.PI / 4;
-    roof.scale.set(2.05, 1, 0.78);
-    g.add(roof);
-    windows(g, 6, 11, 2.6, 1.72, 0, 0, 1);
-    windows(g, 6, 11, 6.2, 1.72, 0, 0, 0.9);
-    g.add(
-      mesh(
-        new THREE.BoxGeometry(3.6, 11.5, 1.2),
-        stone(1.2, 3.8),
-        0,
-        5.75,
-        1.9,
-      ),
+    roof.scale.set(2.05, 1, 0.82);
+    pal.add(roof);
+    windows(pal, 7, 12, 2.8, 1.32, 0, 0, 1.05);
+    windows(pal, 7, 12, 6.4, 1.32, 0, 0, 0.95);
+    pal.add(
+      mesh(new THREE.BoxGeometry(4, 13, 1.2), stone(1.4, 4.3), 0, 6.5, 1.5),
     );
     const gable = mesh(
-      new THREE.ConeGeometry(2.6, 3.4, 4),
+      new THREE.ConeGeometry(2.9, 4, 4),
       plain(BLUE),
       0,
-      13.2,
-      1.9,
+      15,
+      1.5,
     );
     gable.rotation.y = Math.PI / 4;
     gable.scale.set(1, 1, 0.5);
-    g.add(gable);
-    g.add(mesh(new THREE.SphereGeometry(0.3, 10, 8), gold, 0, 15, 1.9));
-    g.add(
-      mesh(new THREE.BoxGeometry(1.8, 3, 0.3), plain("#5a3a22"), 0, 1.5, 2.45),
+    pal.add(gable);
+    pal.add(mesh(new THREE.SphereGeometry(0.32, 10, 8), gold, 0, 17.1, 1.5));
+    pal.add(
+      mesh(new THREE.BoxGeometry(2, 3.2, 0.3), plain("#5a3a22"), 0, 1.6, 2.1),
     );
-    g.add(
-      mesh(
-        new THREE.CylinderGeometry(0.9, 0.9, 0.3, 16, 1, false, 0, Math.PI)
-          .rotateX(Math.PI / 2)
-          .rotateZ(Math.PI / 2),
-        plain("#5a3a22"),
-        0,
-        3,
-        2.45,
-      ),
-    );
-    windows(g, 1, 2, 7.2, 2.55, 0, 0, 1.3);
-    for (const sx of [-1, 1])
-      roundTower(g, sx * 6.6, -0.6, 1.2, 10, {
-        spire: 4.5,
+    windows(pal, 1, 2, 7.6, 2.15, 0, 0, 1.6);
+    windows(pal, 1, 2, 11, 2.15, 0, 0, 1);
+    // Spires of different heights round the great tower.
+    for (const sx of [-1, 1]) {
+      roundTower(pal, sx * 6.9, -1.2, 1.35, 12, {
+        spire: 6,
         gold: true,
         flag: GOLD,
         roof: BLUE,
       });
-    curtain(g, 8.4, 3.6, {
+      roundTower(pal, sx * 4.6, -6.6, 1.15, 17, {
+        spire: 7,
+        gold: true,
+        flag: "#6a3fa0",
+        roof: BLUE,
+      });
+    }
+    curtain(g, 8.4, 3.4, {
       r: 1.4,
-      h: 7,
+      h: 6.5,
       spire: 4,
       gold: true,
       flag: "#6a3fa0",
       roof: BLUE,
     });
-    put(g, "fountain", { z: 5, s: 1.25 });
-    put(g, "statue", { x: -4.2, z: 5.2, s: 1.1 });
-    put(g, "statue", { x: 4.2, z: 5.2, s: 1.1 });
-    put(g, "flowerBed", { x: -5.6, z: 3, s: 1.3 });
-    put(g, "flowerBed", { x: 5.6, z: 3, s: 1.3 });
-    put(g, "lamp", { x: -2.2, z: 3.4 });
-    put(g, "lamp", { x: 2.2, z: 3.4 });
+    for (const sx of [-1, 1]) {
+      put(g, "brazier", { x: sx * 3.8, z: 4.4, s: 1.5 });
+      put(g, "statue", { x: sx * 2.2, z: 6.6, s: 1.1 });
+      put(g, "cypress", { x: sx * 5.6, z: 3.6, s: 1.3 });
+      put(g, "cypress", { x: sx * 5.6, z: 5.6, s: 1.3 });
+      put(g, "flowerBed", { x: sx * 6.3, z: 4.6, s: 1.2 });
+    }
     return finish(g);
   },
 };
@@ -997,15 +1049,97 @@ export function spire(rand: () => number): THREE.Object3D {
 }
 
 /** A villager who can walk: the model in world units and its walk clip. */
-export function person(name: ModelName) {
+export function person(name: ModelName, scale = 1) {
   const inner = model(name);
-  inner.scale.setScalar(METER);
+  inner.scale.setScalar(METER * scale);
   const g = new THREE.Group();
   g.add(inner);
   const clips = (inner.userData.clips ?? []) as THREE.AnimationClip[];
   return {
     obj: g,
     walk: clips.find((c) => c.name === "Walk") ?? null,
+    idle: clips.find((c) => c.name === "Idle") ?? null,
     root: inner,
   };
+}
+
+/** A white cliff with pines, for the islets that float behind the kingdom. */
+export function peak(rand: () => number, scale = 1): THREE.Object3D {
+  const g = new THREE.Group();
+  put(g, "peak", { ry: rand() * 6, s: scale });
+  return finish(g);
+}
+export function balloon(): THREE.Object3D {
+  const g = new THREE.Group();
+  put(g, "balloon", { s: 2.4 });
+  return finish(g);
+}
+
+/**
+ * The wall round the whole land, from the city on: crenellated stone with
+ * towers at the corners and the kit's gatehouse in the middle of the front.
+ * `size` is the land's width in tiles; the group is centred on the land.
+ */
+export function cityWall(size: number, stage: StageId): THREE.Group {
+  const g = new THREE.Group();
+  const grand = stage !== "city";
+  const roofColor = stage === "capital" ? "#2f4f8f" : ROOF;
+  const h = stage === "city" ? 3 : stage === "kingdom" ? 3.6 : 4;
+  const half = size * 3 + 1.8;
+  const run = (len: number, x: number, z: number, ry: number) => {
+    const part = new THREE.Group();
+    part.add(
+      mesh(new THREE.BoxGeometry(len, h, 1.2), stone(len / 3, h / 3), 0, h / 2),
+    );
+    const n = Math.max(2, Math.round(len / 1.5));
+    const step = len / n;
+    const merlons = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(step * 0.55, 0.8, 1.3),
+      stone(0.3, 0.3),
+      n,
+    );
+    const m = new THREE.Matrix4();
+    for (let i = 0; i < n; i++)
+      merlons.setMatrixAt(
+        i,
+        m.makeTranslation(-len / 2 + step * (i + 0.5), h + 0.4, 0),
+      );
+    merlons.castShadow = true;
+    part.add(merlons);
+    part.position.set(x, 0, z);
+    part.rotation.y = ry;
+    g.add(part);
+  };
+  const side = half * 2;
+  run(side, 0, -half, 0);
+  run(side, -half, 0, Math.PI / 2);
+  run(side, half, 0, Math.PI / 2);
+  // The front leaves a gap for the gatehouse.
+  const gate = 4.2;
+  const seg = half - gate;
+  run(seg, -gate - seg / 2, half, 0);
+  run(seg, gate + seg / 2, half, 0);
+  put(g, "gatehouse", { z: half, s: 1.35 });
+  put(g, "brazier", { x: -5.6, z: half + 1.6, s: 1.5 });
+  put(g, "brazier", { x: 5.6, z: half + 1.6, s: 1.5 });
+  const tower = (x: number, z: number, big: boolean) =>
+    roundTower(g, x, z, big ? 2 : 1.6, h + (big ? 4.5 : 3), {
+      spire: big ? 5 : 4,
+      roof: roofColor,
+      gold: stage === "capital",
+      flag: stage === "capital" ? GOLD : ROOF,
+    });
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ])
+    tower(sx * half, sz * half, true);
+  if (grand) {
+    tower(0, -half, false);
+    tower(-half, 0, false);
+    tower(half, 0, false);
+  }
+  return finish(g);
 }
