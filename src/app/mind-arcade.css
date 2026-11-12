@@ -717,6 +717,19 @@ nav > a,
     width: 24px;
   }
 }
+/* Five games-and-kingdom links plus the account tools on one phone row. */
+@media (max-width: 480px) {
+  nav {
+    gap: 1px;
+  }
+  .nav-label {
+    font-size: 11px;
+  }
+  nav > a,
+  .admin-menu > summary {
+    padding: 6px 4px;
+  }
+}
 @media (max-width: 380px) {
   .nav-label {
     font-size: 11px;
