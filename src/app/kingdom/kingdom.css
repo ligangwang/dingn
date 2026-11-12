@@ -13,6 +13,17 @@
   inset: 0;
   touch-action: none;
 }
+.kingdom-credit {
+  position: absolute;
+  z-index: 1;
+  left: 12px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1c242099;
+  font-size: 11px;
+  color: #fff;
+}
 .kingdom-canvas canvas {
   display: block;
   width: 100%;

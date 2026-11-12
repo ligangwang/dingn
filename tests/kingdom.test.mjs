@@ -82,9 +82,11 @@ test("building follows the rules", () => {
   assert.equal(at(9, 99, { id: "nope", x: 1, y: 0 }), "unknown-building");
   assert.equal(at(2, 99, { id: "cottage", x: 0, y: 0 }), "off-land");
   assert.equal(at(2, 99, { id: "cottage", x: 3, y: 0 }), "off-land");
-  assert.equal(at(2, 10, { id: "cottage", x: 1, y: 0 }), "not-enough-coins");
-  assert.equal(at(2, 999, { id: "market", x: 1, y: 0 }), "level");
-  assert.equal(at(4, 999, { id: "market", x: 1, y: 0 }), "hall-first");
+  // The hall's grounds are the 3 x 3 tiles around it.
+  assert.equal(at(2, 99, { id: "cottage", x: 1, y: -1 }), "off-land");
+  assert.equal(at(2, 10, { id: "cottage", x: 2, y: 0 }), "not-enough-coins");
+  assert.equal(at(2, 999, { id: "market", x: 2, y: 0 }), "level");
+  assert.equal(at(4, 999, { id: "market", x: 2, y: 0 }), "hall-first");
   assert.equal(at(4, 999, { id: "hall-town" }), "level");
   assert.equal(at(6, 999, { id: "hall-town" }), "hall-first");
 
@@ -103,24 +105,24 @@ test("building follows the rules", () => {
   );
   assert.equal(
     at(4, 80, { id: "market", x: -2, y: 2 }, hall.kingdom).coins,
-    80,
+    40,
   );
 
   let k = empty;
-  for (let x = -1; x <= 2; x++)
-    for (let y = -1; y <= 2; y++)
-      if ((x || y) && Object.keys(k.tiles).length < 6)
+  for (let x = -2; x <= 2; x++)
+    for (let y = -2; y <= 2; y++)
+      if (!rules.isHallTile(x, y) && Object.keys(k.tiles).length < 6)
         k = rules.build(k, { id: "farm", x, y }, 2, 99).kingdom;
   assert.equal(at(2, 99, { id: "farm", x: 2, y: 2 }, k), "max");
 
-  const moved = rules.move(first.kingdom, { from: [2, -1], to: [1, 1] }, 2);
-  assert.deepEqual(moved.tiles, { "1,1": "cottage" });
+  const moved = rules.move(first.kingdom, { from: [2, -1], to: [-2, 1] }, 2);
+  assert.deepEqual(moved.tiles, { "-2,1": "cottage" });
   assert.throws(
-    () => rules.move(first.kingdom, { from: [2, -1], to: [0, 0] }, 2),
+    () => rules.move(first.kingdom, { from: [2, -1], to: [1, 1] }, 2),
     { code: "off-land" },
   );
   assert.throws(
-    () => rules.move(first.kingdom, { from: [1, 1], to: [1, 2] }, 2),
+    () => rules.move(first.kingdom, { from: [2, 2], to: [2, 1] }, 2),
     {
       code: "empty",
     },
@@ -192,7 +194,7 @@ test("a player earns badges, reaches the camp and builds", async () => {
   assert.equal(me.status, 200);
   assert.equal(me.body.stage, null);
   assert.equal(
-    (await visit("/api/kingdom/build", { building: "cottage", x: 1, y: 0 }))
+    (await visit("/api/kingdom/build", { building: "cottage", x: 2, y: 0 }))
       .status,
     403,
   );
@@ -203,39 +205,39 @@ test("a player earns badges, reaches the camp and builds", async () => {
   me = await visit("/api/kingdom/me");
   assert.equal(me.body.level, 2);
   assert.equal(me.body.stage, "camp");
-  assert.equal(me.body.size, 4);
+  assert.equal(me.body.size, 5);
   assert.equal(me.body.coins, 50);
   assert.equal((await store.getDoc("players", "kim")).name, "Kim");
 
   const built = await visit("/api/kingdom/build", {
     building: "cottage",
-    x: 1,
+    x: 2,
     y: 0,
   });
   assert.equal(built.status, 200);
   assert.equal(built.body.paid, 20);
   assert.equal(built.body.coins, 30);
-  assert.deepEqual(built.body.tiles, { "1,0": "cottage" });
+  assert.deepEqual(built.body.tiles, { "2,0": "cottage" });
   const doc = await store.getDoc("rewards", "kim");
   assert.equal(doc.spent, 20);
   assert.equal(rewards.wallet(doc).coins, 30);
 
   const busy = await visit("/api/kingdom/build", {
     building: "farm",
-    x: 1,
+    x: 2,
     y: 0,
   });
   assert.deepEqual([busy.status, busy.body.error], [409, "occupied"]);
   const poor = await visit("/api/kingdom/build", {
     building: "cottage",
     x: 2,
-    y: 0,
+    y: 1,
   });
   assert.equal(poor.status, 200);
   const broke = await visit("/api/kingdom/build", {
     building: "cottage",
     x: 2,
-    y: 1,
+    y: 2,
   });
   assert.deepEqual([broke.status, broke.body.error], [402, "not-enough-coins"]);
   assert.equal(
@@ -244,10 +246,10 @@ test("a player earns badges, reaches the camp and builds", async () => {
   );
 
   const moved = await visit("/api/kingdom/move", {
-    from: [1, 0],
-    to: [-1, -1],
+    from: [2, 0],
+    to: [-2, -2],
   });
-  assert.deepEqual(moved.body.tiles, { "-1,-1": "cottage", "2,0": "cottage" });
+  assert.deepEqual(moved.body.tiles, { "-2,-2": "cottage", "2,1": "cottage" });
 });
 
 test("visiting the kingdom pays badge XP earned before badges gave XP", async () => {

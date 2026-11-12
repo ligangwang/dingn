@@ -22,6 +22,8 @@ export function stageFor(level: number): Stage | null;
 export function landBounds(size: number): { lo: number; hi: number };
 export function onLand(size: number, x: number, y: number): boolean;
 export function tileKey(x: number, y: number): string;
+export const HALL_RADIUS: number;
+export function isHallTile(x: number, y: number): boolean;
 export function kingdomOf(doc: unknown): Kingdom;
 export class KingdomError extends Error {
   code: string;

@@ -285,6 +285,15 @@ the server (`scripts/kingdom.mjs`, `POST /api/kingdom/me|build|move`) both
 read; the kingdom is kept in `rewards/{uid}` as `kingdom: { hall, tiles }`, so
 a building and its coins are one write. Games need no change to feed it.
 
+The hall stands on the 3 x 3 tiles around 0,0 (`HALL_RADIUS`) and grows from
+a campfire into a village hall, great hall, keep, castle and palace; the land
+around it is 5 x 5 tiles at the camp and 10 x 10 at the capital. The buildings
+are Polyfork Medieval Village models in `public/models/kingdom/` (CC BY 4.0,
+listed in its `CREDITS.md`, linked from the page); the keep, castle and
+palace add stone walls and towers drawn in `src/components/kingdom-models.ts`.
+Add a model by putting its GLB there, naming it in `FILES` in that file and
+adding a row to `CREDITS.md`.
+
 Badges earned before badges gave XP are paid when the player next earns a
 badge or opens the kingdom, or all at once by the Website workflow's
 `badge-xp` migration (`scripts/backfill-badge-xp.mjs`). `xpPaid` in

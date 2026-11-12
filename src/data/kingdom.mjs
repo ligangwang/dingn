@@ -6,151 +6,64 @@
 // A player's kingdom is kept in their rewards document (rewards/{uid}), next
 // to their coins, so buying a building and paying for it is one write:
 //   kingdom: { hall: "camp", tiles: { "<x>,<y>": "<building id>" } }
-// The hall always stands on tile 0,0; nothing else can be built there.
+// The hall's grounds are the 3 x 3 tiles around 0,0 (HALL_RADIUS), where it
+// grows from a campfire into a palace; nothing else can be built there.
 
 /** Kingdom stages, by the account level that opens each one. */
 export const STAGES = [
-  { id: "camp", level: 2, size: 4, title: { en: "Camp", zh: "营地" } },
-  { id: "village", level: 4, size: 5, title: { en: "Village", zh: "村庄" } },
-  { id: "town", level: 6, size: 6, title: { en: "Town", zh: "城镇" } },
-  { id: "city", level: 10, size: 7, title: { en: "City", zh: "城市" } },
-  { id: "kingdom", level: 15, size: 8, title: { en: "Kingdom", zh: "王国" } },
-  { id: "capital", level: 20, size: 9, title: { en: "Capital", zh: "王都" } },
+  { id: "camp", level: 2, size: 5, title: { en: "Camp", zh: "营地" } },
+  { id: "village", level: 4, size: 6, title: { en: "Village", zh: "村庄" } },
+  { id: "town", level: 6, size: 7, title: { en: "Town", zh: "城镇" } },
+  { id: "city", level: 10, size: 8, title: { en: "City", zh: "城市" } },
+  { id: "kingdom", level: 15, size: 9, title: { en: "Kingdom", zh: "王国" } },
+  { id: "capital", level: 20, size: 10, title: { en: "Capital", zh: "王都" } },
 ];
 export const STAGE_IDS = STAGES.map((s) => s.id);
 export const MIN_LEVEL = STAGES[0].level;
 /** Account XP per badge, by tier: twice the coins the tier pays. */
 export const BADGE_XP = { bronze: 20, silver: 50, gold: 100, diamond: 200 };
 
+const b = (id, stage, coins, max, en, zh, extra = {}) => ({
+  id,
+  stage,
+  coins,
+  max,
+  ...extra,
+  title: { en, zh },
+});
 /**
  * What players can build. `stage` is the hall they need first. A hall
  * building (`hall: true`) upgrades the hall to its stage instead of taking a
  * tile; `max` is how many one kingdom can have.
  */
 export const BUILDINGS = [
-  {
-    id: "path",
-    stage: "camp",
-    coins: 2,
-    max: 40,
-    title: { en: "Path", zh: "小路" },
-  },
-  {
-    id: "tree",
-    stage: "camp",
-    coins: 5,
-    max: 20,
-    title: { en: "Tree", zh: "树" },
-  },
-  {
-    id: "flowers",
-    stage: "camp",
-    coins: 5,
-    max: 20,
-    title: { en: "Flower bed", zh: "花坛" },
-  },
-  {
-    id: "cottage",
-    stage: "camp",
-    coins: 20,
-    max: 6,
-    title: { en: "Cottage", zh: "小屋" },
-  },
-  {
-    id: "farm",
-    stage: "camp",
-    coins: 15,
-    max: 6,
-    title: { en: "Farm field", zh: "农田" },
-  },
-  {
-    id: "hall-village",
-    stage: "village",
-    coins: 100,
-    max: 1,
+  b("path", "camp", 2, 40, "Stone path", "石板路"),
+  b("tree", "camp", 5, 20, "Oak tree", "橡树"),
+  b("flowers", "camp", 5, 20, "Flower bed", "花坛"),
+  b("cottage", "camp", 20, 6, "Thatched cottage", "茅草屋"),
+  b("farm", "camp", 15, 6, "Wheat field", "麦田"),
+  b("hall-village", "village", 100, 1, "Village hall", "村公所", {
     hall: true,
-    title: { en: "Longhouse", zh: "长屋" },
-  },
-  {
-    id: "well",
-    stage: "village",
-    coins: 30,
-    max: 1,
-    title: { en: "Well", zh: "水井" },
-  },
-  {
-    id: "market",
-    stage: "village",
-    coins: 80,
-    max: 1,
-    title: { en: "Market", zh: "集市" },
-  },
-  {
-    id: "hall-town",
-    stage: "town",
-    coins: 250,
-    max: 1,
-    hall: true,
-    title: { en: "Town hall", zh: "市政厅" },
-  },
-  {
-    id: "workshop",
-    stage: "town",
-    coins: 100,
-    max: 1,
-    title: { en: "Workshop", zh: "工坊" },
-  },
-  {
-    id: "tower",
-    stage: "town",
-    coins: 150,
-    max: 2,
-    title: { en: "Watchtower", zh: "瞭望塔" },
-  },
-  {
-    id: "hall-city",
-    stage: "city",
-    coins: 500,
-    max: 1,
-    hall: true,
-    title: { en: "Keep", zh: "城堡主楼" },
-  },
-  {
-    id: "library",
-    stage: "city",
-    coins: 200,
-    max: 1,
-    title: { en: "Library", zh: "图书馆" },
-  },
-  {
-    id: "hall-kingdom",
-    stage: "kingdom",
-    coins: 800,
-    max: 1,
-    hall: true,
-    title: { en: "Castle", zh: "城堡" },
-  },
-  {
-    id: "statue",
-    stage: "kingdom",
-    coins: 300,
-    max: 1,
-    title: { en: "Statue", zh: "雕像" },
-  },
-  {
-    id: "hall-capital",
-    stage: "capital",
-    coins: 1200,
-    max: 1,
-    hall: true,
-    title: { en: "Palace", zh: "宫殿" },
-  },
+  }),
+  b("well", "village", 30, 1, "Well", "水井"),
+  b("market", "village", 40, 3, "Market stall", "集市摊位"),
+  b("windmill", "village", 120, 1, "Windmill", "风车"),
+  b("hall-town", "town", 250, 1, "Great hall", "大会堂", { hall: true }),
+  b("house", "town", 60, 6, "Town house", "城镇住宅"),
+  b("forge", "town", 100, 1, "Blacksmith", "铁匠铺"),
+  b("tower", "town", 150, 2, "Watchtower", "瞭望塔"),
+  b("hall-city", "city", 500, 1, "Keep", "城堡主楼", { hall: true }),
+  b("chapel", "city", 200, 1, "Chapel", "礼拜堂"),
+  b("fountain", "city", 250, 1, "Fountain", "喷泉"),
+  b("hall-kingdom", "kingdom", 800, 1, "Castle", "城堡", { hall: true }),
+  b("statue", "kingdom", 300, 2, "Knight statue", "骑士雕像"),
+  b("hall-capital", "capital", 1200, 1, "Palace", "宫殿", { hall: true }),
 ];
 /** The hall's look at each stage (camp's campfire is free). */
 export const HALL_TITLES = {
-  camp: { en: "Campfire", zh: "篝火" },
-  village: { en: "Longhouse", zh: "长屋" },
-  town: { en: "Town hall", zh: "市政厅" },
+  camp: { en: "Campfire", zh: "篝火营地" },
+  village: { en: "Village hall", zh: "村公所" },
+  town: { en: "Great hall", zh: "大会堂" },
   city: { en: "Keep", zh: "城堡主楼" },
   kingdom: { en: "Castle", zh: "城堡" },
   capital: { en: "Palace", zh: "宫殿" },
@@ -179,6 +92,10 @@ export function onLand(size, x, y) {
   return x >= lo && x <= hi && y >= lo && y <= hi;
 }
 export const tileKey = (x, y) => `${x},${y}`;
+export const HALL_RADIUS = 1;
+/** True for the tiles the hall stands on. */
+export const isHallTile = (x, y) =>
+  Math.abs(x) <= HALL_RADIUS && Math.abs(y) <= HALL_RADIUS;
 
 /** A player's kingdom as kept, with defaults for one not built yet. */
 export function kingdomOf(doc) {
@@ -220,7 +137,7 @@ export function build(kingdom, { id, x, y }, level, coins) {
       throw new KingdomError("hall-first");
     if (!Number.isInteger(x) || !Number.isInteger(y))
       throw new KingdomError("invalid-request", 400);
-    if (!onLand(open.size, x, y) || (x === 0 && y === 0))
+    if (!onLand(open.size, x, y) || isHallTile(x, y))
       throw new KingdomError("off-land");
     const key = tileKey(x, y);
     if (next.tiles[key]) throw new KingdomError("occupied");
@@ -243,7 +160,7 @@ export function move(kingdom, { from, to }, level) {
   const a = tileKey(...from);
   const b = tileKey(...to);
   if (!kingdom.tiles[a]) throw new KingdomError("empty");
-  if (!onLand(open.size, ...to) || (to[0] === 0 && to[1] === 0))
+  if (!onLand(open.size, ...to) || isHallTile(...to))
     throw new KingdomError("off-land");
   if (kingdom.tiles[b]) throw new KingdomError("occupied");
   const tiles = { ...kingdom.tiles, [b]: kingdom.tiles[a] };

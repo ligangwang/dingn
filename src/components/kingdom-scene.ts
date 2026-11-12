@@ -2,15 +2,25 @@
 // golden sun. Plain three.js with no React, so the page (kingdom.tsx) only
 // tells it what stands where and hears which tile was tapped.
 //
-// Everything is modelled in code from simple low-poly shapes, so the page
-// loads no model files. Tile x,y of the kingdom sits at world (x·T, 0, y·T).
+// The buildings are Polyfork's Medieval Village models (kingdom-models.ts);
+// the island, sky, clouds and water are drawn here. Tile x,y of the kingdom
+// sits at world (x·T, 0, y·T), and the hall stands on the 3 x 3 tiles at 0,0.
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import { landBounds, type StageId } from "@/data/kingdom.mjs";
+import { HALL_RADIUS, landBounds, type StageId } from "@/data/kingdom.mjs";
+import {
+  PEOPLE,
+  loadModels,
+  loadPeople,
+  makeBuilding,
+  makeHall,
+  person,
+  scenery,
+} from "./kingdom-models";
 
 export const T = 2; // a tile's width in world units
 const SUN = new THREE.Vector3(-0.55, 0.42, 0.72).normalize();
@@ -23,6 +33,7 @@ export type SceneState = {
 type Options = {
   onTile: (x: number, y: number) => void;
   reducedMotion: boolean;
+  onReady?: () => void;
 };
 
 // ---- materials ------------------------------------------------------------
@@ -47,510 +58,12 @@ function mat(
   return m;
 }
 const C = {
-  grass: "#7fb35a",
-  grassDark: "#679a47",
-  meadow: "#8cbf63",
+  meadow: "#86b85c",
   soil: "#8a6340",
   rock: "#7d746b",
   rockDark: "#5d5650",
-  wall: "#efe3cc",
-  wallWarm: "#e3cfa8",
-  stone: "#c9c2b6",
-  stoneDark: "#a39b8f",
-  wood: "#8a5a35",
-  woodDark: "#5e3b22",
-  roof: "#b4533a",
-  roofBlue: "#3f6a9e",
-  roofSlate: "#4f5866",
-  gold: "#e8b84a",
-  leaf: "#4f8f3f",
-  leafLight: "#6fae4c",
   water: "#5fb4e0",
-  flag: "#d9483b",
 };
-
-function mesh(
-  geo: THREE.BufferGeometry,
-  material: THREE.Material,
-  x = 0,
-  y = 0,
-  z = 0,
-) {
-  const m = new THREE.Mesh(geo, material);
-  m.position.set(x, y, z);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  return m;
-}
-const box = (
-  w: number,
-  h: number,
-  d: number,
-  color: string,
-  x = 0,
-  y = 0,
-  z = 0,
-) => mesh(new THREE.BoxGeometry(w, h, d), mat(color), x, y + h / 2, z);
-const cyl = (
-  rt: number,
-  rb: number,
-  h: number,
-  color: string,
-  x = 0,
-  y = 0,
-  z = 0,
-  seg = 8,
-) =>
-  mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat(color), x, y + h / 2, z);
-const cone = (
-  r: number,
-  h: number,
-  color: string,
-  x = 0,
-  y = 0,
-  z = 0,
-  seg = 4,
-) => {
-  const m = mesh(
-    new THREE.ConeGeometry(r, h, seg),
-    mat(color),
-    x,
-    y + h / 2,
-    z,
-  );
-  if (seg === 4) m.rotation.y = Math.PI / 4;
-  return m;
-};
-/** A gabled roof over a w × d box, ridge along x. */
-function gable(w: number, d: number, h: number, color: string, y: number) {
-  const shape = new THREE.Shape();
-  shape.moveTo(-d / 2 - 0.08, 0);
-  shape.lineTo(d / 2 + 0.08, 0);
-  shape.lineTo(0, h);
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: w + 0.16,
-    bevelEnabled: false,
-  });
-  geo.translate(0, 0, -(w + 0.16) / 2);
-  geo.rotateY(Math.PI / 2);
-  return mesh(geo, mat(color), 0, y, 0);
-}
-function windowGlow(x: number, y: number, z: number, ry = 0) {
-  const m = mesh(
-    new THREE.PlaneGeometry(0.16, 0.2),
-    mat("#ffd27a", { emissive: "#ffb347", emissiveIntensity: 0.6 }),
-    x,
-    y,
-    z,
-  );
-  m.rotation.y = ry;
-  m.castShadow = false;
-  return m;
-}
-function group(...children: THREE.Object3D[]) {
-  const g = new THREE.Group();
-  g.add(...children);
-  return g;
-}
-function flag(x: number, y: number, z: number, h = 0.9) {
-  const pole = cyl(0.025, 0.025, h, C.woodDark, x, y, z, 5);
-  const cloth = mesh(
-    new THREE.PlaneGeometry(0.42, 0.26, 4, 1),
-    new THREE.MeshStandardMaterial({
-      color: C.flag,
-      side: THREE.DoubleSide,
-      roughness: 0.9,
-    }),
-    x + 0.22,
-    y + h - 0.15,
-    z,
-  );
-  cloth.userData.flag = true;
-  return group(pole, cloth);
-}
-function tower(r: number, h: number, wall: string, roof: string, x = 0, z = 0) {
-  return group(
-    cyl(r, r * 1.05, h, wall, x, 0, z, 8),
-    cone(r * 1.35, r * 1.9, roof, x, h, z, 8),
-  );
-}
-function treeAt(x: number, z: number, s = 1, kind = 0) {
-  const trunk = cyl(0.06 * s, 0.09 * s, 0.35 * s, C.woodDark, x, 0, z, 5);
-  if (kind === 1) {
-    return group(
-      trunk,
-      cone(0.38 * s, 0.7 * s, C.leaf, x, 0.25 * s, z, 6),
-      cone(0.3 * s, 0.55 * s, C.leafLight, x, 0.6 * s, z, 6),
-    );
-  }
-  const crown = mesh(
-    new THREE.IcosahedronGeometry(0.36 * s, 0),
-    mat(kind === 2 ? C.leafLight : C.leaf),
-    x,
-    0.62 * s,
-    z,
-  );
-  return group(trunk, crown);
-}
-
-// ---- buildings ------------------------------------------------------------
-
-function cottage() {
-  const g = group(
-    box(0.9, 0.62, 0.7, C.wall),
-    gable(0.9, 0.7, 0.45, C.roof, 0.62),
-    box(0.14, 0.4, 0.14, C.stoneDark, 0.25, 0.75, -0.12),
-    box(0.16, 0.3, 0.02, C.woodDark, 0, 0, 0.36),
-    windowGlow(-0.28, 0.36, 0.352),
-    windowGlow(0.28, 0.36, 0.352),
-  );
-  g.userData.smoke = new THREE.Vector3(0.25, 1.2, -0.12);
-  return g;
-}
-function farm() {
-  const g = group(box(1.6, 0.06, 1.6, C.soil));
-  for (let i = 0; i < 5; i++) {
-    const row = box(
-      1.4,
-      0.12,
-      0.14,
-      i % 2 ? "#d8b44a" : "#9bc04f",
-      0,
-      0.06,
-      -0.6 + i * 0.3,
-    );
-    g.add(row);
-  }
-  g.add(
-    box(0.5, 0.35, 0.4, C.wood, 0.55, 0.06, 0.55),
-    cone(0.4, 0.3, C.roof, 0.55, 0.41, 0.55),
-  );
-  return g;
-}
-function well() {
-  return group(
-    cyl(0.32, 0.36, 0.35, C.stone, 0, 0, 0, 10),
-    mesh(
-      new THREE.CircleGeometry(0.27, 10).rotateX(-Math.PI / 2),
-      mat(C.water, { roughness: 0.2 }),
-      0,
-      0.3,
-      0,
-    ),
-    box(0.05, 0.6, 0.05, C.wood, -0.28, 0.3, 0),
-    box(0.05, 0.6, 0.05, C.wood, 0.28, 0.3, 0),
-    cone(0.5, 0.35, C.roof, 0, 0.88, 0),
-  );
-}
-function market() {
-  const g = new THREE.Group();
-  const colors = ["#d9483b", "#3f6a9e", "#e8b84a", "#4f8f3f"];
-  [
-    [-0.42, -0.42],
-    [0.42, -0.42],
-    [-0.42, 0.42],
-    [0.42, 0.42],
-  ].forEach(([x, z], i) => {
-    g.add(
-      box(0.6, 0.3, 0.45, C.wood, x, 0, z),
-      box(0.04, 0.65, 0.04, C.woodDark, x - 0.27, 0, z + 0.2),
-      box(0.04, 0.65, 0.04, C.woodDark, x + 0.27, 0, z + 0.2),
-      cone(0.5, 0.25, colors[i], x, 0.62, z),
-      box(0.16, 0.12, 0.16, colors[(i + 2) % 4], x - 0.12, 0.3, z),
-    );
-  });
-  return g;
-}
-function workshop() {
-  const g = group(
-    box(1.2, 0.75, 0.9, C.wallWarm),
-    gable(1.2, 0.9, 0.5, C.roofSlate, 0.75),
-    box(0.25, 0.9, 0.25, C.stoneDark, -0.4, 0.6, 0.2),
-    box(0.4, 0.4, 0.02, C.woodDark, 0.15, 0, 0.46),
-    windowGlow(-0.3, 0.42, 0.452),
-  );
-  g.add(cyl(0.18, 0.18, 0.3, C.wood, 0.75, 0, 0.3, 8));
-  g.userData.smoke = new THREE.Vector3(-0.4, 1.6, 0.2);
-  return g;
-}
-function watchtower() {
-  const g = group(
-    box(0.6, 1.6, 0.6, C.stone),
-    box(0.8, 0.1, 0.8, C.stoneDark, 0, 1.6, 0),
-    cone(0.62, 0.6, C.roof, 0, 1.7, 0),
-    windowGlow(0, 1.2, 0.302),
-  );
-  g.add(flag(0, 2.25, 0, 0.6));
-  return g;
-}
-function library() {
-  const g = group(
-    box(1.4, 0.9, 1.0, C.stone),
-    box(1.5, 0.08, 1.1, C.stoneDark, 0, 0.9, 0),
-    mesh(
-      new THREE.SphereGeometry(0.42, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2),
-      mat(C.roofBlue),
-      0,
-      0.98,
-      0,
-    ),
-  );
-  for (const x of [-0.5, -0.17, 0.17, 0.5])
-    g.add(cyl(0.06, 0.06, 0.8, C.wall, x, 0, 0.55, 6));
-  g.add(windowGlow(-0.33, 0.5, 0.502), windowGlow(0.33, 0.5, 0.502));
-  return g;
-}
-function statue() {
-  return group(
-    box(0.7, 0.3, 0.7, C.stone),
-    box(0.5, 0.2, 0.5, C.stoneDark, 0, 0.3, 0),
-    cyl(0.12, 0.16, 0.6, C.gold, 0, 0.5, 0, 6),
-    mesh(
-      new THREE.IcosahedronGeometry(0.13, 0),
-      mat(C.gold, { metalness: 0.6, roughness: 0.35 }),
-      0,
-      1.22,
-      0,
-    ),
-    mesh(
-      new THREE.OctahedronGeometry(0.16, 0),
-      mat(C.gold, {
-        metalness: 0.6,
-        roughness: 0.35,
-        emissive: "#a8741a",
-        emissiveIntensity: 0.3,
-      }),
-      0,
-      1.55,
-      0,
-    ),
-  );
-}
-function path() {
-  const g = new THREE.Group();
-  const s = [
-    [-0.45, -0.4, 0.5],
-    [0.3, -0.5, 0.45],
-    [-0.1, 0.05, 0.55],
-    [0.5, 0.2, 0.4],
-    [-0.5, 0.45, 0.45],
-    [0.15, 0.6, 0.4],
-  ];
-  for (const [x, z, r] of s) {
-    const stone = mesh(
-      new THREE.CylinderGeometry(r * 0.6, r * 0.62, 0.05, 6),
-      mat(C.stone),
-      x,
-      0.025,
-      z,
-    );
-    stone.rotation.y = x * 3;
-    stone.castShadow = false;
-    g.add(stone);
-  }
-  return g;
-}
-function flowers() {
-  const g = group(box(1.2, 0.08, 1.2, C.soil));
-  const colors = ["#f3d34a", "#e86a92", "#ffffff", "#b28be0"];
-  for (let i = 0; i < 18; i++) {
-    const x = ((i * 37) % 10) / 10 - 0.45;
-    const z = ((i * 53) % 10) / 10 - 0.45;
-    g.add(
-      mesh(
-        new THREE.IcosahedronGeometry(0.09, 0),
-        mat(colors[i % 4]),
-        x,
-        0.14,
-        z,
-      ),
-    );
-  }
-  return g;
-}
-function trees() {
-  return group(
-    treeAt(-0.3, -0.25, 1.1, 0),
-    treeAt(0.35, 0.1, 0.9, 1),
-    treeAt(-0.1, 0.4, 0.8, 2),
-  );
-}
-
-// The hall at each stage.
-function campfire() {
-  const g = new THREE.Group();
-  for (let i = 0; i < 4; i++) {
-    const log = mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, 0.6, 5),
-      mat(C.woodDark),
-      0,
-      0.08,
-      0,
-    );
-    log.rotation.z = Math.PI / 2;
-    log.rotation.y = (i * Math.PI) / 4;
-    g.add(log);
-  }
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    g.add(
-      mesh(
-        new THREE.DodecahedronGeometry(0.1, 0),
-        mat(C.stoneDark),
-        Math.cos(a) * 0.42,
-        0.06,
-        Math.sin(a) * 0.42,
-      ),
-    );
-  }
-  const flame = mesh(
-    new THREE.ConeGeometry(0.18, 0.5, 6),
-    new THREE.MeshStandardMaterial({
-      color: "#ffb347",
-      emissive: "#ff7a1a",
-      emissiveIntensity: 2.2,
-      flatShading: true,
-    }),
-    0,
-    0.35,
-    0,
-  );
-  flame.castShadow = false;
-  flame.userData.flame = true;
-  g.add(flame);
-  // Tents around the fire.
-  for (const [x, z, r] of [
-    [-0.75, -0.55, 0.6],
-    [0.7, -0.6, -0.5],
-  ]) {
-    const tent = cone(0.42, 0.6, "#d8c39a", x, 0, z, 4);
-    tent.rotation.y = r;
-    g.add(tent);
-  }
-  g.userData.light = new THREE.Vector3(0, 0.6, 0);
-  return g;
-}
-function longhouse() {
-  const g = group(
-    box(1.5, 0.7, 0.9, C.wood),
-    gable(1.5, 0.9, 0.7, "#c9a24a", 0.7),
-    box(0.3, 0.45, 0.02, C.woodDark, 0, 0, 0.46),
-    windowGlow(-0.45, 0.4, 0.452),
-    windowGlow(0.45, 0.4, 0.452),
-  );
-  g.add(flag(0.85, 0, 0.5, 1.2));
-  g.userData.smoke = new THREE.Vector3(0, 1.5, 0);
-  return g;
-}
-function townHall() {
-  const g = group(
-    box(1.6, 1.0, 1.1, C.wall),
-    gable(1.6, 1.1, 0.6, C.roofBlue, 1.0),
-    box(0.45, 0.9, 0.45, C.wall, 0, 1.2, 0.1),
-    cone(0.42, 0.7, C.roofBlue, 0, 2.1, 0.1),
-    box(0.36, 0.55, 0.02, C.woodDark, 0, 0, 0.56),
-  );
-  for (const x of [-0.55, -0.3, 0.3, 0.55]) g.add(windowGlow(x, 0.55, 0.552));
-  g.add(flag(0, 2.75, 0.1, 0.6));
-  return g;
-}
-function keep() {
-  const g = group(
-    box(1.3, 1.6, 1.3, C.stone),
-    box(1.45, 0.12, 1.45, C.stoneDark, 0, 1.6, 0),
-  );
-  for (const [x, z] of [
-    [-0.6, -0.6],
-    [0.6, -0.6],
-    [-0.6, 0.6],
-    [0.6, 0.6],
-  ])
-    g.add(tower(0.24, 2.0, C.stone, C.roofSlate, x, z));
-  for (const x of [-0.3, 0.3]) g.add(windowGlow(x, 1.0, 0.652));
-  g.add(flag(0, 1.72, 0, 0.9));
-  return g;
-}
-function castle() {
-  const g = new THREE.Group();
-  // Walls around a courtyard.
-  for (const [w, d, x, z] of [
-    [2.4, 0.22, 0, -1.1],
-    [2.4, 0.22, 0, 1.1],
-    [0.22, 2.4, -1.1, 0],
-    [0.22, 2.4, 1.1, 0],
-  ])
-    g.add(box(w, 0.8, d, C.stone, x, 0, z));
-  for (const [x, z] of [
-    [-1.1, -1.1],
-    [1.1, -1.1],
-    [-1.1, 1.1],
-    [1.1, 1.1],
-  ])
-    g.add(tower(0.3, 1.5, C.stone, C.roofBlue, x, z));
-  g.add(
-    box(1.1, 2.0, 1.0, C.wall, 0, 0, -0.2),
-    cone(0.85, 0.9, C.roofBlue, 0, 2.0, -0.2),
-  );
-  g.add(tower(0.28, 2.8, C.wall, C.roofBlue, 0.5, -0.5));
-  g.add(box(0.4, 0.5, 0.05, C.woodDark, 0, 0, 1.22));
-  for (const x of [-0.3, 0.3]) g.add(windowGlow(x, 1.2, 0.302));
-  g.add(flag(0.5, 3.35, -0.5, 0.7));
-  return g;
-}
-function palace() {
-  const g = castle();
-  g.add(
-    mesh(
-      new THREE.SphereGeometry(0.5, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-      mat(C.gold, { metalness: 0.5, roughness: 0.35 }),
-      0,
-      2.9,
-      -0.2,
-    ),
-    cone(0.12, 0.5, C.gold, 0, 3.35, -0.2, 6),
-    tower(0.22, 2.4, C.wall, C.gold, -0.6, -0.6),
-  );
-  return g;
-}
-
-const MAKERS: Record<string, () => THREE.Group> = {
-  path,
-  tree: trees,
-  flowers,
-  cottage,
-  farm,
-  well,
-  market,
-  workshop,
-  tower: watchtower,
-  library,
-  statue,
-};
-const HALLS: Record<StageId, () => THREE.Group> = {
-  camp: campfire,
-  village: longhouse,
-  town: townHall,
-  city: keep,
-  kingdom: castle,
-  capital: palace,
-};
-/** The castle and palace are built wide, so they shrink to fit the hall's tile. */
-const HALL_FIT: Partial<Record<StageId, number>> = {
-  kingdom: 0.82,
-  capital: 0.82,
-};
-
-export function makeBuilding(id: string): THREE.Group {
-  const g = (MAKERS[id] ?? cottage)();
-  g.scale.setScalar(T / 1.8);
-  return g;
-}
-export function makeHall(stage: StageId): THREE.Group {
-  const g = HALLS[stage]();
-  g.scale.setScalar((T / 1.8) * (HALL_FIT[stage] ?? 1));
-  return g;
-}
 
 // ---- the world ------------------------------------------------------------
 
@@ -630,6 +143,31 @@ function seeded(seed: number) {
 }
 
 /** A striped, scrolling texture for falling water. */
+/** Grass with soft light and dark patches, for the island's top. */
+function meadowTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 512;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#86b85c";
+  g.fillRect(0, 0, 512, 512);
+  const rand = seeded(5);
+  for (let i = 0; i < 260; i++) {
+    const x = rand() * 512;
+    const y = rand() * 512;
+    const r = 12 + rand() * 46;
+    const light = rand() > 0.5;
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    const tone = light ? "164, 200, 106" : "104, 150, 72";
+    grad.addColorStop(0, `rgba(${tone}, ${0.25 + rand() * 0.25})`);
+    grad.addColorStop(1, `rgba(${tone}, 0)`);
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 function waterTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 32;
@@ -693,6 +231,18 @@ export class KingdomScene {
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private disposed = false;
+  private ready = false;
+  private peopleLoaded = false;
+  private pending: { state: SceneState; animate: boolean } | null = null;
+  private previewId: string | null = null;
+  private grid: THREE.LineSegments | null = null;
+  private spinners: THREE.Object3D[] = [];
+  private walkers: {
+    obj: THREE.Object3D;
+    mixer: THREE.AnimationMixer | null;
+    d: number;
+    speed: number;
+  }[] = [];
 
   constructor(
     private host: HTMLElement,
@@ -790,10 +340,28 @@ export class KingdomScene {
     );
     window.addEventListener("resize", this.onResize);
     this.loop();
+    // The models load once; the kingdom appears, and the camera flies in,
+    // when they're here. If they fail, the island shows without buildings.
+    const done = () => {
+      if (this.disposed) return;
+      this.ready = true;
+      if (this.pending) this.set(this.pending.state, this.pending);
+      this.preview(this.previewId);
+      options.onReady?.();
+    };
+    loadModels().then(done, (e) => {
+      console.error("kingdom models", e);
+      done();
+    });
   }
 
   /** Shows a kingdom; new buildings rise, and a new size reshapes the island. */
   set(state: SceneState, { animate = true } = {}) {
+    if (!this.ready) {
+      this.pending = { state, animate };
+      return;
+    }
+    this.pending = null;
     const first = !this.state;
     if (!this.state || this.state.size !== state.size)
       this.buildIsland(state.size);
@@ -811,27 +379,26 @@ export class KingdomScene {
     for (const [key, id] of Object.entries(state.tiles)) {
       if (this.placed.get(key) === id) continue;
       const [x, y] = key.split(",").map(Number);
-      const obj = makeBuilding(id);
+      const obj = makeBuilding(id, x * 31 + y * 17 + 1000);
       obj.name = key;
       obj.position.set(x * T, 0, y * T);
-      obj.rotation.y =
-        ((x * 7 + y * 13) % 4) *
-        (Math.PI / 2) *
-        (id === "path" || id === "farm" ? 1 : 0);
       this.adopt(obj);
       this.buildings.add(obj);
       this.placed.set(key, id);
       if (animate && !first) this.rise(obj);
     }
+    this.people(state.hall);
     if (first) this.flyIn();
   }
 
   /** The building shown under the cursor while the player picks a tile. */
   preview(id: string | null) {
+    this.previewId = id;
     if (this.ghost) this.scene.remove(this.ghost);
     this.ghost = null;
-    if (!id) return;
-    const g = makeBuilding(id);
+    this.showGrid();
+    if (!id || !this.ready) return;
+    const g = makeBuilding(id, 1);
     g.traverse((o) => {
       if (o instanceof THREE.Mesh) {
         o.material = new THREE.MeshStandardMaterial({
@@ -852,6 +419,11 @@ export class KingdomScene {
   mark(tile: [number, number] | null) {
     this.cursor.visible = !!tile;
     if (tile) this.cursor.position.set(tile[0] * T, 0.08, tile[1] * T);
+    this.showGrid();
+  }
+  /** The tile grid shows only while the player is building or moving. */
+  private showGrid() {
+    if (this.grid) this.grid.visible = !!this.previewId || this.cursor.visible;
   }
 
   dispose() {
@@ -875,8 +447,15 @@ export class KingdomScene {
 
     // The grass top: a rounded slab, then the tiles of the land on it.
     const top = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius, radius * 0.97, 0.7, 28),
-      mat(C.meadow),
+      new THREE.CylinderGeometry(radius, radius * 0.97, 0.7, 40),
+      [
+        mat(C.meadow),
+        new THREE.MeshStandardMaterial({
+          map: meadowTexture(),
+          roughness: 0.95,
+        }),
+        mat(C.meadow),
+      ],
     );
     top.position.set(c, -0.35, c);
     top.receiveShadow = true;
@@ -937,31 +516,63 @@ export class KingdomScene {
       this.island.add(b);
     }
 
-    // Buildable tiles.
-    const tileGeo = new THREE.BoxGeometry(T * 0.96, 0.12, T * 0.96);
+    // Buildable tiles: invisible, for picking, with a grid drawn over them
+    // while the player builds.
+    const tileGeo = new THREE.PlaneGeometry(T, T).rotateX(-Math.PI / 2);
+    const pick = new THREE.MeshBasicMaterial({ visible: false });
     for (let x = lo; x <= hi; x++)
       for (let y = lo; y <= hi; y++) {
-        const t = new THREE.Mesh(
-          tileGeo,
-          mat((x + y) % 2 ? C.grass : C.grassDark),
-        );
-        t.position.set(x * T, 0.0, y * T);
-        t.receiveShadow = true;
+        const t = new THREE.Mesh(tileGeo, pick);
+        t.position.set(x * T, 0.01, y * T);
         t.userData.tile = [x, y];
         this.island.add(t);
         this.tileMeshes.push(t);
       }
+    const lines: number[] = [];
+    const h = 0.16;
+    for (let i = lo; i <= hi + 1; i++) {
+      const v = (i - 0.5) * T;
+      // Skip the lines inside the hall's grounds.
+      const inHall = (u: number) =>
+        Math.abs(u) < (HALL_RADIUS + 0.5) * T - 0.01;
+      for (let j = lo; j <= hi; j++) {
+        const u0 = (j - 0.5) * T;
+        const u1 = (j + 0.5) * T;
+        const mid = j * T;
+        if (!(inHall(v) && inHall(mid))) {
+          lines.push(v, h, u0, v, h, u1);
+          lines.push(u0, h, v, u1, h, v);
+        }
+      }
+    }
+    const gridGeo = new THREE.BufferGeometry();
+    gridGeo.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(lines, 3),
+    );
+    this.grid = new THREE.LineSegments(
+      gridGeo,
+      new THREE.LineBasicMaterial({
+        color: "#fff6d8",
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+      }),
+    );
+    this.showGrid();
+    this.island.add(this.grid);
 
-    // Trees and rocks on the meadow around the land.
-    for (let i = 0; i < 26; i++) {
-      const a = rand() * Math.PI * 2;
-      const r = (size / 2 + 0.6 + rand() * 0.8) * T;
-      const x = c + Math.cos(a) * r;
-      const z = c + Math.sin(a) * r;
-      if (Math.hypot(x - c, z - c) > radius - 0.6) continue;
-      const tree = treeAt(x, z, 1.3 + rand() * 0.8, i % 3);
-      tree.rotation.y = rand() * 6;
-      this.island.add(tree);
+    // Trees, bushes, flowers and rocks on the meadow round the land.
+    const landHalf = (size / 2) * T;
+    for (let i = 0; i < 90; i++) {
+      const x = c + (rand() * 2 - 1) * radius;
+      const z = c + (rand() * 2 - 1) * radius;
+      const edge = Math.max(Math.abs(x - c), Math.abs(z - c));
+      if (edge < landHalf + 0.25) continue;
+      if (Math.hypot(x - c, z - c) > radius - 0.5) continue;
+      const item = scenery(rand);
+      item.position.set(x, 0, z);
+      this.island.add(item);
     }
 
     // Waterfalls off the edge, from little springs.
@@ -1016,7 +627,7 @@ export class KingdomScene {
     this.fire = null;
     if (hall.userData.light) {
       this.fire = new THREE.PointLight("#ff9a40", 6, 9, 1.6);
-      this.fire.position.copy(hall.userData.light).multiplyScalar(T / 1.8);
+      this.fire.position.copy(hall.userData.light);
       this.scene.add(this.fire);
     }
     if (animate) this.rise(hall);
@@ -1027,6 +638,7 @@ export class KingdomScene {
     obj.traverse((o) => {
       if (o.userData.flame) this.flames.push(o as THREE.Mesh);
       if (o.userData.flag) this.flags.push(o as THREE.Mesh);
+      if (o.userData.spin) this.spinners.push(o);
     });
     const smoke = obj.userData.smoke as THREE.Vector3 | undefined;
     if (smoke && !this.options.reducedMotion) {
@@ -1055,6 +667,7 @@ export class KingdomScene {
     this.buildings.remove(obj);
     this.flames = this.flames.filter((f) => !isChild(obj, f));
     this.flags = this.flags.filter((f) => !isChild(obj, f));
+    this.spinners = this.spinners.filter((f) => !isChild(obj, f));
     this.smoke = this.smoke.filter((s) => {
       if (s.sprite.userData.owner !== obj) return true;
       this.scene.remove(s.sprite);
@@ -1154,16 +767,72 @@ export class KingdomScene {
     }
   }
 
+  /** Villagers walking the lane round the hall, more as the kingdom grows. */
+  private people(stage: StageId) {
+    if (this.options.reducedMotion) return;
+    if (!this.peopleLoaded) {
+      loadPeople().then(
+        () => {
+          this.peopleLoaded = true;
+          if (!this.disposed && this.state) this.people(this.state.hall);
+        },
+        () => {},
+      );
+      return;
+    }
+    const count = {
+      camp: 1,
+      village: 2,
+      town: 3,
+      city: 4,
+      kingdom: 5,
+      capital: 6,
+    }[stage];
+    while (this.walkers.length < count) {
+      const i = this.walkers.length;
+      const p = person(PEOPLE[i % PEOPLE.length]);
+      let mixer: THREE.AnimationMixer | null = null;
+      if (p.walk) {
+        mixer = new THREE.AnimationMixer(p.root);
+        mixer.clipAction(p.walk).play();
+        mixer.setTime(i * 0.37);
+      }
+      this.scene.add(p.obj);
+      this.walkers.push({
+        obj: p.obj,
+        mixer,
+        d: i * 5.3,
+        speed: (i % 2 ? -1 : 1) * (0.42 + (i % 3) * 0.04),
+      });
+    }
+  }
+  /** A point d along the square lane round the hall's grounds. */
+  private lane(d: number): [number, number, number] {
+    const half = (HALL_RADIUS + 0.55) * T;
+    const side = half * 2;
+    const total = side * 4;
+    const t = ((d % total) + total) % total;
+    const k = Math.floor(t / side);
+    const u = t - k * side - half;
+    const pts: [number, number, number][] = [
+      [u, half, Math.PI / 2],
+      [half, -u, Math.PI],
+      [-u, -half, -Math.PI / 2],
+      [-half, u, 0],
+    ];
+    return pts[k];
+  }
+
   // ---- camera ----
 
   private flyIn() {
     const target = this.controls.target.clone();
     // A tall phone screen needs the camera further back to fit the island.
-    const k = this.camera.aspect < 1 ? 1.75 : 1;
+    const k = this.camera.aspect < 1 ? 1.95 : 1;
     const to = new THREE.Vector3(
-      target.x + 15 * k,
-      target.y + 13 * k,
-      target.z + 22 * k,
+      target.x + 12.5 * k,
+      target.y + 11 * k,
+      target.z + 18.5 * k,
     );
     if (this.options.reducedMotion) {
       this.camera.position.copy(to);
@@ -1268,6 +937,14 @@ export class KingdomScene {
       b.children[0].scale.y = 1 + Math.sin(time * 9 + p) * 0.9;
     }
     for (const tex of this.waters) tex.offset.y += dt * 1.4;
+    for (const s of this.spinners) s.rotation.z += dt * 0.6;
+    for (const w of this.walkers) {
+      w.d += w.speed * dt;
+      const [x, z, heading] = this.lane(w.d);
+      w.obj.position.set(x, 0, z);
+      w.obj.rotation.y = heading + (w.speed < 0 ? Math.PI : 0);
+      w.mixer?.update(dt);
+    }
     for (const f of this.flames) {
       f.scale.set(
         1 + Math.sin(time * 13) * 0.08,
@@ -1285,8 +962,8 @@ export class KingdomScene {
       s.sprite.position
         .copy(s.origin)
         .add(new THREE.Vector3(s.t * 0.9, s.t * 2.4, s.t * 0.3));
-      s.sprite.scale.setScalar(0.25 + s.t * 0.9);
-      s.sprite.material.opacity = Math.sin(s.t * Math.PI) * 0.55;
+      s.sprite.scale.setScalar(0.18 + s.t * 0.6);
+      s.sprite.material.opacity = Math.sin(s.t * Math.PI) * 0.3;
     }
     for (const r of this.rising) {
       r.t = Math.min(1, r.t + dt / 1.3);

@@ -14,6 +14,7 @@ import {
   STAGES,
   STAGE_IDS,
   building,
+  isHallTile,
   tileKey,
   type BuildingDef,
   type StageId,
@@ -29,27 +30,31 @@ import { setWalletCoins } from "@/lib/rewards";
 import type { KingdomScene, SceneState } from "./kingdom-scene";
 
 const SAMPLE: SceneState = {
-  size: 6,
+  size: 7,
   hall: "town",
   tiles: {
-    "1,0": "path",
     "2,0": "path",
-    "-1,0": "path",
-    "0,1": "path",
+    "3,0": "path",
+    "-2,0": "path",
     "0,2": "path",
-    "1,1": "cottage",
-    "-1,1": "cottage",
-    "2,-1": "cottage",
-    "-1,-1": "well",
-    "1,-1": "market",
-    "-2,2": "farm",
-    "-2,1": "farm",
-    "3,2": "tower",
-    "3,-2": "tree",
-    "-2,-2": "tree",
-    "2,2": "flowers",
-    "-2,0": "workshop",
-    "1,2": "tree",
+    "0,3": "path",
+    "2,2": "cottage",
+    "-2,2": "house",
+    "2,-2": "house",
+    "-2,-2": "well",
+    "1,2": "market",
+    "-1,2": "market",
+    "-3,3": "farm",
+    "-3,2": "farm",
+    "3,3": "tower",
+    "3,-3": "windmill",
+    "-3,-3": "tree",
+    "-3,-1": "tree",
+    "3,2": "flowers",
+    "-3,0": "forge",
+    "1,3": "tree",
+    "-1,-3": "tree",
+    "2,-3": "cottage",
   },
 };
 const ERRORS: Record<string, string> = {
@@ -117,13 +122,13 @@ export function Kingdom() {
     if (!own || !view || busy) return;
     const key = tileKey(x, y);
     if (pick?.kind === "build") {
-      if (x === 0 && y === 0) return setNote(t(ERRORS.occupied));
+      if (isHallTile(x, y)) return setNote(t(ERRORS.occupied));
       if (view.tiles[key]) return setNote(t(ERRORS.occupied));
       setAsk({ def: pick.def, x, y });
       return;
     }
     if (pick?.kind === "move") {
-      if (view.tiles[key] || (x === 0 && y === 0)) {
+      if (view.tiles[key] || isHallTile(x, y)) {
         setPick(null);
         scene.current?.mark(null);
         return;
@@ -263,6 +268,9 @@ export function Kingdom() {
         aria-label={t("Your kingdom in 3D")}
         role="img"
       />
+      <a className="kingdom-credit" href="/models/kingdom/CREDITS.md">
+        {t("3D models: Polyfork, CC BY 4.0")}
+      </a>
       {noWebgl && (
         <div className="kingdom-fallback panel">
           <p>
