@@ -262,6 +262,10 @@ award in `game.json`:
 - The game calls `dingn.rewards.unlock(id)` when the player earns one. dingn
   shows a "Badge earned" popup over the game and returns `{ new, coins }`;
   `new` is false when the player already had it.
+- Each badge also adds account XP, twice what its tier pays in coins
+  (`BADGE_XP` in `src/data/kingdom.mjs`: bronze 20, silver 50, gold 100,
+  diamond 200), so players of every game level up their dingn account. The
+  XP goes to `players/{uid}`, where the brain games keep theirs.
 
 Games run in the player's browser, so dingn cannot prove a level was really
 passed. `scripts/rewards.mjs` limits what cheating can win instead: only
@@ -270,6 +274,21 @@ pays once per player, coins per game are capped, and a version dingn has not
 reviewed only answers with `test: true` and saves nothing. Each player's coins
 and badges are in Firestore `rewards/{uid}`, which only the server can change.
 To switch a game's rewards off, set `rewards: "off"` on its registry record.
+
+### The kingdom
+
+Every account gets a 3D kingdom at `/kingdom/` that grows with the account
+level: a camp at level 2, then a village (4), town (6), city (10), kingdom
+(15) and capital (20), each with more land. Players spend coins on buildings
+and hall upgrades. The rules are in `src/data/kingdom.mjs`, which the page and
+the server (`scripts/kingdom.mjs`, `POST /api/kingdom/me|build|move`) both
+read; the kingdom is kept in `rewards/{uid}` as `kingdom: { hall, tiles }`, so
+a building and its coins are one write. Games need no change to feed it.
+
+Badges earned before badges gave XP are paid when the player next earns a
+badge or opens the kingdom, or all at once by the Website workflow's
+`badge-xp` migration (`scripts/backfill-badge-xp.mjs`). `xpPaid` in
+`rewards/{uid}` records what was paid, so nothing is paid twice.
 
 ### Coins for play
 

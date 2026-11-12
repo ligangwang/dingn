@@ -198,3 +198,9 @@ export function earnToWallet(uid: string, earn: Earn) {
   if (uid !== owner || !wallet || earn.test || !earn.coins) return;
   publish({ ...wallet, coins: earn.balance ?? wallet.coins + earn.coins });
 }
+
+/** Sets the shared wallet's coins after the kingdom spent some. */
+export function setWalletCoins(uid: string, coins: number) {
+  if (uid !== owner || !wallet || wallet.coins === coins) return;
+  publish({ ...wallet, coins });
+}

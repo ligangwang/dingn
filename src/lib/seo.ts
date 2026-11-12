@@ -120,6 +120,18 @@ export const pages = {
     en: { title: "Your account" },
     zh: { title: "我的账号" },
   },
+  "/kingdom/": {
+    index: true,
+    en: {
+      title: "Your kingdom",
+      description:
+        "Grow a 3D kingdom with the XP and coins you earn in dingn games.",
+    },
+    zh: {
+      title: "我的王国",
+      description: "用在 dingn 游戏中赢得的经验和金币，建造一座 3D 王国。",
+    },
+  },
   "/opt-out/": {
     index: true,
     en: { title: "Analytics opt-out" },
@@ -200,6 +212,7 @@ export const sitemapPaths: PagePath[] = [
   "/word/",
   "/card/",
   "/feedback/",
+  "/kingdom/",
   "/developers/",
   "/developers/agreement/",
 ];

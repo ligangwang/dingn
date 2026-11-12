@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
 import {
+  CastleIcon,
   CrowdIcon,
   DecisionIcon,
   LogicIcon,
@@ -31,6 +32,7 @@ export function Header() {
           ["/memory-ladder/", "Memory", MemoryIcon] as const,
           ["/decisions/", "Decisions", DecisionIcon] as const,
           ["/play/crowdrush/", "Casual", CrowdIcon] as const,
+          ["/kingdom/", "Kingdom", CastleIcon] as const,
         ].map(([href, label, Icon]) => (
           <Link
             key={href}

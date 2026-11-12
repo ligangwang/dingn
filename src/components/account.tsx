@@ -10,6 +10,7 @@ import { ItemShop } from "./item-shop";
 import { avatarPresets, friendlyError } from "@/lib/models";
 import { Avatar } from "./avatar";
 import { BadgeShelf } from "./rewards";
+import { KingdomCard } from "./kingdom-card";
 function Settings() {
   const { t, locale, href } = useLocale();
 
@@ -101,6 +102,7 @@ function Settings() {
           </p>
         )}
       </form>
+      <KingdomCard />
       <BadgeShelf />
       <ItemShop />
       <Link className="button" href={href("/#games")}>

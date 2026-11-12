@@ -24,7 +24,7 @@ on:
       migration:
         description: One-time data migration to run instead (dry-run only counts)
         type: choice
-        options: [none, crowd-progress-dry-run, crowd-progress]
+        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp]
         default: none
 
 permissions:
@@ -239,3 +239,9 @@ jobs:
           set -o pipefail
           if [ "${{ inputs.migration }}" = crowd-progress ]; then apply=--apply; else apply=; fi
           node scripts/migrate-crowd-progress.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Pay XP for badges earned before badges gave XP
+        if: startsWith(inputs.migration, 'badge-xp')
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.migration }}" = badge-xp ]; then apply=--apply; else apply=; fi
+          node scripts/backfill-badge-xp.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
