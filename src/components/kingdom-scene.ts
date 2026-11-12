@@ -1,5 +1,4 @@
-// The kingdom in 3D: a floating island above a sea of clouds, lit by a low
-// golden sun. Plain three.js with no React, so the page (kingdom.tsx) only
+// The kingdom in 3D: a green island in a blue sea, lit by a low golden sun. Plain three.js with no React, so the page (kingdom.tsx) only
 // tells it what stands where and hears which tile was tapped.
 //
 // The buildings are Polyfork's Medieval Village models (kingdom-models.ts);
@@ -20,6 +19,7 @@ import {
 import {
   PEOPLE,
   balloon,
+  boat,
   cityWall,
   loadModels,
   loadPeople,
@@ -31,6 +31,7 @@ import {
 } from "./kingdom-models";
 
 export const T = 2; // a tile's width in world units
+const SEA = -1.5; // the water's height; the meadow is at 0
 const SUN = new THREE.Vector3(-0.55, 0.42, 0.72).normalize();
 
 export type SceneState = {
@@ -81,10 +82,10 @@ function skyDome() {
     side: THREE.BackSide,
     depthWrite: false,
     uniforms: {
-      top: { value: new THREE.Color("#3d6fb6") },
-      middle: { value: new THREE.Color("#9cc3e6") },
-      horizon: { value: new THREE.Color("#ffd9a8") },
-      below: { value: new THREE.Color("#b8c6e4") },
+      top: { value: new THREE.Color("#2f6cc0") },
+      middle: { value: new THREE.Color("#8cc4f0") },
+      horizon: { value: new THREE.Color("#e6eef2") },
+      below: { value: new THREE.Color("#d3e6f2") },
       sun: { value: SUN.clone() },
     },
     vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
@@ -176,24 +177,32 @@ function meadowTexture() {
   return t;
 }
 
-function waterTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 32;
-  canvas.height = 128;
-  const ctx = canvas.getContext("2d")!;
-  const grad = ctx.createLinearGradient(0, 0, 32, 0);
-  grad.addColorStop(0, "#8fd0f0");
-  grad.addColorStop(0.5, "#e8f7ff");
-  grad.addColorStop(1, "#8fd0f0");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 32, 128);
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  for (let i = 0; i < 18; i++)
-    ctx.fillRect((i * 11) % 30, (i * 23) % 128, 2, 14 + (i % 4) * 6);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+/** Pale streaks on white, tinted by the sea's colour and tiled. */
+function seaTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#dfeaf2";
+  g.fillRect(0, 0, 256, 256);
+  const rand = seeded(3);
+  g.strokeStyle = "#ffffff";
+  g.lineCap = "round";
+  for (let i = 0; i < 70; i++) {
+    const x = rand() * 256;
+    const y = rand() * 256;
+    const w = 8 + rand() * 26;
+    g.globalAlpha = 0.35 + rand() * 0.5;
+    g.lineWidth = 1 + rand() * 1.6;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.quadraticCurveTo(x + w / 2, y - 2 - rand() * 2, x + w, y);
+    g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(70, 70);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
 export class KingdomScene {
@@ -218,7 +227,6 @@ export class KingdomScene {
   private flames: THREE.Mesh[] = [];
   private flags: THREE.Mesh[] = [];
   private fire: THREE.PointLight | null = null;
-  private waters: THREE.Texture[] = [];
   private rising: {
     obj: THREE.Object3D;
     t: number;
@@ -248,6 +256,8 @@ export class KingdomScene {
   private wallKey = "";
   private mixers: { mixer: THREE.AnimationMixer; owner: THREE.Object3D }[] = [];
   private balloons: THREE.Object3D[] = [];
+  private boats: THREE.Object3D[] = [];
+  private seaTex!: THREE.Texture;
   private flock: THREE.Object3D[] = [];
   private flockKey = "";
   private dragonSpot = new THREE.Vector3();
@@ -273,7 +283,7 @@ export class KingdomScene {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(host.clientWidth, host.clientHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.18;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -286,7 +296,21 @@ export class KingdomScene {
       0.5,
       900,
     );
-    this.scene.fog = new THREE.Fog("#d9d3df", 70, 300);
+    this.scene.fog = new THREE.Fog("#d3e6f2", 55, 300);
+    // The sea, with pale streaks that drift to make it shimmer.
+    this.seaTex = seaTexture();
+    const sea = new THREE.Mesh(
+      new THREE.CircleGeometry(420, 48).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({
+        color: "#49a9df",
+        map: this.seaTex,
+        roughness: 0.38,
+        metalness: 0.05,
+      }),
+    );
+    sea.position.y = SEA;
+    sea.receiveShadow = true;
+    this.scene.add(sea);
     this.scene.add(skyDome());
 
     const hemi = new THREE.HemisphereLight("#c4dcff", "#8a7350", 0.95);
@@ -367,6 +391,11 @@ export class KingdomScene {
       for (let i = 0; i < 2; i++) {
         const b = balloon();
         this.balloons.push(b);
+        this.scene.add(b);
+      }
+      for (let i = 0; i < 3; i++) {
+        const b = boat();
+        this.boats.push(b);
         this.scene.add(b);
       }
       if (this.pending) this.set(this.pending.state, this.pending);
@@ -513,29 +542,36 @@ export class KingdomScene {
     top.position.set(c, -0.35, c);
     top.receiveShadow = true;
     this.island.add(top);
-    const soil = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius * 0.97, radius * 0.9, 0.8, 28),
-      mat(C.soil),
+    // A sandy beach slopes from the meadow into the sea, with pale
+    // shallows round it and rocks along the shore.
+    const beach = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius * 0.99, radius * 1.14, 1.3, 40),
+      mat("#e8d8a6", { flatShading: false }),
     );
-    soil.position.set(c, -1.1, c);
-    this.island.add(soil);
-
-    // The rock underneath, a jagged cone.
-    const rock = rockCone(radius);
-    rock.position.set(c, -1.5 - radius * 1.05, c);
-    this.island.add(rock);
-    for (let i = 0; i < 9; i++) {
+    beach.position.set(c, -1.35, c);
+    beach.receiveShadow = true;
+    this.island.add(beach);
+    const shallows = new THREE.Mesh(
+      new THREE.CircleGeometry(radius * 1.32, 48).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({
+        color: "#7fe0e0",
+        transparent: true,
+        opacity: 0.5,
+        roughness: 0.2,
+        depthWrite: false,
+      }),
+    );
+    shallows.position.set(c, SEA + 0.03, c);
+    this.island.add(shallows);
+    for (let i = 0; i < 14; i++) {
       const a = rand() * Math.PI * 2;
-      const r = radius * (0.5 + rand() * 0.4);
+      const r = radius * (1.05 + rand() * 0.2);
       const b = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(0.6 + rand() * 0.9, 0),
+        new THREE.DodecahedronGeometry(0.35 + rand() * 0.7, 0),
         mat(i % 2 ? C.rock : C.rockDark),
       );
-      b.position.set(
-        c + Math.cos(a) * r,
-        -2 - rand() * radius * 0.6,
-        c + Math.sin(a) * r,
-      );
+      b.position.set(c + Math.cos(a) * r, SEA - 0.1, c + Math.sin(a) * r);
+      b.castShadow = true;
       this.island.add(b);
     }
 
@@ -587,7 +623,7 @@ export class KingdomScene {
 
     // Trees, bushes, flowers and rocks on the meadow round the land.
     const landHalf = (size / 2) * T;
-    for (let i = 0; i < 110 + size * 22; i++) {
+    for (let i = 0; i < 40 + size * size * 1.7; i++) {
       const x = c + (rand() * 2 - 1) * radius;
       const z = c + (rand() * 2 - 1) * radius;
       const edge = Math.max(Math.abs(x - c), Math.abs(z - c));
@@ -598,53 +634,15 @@ export class KingdomScene {
       this.island.add(item);
     }
 
-    // Waterfalls off the edge, from little springs.
-    this.waters = [];
-    for (const a of [2.3, 4.1]) {
-      const tex = waterTexture();
-      tex.repeat.set(1, 3);
-      this.waters.push(tex);
-      const x = c + Math.cos(a) * radius * 0.99;
-      const z = c + Math.sin(a) * radius * 0.99;
-      const fall = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.4, 14),
-        new THREE.MeshStandardMaterial({
-          map: tex,
-          transparent: true,
-          opacity: 0.9,
-          emissive: "#9fdcff",
-          emissiveIntensity: 0.25,
-          side: THREE.DoubleSide,
-        }),
-      );
-      fall.position.set(x, -7, z);
-      fall.lookAt(c, -7, c);
-      // A second sheet across the first, so the fall never shows edge-on.
-      const across = fall.clone();
-      across.rotateY(Math.PI / 2);
-      across.scale.x = 0.6;
-      this.island.add(fall, across);
-      const pool = new THREE.Mesh(
-        new THREE.CircleGeometry(0.8, 10).rotateX(-Math.PI / 2),
-        mat(C.water, { roughness: 0.15, metalness: 0.1 }),
-      );
-      pool.position.set(
-        c + Math.cos(a) * (radius - 0.9),
-        0.02,
-        c + Math.sin(a) * (radius - 0.9),
-      );
-      this.island.add(pool);
-    }
-
-    // Islets floating behind the kingdom: white cliffs with pines, far
-    // enough back to frame it without hiding it.
+    // Sea stacks behind the kingdom: white cliffs with pines rising from
+    // the water, far enough back to frame it without hiding it.
     const islets: [number, number, number, number, number][] = [
-      [-1.25, -1.2, 2.5, 5.5, 2.6],
-      [0.35, -1.75, -1, 4, 1.9],
-      [1.5, -0.75, 1, 3.4, 1.5],
+      [-1.3, -1.25, 2.6, 5.5, 2.6],
+      [0.35, -1.8, 1.2, 4, 1.9],
+      [1.55, -0.8, 1.8, 3.4, 1.5],
     ];
     for (const [fx, fz, y, r, s] of islets) {
-      const g = this.islet(r, rand);
+      const g = this.islet(r, rand, 7, y);
       g.position.set(c + fx * radius, y, c + fz * radius);
       const cliff = peak(rand, s);
       cliff.position.set(-r * 0.15, 0, -r * 0.1);
@@ -658,8 +656,8 @@ export class KingdomScene {
     }
     // A bare rock off to the side, where the kingdom's dragon keeps watch.
     if (dragon) {
-      const g = this.islet(2.6, rand, 0);
-      g.position.set(c + radius * 1.32, 2.2, c + radius * 0.25);
+      const g = this.islet(2.6, rand, 0, 2.2);
+      g.position.set(c + radius * 1.02, 2.2, c - radius * 1.22);
       this.dragonSpot.copy(g.position);
       this.island.add(g);
     }
@@ -667,8 +665,8 @@ export class KingdomScene {
     this.controls.target.set(c, 1.6, c);
   }
 
-  /** A small floating islet: a grass top on a jagged rock, with some trees. */
-  private islet(r: number, rand: () => number, trees = 7) {
+  /** A small islet: a grass top on a rock that stands in the sea. */
+  private islet(r: number, rand: () => number, trees: number, y: number) {
     const g = new THREE.Group();
     const top = new THREE.Mesh(
       new THREE.CylinderGeometry(r, r * 0.94, 0.6, 18),
@@ -676,8 +674,13 @@ export class KingdomScene {
     );
     top.position.y = -0.3;
     top.receiveShadow = true;
-    const rock = rockCone(r);
-    rock.position.y = -0.6 - r * 1.05;
+    const h = y - 0.6 - SEA + 0.4;
+    const rock = new THREE.Mesh(
+      new THREE.CylinderGeometry(r * 0.9, r * 1.1, h, 11),
+      mat("#d2cbbd"),
+    );
+    rock.position.y = -0.6 - h / 2;
+    rock.castShadow = true;
     g.add(top, rock);
     for (let i = 0; i < trees; i++) {
       const a = rand() * Math.PI * 2;
@@ -802,16 +805,16 @@ export class KingdomScene {
 
   private addClouds() {
     const rand = seeded(42);
-    for (let i = 0; i < 52; i++) {
+    for (let i = 0; i < 34; i++) {
       const a = rand() * Math.PI * 2;
-      const below = i < 40;
+      const below = false;
       // The sea of clouds lies well under the island; the few clouds at the
       // island's height stay far off, so none drifts between it and the camera.
-      const r = below ? 14 + rand() * 120 : 70 + rand() * 80;
+      const r = below ? 14 + rand() * 120 : 80 + rand() * 160;
       const puff = cloudPuff(rand, below ? 2.5 + rand() * 3.5 : 2 + rand() * 3);
       puff.position.set(
         Math.cos(a) * r,
-        below ? -26 - rand() * 18 : -4 + rand() * 22,
+        below ? -26 - rand() * 18 : 18 + rand() * 40,
         Math.sin(a) * r,
       );
       puff.userData.speed = 0.15 + rand() * 0.35;
@@ -954,7 +957,7 @@ export class KingdomScene {
     // The camera sits low, looking across the kingdom to the hall, and
     // further back the bigger the island is.
     const k =
-      (this.camera.aspect < 1 ? 1.95 : 1) * Math.max(1, this.radius / 12);
+      (this.camera.aspect < 1 ? 2.3 : 1) * Math.max(1, this.radius / 10.5);
     const to = new THREE.Vector3(
       target.x + 13 * k,
       target.y + 8.2 * k,
@@ -1062,7 +1065,20 @@ export class KingdomScene {
       b.rotation.y = -a;
       b.children[0].scale.y = 1 + Math.sin(time * 9 + p) * 0.9;
     }
-    for (const tex of this.waters) tex.offset.y += dt * 1.4;
+    this.seaTex.offset.x += dt * 0.004;
+    this.seaTex.offset.y += dt * 0.007;
+    this.boats.forEach((b, i) => {
+      const dir = i % 2 ? -1 : 1;
+      const a = time * 0.012 * dir + i * 2.1 + 0.4;
+      const r = this.radius * (1.75 + i * 0.55);
+      b.position.set(
+        this.centre + Math.cos(a) * r,
+        SEA - 0.05 + Math.sin(time * 1.1 + i) * 0.04,
+        this.centre + Math.sin(a) * r,
+      );
+      b.rotation.y = -a + (dir > 0 ? 0 : Math.PI);
+      b.rotation.z = Math.sin(time * 0.9 + i) * 0.04;
+    });
     for (const s of this.spinners) s.rotation.z += dt * 0.6;
     for (const m of this.mixers) m.mixer.update(dt);
     this.balloons.forEach((b, i) => {
@@ -1137,35 +1153,6 @@ export class KingdomScene {
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
     }
   }
-}
-
-/** A jagged cone of rock, point down, for the underside of an island. */
-function rockCone(radius: number) {
-  const geo = new THREE.ConeGeometry(radius * 0.92, radius * 2.1, 14, 5, true);
-  const pos = geo.attributes.position;
-  // Jitter by position, so the vertices a cone repeats (its seam and apex)
-  // move together and the rock stays closed.
-  const jitter = (x: number, y: number, z: number, n: number) => {
-    const h =
-      Math.sin(
-        Math.round(x * 10) * 12.9898 +
-          Math.round(y * 10) * 78.233 +
-          Math.round(z * 10) * 37.719 +
-          n,
-      ) * 43758.5453;
-    return h - Math.floor(h) - 0.5;
-  };
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const z = pos.getZ(i);
-    if (y > radius * 1.04 || y < -radius * 1.04) continue;
-    const k = 1 + jitter(x, y, z, 1) * 0.35;
-    pos.setXYZ(i, x * k, y + jitter(x, y, z, 2) * (radius / 20), z * k);
-  }
-  geo.computeVertexNormals();
-  geo.rotateX(Math.PI);
-  return new THREE.Mesh(geo, mat(C.rock));
 }
 
 function isChild(parent: THREE.Object3D, child: THREE.Object3D) {

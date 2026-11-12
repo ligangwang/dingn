@@ -71,6 +71,7 @@ const FILES = {
   peak: "karst-limestone-peak-ee1b76",
   cypress: "columnar-evergreen-shrub-35a00b",
   balloon: "hot-air-balloon-a2a511",
+  sailboat: "sailboat-3ee283",
   dragon: "red-fire-dragon-base",
   sheep: "sheep-base",
 } as const;
@@ -1067,6 +1068,12 @@ export function person(name: ModelName, scale = 1) {
 export function peak(rand: () => number, scale = 1): THREE.Object3D {
   const g = new THREE.Group();
   put(g, "peak", { ry: rand() * 6, s: scale });
+  return finish(g);
+}
+/** A sailing boat; the model is toy-sized, so it is scaled up to 8 m. */
+export function boat(): THREE.Object3D {
+  const g = new THREE.Group();
+  put(g, "sailboat", { s: 27 });
   return finish(g);
 }
 export function balloon(): THREE.Object3D {
