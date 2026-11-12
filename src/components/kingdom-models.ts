@@ -83,6 +83,41 @@ export const PEOPLE: ModelName[] = [
   "guard",
 ];
 
+// The trees and bushes come from three Polyfork kits whose greens differ
+// (muted olive, bright emerald), so their leaves are pulled toward one
+// palette when they load. Trunks, blossom and fruit keep their colours.
+const FOLIAGE: ModelName[] = [
+  "oak",
+  "broadleaf",
+  "apple",
+  "birch",
+  "pine",
+  "bush",
+  "shrub",
+  "cypress",
+  "tuft",
+];
+function unifyGreens(o: THREE.Object3D) {
+  if (!(o instanceof THREE.Mesh)) return;
+  const colors = o.geometry.getAttribute("color");
+  if (!colors) return;
+  const c = new THREE.Color();
+  const hsl = { h: 0, s: 0, l: 0 };
+  for (let i = 0; i < colors.count; i++) {
+    c.setRGB(colors.getX(i), colors.getY(i), colors.getZ(i));
+    c.getHSL(hsl);
+    // Greens only: between yellow-green and teal, and not grey.
+    if (hsl.h < 0.17 || hsl.h > 0.5 || hsl.s < 0.12) continue;
+    c.setHSL(
+      0.262 + (hsl.h - 0.262) * 0.25,
+      Math.min(0.5, Math.max(0.3, hsl.s * 0.8)),
+      0.12 + hsl.l * 0.78,
+    );
+    colors.setXYZ(i, c.r, c.g, c.b);
+  }
+  colors.needsUpdate = true;
+}
+
 type Loaded = { scene: THREE.Object3D; clips: THREE.AnimationClip[] };
 const cache = new Map<ModelName, Loaded>();
 const loads = new Map<string, Promise<void>>();
@@ -102,6 +137,7 @@ function load(names: ModelName[], key: string) {
       const wrap = new THREE.Group();
       root.position.set(-centre.x, -box.min.y, -centre.z);
       wrap.add(root);
+      if (FOLIAGE.includes(name)) wrap.traverse(unifyGreens);
       wrap.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           o.castShadow = true;
@@ -636,9 +672,10 @@ const M: Record<string, Maker> = {
   tree: (rand) => {
     const g = new THREE.Group();
     const kinds: ModelName[] = ["oak", "broadleaf", "apple", "birch", "pine"];
-    put(g, kinds[Math.floor(rand() * kinds.length)], {
+    const kind = kinds[Math.floor(rand() * kinds.length)];
+    put(g, kind, {
       ry: rand() * 6,
-      s: 0.95 + rand() * 0.3,
+      s: (0.95 + rand() * 0.3) * (kind === "pine" ? 0.68 : 1),
     });
     put(g, "bush", { x: 1.9, z: 1.6, ry: rand() * 6, s: 1.1 });
     put(g, "tuft", { x: -1.8, z: 1.8, s: 1.4 });
@@ -1022,27 +1059,39 @@ export function makeHall(stage: StageId): THREE.Group {
 
 // ---- the island's own trees, bushes and rocks ------------------------------
 
-const SCENERY: [ModelName, number][] = [
-  ["oak", 1.1],
-  ["broadleaf", 1.1],
-  ["pine", 1.15],
-  ["birch", 1.1],
-  ["apple", 1],
-  ["bush", 1.4],
-  ["shrub", 1.6],
-  ["bush", 1.2],
-  ["boulder", 1.2],
-  ["tuft", 1.6],
-  ["wildflower", 2.5],
-  ["rock", 2],
+// Pines are scaled down: at full size they stand as tall as the wall towers.
+const TREES: [ModelName, number][] = [
+  ["oak", 1.05],
+  ["oak", 0.9],
+  ["broadleaf", 0.95],
+  ["birch", 1],
+  ["apple", 0.95],
+  ["pine", 0.72],
+  ["pine", 0.6],
 ];
-/** One piece of scenery for the meadow round the land, in world units. */
-export function scenery(rand: () => number): THREE.Object3D {
-  const [name, s] = SCENERY[Math.floor(rand() * SCENERY.length)];
+const COVER: [ModelName, number][] = [
+  ["bush", 1.3],
+  ["shrub", 1.5],
+  ["tuft", 1.6],
+  ["tuft", 1.3],
+  ["wildflower", 2.4],
+  ["wildflower", 2],
+  ["rock", 1.8],
+  ["boulder", 1],
+];
+function pick(list: [ModelName, number][], rand: () => number) {
+  const [name, s] = list[Math.floor(rand() * list.length)];
   const g = new THREE.Group();
-  put(g, name, { ry: rand() * 6, s: s * (0.85 + rand() * 0.4) });
+  put(g, name, { ry: rand() * 6, s: s * (0.85 + rand() * 0.35) });
   return finish(g);
 }
+/** A tree for a grove, in world units. */
+export const tree = (rand: () => number): THREE.Object3D => pick(TREES, rand);
+/** Low ground cover: a bush, grass, flowers or a rock. */
+export const cover = (rand: () => number): THREE.Object3D => pick(COVER, rand);
+/** One piece of scenery of either kind, for the islets. */
+export const scenery = (rand: () => number): THREE.Object3D =>
+  rand() < 0.45 ? tree(rand) : cover(rand);
 export function spire(rand: () => number): THREE.Object3D {
   const g = new THREE.Group();
   put(g, "spire", { ry: rand() * 6, s: 1.5 + rand() * 1.5 });
