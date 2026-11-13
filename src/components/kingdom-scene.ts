@@ -114,7 +114,7 @@ function skyDome() {
       void main(){
         vec3 d = normalize(vDir);
         float h = d.y;
-        vec3 c = mix(horizon, middle, smoothstep(0.02, 0.32, h));
+        vec3 c = mix(horizon, middle, smoothstep(0.0, 0.17, h));
         c = mix(c, top, smoothstep(0.25, 0.9, h));
         float s = max(dot(d, sun), 0.0);
         // The sky warms toward the sun, most of all low down; then the
@@ -130,27 +130,187 @@ function skyDome() {
   return new THREE.Mesh(geo, material);
 }
 
-/** A soft white puff made of a few flattened icospheres. */
-function cloudPuff(rand: () => number, scale: number) {
-  const g = new THREE.Group();
-  const m = new THREE.MeshLambertMaterial({
-    color: "#ffffff",
-    emissive: "#ffe9d2",
-    emissiveIntensity: 0.4,
-  });
-  const n = 4 + Math.floor(rand() * 4);
-  for (let i = 0; i < n; i++) {
-    const r = (0.6 + rand() * 0.8) * scale;
-    const p = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 2), m);
-    p.position.set(
-      (rand() - 0.5) * 2.6 * scale,
-      (rand() - 0.3) * 0.5 * scale,
-      (rand() - 0.5) * 1.6 * scale,
-    );
-    p.scale.y = 0.55;
-    g.add(p);
+/**
+ * One soft billow: many faint round blobs heaped in a disc, so its edge is
+ * lumpy and fades out, with no outline.
+ */
+function billowTexture() {
+  const S = 256;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const g = c.getContext("2d")!;
+  const rand = seeded(17);
+  for (let i = 0; i < 70; i++) {
+    const a = rand() * Math.PI * 2;
+    const d = Math.sqrt(rand()) * S * 0.27;
+    const x = S / 2 + Math.cos(a) * d;
+    const y = S / 2 + Math.sin(a) * d * 0.85;
+    const r = S * (0.1 + rand() * 0.13);
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, "rgba(255,255,255,0.3)");
+    grad.addColorStop(0.6, "rgba(255,255,255,0.16)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  return g;
+  return new THREE.CanvasTexture(c);
+}
+
+/**
+ * The sky's clouds, all drawn in one call: each cloud is a heap of soft
+ * billows that always face the camera. A billow is white where it is high
+ * or toward the sun and blue-grey underneath, which is what gives a cloud
+ * its body; haze fades the far ones into the horizon. Three kinds: heaped
+ * cumulus, long banks low on the horizon, and thin streaks high up.
+ */
+function cloudField() {
+  const rand = seeded(42);
+  const pos: number[] = [];
+  const shade: number[] = [];
+  const info: number[] = []; // width, height, the cloud's centre x, its speed
+  // Linear light, kept just under the level at which the bloom pass makes
+  // things glow: a sky full of glowing cloud washes out the whole picture.
+  const lit = new THREE.Color().setRGB(0.89, 0.885, 0.875);
+  const warm = new THREE.Color().setRGB(0.9, 0.83, 0.7);
+  const dark = new THREE.Color().setRGB(0.4, 0.47, 0.62);
+  const tone = new THREE.Color();
+  const cloud = (
+    x: number,
+    y: number,
+    z: number,
+    w: number,
+    h: number,
+    n: number,
+    alpha: number,
+  ) => {
+    const speed = 0.25 + rand() * 0.45;
+    // The cloud lies across the line of sight from the island.
+    const along = Math.atan2(z, x) + Math.PI / 2;
+    for (let i = 0; i < n; i++) {
+      const u = rand() * 2 - 1;
+      // Tall in the middle, low at the ends, flat underneath.
+      const up = rand() * (1 - u * u);
+      const depth = (rand() - 0.5) * w * 0.3;
+      const size = h * (0.75 + rand() * 0.6) * (1 - up * 0.3);
+      const px = x + Math.cos(along) * u * w * 0.5 - Math.sin(along) * depth;
+      const pz = z + Math.sin(along) * u * w * 0.5 + Math.cos(along) * depth;
+      const py = y + up * h * 0.75;
+      pos.push(px, py, pz);
+      const toSun =
+        (Math.cos(along) * u * SUN.x + Math.sin(along) * u * SUN.z) * 0.5 + 0.5;
+      const light = Math.min(1, 0.1 + up * 0.85 + toSun * 0.25);
+      tone
+        .copy(dark)
+        .lerp(lit, light)
+        .lerp(warm, toSun * light * 0.4);
+      shade.push(tone.r, tone.g, tone.b, alpha * (0.75 + rand() * 0.25));
+      info.push(
+        size * (1.5 + rand() * 0.5) * (rand() > 0.5 ? 1 : -1),
+        size,
+        x,
+        speed,
+      );
+    }
+  };
+  // Heaped cumulus, well up and out from the island.
+  for (let i = 0; i < 16; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = 110 + rand() * 120;
+    const h = 9 + rand() * 8;
+    cloud(
+      Math.cos(a) * r,
+      34 + rand() * 36,
+      Math.sin(a) * r,
+      h * (2.2 + rand() * 1.4),
+      h,
+      12,
+      1,
+    );
+  }
+  // Long banks standing on the horizon, behind the far mountains' feet.
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 + rand() * 0.35;
+    const r = 225 + rand() * 40;
+    const h = 16 + rand() * 12;
+    cloud(
+      Math.cos(a) * r,
+      16 + rand() * 16,
+      Math.sin(a) * r,
+      h * (3.5 + rand() * 2.5),
+      h,
+      14,
+      1,
+    );
+  }
+  // Thin streaks very high up.
+  for (let i = 0; i < 7; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = 70 + rand() * 170;
+    cloud(
+      Math.cos(a) * r,
+      105 + rand() * 40,
+      Math.sin(a) * r,
+      90 + rand() * 80,
+      5 + rand() * 3,
+      6,
+      0.32,
+    );
+  }
+  const geo = new THREE.InstancedBufferGeometry();
+  const quad = new THREE.PlaneGeometry(1, 1);
+  geo.index = quad.index;
+  geo.setAttribute("position", quad.attributes.position);
+  geo.setAttribute("uv", quad.attributes.uv);
+  geo.setAttribute(
+    "at",
+    new THREE.InstancedBufferAttribute(new Float32Array(pos), 3),
+  );
+  geo.setAttribute(
+    "shade",
+    new THREE.InstancedBufferAttribute(new Float32Array(shade), 4),
+  );
+  geo.setAttribute(
+    "info",
+    new THREE.InstancedBufferAttribute(new Float32Array(info), 4),
+  );
+  geo.instanceCount = pos.length / 3;
+  const uniforms = {
+    map: { value: billowTexture() },
+    time: { value: 0 },
+    haze: { value: new THREE.Color(HAZE) },
+  };
+  const material = new THREE.ShaderMaterial({
+    uniforms,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    vertexShader: `attribute vec3 at; attribute vec4 shade; attribute vec4 info;
+      uniform float time; varying vec2 vUv; varying vec4 vShade; varying float vFar;
+      void main(){
+        vUv = uv; vShade = shade;
+        vec3 p = at;
+        // Drift downwind, coming round again a cloud at a time.
+        p.x += mod(info.z + info.w * time + 260.0, 520.0) - 260.0 - info.z;
+        vec4 mv = viewMatrix * vec4(p, 1.0);
+        mv.xy += position.xy * info.xy;
+        vFar = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `uniform sampler2D map; uniform vec3 haze;
+      varying vec2 vUv; varying vec4 vShade; varying float vFar;
+      void main(){
+        float a = min(texture2D(map, vUv).a * 1.25, 1.0) * vShade.a;
+        if (a < 0.02) discard;
+        vec3 c = mix(vShade.rgb, haze, smoothstep(200.0, 440.0, vFar) * 0.35);
+        gl_FragColor = vec4(c, a * (1.0 - smoothstep(300.0, 380.0, vFar) * 0.6));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = -1;
+  return { mesh, uniforms };
 }
 
 let puffTexture: THREE.Texture | null = null;
@@ -518,7 +678,7 @@ export class KingdomScene {
   private tileMeshes: THREE.Mesh[] = [];
   private cursor: THREE.Mesh;
   private ghost: THREE.Group | null = null;
-  private clouds: THREE.Group[] = [];
+  private clouds!: ReturnType<typeof cloudField>["uniforms"];
   private birds: THREE.Group[] = [];
   private smoke: { sprite: THREE.Sprite; origin: THREE.Vector3; t: number }[] =
     [];
@@ -638,7 +798,9 @@ export class KingdomScene {
     );
     this.cursor.visible = false;
     this.scene.add(this.cursor);
-    this.addClouds();
+    const clouds = cloudField();
+    this.clouds = clouds.uniforms;
+    this.scene.add(clouds.mesh);
     this.addBirds();
 
     this.controls = new OrbitControls(this.camera, renderer.domElement);
@@ -1230,32 +1392,6 @@ export class KingdomScene {
   }
   private puffs: THREE.Sprite[] = [];
 
-  private addClouds() {
-    const rand = seeded(42);
-    for (let i = 0; i < 54; i++) {
-      const a = rand() * Math.PI * 2;
-      const below = false;
-      // The sea of clouds lies well under the island; the few clouds at the
-      // island's height stay far off, so none drifts between it and the camera.
-      // Big banks low on the horizon, smaller clouds higher up.
-      const low = i % 3 === 0;
-      const r = below
-        ? 14 + rand() * 120
-        : low
-          ? 150 + rand() * 90
-          : 80 + rand() * 150;
-      const puff = cloudPuff(rand, low ? 6 + rand() * 6 : 2.5 + rand() * 3.5);
-      puff.position.set(
-        Math.cos(a) * r,
-        below ? -26 - rand() * 18 : low ? 6 + rand() * 14 : 22 + rand() * 40,
-        Math.sin(a) * r,
-      );
-      puff.userData.speed = 0.15 + rand() * 0.35;
-      this.scene.add(puff);
-      this.clouds.push(puff);
-    }
-  }
-
   private addBirds() {
     if (this.options.reducedMotion) return;
     const m = new THREE.MeshBasicMaterial({
@@ -1488,10 +1624,7 @@ export class KingdomScene {
       }
     } else this.controls.update();
 
-    for (const cloud of this.clouds) {
-      cloud.position.x += cloud.userData.speed * dt;
-      if (cloud.position.x > 150) cloud.position.x -= 300;
-    }
+    this.clouds.time.value = time;
     for (const b of this.birds) {
       const { r, h, s, p } = b.userData;
       const a = time * s + p;
