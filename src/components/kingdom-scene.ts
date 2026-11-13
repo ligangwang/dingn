@@ -10,6 +10,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import {
   HALL_RADIUS,
   STAGE_IDS,
@@ -34,7 +35,24 @@ import {
 
 export const T = 2; // a tile's width in world units
 const SEA = -1.5; // the water's height; the meadow is at 0
-const SUN = new THREE.Vector3(-0.55, 0.42, 0.72).normalize();
+// A low sun off to the side: long shadows, and one face of each wall in shade.
+const SUN = new THREE.Vector3(-0.8, 0.34, 0.38).normalize();
+const HAZE = "#dfe6ea"; // the horizon, and the fog that fades into it
+
+/**
+ * How far the coast stands out at angle `a` round the island (1 is the
+ * average), so the shore is a ragged line, not a circle. The sea's shader
+ * repeats this sum to put the shallows and surf on the same line.
+ */
+function coast(a: number) {
+  return (
+    1 +
+    0.06 * Math.sin(a * 3 + 1) +
+    0.035 * Math.sin(a * 5 + 2.3) +
+    0.015 * Math.sin(a * 9 + 0.7)
+  );
+}
+const SHORES = 6; // the most shores the sea's shader follows
 
 export type SceneState = {
   size: number;
@@ -84,22 +102,28 @@ function skyDome() {
     side: THREE.BackSide,
     depthWrite: false,
     uniforms: {
-      top: { value: new THREE.Color("#2f6cc0") },
-      middle: { value: new THREE.Color("#8cc4f0") },
-      horizon: { value: new THREE.Color("#e6eef2") },
-      below: { value: new THREE.Color("#d3e6f2") },
+      top: { value: new THREE.Color("#2a62b8") },
+      middle: { value: new THREE.Color("#86bdec") },
+      horizon: { value: new THREE.Color(HAZE) },
+      warm: { value: new THREE.Color("#ffd9a8") },
       sun: { value: SUN.clone() },
     },
     vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-    fragmentShader: `uniform vec3 top; uniform vec3 middle; uniform vec3 horizon; uniform vec3 below; uniform vec3 sun; varying vec3 vDir;
+    fragmentShader: `uniform vec3 top; uniform vec3 middle; uniform vec3 horizon; uniform vec3 warm; uniform vec3 sun; varying vec3 vDir;
       void main(){
-        float h = vDir.y;
-        vec3 c = mix(below, horizon, smoothstep(-0.45, 0.0, h));
-        c = mix(c, middle, smoothstep(0.02, 0.3, h));
+        vec3 d = normalize(vDir);
+        float h = d.y;
+        vec3 c = mix(horizon, middle, smoothstep(0.02, 0.32, h));
         c = mix(c, top, smoothstep(0.25, 0.9, h));
-        float s = max(dot(normalize(vDir), sun), 0.0);
-        c += vec3(1.0, 0.82, 0.55) * pow(s, 18.0) * 0.55 + vec3(1.0, 0.95, 0.85) * pow(s, 900.0) * 3.0;
+        float s = max(dot(d, sun), 0.0);
+        // The sky warms toward the sun, most of all low down; then the
+        // sun's glow and its disc.
+        c = mix(c, warm, pow(s, 3.0) * 0.45 * (1.0 - smoothstep(0.0, 0.55, h)));
+        c += vec3(1.0, 0.8, 0.5) * pow(s, 32.0) * 0.3;
+        c += vec3(1.0, 0.93, 0.8) * (pow(s, 400.0) * 0.6 + smoothstep(0.99965, 0.99985, s) * 3.0);
         gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }`,
   });
   return new THREE.Mesh(geo, material);
@@ -110,8 +134,8 @@ function cloudPuff(rand: () => number, scale: number) {
   const g = new THREE.Group();
   const m = new THREE.MeshLambertMaterial({
     color: "#ffffff",
-    emissive: "#fff1e0",
-    emissiveIntensity: 0.42,
+    emissive: "#ffe9d2",
+    emissiveIntensity: 0.4,
   });
   const n = 4 + Math.floor(rand() * 4);
   for (let i = 0; i < n; i++) {
@@ -180,33 +204,160 @@ function meadowTexture() {
   return t;
 }
 
-/** Pale streaks on white, tinted by the sea's colour and tiled. */
-function seaTexture() {
-  const c = document.createElement("canvas");
-  c.width = c.height = 256;
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#dfeaf2";
-  g.fillRect(0, 0, 256, 256);
-  const rand = seeded(3);
-  g.strokeStyle = "#ffffff";
-  g.lineCap = "round";
-  for (let i = 0; i < 70; i++) {
-    const x = rand() * 256;
-    const y = rand() * 256;
-    const w = 8 + rand() * 26;
-    g.globalAlpha = 0.35 + rand() * 0.5;
-    g.lineWidth = 1 + rand() * 1.6;
-    g.beginPath();
-    g.moveTo(x, y);
-    g.quadraticCurveTo(x + w / 2, y - 2 - rand() * 2, x + w, y);
-    g.stroke();
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(70, 70);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+/**
+ * The sea: a standard material (so it takes the sun, shadows and fog) whose
+ * shader adds what makes water read as water. Its colour runs from pale
+ * turquoise at a shore to deep blue; small moving waves tilt the surface,
+ * which breaks the sun into glitter; it reflects the sky at a glancing
+ * angle; and surf washes onto each shore.
+ */
+function seaMaterial() {
+  const uniforms = {
+    seaTime: { value: 0 },
+    // x, z, radius, and whether the shore follows `coast`.
+    seaShores: {
+      value: Array.from({ length: SHORES }, () => new THREE.Vector4()),
+    },
+    seaShoreCount: { value: 0 },
+    seaSky: { value: new THREE.Color("#bcd5ea") },
+  };
+  const material = new THREE.MeshStandardMaterial({
+    color: "#ffffff",
+    roughness: 0.24,
+    metalness: 0,
+  });
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vSea;")
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nvSea = (modelMatrix * vec4(position, 1.0)).xyz;",
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+        varying vec3 vSea;
+        uniform float seaTime;
+        uniform vec4 seaShores[${SHORES}];
+        uniform int seaShoreCount;
+        uniform vec3 seaSky;
+        float seaHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float seaNoise(vec2 p){
+          vec2 i = floor(p); vec2 f = fract(p); f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+          return mix(mix(seaHash(i), seaHash(i + vec2(1.0, 0.0)), f.x),
+                     mix(seaHash(i + vec2(0.0, 1.0)), seaHash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+        float seaWaves(vec2 p){
+          return seaNoise(p * 0.45 + vec2(seaTime * 0.2, seaTime * 0.12)) * 0.55
+               + seaNoise(p * 1.15 - vec2(seaTime * 0.28, -seaTime * 0.2)) * 0.3
+               + seaNoise(p * 2.7 + vec2(-seaTime * 0.4, seaTime * 0.36)) * 0.15;
+        }
+        // The distance out from the nearest shore.
+        float seaShore(vec2 p){
+          float d = 1000.0;
+          for (int i = 0; i < ${SHORES}; i++) {
+            if (i >= seaShoreCount) break;
+            vec2 q = p - seaShores[i].xy;
+            float a = atan(q.y, q.x);
+            float k = 1.0 + seaShores[i].w * (0.06 * sin(a * 3.0 + 1.0) + 0.035 * sin(a * 5.0 + 2.3) + 0.015 * sin(a * 9.0 + 0.7));
+            d = min(d, length(q) - seaShores[i].z * k);
+          }
+          return d;
+        }
+        float seaFoam = 0.0;
+        float seaFresnel = 0.0;`,
+      )
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+        float seaD = seaShore(vSea.xz) + (seaNoise(vSea.xz * 0.35) - 0.5) * 1.4;
+        vec3 seaCol = mix(vec3(0.42, 0.9, 0.8), vec3(0.08, 0.56, 0.8), smoothstep(0.2, 3.8, seaD));
+        seaCol = mix(seaCol, vec3(0.035, 0.28, 0.6), smoothstep(3.0, 13.0, seaD));
+        seaCol = mix(seaCol, vec3(0.025, 0.19, 0.46), smoothstep(14.0, 90.0, seaD));
+        // Surf: a bright edge on the sand, and thin broken lines that roll in.
+        float seaBreak = seaNoise(vSea.xz * 1.3 + seaTime * 0.1);
+        float seaEdge = 1.0 - smoothstep(0.0, 0.3 + 0.25 * sin(seaTime * 0.7), seaD + seaBreak * 0.35);
+        float seaRoll = sin(seaD * 2.4 + seaTime * 0.9 + seaBreak * 2.5);
+        float seaLines = smoothstep(0.9, 0.99, seaRoll) * (1.0 - smoothstep(0.4, 3.2, seaD)) * smoothstep(0.3, 0.65, seaBreak);
+        seaFoam = clamp(seaEdge * 0.9 + seaLines * 0.5, 0.0, 1.0);
+        diffuseColor.rgb = mix(seaCol, vec3(1.0), seaFoam);`,
+      )
+      .replace(
+        "#include <normal_fragment_maps>",
+        `#include <normal_fragment_maps>
+        float seaE = 0.3;
+        float seaH = seaWaves(vSea.xz);
+        vec3 seaN = normalize(vec3(
+          (seaH - seaWaves(vSea.xz + vec2(seaE, 0.0))) * 0.6,
+          seaE,
+          (seaH - seaWaves(vSea.xz + vec2(0.0, seaE))) * 0.6));
+        normal = normalize((viewMatrix * vec4(seaN, 0.0)).xyz);
+        seaFresnel = pow(1.0 - max(dot(normal, normalize(vViewPosition)), 0.0), 5.0);`,
+      )
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+        totalEmissiveRadiance += seaSky * seaFresnel * 0.42 * (1.0 - seaFoam);`,
+      )
+      .replace(
+        "#include <opaque_fragment>",
+        `// The sun on the water is a scatter of glints, not a sheet of white.
+        float seaGlint = smoothstep(0.6, 0.85, seaNoise(vSea.xz * 5.0 + vec2(seaTime * 0.7, -seaTime * 0.5)));
+        outgoingLight = totalDiffuse + totalEmissiveRadiance
+          + min(totalSpecular, vec3(2.6)) * (0.1 + 0.9 * seaGlint);
+        #include <opaque_fragment>`,
+      );
+  };
+  return { material, uniforms };
 }
+
+/** A far range of mountains, low on the horizon and pale with haze. */
+function farMountains() {
+  const g = new THREE.Group();
+  const rand = seeded(11);
+  const m = new THREE.MeshStandardMaterial({
+    color: "#6d8196",
+    roughness: 1,
+    flatShading: true,
+  });
+  for (let i = 0; i < 9; i++) {
+    // Ranges stand round most of the horizon, with gaps of open sea.
+    const a = (i / 9) * Math.PI * 2 + rand() * 0.3;
+    if (i % 4 === 3) continue;
+    const r = 215 + rand() * 40;
+    for (let j = 0; j < 5 + Math.floor(rand() * 4); j++) {
+      const h = 16 + rand() * 34;
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(h * (0.9 + rand() * 0.7), h, 6, 1),
+        m,
+      );
+      const b = a + (j - 3) * 0.075 + rand() * 0.03;
+      cone.position.set(
+        Math.cos(b) * (r + rand() * 20),
+        SEA + h / 2 - 1,
+        Math.sin(b) * (r + rand() * 20),
+      );
+      cone.rotation.y = rand() * 6;
+      g.add(cone);
+    }
+  }
+  return g;
+}
+
+/** Darkens the corners of the picture a little, as a lens does. */
+const Vignette = {
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      float d = length((vUv - 0.5) * vec2(1.0, 0.82));
+      c.rgb *= mix(1.0, 0.62, smoothstep(0.38, 0.86, d));
+      gl_FragColor = c;
+    }`,
+};
 
 export class KingdomScene {
   private renderer: THREE.WebGLRenderer;
@@ -260,8 +411,9 @@ export class KingdomScene {
   private mixers: { mixer: THREE.AnimationMixer; owner: THREE.Object3D }[] = [];
   private balloons: THREE.Object3D[] = [];
   private boats: THREE.Object3D[] = [];
-  private foams: THREE.Mesh[] = [];
-  private seaTex!: THREE.Texture;
+  private sea!: ReturnType<typeof seaMaterial>["uniforms"];
+  private shores: [number, number, number, number][] = [];
+  private touched = 0;
   private flock: THREE.Object3D[] = [];
   private flockKey = "";
   private dragonSpot = new THREE.Vector3();
@@ -300,25 +452,21 @@ export class KingdomScene {
       0.5,
       900,
     );
-    this.scene.fog = new THREE.Fog("#d3e6f2", 55, 300);
-    // The sea, with pale streaks that drift to make it shimmer.
-    this.seaTex = seaTexture();
+    this.scene.fog = new THREE.Fog(HAZE, 55, 300);
+    const water = seaMaterial();
+    this.sea = water.uniforms;
     const sea = new THREE.Mesh(
       new THREE.CircleGeometry(420, 48).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({
-        color: "#49a9df",
-        map: this.seaTex,
-        roughness: 0.38,
-        metalness: 0.05,
-      }),
+      water.material,
     );
     sea.position.y = SEA;
     sea.receiveShadow = true;
-    this.scene.add(sea);
+    this.scene.add(sea, farMountains());
     this.scene.add(skyDome());
 
-    const hemi = new THREE.HemisphereLight("#c4dcff", "#8a7350", 0.95);
-    const sun = new THREE.DirectionalLight("#ffdcae", 3.5);
+    // Warm sunlight against cool light from the sky, so shade reads blue.
+    const hemi = new THREE.HemisphereLight("#bcd6ff", "#8f7a5c", 1.0);
+    const sun = new THREE.DirectionalLight("#ffc888", 4.1);
     this.sun = sun;
     sun.position.copy(SUN).multiplyScalar(40);
     sun.castShadow = true;
@@ -355,14 +503,15 @@ export class KingdomScene {
     this.controls.minDistance = 9;
     this.controls.maxDistance = 46;
     this.controls.minPolarAngle = 0.35;
-    this.controls.maxPolarAngle = 1.25;
+    // Low enough to look up at the towers from near the ground.
+    this.controls.maxPolarAngle = 1.47;
     this.controls.enablePan = false;
     this.controls.autoRotate = !options.reducedMotion;
     this.controls.autoRotateSpeed = 0.25;
-    this.controls.addEventListener(
-      "start",
-      () => (this.controls.autoRotate = false),
-    );
+    // The slow turn stops at a touch and picks up again once left alone.
+    const touch = () => (this.touched = this.clock.elapsedTime);
+    this.controls.addEventListener("start", touch);
+    this.controls.addEventListener("end", touch);
 
     if (window.innerWidth >= 700 && !options.reducedMotion) {
       this.composer = new EffectComposer(renderer);
@@ -374,6 +523,7 @@ export class KingdomScene {
         0.9,
       );
       this.composer.addPass(this.bloom);
+      this.composer.addPass(new ShaderPass(Vignette));
       this.composer.addPass(new OutputPass());
     }
 
@@ -531,37 +681,59 @@ export class KingdomScene {
     sc.updateProjectionMatrix();
     this.controls.maxDistance = radius * 4.2;
 
-    // The grass top: a rounded slab, then the tiles of the land on it.
-    const top = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius, radius * 0.97, 0.7, 40),
-      [
-        mat(C.meadow),
-        new THREE.MeshStandardMaterial({
-          map: meadowTexture(),
-          roughness: 0.95,
-        }),
-        mat(C.meadow),
-      ],
-    );
+    // The grass top: a slab whose edge follows the coast a little, then the
+    // tiles of the land on it.
+    const topGeo = new THREE.CylinderGeometry(radius, radius * 0.97, 0.7, 96);
+    const tp = topGeo.attributes.position;
+    for (let i = 0; i < tp.count; i++) {
+      const x = tp.getX(i);
+      const z = tp.getZ(i);
+      if (!x && !z) continue;
+      const k = this.edge(Math.atan2(z, x)) / radius;
+      tp.setX(i, x * k);
+      tp.setZ(i, z * k);
+    }
+    topGeo.computeVertexNormals();
+    const top = new THREE.Mesh(topGeo, [
+      mat(C.meadow),
+      new THREE.MeshStandardMaterial({
+        map: meadowTexture(),
+        roughness: 0.95,
+      }),
+      mat(C.meadow),
+    ]);
     top.position.set(c, -0.35, c);
     top.receiveShadow = true;
     this.island.add(top);
-    // A sandy beach slopes from the meadow into the sea, with pale
-    // shallows round it and rocks along the shore.
+    // A sandy beach slopes from the meadow into the sea: wide where the
+    // coast stands out, narrow where it cuts in. The sea draws the shallows
+    // and surf along the same line.
+    const shore = radius * 1.16;
+    const beachGeo = new THREE.CylinderGeometry(1, 1, 1.3, 96, 1, true);
+    const bp = beachGeo.attributes.position;
+    for (let i = 0; i < bp.count; i++) {
+      const a = Math.atan2(bp.getZ(i), bp.getX(i));
+      const inner = this.edge(a) * 0.99;
+      // The slope crosses sea level 8/13 of the way down.
+      const r =
+        bp.getY(i) > 0
+          ? inner
+          : inner + ((shore * coast(a) - inner) * 1.3) / (-0.7 - SEA);
+      bp.setX(i, Math.cos(a) * r);
+      bp.setZ(i, Math.sin(a) * r);
+    }
+    beachGeo.computeVertexNormals();
     const beach = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius * 0.99, radius * 1.19, 1.3, 48),
+      beachGeo,
       mat("#ecdcae", { flatShading: false }),
     );
     beach.position.set(c, -1.35, c);
     beach.receiveShadow = true;
     this.island.add(beach);
-    // Where the beach meets the water (the slope crosses sea level here).
-    const shore = radius * (0.99 + ((-0.7 - SEA) / 1.3) * 0.2);
-    this.foams = [];
-    this.shallows(c, c, shore);
+    this.shores = [[c, c, shore, 1]];
     for (let i = 0; i < 14; i++) {
       const a = rand() * Math.PI * 2;
-      const r = shore * (0.97 + rand() * 0.16);
+      const r = shore * coast(a) * (0.97 + rand() * 0.16);
       const b = new THREE.Mesh(
         new THREE.DodecahedronGeometry(0.35 + rand() * 0.7, 0),
         mat(i % 2 ? C.rock : C.rockDark),
@@ -626,7 +798,7 @@ export class KingdomScene {
       const edge = Math.max(Math.abs(x - c), Math.abs(z - c));
       return (
         edge > landHalf + (walled ? 1.3 : 0.3) &&
-        Math.hypot(x - c, z - c) < radius - margin
+        Math.hypot(x - c, z - c) < this.edge(Math.atan2(z - c, x - c)) - margin
       );
     };
     const front = Math.atan2(19.5, 13);
@@ -672,7 +844,7 @@ export class KingdomScene {
         g.add(second);
       }
       this.island.add(g);
-      this.shallows(g.position.x, g.position.z, r * 1.1);
+      this.shores.push([g.position.x, g.position.z, r * 1.1, 0]);
     }
     // A bare rock off to the side, where the kingdom's dragon keeps watch.
     if (dragon) {
@@ -680,60 +852,19 @@ export class KingdomScene {
       g.position.set(c + radius * 1.02, 2.2, c - radius * 1.22);
       this.dragonSpot.copy(g.position);
       this.island.add(g);
-      this.shallows(g.position.x, g.position.z, 2.6 * 1.1);
+      this.shores.push([g.position.x, g.position.z, 2.6 * 1.1, 0]);
     }
+    this.shores.slice(0, SHORES).forEach((v, i) => {
+      this.sea.seaShores.value[i].set(...v);
+    });
+    this.sea.seaShoreCount.value = Math.min(this.shores.length, SHORES);
 
     this.controls.target.set(c, 1.6, c);
   }
 
-  /**
-   * The water round a shore of radius `shore`: two bands of pale shallows
-   * and two rings of foam that wash in and out.
-   */
-  private shallows(
-    x: number,
-    z: number,
-    shore: number,
-    parent = this.island,
-    y = SEA,
-  ) {
-    const disc = (r: number, color: string, opacity: number, lift: number) => {
-      const m = new THREE.Mesh(
-        new THREE.CircleGeometry(r, 48).rotateX(-Math.PI / 2),
-        new THREE.MeshStandardMaterial({
-          color,
-          transparent: true,
-          opacity,
-          roughness: 0.25,
-          depthWrite: false,
-        }),
-      );
-      m.position.set(x, y + lift, z);
-      m.renderOrder = 1;
-      parent.add(m);
-    };
-    disc(shore * 1.34, "#57c9de", 0.38, 0.02);
-    disc(shore * 1.16, "#9cecdf", 0.5, 0.03);
-    [0, 1].forEach((i) => {
-      const foam = new THREE.Mesh(
-        new THREE.RingGeometry(
-          shore * 0.995,
-          shore * (1.004 + i * 0.002),
-          72,
-        ).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({
-          color: "#ffffff",
-          transparent: true,
-          opacity: 0.8,
-          depthWrite: false,
-        }),
-      );
-      foam.position.set(x, y + 0.04 + i * 0.005, z);
-      foam.renderOrder = 2;
-      foam.userData.phase = i * Math.PI + shore;
-      parent.add(foam);
-      this.foams.push(foam);
-    });
+  /** The meadow's edge at angle `a` round the island's centre. */
+  private edge(a: number) {
+    return this.radius * (1 + (coast(a) - 1) * 0.5);
   }
 
   /** A small islet: a grass top on a rock that stands in the sea. */
@@ -1008,7 +1139,7 @@ export class KingdomScene {
     for (let i = 0; i < 3 + rank; i++) {
       // The meadow between the land (or its wall) and the island's edge.
       const a = rand() * Math.PI * 2;
-      const d = this.radius - 0.7 - rand() * 0.8;
+      const d = this.edge(a) - 0.8 - rand() * 0.8;
       const sheep = add("sheep", 1.15, i * 0.9);
       sheep.position.set(c + Math.cos(a) * d, 0, c + Math.sin(a) * d);
       sheep.rotation.y = rand() * 6;
@@ -1048,10 +1179,10 @@ export class KingdomScene {
       Math.min(this.camera.aspect, 1.9);
     const distance = Math.max(
       this.radius * 2.25,
-      (this.radius * 1.02) / halfWidth,
+      (this.radius * 1.14) / halfWidth,
     );
     this.controls.maxDistance = Math.max(this.radius * 4.2, distance * 1.25);
-    const to = new THREE.Vector3(13, 8.2, 19.5)
+    const to = new THREE.Vector3(13, 6.3, 19.5)
       .normalize()
       .multiplyScalar(distance)
       .add(target);
@@ -1157,14 +1288,13 @@ export class KingdomScene {
       b.rotation.y = -a;
       b.children[0].scale.y = 1 + Math.sin(time * 9 + p) * 0.9;
     }
-    for (const f of this.foams) {
-      // Each ring washes a little way out and fades, then comes back.
-      const w = (Math.sin(time * 0.7 + f.userData.phase) + 1) / 2;
-      f.scale.setScalar(1 + w * 0.03);
-      (f.material as THREE.MeshBasicMaterial).opacity = 0.7 - w * 0.55;
-    }
-    this.seaTex.offset.x += dt * 0.004;
-    this.seaTex.offset.y += dt * 0.007;
+    this.sea.seaTime.value = time;
+    // Left alone for a while, the view drifts slowly round the kingdom.
+    this.controls.autoRotate =
+      !this.options.reducedMotion &&
+      !this.previewId &&
+      !this.cursor.visible &&
+      (!this.touched || time - this.touched > 12);
     this.boats.forEach((b, i) => {
       const dir = i % 2 ? -1 : 1;
       const a = time * 0.012 * dir + i * 2.1 + 0.4;
