@@ -11,6 +11,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import {
   HALL_RADIUS,
   STAGE_IDS,
@@ -178,30 +179,173 @@ function seeded(seed: number) {
   };
 }
 
-/** A striped, scrolling texture for falling water. */
-/** Grass with soft light and dark patches, for the island's top. */
+/**
+ * Grass for the island's top, tiled: broad light and dark patches, then
+ * thousands of short blades, and a few clover-white and buttercup dots.
+ * Everything is drawn nine times, shifted by the tile's width, so it wraps
+ * without a seam.
+ */
 function meadowTexture() {
+  const S = 512;
   const c = document.createElement("canvas");
-  c.width = c.height = 512;
+  c.width = c.height = S;
   const g = c.getContext("2d")!;
-  g.fillStyle = "#86b85c";
-  g.fillRect(0, 0, 512, 512);
+  g.fillStyle = "#7fae57";
+  g.fillRect(0, 0, S, S);
   const rand = seeded(5);
-  for (let i = 0; i < 260; i++) {
-    const x = rand() * 512;
-    const y = rand() * 512;
-    const r = 12 + rand() * 46;
-    const light = rand() > 0.5;
-    const grad = g.createRadialGradient(x, y, 0, x, y, r);
-    const tone = light ? "164, 200, 106" : "104, 150, 72";
-    grad.addColorStop(0, `rgba(${tone}, ${0.25 + rand() * 0.25})`);
-    grad.addColorStop(1, `rgba(${tone}, 0)`);
-    g.fillStyle = grad;
-    g.fillRect(x - r, y - r, r * 2, r * 2);
+  const wrapped = (x: number, y: number, r: number, draw: () => void) => {
+    for (const dx of [-S, 0, S])
+      for (const dy of [-S, 0, S]) {
+        if (x + dx < -r || x + dx > S + r || y + dy < -r || y + dy > S + r)
+          continue;
+        g.save();
+        g.translate(x + dx, y + dy);
+        draw();
+        g.restore();
+      }
+  };
+  for (let i = 0; i < 90; i++) {
+    const r = 30 + rand() * 80;
+    const tone = ["168, 204, 104", "98, 146, 70", "140, 170, 84"][i % 3];
+    const a = 0.26 + rand() * 0.26;
+    wrapped(rand() * S, rand() * S, r, () => {
+      const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
+      grad.addColorStop(0, `rgba(${tone}, ${a})`);
+      grad.addColorStop(1, `rgba(${tone}, 0)`);
+      g.fillStyle = grad;
+      g.fillRect(-r, -r, r * 2, r * 2);
+    });
+  }
+  g.lineCap = "round";
+  for (let i = 0; i < 5200; i++) {
+    const len = 2 + rand() * 4;
+    const lean = (rand() - 0.5) * 3;
+    g.strokeStyle = [
+      "rgba(78, 128, 58, 0.5)",
+      "rgba(176, 212, 112, 0.45)",
+      "rgba(102, 152, 70, 0.5)",
+    ][i % 3];
+    g.lineWidth = 0.8 + rand() * 0.8;
+    wrapped(rand() * S, rand() * S, 6, () => {
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.lineTo(lean, -len);
+      g.stroke();
+    });
+  }
+  for (let i = 0; i < 70; i++) {
+    g.fillStyle =
+      i % 3 ? "rgba(255, 255, 240, 0.8)" : "rgba(250, 214, 90, 0.85)";
+    const r = 0.8 + rand() * 0.6;
+    wrapped(rand() * S, rand() * S, 2, () => {
+      g.beginPath();
+      g.arc(0, 0, r, 0, Math.PI * 2);
+      g.fill();
+    });
   }
   const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
   return t;
+}
+
+let wornTex: THREE.CanvasTexture | null = null;
+/**
+ * Trodden earth, laid under a building so it stands on worn ground, not on
+ * a lawn: brown in the middle, darker where the walls meet it, fading to
+ * nothing at a ragged edge.
+ */
+function wornGround(size: number) {
+  if (!wornTex) {
+    const S = 256;
+    const c = document.createElement("canvas");
+    c.width = c.height = S;
+    const g = c.getContext("2d")!;
+    const rand = seeded(9);
+    const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    grad.addColorStop(0, "rgba(120, 96, 66, 0.9)");
+    grad.addColorStop(0.45, "rgba(132, 108, 74, 0.8)");
+    grad.addColorStop(0.75, "rgba(140, 122, 80, 0.4)");
+    grad.addColorStop(1, "rgba(140, 130, 84, 0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, S, S);
+    // Grass creeps in from the edge, and pebbles lie on the earth.
+    g.globalCompositeOperation = "destination-out";
+    for (let i = 0; i < 160; i++) {
+      const a = rand() * Math.PI * 2;
+      const d = S * (0.3 + rand() * 0.2);
+      g.globalAlpha = 0.25 + rand() * 0.35;
+      g.beginPath();
+      g.arc(
+        S / 2 + Math.cos(a) * d,
+        S / 2 + Math.sin(a) * d,
+        4 + rand() * 12,
+        0,
+        7,
+      );
+      g.fill();
+    }
+    g.globalCompositeOperation = "source-atop";
+    for (let i = 0; i < 260; i++) {
+      g.globalAlpha = 0.25 + rand() * 0.35;
+      g.fillStyle = i % 2 ? "#6f573b" : "#b39a72";
+      g.beginPath();
+      g.arc(rand() * S, rand() * S, 0.8 + rand() * 1.6, 0, 7);
+      g.fill();
+    }
+    wornTex = new THREE.CanvasTexture(c);
+    wornTex.colorSpace = THREE.SRGBColorSpace;
+  }
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
+    new THREE.MeshStandardMaterial({
+      map: wornTex,
+      transparent: true,
+      depthWrite: false,
+      roughness: 1,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    }),
+  );
+  m.position.y = 0.012;
+  m.receiveShadow = true;
+  m.userData.flat = true;
+  return m;
+}
+// Tiles that are ground already, or should stand in grass.
+const NO_WORN = new Set(["path", "tree", "flowers", "farm"]);
+
+/**
+ * A tuft of three grass blades, for scattering over the meadow. Each blade
+ * is drawn on both faces with the ground's own normal, so a tuft takes the
+ * light as the grass under it does.
+ */
+function tuftGeometry() {
+  const pos: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4;
+    const h = 0.11 + i * 0.03;
+    const cx = Math.cos(a) * 0.02;
+    const cz = Math.sin(a) * 0.02;
+    const px = Math.cos(a + Math.PI / 2) * 0.022;
+    const pz = Math.sin(a + Math.PI / 2) * 0.022;
+    const left = [cx - px, 0, cz - pz];
+    const right = [cx + px, 0, cz + pz];
+    const tip = [cx + Math.cos(a) * 0.05, h, cz + Math.sin(a) * 0.05];
+    pos.push(...left, ...right, ...tip, ...right, ...left, ...tip);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute(
+    "normal",
+    new THREE.Float32BufferAttribute(
+      Array.from({ length: pos.length / 3 }, () => [0, 1, 0]).flat(),
+      3,
+    ),
+  );
+  return geo;
 }
 
 /**
@@ -516,6 +660,44 @@ export class KingdomScene {
     if (window.innerWidth >= 700 && !options.reducedMotion) {
       this.composer = new EffectComposer(renderer);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
+      // Soft shade where walls meet the ground and in corners, which is
+      // what makes a building sit in the scene, not on it.
+      const ao = new GTAOPass(
+        this.scene,
+        this.camera,
+        host.clientWidth,
+        host.clientHeight,
+      );
+      ao.updateGtaoMaterial({
+        radius: 0.7,
+        distanceExponent: 1.4,
+        thickness: 1.2,
+        scale: 1.15,
+      });
+      ao.blendIntensity = 0.85;
+      // Smoke, glows and other see-through things cast no such shade.
+      const hide = ao as unknown as {
+        _overrideVisibility: () => void;
+        _visibilityCache: THREE.Object3D[];
+      };
+      hide._overrideVisibility = () => {
+        this.scene.traverse((o) => {
+          if (!o.visible) return;
+          const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+          const solid =
+            (o as THREE.Mesh).isMesh &&
+            m &&
+            !Array.isArray(m) &&
+            !m.transparent &&
+            m.depthWrite;
+          const group = !(o as THREE.Mesh).isMesh && o.children.length;
+          const many = (o as THREE.Mesh).isMesh && Array.isArray(m);
+          if (solid || group || many || o === this.scene) return;
+          o.visible = false;
+          hide._visibilityCache.push(o);
+        });
+      };
+      this.composer.addPass(ao);
       this.bloom = new UnrealBloomPass(
         new THREE.Vector2(host.clientWidth, host.clientHeight),
         0.35,
@@ -606,6 +788,7 @@ export class KingdomScene {
       const [x, y] = key.split(",").map(Number);
       const obj = makeBuilding(id, x * 31 + y * 17 + 1000);
       obj.name = key;
+      if (!NO_WORN.has(id)) obj.add(wornGround(T * 1.5));
       obj.position.set(x * T, 0, y * T);
       this.adopt(obj);
       this.buildings.add(obj);
@@ -684,6 +867,9 @@ export class KingdomScene {
     // The grass top: a slab whose edge follows the coast a little, then the
     // tiles of the land on it.
     const topGeo = new THREE.CylinderGeometry(radius, radius * 0.97, 0.7, 96);
+    const grass = meadowTexture();
+    // One tile of the texture covers about 7 m of meadow.
+    grass.repeat.setScalar(radius / 3.4);
     const tp = topGeo.attributes.position;
     for (let i = 0; i < tp.count; i++) {
       const x = tp.getX(i);
@@ -695,11 +881,9 @@ export class KingdomScene {
     }
     topGeo.computeVertexNormals();
     const top = new THREE.Mesh(topGeo, [
-      mat(C.meadow),
-      new THREE.MeshStandardMaterial({
-        map: meadowTexture(),
-        roughness: 0.95,
-      }),
+      // An earth bank shows between the grass and the sand.
+      mat("#a98b62", { flatShading: false }),
+      new THREE.MeshStandardMaterial({ map: grass, roughness: 0.95 }),
       mat(C.meadow),
     ]);
     top.position.set(c, -0.35, c);
@@ -816,6 +1000,32 @@ export class KingdomScene {
         this.island.add(item);
       }
     }
+    // Tufts of longer grass, so the meadow isn't a mown lawn up close.
+    const tufts = new THREE.InstancedMesh(
+      tuftGeometry(),
+      new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }),
+      Math.round(radius * radius * 22),
+    );
+    const at = new THREE.Object3D();
+    const tint = new THREE.Color();
+    let placed = 0;
+    for (let i = 0; i < tufts.count; i++) {
+      const x = c + (rand() * 2 - 1) * radius * 1.05;
+      const z = c + (rand() * 2 - 1) * radius * 1.05;
+      if (!free(x, z, 0.25)) continue;
+      at.position.set(x, 0, z);
+      at.rotation.y = rand() * 6.3;
+      at.scale.setScalar(0.7 + rand() * 0.8);
+      at.updateMatrix();
+      tufts.setMatrixAt(placed, at.matrix);
+      tufts.setColorAt(
+        placed++,
+        tint.set(["#7aa650", "#94bd62", "#6a9848", "#a9c66e"][i % 4]),
+      );
+    }
+    tufts.count = placed;
+    tufts.receiveShadow = true;
+    this.island.add(tufts);
     for (let i = 0; i < 40 + size * size * 1.8; i++) {
       const x = c + (rand() * 2 - 1) * radius;
       const z = c + (rand() * 2 - 1) * radius;
@@ -909,6 +1119,7 @@ export class KingdomScene {
     if (old) this.removeObject(old);
     const hall = makeHall(stage);
     hall.name = "hall";
+    hall.add(wornGround(T * (HALL_RADIUS * 2 + 1) * 1.45));
     this.adopt(hall);
     this.buildings.add(hall);
     if (this.fire) this.scene.remove(this.fire);
@@ -974,7 +1185,11 @@ export class KingdomScene {
   }
 
   private rise(obj: THREE.Object3D) {
+    // Measure the building without the worn ground it stands on.
+    const flat = obj.children.filter((o) => o.userData.flat);
+    obj.remove(...flat);
     const bounds = new THREE.Box3().setFromObject(obj);
+    obj.add(...flat);
     const size = bounds.getSize(new THREE.Vector3());
     const scaffold = new THREE.LineSegments(
       new THREE.EdgesGeometry(
@@ -1060,8 +1275,9 @@ export class KingdomScene {
       const left = new THREE.Mesh(wing, m);
       bird.add(left);
       bird.userData = {
-        r: 22 + i * 3,
-        h: 6 + i * 1.5,
+        // Over the rooftops, where the camera never comes close to them.
+        r: 7 + i * 2.6,
+        h: 9.5 + i * 1.2,
         s: 0.1 + i * 0.015,
         p: i * 1.3,
       };
