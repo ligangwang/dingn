@@ -135,8 +135,10 @@ function Shop() {
                 <Coin size={44} />
                 <h2>{pack.coins.toLocaleString(locale)}</h2>
                 <p>{pack.name[locale] || pack.name.en}</p>
-                {bonus > 0 && (
+                {bonus > 0 ? (
                   <p className="coin-bonus">{t(`+${bonus}% more coins`)}</p>
+                ) : (
+                  <p className="coin-bonus starter">{t("Starter pack")}</p>
                 )}
                 <button
                   className="button"

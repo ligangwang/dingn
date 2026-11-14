@@ -42,6 +42,7 @@ it("shows the balance, the packs with their bonus, and opens Stripe Checkout onc
   expect(screen.getByText("120")).toBeTruthy();
   expect(await screen.findByText("+33% more coins")).toBeTruthy();
   expect(screen.getByText("+45% more coins")).toBeTruthy();
+  expect(screen.getByText("Starter pack")).toBeTruthy();
   expect(screen.getByRole("note").textContent).toContain("4242");
   await userEvent
     .setup()

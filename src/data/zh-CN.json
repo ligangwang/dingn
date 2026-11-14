@@ -760,5 +760,6 @@
   "Loading coin packs…": "正在加载金币包…",
   "The coin shop isn’t open yet. Check back soon.": "金币商店尚未开放，请稍后再来。",
   "+{0}% more coins": "多送 {0}% 金币",
+  "Starter pack": "入门首选",
   "One-time purchases, no subscription. Coins have no cash value and can’t be transferred. Payments are handled securely by Stripe.": "一次性购买，不是订阅。金币没有现金价值，不可转让。付款由 Stripe 安全处理。"
 }
