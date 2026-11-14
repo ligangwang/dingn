@@ -380,21 +380,16 @@ export type TreeSpot = {
   kind: number;
 };
 
-/** All the trees at `spots` (measured from the land's centre). */
+// One material for each kind of tree, shared by every wood and garden tree.
+const treeMaterials: (THREE.ShaderMaterial | undefined)[] = [];
+
+/** All the trees at `spots` (measured from the returned meshes' position). */
 export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
   const loader = new THREE.TextureLoader();
   const meshes: THREE.Mesh[] = [];
   SPECIES.forEach((sp, kind) => {
     const mine = spots.filter((s) => s.kind === kind);
     if (!mine.length) return;
-    const colour = loader.load(`${BASE}${sp.file}.webp`);
-    colour.colorSpace = THREE.SRGBColorSpace;
-    const facing = loader.load(`${BASE}${sp.file}-n.webp`);
-    for (const t of [colour, facing]) {
-      t.generateMipmaps = true;
-      t.minFilter = THREE.LinearMipmapLinearFilter;
-      t.anisotropy = 4;
-    }
     const geo = new THREE.InstancedBufferGeometry();
     geo.setAttribute(
       "position",
@@ -414,16 +409,40 @@ export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
     geo.setAttribute("at", new THREE.InstancedBufferAttribute(at, 4));
     geo.setAttribute("turn", new THREE.InstancedBufferAttribute(turn, 2));
     geo.instanceCount = mine.length;
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
-        colour: { value: colour },
-        facing: { value: facing },
-        sun: { value: sun },
-        size: { value: new THREE.Vector3(sp.halfW, sp.halfH, sp.tall) },
-      },
-      fog: true,
-      vertexShader: `
+    const sheets = () => {
+      const colour = loader.load(`${BASE}${sp.file}.webp`);
+      colour.colorSpace = THREE.SRGBColorSpace;
+      const facing = loader.load(`${BASE}${sp.file}-n.webp`);
+      for (const t of [colour, facing]) {
+        t.generateMipmaps = true;
+        t.minFilter = THREE.LinearMipmapLinearFilter;
+        t.anisotropy = 4;
+      }
+      return { colour, facing };
+    };
+    const material = (treeMaterials[kind] ??= treeMaterial(sp, sheets(), sun));
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.frustumCulled = false;
+    meshes.push(mesh);
+  });
+  return meshes;
+}
+
+function treeMaterial(
+  sp: (typeof SPECIES)[number],
+  { colour, facing }: { colour: THREE.Texture; facing: THREE.Texture },
+  sun: THREE.Vector3,
+) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+      colour: { value: colour },
+      facing: { value: facing },
+      sun: { value: sun },
+      size: { value: new THREE.Vector3(sp.halfW, sp.halfH, sp.tall) },
+    },
+    fog: true,
+    vertexShader: `
         attribute vec4 at; attribute vec2 turn;
         uniform vec3 size;
         varying vec2 vUv; varying vec2 vFrame; varying float vYaw; varying float vShade;
@@ -450,7 +469,7 @@ export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
           if (length(toCam) - size.x * at.w < 6.0) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
           #include <fog_vertex>
         }`,
-      fragmentShader: `
+    fragmentShader: `
         uniform sampler2D colour; uniform sampler2D facing; uniform vec3 sun;
         varying vec2 vUv; varying vec2 vFrame; varying float vYaw; varying float vShade;
         #include <fog_pars_fragment>
@@ -473,10 +492,5 @@ export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
           #include <colorspace_fragment>
           #include <fog_fragment>
         }`,
-    });
-    const mesh = new THREE.Mesh(geo, material);
-    mesh.frustumCulled = false;
-    meshes.push(mesh);
   });
-  return meshes;
 }

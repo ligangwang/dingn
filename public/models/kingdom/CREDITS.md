@@ -76,9 +76,34 @@ The keep, castle and palace walls and towers are drawn in code
 | Wooden Crate by Polyfork, CC BY 4.0             | `wooden-crate-b9c96a.glb`             | https://polyfork.dev/asset/wooden-crate-b9c96a             |
 | Wooden Fence by Polyfork, CC BY 4.0             | `wooden-fence-3d8ee7.glb`             | https://polyfork.dev/asset/wooden-fence-3d8ee7             |
 
+## Realistic buildings
+
+The houses, church, windmill, well, market stall and town gate are textured
+models by the Sketchfab authors below, each licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The files are in
+`real/`. Each was changed for the web: its parts joined into one mesh, its
+textures resized to 1024 px or less and saved as WebP, its geometry quantized,
+and the church, gate, well and stall simplified to fewer triangles. The four
+"Medieval House" materials were converted from specular-glossiness to
+metallic-roughness.
+
+| Model                                                           | File                | Source                                                        |
+| --------------------------------------------------------------- | ------------------- | ------------------------------------------------------------- |
+| "Medieval House 1" by Animau3D, CC BY 4.0                       | `real/house-1.glb`  | https://sketchfab.com/models/0bbda345359349ea95280f597c8a4bd4 |
+| "Medieval House 2" by Animau3D, CC BY 4.0                       | `real/house-2.glb`  | https://sketchfab.com/models/bc9272b74e544db1b93b0ebee8689bf4 |
+| "Medieval House 3" by Animau3D, CC BY 4.0                       | `real/house-3.glb`  | https://sketchfab.com/models/cf179aa6dc0944f1974ce3f7812031a6 |
+| "Medieval House 4" by Animau3D, CC BY 4.0                       | `real/house-4.glb`  | https://sketchfab.com/models/b42578994a334bb1a544c51043276f85 |
+| "Medieval house, Generic Textures" by by\_\_Rx, CC BY 4.0       | `real/manor.glb`    | https://sketchfab.com/models/3eb9e3b600264e2f99100fc43619497e |
+| "Gothic Church" by RapidAssets, CC BY 4.0                       | `real/church.glb`   | https://sketchfab.com/models/b498941d7a704173a6ad7446bafe8679 |
+| "New Castle Door" by farooq.smurf, CC BY 4.0                    | `real/gate.glb`     | https://sketchfab.com/models/c17775043b0a485e844d5f7a2aacce24 |
+| "TP1, Texture générique" (windmill) by Anthony Caron, CC BY 4.0 | `real/windmill.glb` | https://sketchfab.com/models/3e7b03f5e21c48d5a839344513a04520 |
+| "Medieval Wooden Well" by LucasPresoto, CC BY 4.0               | `real/well.glb`     | https://sketchfab.com/models/c364167420164db3bc837f351551ba1c |
+| "Medieval Market Stall" by AspectStudios, CC BY 4.0             | `real/stall.glb`    | https://sketchfab.com/models/b5d87398b87a4e7ab8959da2c6a47056 |
+
 ## Landscape
 
-The sky, the ground and the forest trees are made from
+The sky, the ground, the forest trees and the castle's stone and roof tiles
+are made from
 [Poly Haven](https://polyhaven.com/) assets, which are
 [CC0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain, no
 credit required; listed here so the sources stay known). The files are in
@@ -95,3 +120,6 @@ picture sheets, so no tree mesh is shipped.
 | Coast Sand 01                         | `land/sand.jpg`                      | https://polyhaven.com/a/coast_sand_01                        |
 | Tree Small 02                         | `land/tree.webp`, `land/tree-n.webp` | https://polyhaven.com/a/tree_small_02                        |
 | Fir Sapling Medium                    | `land/fir.webp`, `land/fir-n.webp`   | https://polyhaven.com/a/fir_sapling_medium                   |
+| Medieval Blocks 03                    | `land/wall.jpg`, `land/wall-n.jpg`   | https://polyhaven.com/a/medieval_blocks_03                   |
+| Clay Roof Tiles 02                    | `land/tiles.jpg`, `land/tiles-n.jpg` | https://polyhaven.com/a/clay_roof_tiles_02                   |
+| Roof Slates 02                        | `land/slate.jpg`                     | https://polyhaven.com/a/roof_slates_02                       |

@@ -40,7 +40,6 @@ import {
   loadPeople,
   makeBuilding,
   makeHall,
-  peak,
   person,
   scenery,
 } from "./kingdom-models";
@@ -824,7 +823,8 @@ export class KingdomScene {
         const z = gz + (rand() + rand() - 1) * 1.7;
         if (!free(x, z, 0.8)) continue;
         const s = 0.8 + rand() * 0.45;
-        trees.push({ x: x - c, y: 0, z: z - c, s, kind: rand() < 0.8 ? 0 : 1 });
+        rand(); // keeps the groves where they were when some were firs
+        trees.push({ x: x - c, y: 0, z: z - c, s, kind: 0 });
         // Its shadow on the grass, thrown away from the sun.
         const shade = treeShade();
         shade.scale.set(2.0 * s, 1.5 * s, 1);
@@ -872,33 +872,12 @@ export class KingdomScene {
       this.island.add(item);
     }
 
-    // Sea stacks out in the bay: white cliffs with pines rising from the
-    // water. Each is moved out to sea if the shore happens to reach it.
+    // A rock that stands in the sea is moved out if the shore reaches it.
     const afloat = (x: number, z: number) => {
       while (shape.height(x, z) > SEA - 0.9) x -= 3;
       return [x, z];
     };
     const stacks: Stack[] = [];
-    const islets: [number, number, number, number, number][] = [
-      [20, -30, 2.6, 5.5, 2.6],
-      [4, 16, 1.2, 4, 1.9],
-      [-12, -8, 1.8, 3.4, 1.5],
-    ];
-    for (const [dx, dz, y, r, s] of islets) {
-      const [x, z] = afloat(shape.bay.x + dx, shape.bay.z + dz);
-      const g = this.islet(r, rand, 7, y);
-      g.position.set(c + x, y, c + z);
-      const cliff = peak(rand, s);
-      cliff.position.set(-r * 0.15, 0, -r * 0.1);
-      g.add(cliff);
-      if (s > 2) {
-        const second = peak(rand, s * 0.62);
-        second.position.set(r * 0.5, 0, r * 0.2);
-        g.add(second);
-      }
-      this.island.add(g);
-      stacks.push({ x, z, r: r * 1.1 });
-    }
     // A bare rock off the shore, where the kingdom's dragon keeps watch.
     if (dragon) {
       const [x, z] = afloat(shape.bay.x + 22, shape.bay.z + 34);
@@ -986,6 +965,18 @@ export class KingdomScene {
         this.mixers.push({ mixer, owner: obj });
       }
     });
+    // A garden tree is one of the forest's trees, with its shade under it.
+    const tree = obj.userData.tree as { s: number; kind: number } | undefined;
+    if (tree) {
+      const turn = (obj.userData.turn as number) * 0.4;
+      for (const mesh of forest([{ x: turn, y: 0, z: -turn, ...tree }], SUN))
+        obj.add(mesh);
+      const shade = treeShade();
+      shade.scale.set(2.0 * tree.s, 1.5 * tree.s, 1);
+      shade.rotation.z = Math.atan2(SUN.z, -SUN.x);
+      shade.position.set(-SUN.x * 2.2 * tree.s, 0.03, -SUN.z * 2.2 * tree.s);
+      obj.add(shade);
+    }
     const smoke = obj.userData.smoke as THREE.Vector3 | undefined;
     if (smoke && !this.options.reducedMotion) {
       const origin = smoke
