@@ -44,9 +44,17 @@ it("shows the balance, the packs with their bonus, and opens Stripe Checkout onc
   expect(screen.getByText("+45% more coins")).toBeTruthy();
   expect(screen.getByText("Starter pack")).toBeTruthy();
   expect(screen.getByRole("note").textContent).toContain("4242");
-  await userEvent
-    .setup()
-    .dblClick(screen.getByRole("button", { name: "$1.99" }));
+  // Nothing can be bought until the buyer gives up the right to cancel.
+  const buy = screen.getByRole("button", {
+    name: "$1.99",
+  }) as HTMLButtonElement;
+  expect(buy.disabled).toBe(true);
+  const user = userEvent.setup();
+  await user.click(
+    screen.getByRole("checkbox", { name: /lose my right to cancel/ }),
+  );
+  expect(buy.disabled).toBe(false);
+  await user.dblClick(buy);
   await waitFor(() =>
     expect(mocks.assign).toHaveBeenCalledWith(
       "https://checkout.stripe.com/c/test",
@@ -55,7 +63,10 @@ it("shows the balance, the packs with their bonus, and opens Stripe Checkout onc
   expect(
     mocks.api.mock.calls.filter(([p]) => p.endsWith("/buy-coins")),
   ).toEqual([
-    ["/api/billing/buy-coins", { packId: "coins-800", locale: "en" }],
+    [
+      "/api/billing/buy-coins",
+      { packId: "coins-800", locale: "en", waiver: "2026-11-14" },
+    ],
   ]);
 });
 it("hides the test-mode note with live keys and refreshes the wallet after payment", async () => {

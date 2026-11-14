@@ -143,6 +143,29 @@ export const pages = {
       description: "用在 dingn 游戏中赢得的经验和金币，建造一座 3D 王国。",
     },
   },
+  "/terms/": {
+    index: true,
+    en: {
+      title: "Terms of use",
+      description:
+        "The rules for using dingn, including coin purchases and refunds.",
+    },
+    zh: {
+      title: "使用条款",
+      description: "使用 dingn 的规则，包括购买金币和退款。",
+    },
+  },
+  "/privacy/": {
+    index: true,
+    en: {
+      title: "Privacy policy",
+      description: "What dingn keeps about you, why, and your choices.",
+    },
+    zh: {
+      title: "隐私政策",
+      description: "dingn 保存哪些关于你的信息、原因，以及你的选择。",
+    },
+  },
   "/opt-out/": {
     index: true,
     en: { title: "Analytics opt-out" },

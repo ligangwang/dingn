@@ -26,6 +26,9 @@ function Shop() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [result, setResult] = useState("");
+  // EU/UK law: the buyer asks for immediate delivery and gives up the 14-day
+  // right to cancel before paying. Buttons stay off until this is ticked.
+  const [waived, setWaived] = useState(false);
   const lock = useRef(false);
   useEffect(() => {
     readCoinPacks()
@@ -109,55 +112,70 @@ function Shop() {
       ) : packs.length === 0 ? (
         !error && <p>{t("The coin shop isn’t open yet. Check back soon.")}</p>
       ) : (
-        <div className="coin-packs">
-          {packs.map((pack) => {
-            const bonus = Math.round(
-              (packs[0].unitAmount /
-                packs[0].coins /
-                (pack.unitAmount / pack.coins) -
-                1) *
-                100,
-            );
-            return (
-              <article
-                key={pack.id}
-                className={
-                  pack.unitAmount / pack.coins === best
-                    ? "coin-pack best"
-                    : "coin-pack"
-                }
-              >
-                {pack.tag && (
-                  <span className="coin-tag">
-                    {pack.tag[locale] || pack.tag.en}
-                  </span>
-                )}
-                <Coin size={44} />
-                <h2>{pack.coins.toLocaleString(locale)}</h2>
-                <p>{pack.name[locale] || pack.name.en}</p>
-                {bonus > 0 ? (
-                  <p className="coin-bonus">{t(`+${bonus}% more coins`)}</p>
-                ) : (
-                  <p className="coin-bonus starter">{t("Starter pack")}</p>
-                )}
-                <button
-                  className="button"
-                  disabled={!!busy}
-                  onClick={() => void buy(pack)}
+        <>
+          <label className="coin-waiver">
+            <input
+              type="checkbox"
+              checked={waived}
+              onChange={(e) => setWaived(e.target.checked)}
+            />
+            <span>
+              {t(
+                "I want my coins delivered right away, and I understand that I lose my right to cancel once they are delivered.",
+              )}
+            </span>
+          </label>
+          <div className="coin-packs">
+            {packs.map((pack) => {
+              const bonus = Math.round(
+                (packs[0].unitAmount /
+                  packs[0].coins /
+                  (pack.unitAmount / pack.coins) -
+                  1) *
+                  100,
+              );
+              return (
+                <article
+                  key={pack.id}
+                  className={
+                    pack.unitAmount / pack.coins === best
+                      ? "coin-pack best"
+                      : "coin-pack"
+                  }
                 >
-                  {busy === pack.id
-                    ? t("Opening checkout…")
-                    : formatPrice(pack, locale)}
-                </button>
-              </article>
-            );
-          })}
-        </div>
+                  {pack.tag && (
+                    <span className="coin-tag">
+                      {pack.tag[locale] || pack.tag.en}
+                    </span>
+                  )}
+                  <Coin size={44} />
+                  <h2>{pack.coins.toLocaleString(locale)}</h2>
+                  <p>{pack.name[locale] || pack.name.en}</p>
+                  {bonus > 0 ? (
+                    <p className="coin-bonus">{t(`+${bonus}% more coins`)}</p>
+                  ) : (
+                    <p className="coin-bonus starter">{t("Starter pack")}</p>
+                  )}
+                  <button
+                    className="button"
+                    disabled={!!busy || !waived}
+                    onClick={() => void buy(pack)}
+                  >
+                    {busy === pack.id
+                      ? t("Opening checkout…")
+                      : formatPrice(pack, locale)}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </>
       )}
       <p className="coin-fine-print">
         {t(
           "One-time purchases, no subscription. Coins have no cash value and can’t be transferred. Payments are handled securely by Stripe.",
-        )}
+        )}{" "}
+        <Link href={href("/terms/")}>{t("Terms and refund policy")}</Link>
       </p>
       <Link className="text-button" href={href("/#games")}>
         {t("Play games →")}

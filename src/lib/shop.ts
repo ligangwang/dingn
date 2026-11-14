@@ -44,5 +44,11 @@ export type CoinPack = {
 };
 export const readCoinPacks = () =>
   api<{ packs: CoinPack[]; testMode: boolean }>("/api/billing/coin-packs");
+/** The version of the right-to-cancel waiver; WAIVER_VERSION in billing.mjs. */
+export const WAIVER_VERSION = "2026-11-14";
 export const buyCoins = (packId: string, locale: string) =>
-  api<{ url: string }>("/api/billing/buy-coins", { packId, locale });
+  api<{ url: string }>("/api/billing/buy-coins", {
+    packId,
+    locale,
+    waiver: WAIVER_VERSION,
+  });

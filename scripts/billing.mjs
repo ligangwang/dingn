@@ -159,10 +159,21 @@ export function coinPacks({ stripe, packs }) {
     return { packs: [], testMode: false };
   return { packs: validPacks(packs), testMode: testMode() };
 }
-export async function buyCoins(deps, uid, packId, locale) {
+/**
+ * Coins are digital content delivered at once. Under EU and UK consumer law a
+ * buyer keeps a 14-day right to cancel unless, before paying, they ask for
+ * immediate delivery and acknowledge losing that right. The coin shop collects
+ * that consent; the order records it and Stripe repeats it on the checkout
+ * page and the receipt. Change the version when the wording changes.
+ */
+export const WAIVER_VERSION = "2026-11-14";
+const WAIVER_TEXT =
+  "Your coins are delivered immediately. You asked for immediate delivery and agreed that you lose your right to cancel once they are delivered.";
+export async function buyCoins(deps, uid, packId, locale, waiver) {
   const { db, stripe } = deps;
   const pack = coinPacks(deps).packs.find((p) => p.id === packId);
   if (!pack) throw new ApiError(400, "pack-unavailable");
+  if (waiver !== WAIVER_VERSION) throw new ApiError(400, "waiver-required");
   const now = Date.now();
   const order = {
     id: randomUUID(),
@@ -175,6 +186,7 @@ export async function buyCoins(deps, uid, packId, locale) {
     createdAt: now,
     expiresAt: now + 35 * 60 * 1000,
     locale: locale === "zh-CN" ? "zh-CN" : "en",
+    waiver: { version: WAIVER_VERSION, acceptedAt: now },
   };
   await db.runTransaction(async (tx) =>
     tx.set(db.doc(`coinOrders/${order.id}`), order),
@@ -198,7 +210,13 @@ export async function buyCoins(deps, uid, packId, locale) {
       ],
       client_reference_id: uid,
       metadata,
-      payment_intent_data: { metadata },
+      // The receipt carries the payment description: the confirmation of the
+      // buyer's waiver that EU/UK law asks for.
+      payment_intent_data: {
+        metadata,
+        description: `${pack.coins.toLocaleString("en")} dingn coins. ${WAIVER_TEXT}`,
+      },
+      custom_text: { submit: { message: WAIVER_TEXT } },
       expires_at: Math.floor(order.expiresAt / 1000),
       locale: order.locale === "zh-CN" ? "zh" : "en",
       success_url: `https://dingn.com${page}?purchase=pending`,
@@ -407,7 +425,13 @@ export function createBillingHandler(getServices = productionServices) {
       else if (path === "/api/billing/coin-packs") data = coinPacks(deps);
       else if (path === "/api/billing/buy-coins") {
         throttle(req);
-        data = await buyCoins(deps, uid, body?.packId, body?.locale);
+        data = await buyCoins(
+          deps,
+          uid,
+          body?.packId,
+          body?.locale,
+          body?.waiver,
+        );
       } else if (path === "/api/billing/inventory")
         data = await inventory(deps, uid);
       else if (path === "/api/billing/checkout") {

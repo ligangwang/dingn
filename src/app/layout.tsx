@@ -5,6 +5,7 @@ import { Header } from "@/components/header";
 import { LegacyRoutes } from "@/components/legacy-routes";
 import { Analytics } from "@/components/analytics";
 import { DevelopersLink } from "@/components/developers";
+import { LegalLinks } from "@/components/legal";
 import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import "./mind-arcade.css";
@@ -35,7 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <a href="/models/CREDITS.md">
                 <Text>Credits</Text>
               </a>{" "}
-              · <DevelopersLink />
+              · <DevelopersLink /> · <LegalLinks />
             </footer>
             <Analytics />
           </SessionProvider>
