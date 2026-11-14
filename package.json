@@ -13,7 +13,7 @@
     "preview": "node scripts/preview.mjs",
     "publish:game": "node scripts/publish-game.mjs",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test tests/auth-api.test.mjs tests/billing-api.test.mjs tests/game-registry.test.mjs tests/games-admin.test.mjs tests/build-sdk.test.mjs tests/developer-games.test.mjs tests/developer-portal.test.mjs tests/dockerfile.test.mjs tests/game-seo.test.mjs tests/migrate-crowd-progress.test.mjs tests/rewards.test.mjs tests/kingdom.test.mjs && tsx --test tests/*.test.ts && vitest run",
+    "test": "node --test tests/auth-api.test.mjs tests/billing-api.test.mjs tests/coin-shop-api.test.mjs tests/game-registry.test.mjs tests/games-admin.test.mjs tests/build-sdk.test.mjs tests/developer-games.test.mjs tests/developer-portal.test.mjs tests/dockerfile.test.mjs tests/game-seo.test.mjs tests/migrate-crowd-progress.test.mjs tests/rewards.test.mjs tests/kingdom.test.mjs && tsx --test tests/*.test.ts && vitest run",
     "test:rules": "firebase emulators:exec --only firestore --project demo-dingn-feedback \"node --test tests/feedback-rules.test.mjs tests/billing-rules.test.mjs\"",
     "verify": "npm run typecheck && npm test && npm run build",
     "format": "prettier --write src tests scripts *.json *.ts *.md",

@@ -22,6 +22,7 @@ it("blocks forged purchases, ownership, Stripe records, XP, the game registry an
   ]) {
     for (const path of [
       "shopOrders/order1",
+      "coinOrders/order1",
       "shopInventory/alice/items/cape",
       "customers/alice/payments/pi1",
       "products/prod1",

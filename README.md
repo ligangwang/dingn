@@ -39,8 +39,8 @@ The existing `accounts/{uid}`, `numbers/{number}`, `words/{word}`, and `number_f
 ## One-time game item purchases (Stripe)
 
 The account page contains an English/Chinese item shop and account purchase history.
-There is no Premium subscription, recurring charge, virtual currency or randomized
-reward. This first version supports non-consumable items (one permanent ownership
+There is no Premium subscription, recurring charge or randomized reward. Coin packs
+(below) are the one consumable purchase. This first version supports non-consumable items (one permanent ownership
 record per account and item). It does not support consumable bundles.
 
 **The catalog ships empty. No unfinished cosmetics are offered for sale.**
@@ -112,6 +112,41 @@ No equip UI or paid game content is included in this PR.
 Missing Stripe configuration or an empty release allowlist produces an empty shop.
 The production secrets, Stripe products/webhook, and real payment smoke test are
 external setup steps; adding this code alone does not activate sales.
+
+## Coin shop (Stripe)
+
+`/coins/` (and `/zh/coins/`) sells coin packs for the wallet that games pay into
+and players spend in game shops (`rewards/{uid}.coins`). The wallet menu in the
+header links to it as "Get more coins".
+
+| Pack            | Coins | Price | Coins per $1 |
+| --------------- | ----- | ----- | ------------ |
+| Handful         | 300   | $0.99 | 303          |
+| Pouch (Popular) | 800   | $1.99 | 402 (+33%)   |
+| Chest (Best)    | 2,200 | $4.99 | 441 (+45%)   |
+
+Packs and prices live in `src/data/coin-packs.json` and are sent to Stripe as
+inline `price_data`, so no Stripe products or price IDs are needed; change the
+file to change prices. Players also earn up to 200 coins per game per day free.
+
+- POST `/api/billing/coin-packs` lists the packs (empty until both Stripe secrets
+  are set) and says whether the key is a test key; the page then shows a
+  test-mode note with Stripe's test card.
+- POST `/api/billing/buy-coins` takes a pack ID and locale (never an amount or
+  account), records `coinOrders/{id}` as pending and opens Stripe Checkout.
+- The same signed webhook as items adds the pack's coins once, after checking
+  the account, quantity, amount and currency (`bought` counts purchased coins).
+  A refund or dispute takes back what is left of that pack (coins already spent
+  stay spent); one that arrives before payment blocks the credit. Expired
+  checkouts add nothing. The return URL only refreshes the wallet.
+
+To test, bind a Stripe **test** secret key (`sk_test_…`) and the test webhook's
+signing secret as `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` on Cloud Run,
+with the webhook events listed above pointing at
+`https://dingn.com/api/billing/webhook`, and deploy `firestore.rules`
+(`coinOrders` is server-only). To take real money, switch both to live-mode
+values after Stripe has activated the account (business details, identity and a
+bank account for payouts).
 
 ## Hosting and cutover
 

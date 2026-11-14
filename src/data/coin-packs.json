@@ -1,0 +1,25 @@
+[
+  {
+    "id": "coins-300",
+    "coins": 300,
+    "unitAmount": 99,
+    "currency": "usd",
+    "name": { "en": "Handful of coins", "zh-CN": "一把金币" }
+  },
+  {
+    "id": "coins-800",
+    "coins": 800,
+    "unitAmount": 199,
+    "currency": "usd",
+    "name": { "en": "Pouch of coins", "zh-CN": "一袋金币" },
+    "tag": { "en": "Popular", "zh-CN": "热门" }
+  },
+  {
+    "id": "coins-2200",
+    "coins": 2200,
+    "unitAmount": 499,
+    "currency": "usd",
+    "name": { "en": "Chest of coins", "zh-CN": "一箱金币" },
+    "tag": { "en": "Best value", "zh-CN": "最划算" }
+  }
+]
