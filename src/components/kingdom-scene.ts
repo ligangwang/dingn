@@ -29,6 +29,7 @@ import {
   skyDome,
   type LandShape,
   type Stack,
+  type TreeSpot,
 } from "./kingdom-land";
 import {
   PEOPLE,
@@ -222,29 +223,78 @@ const NO_WORN = new Set(["path", "tree", "flowers", "farm"]);
  * light as the grass under it does.
  */
 function tuftGeometry() {
-  const pos: number[] = [];
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2 + 0.4;
-    const h = 0.11 + i * 0.03;
-    const cx = Math.cos(a) * 0.02;
-    const cz = Math.sin(a) * 0.02;
-    const px = Math.cos(a + Math.PI / 2) * 0.022;
-    const pz = Math.sin(a + Math.PI / 2) * 0.022;
-    const left = [cx - px, 0, cz - pz];
-    const right = [cx + px, 0, cz + pz];
-    const tip = [cx + Math.cos(a) * 0.05, h, cz + Math.sin(a) * 0.05];
-    pos.push(...left, ...right, ...tip, ...right, ...left, ...tip);
+  // Two crossed cards, each drawn from both sides. Their corners are in
+  // `corner`, not `position`, so the ambient-shadow pass, which draws every
+  // mesh with a plain material, draws nothing for them.
+  const corner: number[] = [];
+  const uv: number[] = [];
+  const index: number[] = [];
+  for (let k = 0; k < 4; k++) {
+    const a = (k % 2) * (Math.PI / 2) + 0.4;
+    const dx = Math.cos(a) * 0.075;
+    const dz = Math.sin(a) * 0.075;
+    corner.push(-dx, 0, -dz, dx, 0, dz, dx, 0.1, dz, -dx, 0.1, -dz);
+    uv.push(0, 0, 1, 0, 1, 1, 0, 1);
+    const i = k * 4;
+    if (k < 2) index.push(i, i + 1, i + 2, i, i + 2, i + 3);
+    else index.push(i + 2, i + 1, i, i + 3, i + 2, i);
   }
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  const n = corner.length / 3;
+  geo.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3),
+  );
+  geo.setAttribute("corner", new THREE.Float32BufferAttribute(corner, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute(
     "normal",
     new THREE.Float32BufferAttribute(
-      Array.from({ length: pos.length / 3 }, () => [0, 1, 0]).flat(),
+      Array.from({ length: n }, () => [0, 1, 0]).flat(),
       3,
     ),
   );
+  geo.setIndex(index);
   return geo;
+}
+/** A clump of fine grass blades, pale so each tuft's own green tints it. */
+function tuftMaterial() {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 128;
+  const g = c.getContext("2d")!;
+  let seed = 7;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 70; i++) {
+    // Each blade leaves the foot of the clump and bends outward.
+    const x0 = 128 + (rand() - 0.5) * 90;
+    const lean = (x0 - 128) * 0.9 + (rand() - 0.5) * 60;
+    const h = 40 + rand() * 84;
+    const w = 1.6 + rand() * 1.6;
+    g.fillStyle = `hsl(${70 + rand() * 30}, ${12 + rand() * 18}%, ${58 + rand() * 36}%)`;
+    g.beginPath();
+    g.moveTo(x0 - w, 128);
+    g.quadraticCurveTo(x0 + lean * 0.3, 128 - h * 0.6, x0 + lean, 128 - h);
+    g.quadraticCurveTo(x0 + lean * 0.3 + w, 128 - h * 0.6, x0 + w, 128);
+    g.fill();
+  }
+  const map = new THREE.CanvasTexture(c);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 4;
+  const m = new THREE.MeshStandardMaterial({
+    map,
+    alphaTest: 0.35,
+    roughness: 1,
+  });
+  m.onBeforeCompile = (s) => {
+    s.vertexShader =
+      "attribute vec3 corner;\n" +
+      s.vertexShader.replace(
+        "#include <begin_vertex>",
+        "vec3 transformed = corner;",
+      );
+  };
+  return m;
 }
 
 /**
@@ -422,6 +472,7 @@ export class KingdomScene {
   private previewId: string | null = null;
   private grid: THREE.LineSegments | null = null;
   private spinners: THREE.Object3D[] = [];
+  private flows = new Set<THREE.Texture>(); // falling water
   private walkers: {
     obj: THREE.Object3D;
     mixer: THREE.AnimationMixer | null;
@@ -601,7 +652,7 @@ export class KingdomScene {
       if (this.disposed) return;
       this.ready = true;
       for (let i = 0; i < 2; i++) {
-        const b = balloon();
+        const b = balloon(i);
         this.balloons.push(b);
         this.scene.add(b);
       }
@@ -839,7 +890,7 @@ export class KingdomScene {
     // Tufts of longer grass, so the meadow isn't a mown lawn up close.
     const tufts = new THREE.InstancedMesh(
       tuftGeometry(),
-      new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }),
+      tuftMaterial(),
       Math.round(radius * radius * 22),
     );
     const at = new THREE.Object3D();
@@ -856,19 +907,37 @@ export class KingdomScene {
       tufts.setMatrixAt(placed, at.matrix);
       tufts.setColorAt(
         placed++,
-        tint.set(["#4f6f2c", "#5f7f34", "#46652a", "#6b8a3c"][i % 4]),
+        tint.set(["#7d9144", "#8c9c4c", "#74883e", "#99a656"][i % 4]),
       );
     }
     tufts.count = placed;
     tufts.receiveShadow = true;
+    tufts.frustumCulled = false; // its `position` is empty
     this.island.add(tufts);
-    for (let i = 0; i < 40 + size * size * 1.8; i++) {
+    const saplings: TreeSpot[] = [];
+    for (let i = 0; i < 24 + size * size * 1.1; i++) {
       const x = c + (rand() * 2 - 1) * radius;
       const z = c + (rand() * 2 - 1) * radius;
       if (!free(x, z)) continue;
+      // Most are saplings, small ones of the forest's trees; the rest are
+      // boulders and stumps.
+      if (rand() < 0.6) {
+        saplings.push({
+          x: x - c,
+          y: 0,
+          z: z - c,
+          s: 0.18 + rand() * 0.14,
+          kind: 0,
+        });
+        continue;
+      }
       const item = cover(rand);
       item.position.set(x, 0, z);
       this.island.add(item);
+    }
+    for (const mesh of forest(saplings, SUN)) {
+      mesh.position.set(c, 0, c);
+      this.island.add(mesh);
     }
 
     // A rock that stands in the sea is moved out if the shore reaches it.
@@ -947,6 +1016,11 @@ export class KingdomScene {
       if (o.userData.flame) this.flames.push(o as THREE.Mesh);
       if (o.userData.flag) this.flags.push(o as THREE.Mesh);
       if (o.userData.spin) this.spinners.push(o);
+      if (o.userData.flow) {
+        const map = ((o as THREE.Mesh).material as THREE.MeshStandardMaterial)
+          .map;
+        if (map) this.flows.add(map);
+      }
       // Kit models with their own loop (fire, cloth) play it.
       const tick = (
         o.userData.clips as THREE.AnimationClip[] | undefined
@@ -1315,7 +1389,7 @@ export class KingdomScene {
       const dir = i % 2 ? -1 : 1;
       // Round and round, well out in the bay.
       const a = time * 0.02 * dir + i * 2.1 + 0.4;
-      const r = 12 + i * 7;
+      const r = 22 + i * 12;
       const bay = this.land?.bay ?? { x: 0, z: 0 };
       b.position.set(
         this.centre + bay.x - 45 + Math.cos(a) * r,
@@ -1326,6 +1400,7 @@ export class KingdomScene {
       b.rotation.z = Math.sin(time * 0.9 + i) * 0.04;
     });
     for (const s of this.spinners) s.rotation.z += dt * 0.6;
+    for (const t of this.flows) t.offset.y += dt * 0.9;
     for (const m of this.mixers) m.mixer.update(dt);
     this.balloons.forEach((b, i) => {
       const a = time * 0.02 * (i ? -1 : 1) + i * 2.2 + 3.6;

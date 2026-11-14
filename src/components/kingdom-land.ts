@@ -362,15 +362,34 @@ export function skyDome(
 // ---- trees ----------------------------------------------------------------
 
 // Real trees (Poly Haven, CC0) are millions of triangles each, far too many
-// to draw a forest of. Each was photographed in the round ahead of time,
-// eight views of its colour and eight of which way its surfaces face, and
-// a tree in the scene is one flat card that turns to the camera and shows
-// the nearest view, lit by the scene's own sun.
+// to draw a forest of. Each was photographed in the round ahead of time:
+// eight views of its colour from the side, eight of which way its surfaces
+// face, and one view from above. A tree in the scene is four upright cards
+// crossed through its trunk, each showing the view from its own side, and one
+// level card in its crown for the view from above. The cards stand still, so
+// a tree never turns or leans as the camera moves, and each is lit by the
+// scene's own sun.
 const VIEWS = 8;
+const CARDS = [0, 1, 2, 3, 4];
 const SPECIES = [
   // Sizes in meters, as measured when the views were made.
-  { file: "tree", halfW: 2.232, halfH: 2.79, tall: 4.557, grow: 2.3 },
-  { file: "fir", halfW: 2.743, halfH: 5.487, tall: 8.89, grow: 1.55 },
+  // `crown` is how far up the level card sits, as a share of the height.
+  {
+    file: "tree",
+    halfW: 2.232,
+    halfH: 2.79,
+    tall: 4.557,
+    grow: 2.3,
+    crown: 0.62,
+  },
+  {
+    file: "fir",
+    halfW: 2.743,
+    halfH: 5.487,
+    tall: 8.89,
+    grow: 1.55,
+    crown: 0.3,
+  },
 ];
 export type TreeSpot = {
   x: number;
@@ -391,14 +410,32 @@ export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
     const mine = spots.filter((s) => s.kind === kind);
     if (!mine.length) return;
     const geo = new THREE.InstancedBufferGeometry();
+    // Five cards; z says which: 0 to 3 the upright ones, 4 the level one.
+    // They go in `corner`, and `position` stays at the trunk's foot, so that a
+    // pass that redraws the scene with its own material (the soft shadows in
+    // corners) draws nothing for the trees instead of stray squares.
+    const corners = CARDS.flatMap((k) => [
+      -1,
+      -1,
+      k,
+      1,
+      -1,
+      k,
+      1,
+      1,
+      k,
+      -1,
+      1,
+      k,
+    ]);
     geo.setAttribute(
       "position",
-      new THREE.Float32BufferAttribute(
-        [-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0],
-        3,
-      ),
+      new THREE.Float32BufferAttribute(new Float32Array(corners.length), 3),
     );
-    geo.setIndex([0, 1, 2, 0, 2, 3]);
+    geo.setAttribute("corner", new THREE.Float32BufferAttribute(corners, 3));
+    geo.setIndex(
+      CARDS.flatMap((k) => [0, 1, 2, 0, 2, 3].map((i) => i + k * 4)),
+    );
     const at = new Float32Array(mine.length * 4);
     const turn = new Float32Array(mine.length * 2);
     mine.forEach((s, i) => {
@@ -413,12 +450,14 @@ export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
       const colour = loader.load(`${BASE}${sp.file}.webp`);
       colour.colorSpace = THREE.SRGBColorSpace;
       const facing = loader.load(`${BASE}${sp.file}-n.webp`);
-      for (const t of [colour, facing]) {
+      const top = loader.load(`${BASE}${sp.file}-top.webp`);
+      top.colorSpace = THREE.SRGBColorSpace;
+      for (const t of [colour, facing, top]) {
         t.generateMipmaps = true;
         t.minFilter = THREE.LinearMipmapLinearFilter;
         t.anisotropy = 4;
       }
-      return { colour, facing };
+      return { colour, facing, top };
     };
     const material = (treeMaterials[kind] ??= treeMaterial(sp, sheets(), sun));
     const mesh = new THREE.Mesh(geo, material);
@@ -430,67 +469,94 @@ export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
 
 function treeMaterial(
   sp: (typeof SPECIES)[number],
-  { colour, facing }: { colour: THREE.Texture; facing: THREE.Texture },
+  sheets: { colour: THREE.Texture; facing: THREE.Texture; top: THREE.Texture },
   sun: THREE.Vector3,
 ) {
   return new THREE.ShaderMaterial({
     uniforms: {
       ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
-      colour: { value: colour },
-      facing: { value: facing },
+      colour: { value: sheets.colour },
+      facing: { value: sheets.facing },
+      top: { value: sheets.top },
       sun: { value: sun },
       size: { value: new THREE.Vector3(sp.halfW, sp.halfH, sp.tall) },
+      crown: { value: sp.crown },
     },
     fog: true,
+    side: THREE.DoubleSide,
     vertexShader: `
-        attribute vec4 at; attribute vec2 turn;
-        uniform vec3 size;
-        varying vec2 vUv; varying vec2 vFrame; varying float vYaw; varying float vShade;
-        #include <fog_pars_vertex>
-        void main(){
-          vec3 base = (modelMatrix * vec4(at.xyz, 1.0)).xyz;
-          vec3 toCam = cameraPosition - base;
-          float around = atan(toCam.z, toCam.x);
-          vec3 right = vec3(sin(around), 0.0, -cos(around));
-          // Seen from above, the card leans back so it never shows edge-on.
-          vec3 flatDir = normalize(vec3(toCam.x, 0.0, toCam.z));
-          float pitch = clamp(toCam.y / length(toCam), 0.0, 1.0);
-          vec3 up = normalize(vec3(0.0, 1.0, 0.0) - flatDir * smoothstep(0.35, 0.95, pitch) * 1.1);
-          float h = size.z * 0.5 + position.y * size.y;
-          vec3 world = base + (right * position.x * size.x + up * h) * at.w;
-          vUv = position.xy * 0.5 + 0.5;
-          float f = (around + turn.x) / 6.2831853 * ${VIEWS}.0;
-          vFrame = vec2(floor(f + 0.5), fract(f + 0.5));
-          vYaw = turn.x;
-          vShade = turn.y;
-          vec4 mvPosition = viewMatrix * vec4(world, 1.0);
-          gl_Position = projectionMatrix * mvPosition;
-          // A tree right in front of the lens is not drawn at all.
-          if (length(toCam) - size.x * at.w < 6.0) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-          #include <fog_vertex>
-        }`,
+      attribute vec3 corner; attribute vec4 at; attribute vec2 turn;
+      uniform vec3 size; uniform float crown;
+      varying vec2 vUv; varying float vCard; varying float vSee; varying float vYaw; varying float vShade;
+      #include <fog_pars_vertex>
+      void main(){
+        vec3 base = (modelMatrix * vec4(at.xyz, 1.0)).xyz;
+        vec3 toCam = cameraPosition - base;
+        vec3 world;
+        if (corner.z < 3.5) {
+          // An upright card, facing the side its view was taken from.
+          float a = corner.z * 0.7853982 - turn.x;
+          vec3 right = vec3(sin(a), 0.0, -cos(a));
+          float h = size.z * 0.5 + corner.y * size.y;
+          world = base + (right * corner.x * size.x + vec3(0.0, h, 0.0)) * at.w;
+          // How squarely the camera sees it: 0 when it is edge-on.
+          vSee = abs(dot(normalize(toCam.xz), vec2(cos(a), sin(a))));
+        } else {
+          // The level card in the crown, turned with the tree.
+          float c = cos(turn.x); float s = sin(turn.x);
+          vec2 o = vec2(corner.x, -corner.y) * size.x;
+          world = base + vec3(o.x * c + o.y * s, size.z * crown, -o.x * s + o.y * c) * at.w;
+          // How far above the tree the camera is: 1 straight overhead.
+          vSee = normalize(toCam).y;
+        }
+        vUv = corner.xy * 0.5 + 0.5;
+        vCard = corner.z;
+        vYaw = turn.x;
+        vShade = turn.y;
+        vec4 mvPosition = viewMatrix * vec4(world, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
+        // A tree right in front of the lens is not drawn at all.
+        if (length(toCam) - size.x * at.w < 6.0) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+        #include <fog_vertex>
+      }`,
     fragmentShader: `
-        uniform sampler2D colour; uniform sampler2D facing; uniform vec3 sun;
-        varying vec2 vUv; varying vec2 vFrame; varying float vYaw; varying float vShade;
-        #include <fog_pars_fragment>
-        void main(){
-          vec2 uv = vec2((mod(vFrame.x, ${VIEWS}.0) + vUv.x) / ${VIEWS}.0, vUv.y);
-          vec4 c = texture2D(colour, uv);
-          if (c.a < 0.45) discard;
-          vec3 n = texture2D(facing, uv).xyz * 2.0 - 1.0;
-          float cy = cos(vYaw); float sy = sin(vYaw);
-          n = normalize(vec3(cy * n.x + sy * n.z, n.y, -sy * n.x + cy * n.z));
-          // Leaves let some light through, so the sunlit side wraps round.
-          float lit = max((dot(n, sun) + 0.4) / 1.4, 0.0);
-          vec3 leaf = c.rgb * mix(vec3(0.95, 1.12, 0.8), vec3(1.2, 1.25, 0.85), vShade) * 1.9;
-          vec3 light = vec3(1.0, 0.95, 0.86) * 1.25 * lit
-                     + vec3(0.2, 0.26, 0.36) * (0.45 + 0.55 * n.y);
+      uniform sampler2D colour; uniform sampler2D facing; uniform sampler2D top; uniform vec3 sun;
+      varying vec2 vUv; varying float vCard; varying float vSee; varying float vYaw; varying float vShade;
+      #include <fog_pars_fragment>
+      float grain(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      void main(){
+        // Cards thin out leaf by leaf as they turn edge-on, so none shows as a line.
+        float g = grain(floor(vUv * 40.0) + vCard * 17.0);
+        vec4 c; vec3 n; float foot = 1.0;
+        if (vCard < 3.5) {
+          if (vSee < 0.08 + g * 0.24) discard;
+          // The back of a card shows the view from the far side, mirrored.
+          float frame = gl_FrontFacing ? vCard : vCard + 4.0;
+          float u = gl_FrontFacing ? vUv.x : 1.0 - vUv.x;
+          vec2 uv = vec2((frame + u) / ${VIEWS}.0, vUv.y);
+          c = texture2D(colour, uv);
+          n = texture2D(facing, uv).xyz * 2.0 - 1.0;
           // Darker toward the foot, where the crown shades the trunk.
-          light *= mix(0.6, 1.0, smoothstep(0.05, 0.5, vUv.y));
-          gl_FragColor = vec4(leaf * light, 1.0);
-          #include <tonemapping_fragment>
-          #include <colorspace_fragment>
-          #include <fog_fragment>
-        }`,
+          foot = mix(0.6, 1.0, smoothstep(0.05, 0.5, vUv.y));
+        } else {
+          // The level card only shows from well above, where the upright ones thin.
+          if (vSee < 0.58 + g * 0.22) discard;
+          c = texture2D(top, vUv);
+          vec2 d = vUv * 2.0 - 1.0;
+          n = normalize(vec3(d.x * 0.8, 0.75, -d.y * 0.8));
+        }
+        if (c.a < 0.45) discard;
+        float cy = cos(vYaw); float sy = sin(vYaw);
+        n = normalize(vec3(cy * n.x + sy * n.z, n.y, -sy * n.x + cy * n.z));
+        // Leaves let some light through, so the sunlit side wraps round.
+        float lit = max((dot(n, sun) + 0.4) / 1.4, 0.0);
+        vec3 leaf = c.rgb * mix(vec3(0.95, 1.12, 0.8), vec3(1.2, 1.25, 0.85), vShade) * 1.9;
+        vec3 light = vec3(1.0, 0.95, 0.86) * 1.25 * lit
+                   + vec3(0.2, 0.26, 0.36) * (0.45 + 0.55 * n.y);
+        gl_FragColor = vec4(leaf * light * foot, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`,
   });
 }

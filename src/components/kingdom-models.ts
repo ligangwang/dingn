@@ -1,11 +1,13 @@
 // The kingdom's buildings. The houses, church, mill, well, stall and gate are
-// realistic textured models (public/models/kingdom/real); the props and the
-// rest come from the Polyfork Medieval Village kit (public/models/kingdom).
-// All are CC BY 4.0 and credited in CREDITS.md there. Each
-// building is a small arrangement of kit models laid out in meters; one world
-// unit is 3 m, so a 2-unit tile is 6 m across and the hall's 3 x 3 grounds
-// are 18 m. The kit has no castle, so the keep, castle and palace add stone
-// walls and towers drawn here, textured and coloured to match the kit.
+// realistic textured models by Sketchfab authors, and the barrels, crates,
+// lamps, statues, boulders and ships are Poly Haven scans (all in
+// public/models/kingdom/real); the smaller props, villagers and animals come
+// from the Polyfork Medieval Village kit (public/models/kingdom). Every model
+// is credited in CREDITS.md there. Each building is a small arrangement of
+// models laid out in meters; one world unit is 3 m, so a 2-unit tile is 6 m
+// across and the hall's 3 x 3 grounds are 18 m. The castle, the clock tower,
+// the watchtower, the fountain and the balloons are drawn here, in
+// photographed stone and tiles.
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -19,17 +21,15 @@ const FILES = {
   towerHouse: "real/house-1",
   longHouse: "real/house-4",
   chapel: "real/church",
-  watchtower: "watchtower-140f78",
   windmill: "real/windmill",
   forge: "blacksmith-forge-09fa85",
   gatehouse: "real/gate",
   barn: "timber-barn-90b3ce",
   well: "real/well",
   stall: "real/stall",
-  fountain: "plaza-fountain-5a5f6e",
-  statue: "standing-knight-statue-8bdcc9",
+  statue: "real/statue",
   crown: "crown-a294ce",
-  lamp: "lamp-post-c9e409",
+  lamp: "real/lamp",
   signpost: "signpost-8287c3",
   planter: "flower-planter-500ed2",
   flowerBed: "flower-bed-708e73",
@@ -37,8 +37,8 @@ const FILES = {
   wildflower: "wildflower-68d3a1",
   wheat: "wheat-plant-7f29a1",
   haystack: "haystack-77b0dd",
-  barrel: "barrel-aadc94",
-  crate: "wooden-crate-b9c96a",
+  barrel: "real/barrel",
+  crate: "real/crate",
   sack: "grain-sack-401d96",
   anvil: "anvil-1286cb",
   quench: "quench-barrel-0c78fd",
@@ -47,28 +47,20 @@ const FILES = {
   wagon: "four-wheel-wagon-adb946",
   wheelbarrow: "wheelbarrow-13f422",
   fence: "wooden-fence-3d8ee7",
-  firePit: "stone-fire-pit-4136b0",
+  firePit: "real/fire-pit",
   tripod: "campfire-cook-tripod-d95a1e",
   tent: "camp-tent-3c5c89",
-  stump: "tree-stump-8c0513",
-  pathA: "path-stone-a-aead48",
-  pathB: "path-stone-b-6ed75c",
-  bush: "round-bush-cd2ac0",
-  shrub: "bush-8bb596",
+  stump: "real/stump",
   tuft: "grass-tuft-5ccff0",
-  boulder: "large-boulder-a29b99",
-  rock: "small-rock-d43710",
-  spire: "rock-spire-13819c",
+  boulder: "real/boulder",
+  ship: "real/ship",
   villager: "villager-40255c",
   tradesman: "tradesman-1707b9",
   merchant: "merchant-6f606b",
   guard: "village-guard-5f0f6f",
   greatHall: "real/manor",
-  clock: "clock-tower-752081",
   brazier: "flame-brazier-bbf74a",
   cypress: "columnar-evergreen-shrub-35a00b",
-  balloon: "hot-air-balloon-a2a511",
-  sailboat: "sailboat-3ee283",
   dragon: "red-fire-dragon-base",
   sheep: "sheep-base",
 } as const;
@@ -80,10 +72,10 @@ export const PEOPLE: ModelName[] = [
   "guard",
 ];
 
-// The trees and bushes come from three Polyfork kits whose greens differ
+// The kit's shrubs and grass come from Polyfork kits whose greens differ
 // (muted olive, bright emerald), so their leaves are pulled toward one
 // palette when they load. Trunks, blossom and fruit keep their colours.
-const FOLIAGE: ModelName[] = ["bush", "shrub", "cypress", "tuft"];
+const FOLIAGE: ModelName[] = ["cypress", "tuft"];
 function unifyGreens(o: THREE.Object3D) {
   if (!(o instanceof THREE.Mesh)) return;
   const colors = o.geometry.getAttribute("color");
@@ -105,10 +97,10 @@ function unifyGreens(o: THREE.Object3D) {
   colors.needsUpdate = true;
 }
 
-// The realistic buildings (the `real/` files) are textured models by several
-// Sketchfab authors, each in its own size and facing. This scales and turns
-// each one to stand where the kit model of the same name stood: sizes in
-// meters, the front toward +z.
+// The realistic models (the `real/` files) are textured buildings by several
+// Sketchfab authors and scanned props from Poly Haven, each in its own size
+// and facing. This scales and turns each one to stand where the kit model of
+// the same name stood: sizes in meters, the front toward +z.
 const FIT: Partial<
   Record<ModelName, { s: number; ry?: number; chimney?: number[] }>
 > = {
@@ -123,6 +115,15 @@ const FIT: Partial<
   gatehouse: { s: 0.55 },
   well: { s: 1 },
   stall: { s: 0.5, ry: -Math.PI / 2 },
+  barrel: { s: 1.1 },
+  crate: { s: 0.85, ry: Math.PI / 2 },
+  lamp: { s: 0.62 },
+  statue: { s: 1.3 },
+  firePit: { s: 0.83 },
+  stump: { s: 0.85 },
+  boulder: { s: 1.1 },
+  // 18 m from stem to stern, its bow toward +z.
+  ship: { s: 0.75, ry: -Math.PI / 2 },
 };
 
 type Loaded = {
@@ -266,16 +267,20 @@ async function loadPhotos() {
     t.anisotropy = 4;
     return t;
   };
-  const [wall, wallN, tiles, tilesN, slate] = await Promise.all([
-    get("wall", true),
-    get("wall-n", false),
-    get("tiles", true),
-    get("tiles-n", false),
-    get("slate", true),
-  ]);
+  const [wall, wallN, tiles, tilesN, slate, cobbles, cobblesN] =
+    await Promise.all([
+      get("wall", true),
+      get("wall-n", false),
+      get("tiles", true),
+      get("tiles-n", false),
+      get("slate", true),
+      get("cobbles", true),
+      get("cobbles-n", false),
+    ]);
   photos.wall = { map: wall, normal: wallN };
   photos.tiles = { map: tiles, normal: tilesN };
   photos.slate = { map: slate, normal: null };
+  photos.cobbles = { map: cobbles, normal: cobblesN };
 }
 /** A material from one of the photographs, repeated rx by ry times. */
 function photo(
@@ -773,27 +778,332 @@ function curtain(
 
 // ---- tile buildings --------------------------------------------------------
 
+// ---- the town's own stonework: clock tower, watchtower, fountain ------------
+
+/** A clock dial: a cream face, twelve marks and two hands at ten past ten. */
+const dial = () =>
+  made("dial", () => {
+    const map = canvasTexture(256, 256, (g) => {
+      g.fillStyle = "#2b2622";
+      g.fillRect(0, 0, 256, 256);
+      g.translate(128, 128);
+      g.fillStyle = "#ece2c8";
+      g.beginPath();
+      g.arc(0, 0, 112, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "#2b2622";
+      g.lineCap = "butt";
+      for (let i = 0; i < 60; i++) {
+        const a = (i / 60) * Math.PI * 2;
+        const hour = i % 5 === 0;
+        g.lineWidth = hour ? 7 : 2;
+        g.beginPath();
+        g.moveTo(
+          Math.sin(a) * (hour ? 84 : 98),
+          -Math.cos(a) * (hour ? 84 : 98),
+        );
+        g.lineTo(Math.sin(a) * 106, -Math.cos(a) * 106);
+        g.stroke();
+      }
+      g.lineCap = "round";
+      const hand = (turn: number, len: number, w: number) => {
+        const a = turn * Math.PI * 2;
+        g.lineWidth = w;
+        g.beginPath();
+        g.moveTo(-Math.sin(a) * 14, Math.cos(a) * 14);
+        g.lineTo(Math.sin(a) * len, -Math.cos(a) * len);
+        g.stroke();
+      };
+      hand(10.17 / 12, 58, 11);
+      hand(10 / 60, 88, 7);
+      g.fillStyle = "#2b2622";
+      g.beginPath();
+      g.arc(0, 0, 9, 0, Math.PI * 2);
+      g.fill();
+    });
+    return new THREE.MeshStandardMaterial({ map, roughness: 0.6 });
+  });
+
+/** A door or slit set into a wall that faces `ry`, its foot at y. */
+function opening(
+  g: THREE.Group,
+  w: number,
+  h: number,
+  y: number,
+  out: number,
+  ry: number,
+  m: THREE.Material,
+) {
+  const o = mesh(new THREE.BoxGeometry(w, h, 0.24), m, 0, y + h / 2, out);
+  const holder = new THREE.Group();
+  holder.add(o);
+  // A round head, as wide as the opening.
+  const head = mesh(
+    new THREE.CylinderGeometry(w / 2, w / 2, 0.24, 14, 1, false, 0, Math.PI),
+    m,
+    0,
+    y + h,
+    out,
+  );
+  head.rotation.set(Math.PI / 2, 0, 0);
+  head.rotation.y = Math.PI / 2;
+  holder.add(head);
+  holder.rotation.y = ry;
+  g.add(holder);
+}
+
+/** The town clock: a square stone tower, 16 m to the tip of its slate roof. */
+function clockTower(g: THREE.Group) {
+  const W = 3.5;
+  const SHAFT = 8.6;
+  const oak = plain("#4a3524", { roughness: 0.8 });
+  g.add(
+    mesh(
+      new THREE.BoxGeometry(W + 0.7, 0.7, W + 0.7),
+      stone(1.4, 0.25),
+      0,
+      0.35,
+      0,
+    ),
+  );
+  g.add(
+    mesh(
+      new THREE.BoxGeometry(W, SHAFT, W),
+      stone(W / 3, SHAFT / 3),
+      0,
+      0.7 + SHAFT / 2,
+      0,
+    ),
+  );
+  let y = 0.7 + SHAFT;
+  g.add(
+    mesh(
+      new THREE.BoxGeometry(W + 0.5, 0.3, W + 0.5),
+      stone(1.3, 0.1),
+      0,
+      y + 0.15,
+      0,
+    ),
+  );
+  y += 0.3;
+  // The clock room, a dial on each face.
+  const ROOM = 3.1;
+  g.add(
+    mesh(
+      new THREE.BoxGeometry(W + 0.1, ROOM, W + 0.1),
+      stone(W / 3, ROOM / 3),
+      0,
+      y + ROOM / 2,
+      0,
+    ),
+  );
+  const iron = plain("#2b2622", { metalness: 0.6, roughness: 0.5 });
+  for (let i = 0; i < 4; i++) {
+    const face = new THREE.Group();
+    face.add(
+      mesh(
+        new THREE.CircleGeometry(1.2, 40),
+        dial(),
+        0,
+        y + ROOM / 2,
+        W / 2 + 0.09,
+      ),
+    );
+    const rim = mesh(
+      new THREE.TorusGeometry(1.22, 0.07, 8, 40),
+      iron,
+      0,
+      y + ROOM / 2,
+      W / 2 + 0.09,
+    );
+    face.add(rim);
+    face.rotation.y = (i * Math.PI) / 2;
+    g.add(face);
+    // A lit slit low on each side, and a dark one above it.
+    opening(
+      g,
+      0.4,
+      1.0,
+      3.4,
+      W / 2 - 0.08,
+      (i * Math.PI) / 2,
+      i % 2 ? plain(WINDOW) : lit(),
+    );
+    opening(g, 0.4, 1.0, 6.6, W / 2 - 0.08, (i * Math.PI) / 2, plain(WINDOW));
+  }
+  opening(g, 1.2, 1.7, 0.7, W / 2 - 0.06, 0, oak);
+  y += ROOM;
+  g.add(
+    mesh(
+      new THREE.BoxGeometry(W + 0.7, 0.3, W + 0.7),
+      stone(1.4, 0.1),
+      0,
+      y + 0.15,
+      0,
+    ),
+  );
+  y += 0.3;
+  const half = (W + 0.9) / 2;
+  const RISE = 3.4;
+  const roof = mesh(
+    new THREE.ConeGeometry(half * Math.SQRT2, RISE, 4),
+    roofing("#4a5568", half * 8, Math.hypot(half, RISE)),
+    0,
+    y + RISE / 2,
+    0,
+  );
+  roof.rotation.y = Math.PI / 4;
+  g.add(roof);
+  y += RISE;
+  const gold = plain(GOLD, { metalness: 0.7, roughness: 0.3 });
+  g.add(
+    mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 6), gold, 0, y + 0.4, 0),
+  );
+  g.add(mesh(new THREE.SphereGeometry(0.2, 12, 8), gold, 0, y + 0.1, 0));
+}
+
+/** Still water in a basin: it mirrors the sky, with a little of its own blue. */
+const pool = () => plain("#4f8fa8", { roughness: 0.06, metalness: 0.35 });
+/** Falling water: white streaks the scene keeps running downward. */
+const falling = () =>
+  made("falling", () => {
+    const map = canvasTexture(128, 128, (g) => {
+      const rand = seeded(5);
+      g.clearRect(0, 0, 128, 128);
+      for (let i = 0; i < 90; i++) {
+        g.fillStyle = `rgba(255,255,255,${0.25 + rand() * 0.6})`;
+        const h = 20 + rand() * 70;
+        const y = rand() * 128;
+        const x = rand() * 128;
+        g.fillRect(x, y, 1 + rand() * 2, h);
+        g.fillRect(x, y - 128, 1 + rand() * 2, h);
+      }
+    });
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.repeat.set(3, 1);
+    return new THREE.MeshStandardMaterial({
+      map,
+      color: "#eaf6ff",
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      roughness: 0.3,
+    });
+  });
+/** A sheet of water falling from one ring to a wider one below. */
+function fall(
+  g: THREE.Group,
+  top: number,
+  bottom: number,
+  r0: number,
+  r1: number,
+) {
+  const o = new THREE.Mesh(
+    new THREE.CylinderGeometry(r0, r1, top - bottom, 28, 1, true),
+    falling(),
+  );
+  o.position.y = (top + bottom) / 2;
+  o.userData.flow = true;
+  g.add(o);
+}
+/** The plaza fountain: a round stone basin 5 m across and two bowls above. */
+function fountain(g: THREE.Group) {
+  const lathe = (pts: number[][], m: THREE.Material) =>
+    mesh(
+      new THREE.LatheGeometry(
+        pts.map(([r, y]) => new THREE.Vector2(r, y)),
+        36,
+      ),
+      m,
+    );
+  const pale = stone(4, 0.6);
+  g.add(
+    mesh(
+      new THREE.CylinderGeometry(2.9, 2.9, 0.16, 36),
+      stone(4, 4),
+      0,
+      0.08,
+      0,
+    ),
+  );
+  g.add(
+    lathe(
+      [
+        [2.45, 0.16],
+        [2.5, 0.75],
+        [2.6, 0.78],
+        [2.6, 0.92],
+        [2.18, 0.92],
+        [2.14, 0.5],
+        [0, 0.5],
+      ],
+      pale,
+    ),
+  );
+  const water = mesh(new THREE.CircleGeometry(2.16, 36), pool(), 0, 0.78, 0);
+  water.rotation.x = -Math.PI / 2;
+  water.castShadow = false;
+  g.add(water);
+  // The stem and the lower bowl.
+  g.add(
+    lathe(
+      [
+        [0.55, 0.5],
+        [0.5, 0.95],
+        [0.3, 1.1],
+        [0.26, 1.75],
+        [0.42, 1.9],
+        [1.12, 2.12],
+        [1.2, 2.24],
+        [1.06, 2.24],
+        [0.95, 2.14],
+        [0, 2.1],
+      ],
+      pale,
+    ),
+  );
+  const upper = mesh(new THREE.CircleGeometry(1.08, 28), pool(), 0, 2.2, 0);
+  upper.rotation.x = -Math.PI / 2;
+  upper.castShadow = false;
+  g.add(upper);
+  // The upper stem, its small bowl and the spout.
+  g.add(
+    lathe(
+      [
+        [0.24, 2.1],
+        [0.16, 2.75],
+        [0.5, 2.9],
+        [0.55, 2.98],
+        [0.44, 2.98],
+        [0, 2.94],
+      ],
+      pale,
+    ),
+  );
+  g.add(mesh(new THREE.SphereGeometry(0.14, 12, 8), pale, 0, 3.08, 0));
+  fall(g, 2.98, 2.2, 0.52, 0.66);
+  fall(g, 2.22, 0.78, 1.16, 1.34);
+}
+
 type Maker = (rand: () => number) => THREE.Group;
 const M: Record<string, Maker> = {
-  path: (rand) => {
+  // A street: one 6 m square of cobbles, so neighbouring squares join up.
+  path: () => {
     const g = new THREE.Group();
     g.add(
       mesh(
-        new THREE.BoxGeometry(5.8, 0.08, 5.8),
-        plain("#b49a74", { roughness: 1 }),
+        new THREE.BoxGeometry(6, 0.08, 6),
+        made("cobbles", () =>
+          photos.cobbles
+            ? photo("cobbles", 2, 2, { roughness: 0.95 })
+            : plain("#8f8676", { roughness: 1 }),
+        ),
         0,
         0.04,
         0,
       ),
     );
-    for (let i = 0; i < 16; i++)
-      put(g, i % 2 ? "pathA" : "pathB", {
-        x: -2.3 + (i % 4) * 1.5 + rand() * 0.4,
-        z: -2.3 + Math.floor(i / 4) * 1.5 + rand() * 0.4,
-        y: 0.05,
-        ry: rand() * 6,
-        s: 1.25,
-      });
     return finish(g);
   },
   tree: (rand) => {
@@ -901,21 +1211,30 @@ const M: Record<string, Maker> = {
   },
   tower: () => {
     const g = new THREE.Group();
-    put(g, "watchtower", { s: 1.1 });
+    roundTower(g, 0, 0, 1.9, 7.6, { spire: 3.4 });
+    opening(
+      g,
+      1.1,
+      1.6,
+      0,
+      1.9 - 0.06,
+      0,
+      plain("#4a3524", { roughness: 0.8 }),
+    );
     put(g, "barrel", { x: 1.9, z: 2 });
     put(g, "crate", { x: -2, z: 2, ry: 0.5 });
     return finish(g);
   },
   chapel: () => {
     const g = new THREE.Group();
-    put(g, "chapel", { s: 0.9, z: -0.2 });
+    put(g, "chapel", { s: 1.15, z: -0.2 });
     put(g, "lamp", { x: 2.4, z: 2.6 });
     put(g, "planter", { x: -2, z: 2.6 });
     return finish(g);
   },
   fountain: () => {
     const g = new THREE.Group();
-    put(g, "fountain", { s: 1.9 });
+    fountain(g);
     for (const [x, z] of [
       [-2.6, -2.6],
       [2.6, -2.6],
@@ -928,7 +1247,7 @@ const M: Record<string, Maker> = {
   clock: () => {
     const g = new THREE.Group();
     g.add(mesh(new THREE.BoxGeometry(5.4, 0.2, 5.4), stone(2, 2), 0, 0.1, 0));
-    put(g, "clock", { y: 0.2, s: 1.25 });
+    clockTower(g);
     put(g, "lamp", { x: -2.2, z: 2.2 });
     put(g, "lamp", { x: 2.2, z: 2.2 });
     put(g, "planter", { x: 0, z: 2.4 });
@@ -1191,14 +1510,10 @@ export function makeHall(stage: StageId): THREE.Group {
 // ---- the meadow's bushes, flowers and rocks ---------------------------------
 
 const COVER: [ModelName, number][] = [
-  ["bush", 1.3],
-  ["shrub", 1.5],
-  ["tuft", 1.6],
-  ["tuft", 1.3],
-  ["wildflower", 2.4],
-  ["wildflower", 2],
-  ["rock", 1.8],
-  ["boulder", 1],
+  ["stump", 0.7],
+  ["boulder", 0.6],
+  ["boulder", 0.4],
+  ["boulder", 0.9],
 ];
 function pick(list: [ModelName, number][], rand: () => number) {
   const [name, s] = list[Math.floor(rand() * list.length)];
@@ -1206,13 +1521,8 @@ function pick(list: [ModelName, number][], rand: () => number) {
   put(g, name, { ry: rand() * 6, s: s * (0.85 + rand() * 0.35) });
   return finish(g);
 }
-/** Low ground cover: a bush, grass, flowers or a rock. */
+/** Low ground cover: grass, flowers or a rock. */
 export const cover = (rand: () => number): THREE.Object3D => pick(COVER, rand);
-export function spire(rand: () => number): THREE.Object3D {
-  const g = new THREE.Group();
-  put(g, "spire", { ry: rand() * 6, s: 1.5 + rand() * 1.5 });
-  return finish(g);
-}
 
 /** A villager who can walk: the model in world units and its walk clip. */
 export function person(name: ModelName, scale = 1) {
@@ -1229,15 +1539,215 @@ export function person(name: ModelName, scale = 1) {
   };
 }
 
-/** A sailing boat; the model is toy-sized, so it is scaled up to 8 m. */
+// ---- the ships in the bay and the balloons ----------------------------------
+
+function canvasTexture(
+  w: number,
+  h: number,
+  draw: (g: CanvasRenderingContext2D) => void,
+) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  draw(c.getContext("2d")!);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+/** A thin pole or rope from one point to another. */
+function strut(
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+  r: number,
+  m: THREE.Material,
+) {
+  const len = from.distanceTo(to);
+  const o = mesh(new THREE.CylinderGeometry(r, r, len, 6), m);
+  o.position.copy(from).lerp(to, 0.5);
+  o.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    to.clone().sub(from).normalize(),
+  );
+  return o;
+}
+function made(key: string, make: () => THREE.Material) {
+  let m = matCache.get(key);
+  if (!m) matCache.set(key, (m = make()));
+  return m;
+}
+const wicker = () =>
+  made("wicker", () => {
+    const map = canvasTexture(128, 128, (g) => {
+      g.fillStyle = "#7a5a34";
+      g.fillRect(0, 0, 128, 128);
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 16; x++) {
+          const over = (x + y) % 2 === 0;
+          g.fillStyle = over ? "#a67c48" : "#5e4424";
+          g.fillRect(x * 8 + 1, y * 8 + (over ? 1 : 3), 6, over ? 6 : 3);
+        }
+    });
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.repeat.set(3, 2);
+    return new THREE.MeshStandardMaterial({ map, roughness: 0.95 });
+  });
+/**
+ * A three-masted ship lying in the bay, its bow toward +z. The model's keel
+ * is 1.5 m under its waterline, so it sits that deep in the sea.
+ */
 export function boat(): THREE.Object3D {
   const g = new THREE.Group();
-  put(g, "sailboat", { s: 27 });
+  put(g, "ship", { y: -1.5 });
   return finish(g);
 }
-export function balloon(): THREE.Object3D {
+
+const BALLOON_COLOURS = [
+  ["#a8322a", "#e9dfc6", "#d59a2e"],
+  ["#2f4f8f", "#e9dfc6", "#b33a30"],
+];
+/**
+ * A hot-air balloon, 11 m tall: an envelope of twelve gores that bulge
+ * between their seams, coloured in a spiral, over a wicker basket.
+ */
+export function balloon(kind = 0): THREE.Object3D {
   const g = new THREE.Group();
-  put(g, "balloon", { s: 2.4 });
+  const R = 4.1; // the envelope at its widest
+  const H = 8.6; // mouth to crown
+  const MOUTH = 0.62;
+  const GORES = 12;
+  const LIFT = 2.5; // the mouth above the basket floor
+  const rings = 30;
+  const segs = GORES * 8;
+  const pos: number[] = [];
+  const uv: number[] = [];
+  const idx: number[] = [];
+  for (let j = 0; j <= rings; j++) {
+    const t = j / rings;
+    // Narrow at the mouth, widest three fifths of the way up, closed on top.
+    const round =
+      MOUTH * Math.pow(1 - t, 3) +
+      R * Math.pow(Math.sin(Math.PI * Math.pow(t, 1.35)), 0.85);
+    for (let i = 0; i <= segs; i++) {
+      const u = i / segs;
+      const gore = (u * GORES) % 1;
+      const bulge =
+        0.955 + 0.045 * Math.sin(Math.PI * gore) * Math.sin(Math.PI * t);
+      const a = u * Math.PI * 2;
+      pos.push(
+        Math.cos(a) * round * bulge,
+        LIFT + t * H,
+        Math.sin(a) * round * bulge,
+      );
+      uv.push(u, t);
+    }
+  }
+  const row = segs + 1;
+  for (let j = 0; j < rings; j++)
+    for (let i = 0; i < segs; i++) {
+      const a = j * row + i;
+      idx.push(a, a + row, a + 1, a + 1, a + row, a + row + 1);
+    }
+  const shape = new THREE.BufferGeometry();
+  shape.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  shape.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  shape.setIndex(idx);
+  shape.computeVertexNormals();
+  const cloth = made(`balloon:${kind}`, () => {
+    const pal = BALLOON_COLOURS[kind % BALLOON_COLOURS.length];
+    const BANDS = 9;
+    const map = canvasTexture(768, 576, (c) => {
+      const gw = 768 / GORES;
+      const bh = 576 / BANDS;
+      for (let i = 0; i < GORES; i++)
+        for (let j = 0; j < BANDS; j++) {
+          // Canvas rows run from the crown down; the colours climb in a spiral.
+          const up = BANDS - 1 - j;
+          c.fillStyle = up === 0 ? "#3a3530" : pal[(i + up) % pal.length];
+          c.fillRect(i * gw, j * bh, gw + 1, bh + 1);
+        }
+      // Seams, and the load tapes that run up each one.
+      c.fillStyle = "rgba(30,20,15,0.55)";
+      for (let i = 0; i <= GORES; i++) c.fillRect(i * gw - 1.5, 0, 3, 576);
+      c.fillStyle = "rgba(30,20,15,0.18)";
+      for (let j = 1; j < BANDS; j++) c.fillRect(0, j * bh - 1, 768, 2);
+    });
+    return new THREE.MeshStandardMaterial({
+      map,
+      roughness: 0.62,
+      side: THREE.DoubleSide,
+    });
+  });
+  g.add(mesh(shape, cloth));
+  // The basket, its padded rim, the burner and the lines up to the mouth.
+  const basket = mesh(
+    new THREE.BoxGeometry(1.5, 1.15, 1.5),
+    wicker(),
+    0,
+    0.575,
+    0,
+  );
+  g.add(basket);
+  g.add(
+    mesh(
+      new THREE.BoxGeometry(1.62, 0.14, 1.62),
+      plain("#3b2a1c", { roughness: 0.7 }),
+      0,
+      1.17,
+      0,
+    ),
+  );
+  const steel = plain("#8a8d92", { metalness: 0.8, roughness: 0.35 });
+  g.add(
+    mesh(
+      new THREE.CylinderGeometry(0.2, 0.26, 0.4, 10),
+      steel,
+      0,
+      LIFT - 0.55,
+      0,
+    ),
+  );
+  const flame = mesh(
+    new THREE.ConeGeometry(0.2, 0.75, 8),
+    plain("#ffd9a0", { emissive: "#ff9a3c", emissiveIntensity: 2.2 }),
+    0,
+    LIFT + 0.05,
+    0,
+  );
+  flame.castShadow = false;
+  g.add(flame);
+  const line = plain("#2b2520");
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ]) {
+    const corner = new THREE.Vector3(sx * 0.72, 1.2, sz * 0.72);
+    g.add(
+      strut(
+        corner,
+        new THREE.Vector3(sx * 0.3, LIFT - 0.5, sz * 0.3),
+        0.03,
+        steel,
+      ),
+    );
+    for (const turn of [-0.35, 0.35]) {
+      const a = Math.atan2(sz, sx) + turn;
+      g.add(
+        strut(
+          corner,
+          new THREE.Vector3(
+            Math.cos(a) * MOUTH * 1.25,
+            LIFT + 0.45,
+            Math.sin(a) * MOUTH * 1.25,
+          ),
+          0.018,
+          line,
+        ),
+      );
+    }
+  }
   return finish(g);
 }
 
