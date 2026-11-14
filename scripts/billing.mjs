@@ -280,11 +280,37 @@ async function fulfillCoins(db, metadata, { paid, revoke, session, intent }) {
     }
   });
 }
-export async function inventory({ db }, uid) {
-  const docs = await db.collection("shopOrders").where("uid", "==", uid).get();
+/** Coin pack orders for the purchase history, without abandoned checkouts. */
+async function coinHistory(db, uid) {
+  const now = Date.now();
+  const docs = await db.collection("coinOrders").where("uid", "==", uid).get();
   return docs.docs
     .map((doc) => doc.data())
-    .sort((a, b) => b.createdAt - a.createdAt)
+    .filter(
+      (o) =>
+        o.status === "paid" ||
+        o.status === "revoked" ||
+        (o.status === "pending" && o.expiresAt > now),
+    )
+    .map(({ id, packId, coins, status, createdAt, unitAmount, currency }) => ({
+      id,
+      kind: "coins",
+      itemId: packId,
+      game: "",
+      name: {
+        en: `${coins.toLocaleString("en")} coins`,
+        "zh-CN": `${coins.toLocaleString("zh-CN")} 金币`,
+      },
+      status,
+      createdAt,
+      unitAmount,
+      currency,
+    }));
+}
+export async function inventory({ db }, uid) {
+  const docs = await db.collection("shopOrders").where("uid", "==", uid).get();
+  const items = docs.docs
+    .map((doc) => doc.data())
     .map(
       ({
         id,
@@ -306,6 +332,9 @@ export async function inventory({ db }, uid) {
         currency,
       }),
     );
+  return [...items, ...(await coinHistory(db, uid))].sort(
+    (a, b) => b.createdAt - a.createdAt,
+  );
 }
 export async function fulfill({ db, stripe }, event) {
   const object = event.data.object;
