@@ -157,7 +157,8 @@ function Shop() {
       <p className="coin-fine-print">
         {t(
           "One-time purchases, no subscription. Coins have no cash value and can’t be transferred. Payments are handled securely by Stripe.",
-        )}
+        )}{" "}
+        <Link href={href("/terms/")}>{t("Terms and refund policy")}</Link>
       </p>
       <Link className="text-button" href={href("/#games")}>
         {t("Play games →")}
