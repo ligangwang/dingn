@@ -19,6 +19,7 @@ import {
   type StageId,
 } from "@/data/kingdom.mjs";
 import {
+  LAND_FILES,
   LAND_HALF,
   SEA,
   depthTexture,
@@ -26,6 +27,7 @@ import {
   forestSpots,
   landMesh,
   landShape,
+  loadLand,
   skyDome,
   type LandShape,
   type Stack,
@@ -37,8 +39,10 @@ import {
   boat,
   cityWall,
   cover,
+  MODEL_FILES,
   loadModels,
   loadPeople,
+  loadShip,
   makeBuilding,
   makeHall,
   person,
@@ -60,6 +64,8 @@ type Options = {
   onTile: (x: number, y: number) => void;
   reducedMotion: boolean;
   onReady?: () => void;
+  /** Called with 0 to 1 as the models and the land's pictures arrive. */
+  onProgress?: (part: number) => void;
 };
 
 // ---- materials ------------------------------------------------------------
@@ -656,16 +662,33 @@ export class KingdomScene {
         this.balloons.push(b);
         this.scene.add(b);
       }
-      for (let i = 0; i < 3; i++) {
-        const b = boat();
-        this.boats.push(b);
-        this.scene.add(b);
-      }
       if (this.pending) this.set(this.pending.state, this.pending);
       this.preview(this.previewId);
       options.onReady?.();
+      // The ships are far out in the bay, so they may sail in a little late.
+      loadShip().then(
+        () => {
+          if (this.disposed) return;
+          for (let i = 0; i < 3; i++) {
+            const b = boat();
+            this.boats.push(b);
+            this.scene.add(b);
+          }
+        },
+        () => {},
+      );
     };
-    loadModels().then(done, (e) => {
+    // The land's pictures load alongside the models, so the first view is
+    // whole; until then the page shows its own sky and a progress bar.
+    let got = 0;
+    // If a file fails, the kingdom shows without waiting for the rest, and
+    // the files still arriving must not bring the progress bar back.
+    const step = () => {
+      got++;
+      if (!this.ready)
+        options.onProgress?.(Math.min(1, got / (MODEL_FILES + LAND_FILES)));
+    };
+    Promise.all([loadModels(step), loadLand(step)]).then(done, (e) => {
       console.error("kingdom models", e);
       done();
     });
@@ -1341,6 +1364,9 @@ export class KingdomScene {
     this.realDt = this.clock.getDelta();
     const dt = Math.min(this.realDt, 0.05);
     const time = this.clock.elapsedTime;
+    // Nothing is drawn until the kingdom is here: the page shows its own
+    // sky meanwhile, and the browser is left free to load.
+    if (!this.ready) return;
 
     if (this.flight) {
       const f = this.flight;
