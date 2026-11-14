@@ -75,3 +75,23 @@ The keep, castle and palace walls and towers are drawn in code
 | Wooden Cart by Polyfork, CC BY 4.0              | `wooden-cart-bf83d8.glb`              | https://polyfork.dev/asset/wooden-cart-bf83d8              |
 | Wooden Crate by Polyfork, CC BY 4.0             | `wooden-crate-b9c96a.glb`             | https://polyfork.dev/asset/wooden-crate-b9c96a             |
 | Wooden Fence by Polyfork, CC BY 4.0             | `wooden-fence-3d8ee7.glb`             | https://polyfork.dev/asset/wooden-fence-3d8ee7             |
+
+## Landscape
+
+The sky, the ground and the forest trees are made from
+[Poly Haven](https://polyhaven.com/) assets, which are
+[CC0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain, no
+credit required; listed here so the sources stay known). The files are in
+`land/`. The sky is the top half of the HDRI, tone-compressed to a JPG; the
+ground pictures are resized; the trees are rendered from eight sides into
+picture sheets, so no tree mesh is shipped.
+
+| Asset                                 | Files                                | Source                                                       |
+| ------------------------------------- | ------------------------------------ | ------------------------------------------------------------ |
+| Kloofendal 48d Partly Cloudy Pure Sky | `land/sky.jpg`                       | https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky |
+| Forrest Ground 01                     | `land/grass.jpg`, `land/grass-n.jpg` | https://polyhaven.com/a/forrest_ground_01                    |
+| Rocky Terrain 02                      | `land/hills.jpg`                     | https://polyhaven.com/a/rocky_terrain_02                     |
+| Aerial Rocks 04                       | `land/rock.jpg`                      | https://polyhaven.com/a/aerial_rocks_04                      |
+| Coast Sand 01                         | `land/sand.jpg`                      | https://polyhaven.com/a/coast_sand_01                        |
+| Tree Small 02                         | `land/tree.webp`, `land/tree-n.webp` | https://polyhaven.com/a/tree_small_02                        |
+| Fir Sapling Medium                    | `land/fir.webp`, `land/fir-n.webp`   | https://polyhaven.com/a/fir_sapling_medium                   |
