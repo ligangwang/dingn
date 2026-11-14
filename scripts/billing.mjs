@@ -119,7 +119,6 @@ export async function checkout(deps, uid, itemId, locale) {
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",
-      payment_method_types: ["card"],
       line_items: [{ price: order.priceId, quantity: 1 }],
       client_reference_id: uid,
       metadata,
@@ -185,7 +184,6 @@ export async function buyCoins(deps, uid, packId, locale) {
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",
-      payment_method_types: ["card"],
       line_items: [
         {
           quantity: 1,
@@ -418,6 +416,12 @@ export function createBillingHandler(getServices = productionServices) {
       } else throw new ApiError(404, "not-found");
       res.end(JSON.stringify(data));
     } catch (error) {
+      if (!(error instanceof ApiError))
+        console.error(
+          `${req.url} failed:`,
+          error?.type ?? "",
+          error?.message ?? error,
+        );
       res.statusCode = error instanceof ApiError ? error.status : 503;
       res.end(
         JSON.stringify({
