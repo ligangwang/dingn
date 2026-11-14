@@ -681,8 +681,13 @@ export class KingdomScene {
     // The land's pictures load alongside the models, so the first view is
     // whole; until then the page shows its own sky and a progress bar.
     let got = 0;
-    const step = () =>
-      options.onProgress?.(Math.min(1, ++got / (MODEL_FILES + LAND_FILES)));
+    // If a file fails, the kingdom shows without waiting for the rest, and
+    // the files still arriving must not bring the progress bar back.
+    const step = () => {
+      got++;
+      if (!this.ready)
+        options.onProgress?.(Math.min(1, got / (MODEL_FILES + LAND_FILES)));
+    };
     Promise.all([loadModels(step), loadLand(step)]).then(done, (e) => {
       console.error("kingdom models", e);
       done();
