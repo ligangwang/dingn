@@ -1143,3 +1143,77 @@ input[type="radio"] {
   text-align: center;
   margin: 1rem 0;
 }
+.coin-shop {
+  padding-top: 46px;
+  padding-bottom: 30px;
+}
+.coin-balance {
+  margin: 8px 0 20px;
+}
+.coin-test-banner {
+  background: #fff7d6;
+  border: 1px solid #f0d77a;
+  color: #6b5200;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.coin-result {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.coin-packs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 8px 0 24px;
+}
+.coin-pack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 24px 16px 18px;
+}
+.coin-pack.best {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--sage);
+}
+.coin-pack h2 {
+  font-size: 30px;
+  margin: 4px 0 0;
+}
+.coin-pack p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+.coin-pack .coin-bonus {
+  color: var(--green);
+  font-weight: 700;
+}
+.coin-pack .button {
+  margin-top: 10px;
+  width: 100%;
+}
+.coin-tag {
+  position: absolute;
+  top: -10px;
+  background: var(--green);
+  color: white;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.coin-fine-print {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}

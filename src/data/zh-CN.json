@@ -746,5 +746,19 @@
   "Reach level {0} to found your kingdom, {1} XP to go.": "达到 {0} 级即可建立王国，还差 {1} 经验。",
   "Visit your kingdom →": "前往我的王国 →",
   "Needs level {0}": "需要 {0} 级",
-  "Close": "关闭"
+  "Close": "关闭",
+  "Coin shop": "金币商店",
+  "Get more coins": "获取更多金币",
+  "Get more coins →": "获取更多金币 →",
+  "Spend coins on upgrades in dingn games. You still earn coins free every day by playing.": "金币可用于 dingn 游戏中的升级。每天玩游戏仍可免费赚取金币。",
+  "You have": "你有",
+  "Test mode: no real money is charged. Pay with card 4242 4242 4242 4242, any future date and any CVC.": "测试模式：不会扣真钱。请使用卡号 4242 4242 4242 4242，任意未来日期和任意 CVC。",
+  "Thanks! Your coins will appear in a few seconds.": "谢谢！金币将在几秒钟内到账。",
+  "Checkout was cancelled. You weren’t charged.": "已取消付款，没有扣费。",
+  "The coin shop could not be loaded. Please try again.": "金币商店加载失败，请重试。",
+  "Checkout could not be opened. Please try again.": "无法打开付款页面，请重试。",
+  "Loading coin packs…": "正在加载金币包…",
+  "The coin shop isn’t open yet. Check back soon.": "金币商店尚未开放，请稍后再来。",
+  "+{0}% more coins": "多送 {0}% 金币",
+  "One-time purchases, no subscription. Coins have no cash value and can’t be transferred. Payments are handled securely by Stripe.": "一次性购买，不是订阅。金币没有现金价值，不可转让。付款由 Stripe 安全处理。"
 }

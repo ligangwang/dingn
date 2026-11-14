@@ -140,6 +140,13 @@ export function CoinCount() {
           <WalletSummary wallet={wallet} compact />
           <Link
             className="wallet-more"
+            href={href("/coins/")}
+            onClick={() => setOpen(false)}
+          >
+            {t("Get more coins →")}
+          </Link>
+          <Link
+            className="wallet-more"
             href={href("/account/#badges")}
             onClick={() => setOpen(false)}
           >

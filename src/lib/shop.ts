@@ -34,3 +34,15 @@ export const readItems = () => api<Item[]>("/api/billing/items");
 export const readInventory = () => api<Purchase[]>("/api/billing/inventory");
 export const buyItem = (itemId: string, locale: string) =>
   api<{ url: string }>("/api/billing/checkout", { itemId, locale });
+export type CoinPack = {
+  id: string;
+  coins: number;
+  unitAmount: number;
+  currency: string;
+  name: Record<string, string>;
+  tag?: Record<string, string>;
+};
+export const readCoinPacks = () =>
+  api<{ packs: CoinPack[]; testMode: boolean }>("/api/billing/coin-packs");
+export const buyCoins = (packId: string, locale: string) =>
+  api<{ url: string }>("/api/billing/buy-coins", { packId, locale });

@@ -32,6 +32,12 @@ async function productionServices() {
           "utf8",
         ),
       ),
+      packs: JSON.parse(
+        await readFile(
+          new URL("../src/data/coin-packs.json", import.meta.url),
+          "utf8",
+        ),
+      ),
     };
   })();
   return services;
@@ -129,6 +135,135 @@ export async function checkout(deps, uid, itemId, locale) {
     throw new ApiError(502, "checkout-failed");
   return { url: session.url };
 }
+// Coin packs: consumable purchases that add coins to `rewards/{uid}`, the
+// same balance games pay into and players spend in game shops. Prices live in
+// src/data/coin-packs.json and go to Stripe as inline price_data, so no
+// Stripe product setup is needed. Orders are `coinOrders/{id}` (server-only).
+export function validPacks(packs = []) {
+  return packs.filter(
+    (p) =>
+      /^[a-z0-9-]{1,40}$/.test(p.id) &&
+      Number.isSafeInteger(p.coins) &&
+      p.coins > 0 &&
+      p.coins <= 100000 &&
+      Number.isSafeInteger(p.unitAmount) &&
+      p.unitAmount >= 50 &&
+      /^[a-z]{3}$/.test(p.currency) &&
+      p.name?.en &&
+      p.name?.["zh-CN"],
+  );
+}
+const testMode = () =>
+  (process.env.STRIPE_SECRET_KEY || "").startsWith("sk_test_");
+export function coinPacks({ stripe, packs }) {
+  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET)
+    return { packs: [], testMode: false };
+  return { packs: validPacks(packs), testMode: testMode() };
+}
+export async function buyCoins(deps, uid, packId, locale) {
+  const { db, stripe } = deps;
+  const pack = coinPacks(deps).packs.find((p) => p.id === packId);
+  if (!pack) throw new ApiError(400, "pack-unavailable");
+  const now = Date.now();
+  const order = {
+    id: randomUUID(),
+    uid,
+    packId: pack.id,
+    coins: pack.coins,
+    unitAmount: pack.unitAmount,
+    currency: pack.currency,
+    status: "pending",
+    createdAt: now,
+    expiresAt: now + 35 * 60 * 1000,
+    locale: locale === "zh-CN" ? "zh-CN" : "en",
+  };
+  await db.runTransaction(async (tx) =>
+    tx.set(db.doc(`coinOrders/${order.id}`), order),
+  );
+  const metadata = { kind: "coins", orderId: order.id, uid, packId: pack.id };
+  const page = order.locale === "zh-CN" ? "/zh/coins/" : "/coins/";
+  const session = await stripe.checkout.sessions.create(
+    {
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: pack.currency,
+            unit_amount: pack.unitAmount,
+            product_data: {
+              name: `${pack.coins.toLocaleString("en")} dingn coins`,
+            },
+          },
+        },
+      ],
+      client_reference_id: uid,
+      metadata,
+      payment_intent_data: { metadata },
+      expires_at: Math.floor(order.expiresAt / 1000),
+      locale: order.locale === "zh-CN" ? "zh" : "en",
+      success_url: `https://dingn.com${page}?purchase=pending`,
+      cancel_url: `https://dingn.com${page}?purchase=cancelled`,
+    },
+    { idempotencyKey: `dingn-coins-${order.id}` },
+  );
+  if (!session.url?.startsWith("https://checkout.stripe.com/"))
+    throw new ApiError(502, "checkout-failed");
+  return { url: session.url };
+}
+async function fulfillCoins(db, metadata, { paid, revoke, session, intent }) {
+  const ref = db.doc(`coinOrders/${metadata.orderId}`);
+  await db.runTransaction(async (tx) => {
+    const order = (await tx.get(ref)).data();
+    if (
+      !order ||
+      order.uid !== metadata.uid ||
+      order.packId !== metadata.packId
+    )
+      return;
+    const walletRef = db.doc(`rewards/${order.uid}`);
+    const wallet = (await tx.get(walletRef)).data() ?? {};
+    const coins = wallet.coins ?? 0;
+    if (paid) {
+      const lines = session.line_items?.data || [];
+      if (
+        session.client_reference_id !== order.uid ||
+        lines.length !== 1 ||
+        lines[0].quantity !== 1 ||
+        session.amount_total !== order.unitAmount ||
+        session.currency !== order.currency
+      )
+        throw new ApiError(400, "payment-mismatch");
+      // Credit once; a refund or dispute that came first wins.
+      if (order.status !== "pending") return;
+      tx.update(ref, { status: "paid", paymentIntent: session.payment_intent });
+      tx.set(walletRef, {
+        ...wallet,
+        coins: coins + order.coins,
+        bought: (wallet.bought ?? 0) + order.coins,
+      });
+    } else if (revoke) {
+      if (order.status === "revoked") return;
+      const wasPaid = order.status === "paid";
+      // Take back what is left of the pack; coins already spent stay spent.
+      const taken = wasPaid ? Math.min(coins, order.coins) : 0;
+      tx.update(ref, {
+        status: "revoked",
+        paymentIntent: intent.id,
+        coinsTaken: taken,
+      });
+      if (wasPaid)
+        tx.set(walletRef, {
+          ...wallet,
+          coins: coins - taken,
+          bought: Math.max(0, (wallet.bought ?? 0) - order.coins),
+        });
+    } else if (order.status === "pending") {
+      tx.update(ref, { status: "expired" });
+    }
+  });
+}
 export async function inventory({ db }, uid) {
   const docs = await db.collection("shopOrders").where("uid", "==", uid).get();
   return docs.docs
@@ -184,6 +319,8 @@ export async function fulfill({ db, stripe }, event) {
     metadata = intent.metadata;
   }
   if (!metadata?.orderId || !/^[a-f0-9-]{36}$/.test(metadata.orderId)) return;
+  if (metadata.kind === "coins")
+    return fulfillCoins(db, metadata, { paid, revoke, session, intent });
   const ref = db.doc(`shopOrders/${metadata.orderId}`);
   await db.runTransaction(async (tx) => {
     const order = (await tx.get(ref)).data();
@@ -269,7 +406,11 @@ export function createBillingHandler(getServices = productionServices) {
       const { uid } = await deps.auth.verifyIdToken(token);
       let data;
       if (path === "/api/billing/items") data = await catalog(deps);
-      else if (path === "/api/billing/inventory")
+      else if (path === "/api/billing/coin-packs") data = coinPacks(deps);
+      else if (path === "/api/billing/buy-coins") {
+        throttle(req);
+        data = await buyCoins(deps, uid, body?.packId, body?.locale);
+      } else if (path === "/api/billing/inventory")
         data = await inventory(deps, uid);
       else if (path === "/api/billing/checkout") {
         throttle(req);

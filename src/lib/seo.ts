@@ -120,6 +120,17 @@ export const pages = {
     en: { title: "Your account" },
     zh: { title: "我的账号" },
   },
+  "/coins/": {
+    index: true,
+    en: {
+      title: "Coin shop",
+      description: "Get coin packs to spend on upgrades in dingn games.",
+    },
+    zh: {
+      title: "金币商店",
+      description: "购买金币包，用于 dingn 游戏中的升级。",
+    },
+  },
   "/kingdom/": {
     index: true,
     en: {
