@@ -19,6 +19,18 @@ import {
   type StageId,
 } from "@/data/kingdom.mjs";
 import {
+  LAND_HALF,
+  SEA,
+  depthTexture,
+  forest,
+  forestSpots,
+  landMesh,
+  landShape,
+  skyDome,
+  type LandShape,
+  type Stack,
+} from "./kingdom-land";
+import {
   PEOPLE,
   balloon,
   boat,
@@ -28,32 +40,15 @@ import {
   loadPeople,
   makeBuilding,
   makeHall,
-  peak,
   person,
-  scenery,
-  tree,
 } from "./kingdom-models";
 
 export const T = 2; // a tile's width in world units
-const SEA = -1.5; // the water's height; the meadow is at 0
-// A low sun off to the side: long shadows, and one face of each wall in shade.
-const SUN = new THREE.Vector3(-0.8, 0.34, 0.38).normalize();
-const HAZE = "#dfe6ea"; // the horizon, and the fog that fades into it
-
-/**
- * How far the coast stands out at angle `a` round the island (1 is the
- * average), so the shore is a ragged line, not a circle. The sea's shader
- * repeats this sum to put the shallows and surf on the same line.
- */
-function coast(a: number) {
-  return (
-    1 +
-    0.06 * Math.sin(a * 3 + 1) +
-    0.035 * Math.sin(a * 5 + 2.3) +
-    0.015 * Math.sin(a * 9 + 0.7)
-  );
-}
-const SHORES = 6; // the most shores the sea's shader follows
+// The sun stands where it does in the photograph of the sky (48 degrees up),
+// off to the side, so one face of each wall is in shade.
+const SUN = new THREE.Vector3(-0.6044, 0.7431, 0.2871).normalize();
+// The horizon, and the fog that fades into it (linear light, like the sky).
+const HAZE = new THREE.Color().setRGB(0.31, 0.36, 0.45);
 
 export type SceneState = {
   size: number;
@@ -97,222 +92,6 @@ const C = {
 
 // ---- the world ------------------------------------------------------------
 
-function skyDome() {
-  const geo = new THREE.SphereGeometry(400, 32, 16);
-  const material = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    depthWrite: false,
-    uniforms: {
-      top: { value: new THREE.Color("#2a62b8") },
-      middle: { value: new THREE.Color("#86bdec") },
-      horizon: { value: new THREE.Color(HAZE) },
-      warm: { value: new THREE.Color("#ffd9a8") },
-      sun: { value: SUN.clone() },
-    },
-    vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-    fragmentShader: `uniform vec3 top; uniform vec3 middle; uniform vec3 horizon; uniform vec3 warm; uniform vec3 sun; varying vec3 vDir;
-      void main(){
-        vec3 d = normalize(vDir);
-        float h = d.y;
-        vec3 c = mix(horizon, middle, smoothstep(0.0, 0.17, h));
-        c = mix(c, top, smoothstep(0.25, 0.9, h));
-        float s = max(dot(d, sun), 0.0);
-        // The sky warms toward the sun, most of all low down; then the
-        // sun's glow and its disc.
-        c = mix(c, warm, pow(s, 3.0) * 0.45 * (1.0 - smoothstep(0.0, 0.55, h)));
-        c += vec3(1.0, 0.8, 0.5) * pow(s, 32.0) * 0.3;
-        c += vec3(1.0, 0.93, 0.8) * (pow(s, 400.0) * 0.6 + smoothstep(0.99965, 0.99985, s) * 3.0);
-        gl_FragColor = vec4(c, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-  });
-  return new THREE.Mesh(geo, material);
-}
-
-/**
- * One soft billow: many faint round blobs heaped in a disc, so its edge is
- * lumpy and fades out, with no outline.
- */
-function billowTexture() {
-  const S = 256;
-  const c = document.createElement("canvas");
-  c.width = c.height = S;
-  const g = c.getContext("2d")!;
-  const rand = seeded(17);
-  for (let i = 0; i < 70; i++) {
-    const a = rand() * Math.PI * 2;
-    const d = Math.sqrt(rand()) * S * 0.27;
-    const x = S / 2 + Math.cos(a) * d;
-    const y = S / 2 + Math.sin(a) * d * 0.85;
-    const r = S * (0.1 + rand() * 0.13);
-    const grad = g.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, "rgba(255,255,255,0.3)");
-    grad.addColorStop(0.6, "rgba(255,255,255,0.16)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = grad;
-    g.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-  return new THREE.CanvasTexture(c);
-}
-
-/**
- * The sky's clouds, all drawn in one call: each cloud is a heap of soft
- * billows that always face the camera. A billow is white where it is high
- * or toward the sun and blue-grey underneath, which is what gives a cloud
- * its body; haze fades the far ones into the horizon. Three kinds: heaped
- * cumulus, long banks low on the horizon, and thin streaks high up.
- */
-function cloudField() {
-  const rand = seeded(42);
-  const pos: number[] = [];
-  const shade: number[] = [];
-  const info: number[] = []; // width, height, the cloud's centre x, its speed
-  // Linear light, kept just under the level at which the bloom pass makes
-  // things glow: a sky full of glowing cloud washes out the whole picture.
-  const lit = new THREE.Color().setRGB(0.89, 0.885, 0.875);
-  const warm = new THREE.Color().setRGB(0.9, 0.83, 0.7);
-  const dark = new THREE.Color().setRGB(0.4, 0.47, 0.62);
-  const tone = new THREE.Color();
-  const cloud = (
-    x: number,
-    y: number,
-    z: number,
-    w: number,
-    h: number,
-    n: number,
-    alpha: number,
-  ) => {
-    const speed = 0.25 + rand() * 0.45;
-    // The cloud lies across the line of sight from the island.
-    const along = Math.atan2(z, x) + Math.PI / 2;
-    for (let i = 0; i < n; i++) {
-      const u = rand() * 2 - 1;
-      // Tall in the middle, low at the ends, flat underneath.
-      const up = rand() * (1 - u * u);
-      const depth = (rand() - 0.5) * w * 0.3;
-      const size = h * (0.75 + rand() * 0.6) * (1 - up * 0.3);
-      const px = x + Math.cos(along) * u * w * 0.5 - Math.sin(along) * depth;
-      const pz = z + Math.sin(along) * u * w * 0.5 + Math.cos(along) * depth;
-      const py = y + up * h * 0.75;
-      pos.push(px, py, pz);
-      const toSun =
-        (Math.cos(along) * u * SUN.x + Math.sin(along) * u * SUN.z) * 0.5 + 0.5;
-      const light = Math.min(1, 0.1 + up * 0.85 + toSun * 0.25);
-      tone
-        .copy(dark)
-        .lerp(lit, light)
-        .lerp(warm, toSun * light * 0.4);
-      shade.push(tone.r, tone.g, tone.b, alpha * (0.75 + rand() * 0.25));
-      info.push(
-        size * (1.5 + rand() * 0.5) * (rand() > 0.5 ? 1 : -1),
-        size,
-        x,
-        speed,
-      );
-    }
-  };
-  // Heaped cumulus, well up and out from the island.
-  for (let i = 0; i < 16; i++) {
-    const a = rand() * Math.PI * 2;
-    const r = 110 + rand() * 120;
-    const h = 9 + rand() * 8;
-    cloud(
-      Math.cos(a) * r,
-      34 + rand() * 36,
-      Math.sin(a) * r,
-      h * (2.2 + rand() * 1.4),
-      h,
-      12,
-      1,
-    );
-  }
-  // Long banks standing on the horizon, behind the far mountains' feet.
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2 + rand() * 0.35;
-    const r = 225 + rand() * 40;
-    const h = 16 + rand() * 12;
-    cloud(
-      Math.cos(a) * r,
-      16 + rand() * 16,
-      Math.sin(a) * r,
-      h * (3.5 + rand() * 2.5),
-      h,
-      14,
-      1,
-    );
-  }
-  // Thin streaks very high up.
-  for (let i = 0; i < 7; i++) {
-    const a = rand() * Math.PI * 2;
-    const r = 70 + rand() * 170;
-    cloud(
-      Math.cos(a) * r,
-      105 + rand() * 40,
-      Math.sin(a) * r,
-      90 + rand() * 80,
-      5 + rand() * 3,
-      6,
-      0.32,
-    );
-  }
-  const geo = new THREE.InstancedBufferGeometry();
-  const quad = new THREE.PlaneGeometry(1, 1);
-  geo.index = quad.index;
-  geo.setAttribute("position", quad.attributes.position);
-  geo.setAttribute("uv", quad.attributes.uv);
-  geo.setAttribute(
-    "at",
-    new THREE.InstancedBufferAttribute(new Float32Array(pos), 3),
-  );
-  geo.setAttribute(
-    "shade",
-    new THREE.InstancedBufferAttribute(new Float32Array(shade), 4),
-  );
-  geo.setAttribute(
-    "info",
-    new THREE.InstancedBufferAttribute(new Float32Array(info), 4),
-  );
-  geo.instanceCount = pos.length / 3;
-  const uniforms = {
-    map: { value: billowTexture() },
-    time: { value: 0 },
-    haze: { value: new THREE.Color(HAZE) },
-  };
-  const material = new THREE.ShaderMaterial({
-    uniforms,
-    transparent: true,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    vertexShader: `attribute vec3 at; attribute vec4 shade; attribute vec4 info;
-      uniform float time; varying vec2 vUv; varying vec4 vShade; varying float vFar;
-      void main(){
-        vUv = uv; vShade = shade;
-        vec3 p = at;
-        // Drift downwind, coming round again a cloud at a time.
-        p.x += mod(info.z + info.w * time + 260.0, 520.0) - 260.0 - info.z;
-        vec4 mv = viewMatrix * vec4(p, 1.0);
-        mv.xy += position.xy * info.xy;
-        vFar = -mv.z;
-        gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: `uniform sampler2D map; uniform vec3 haze;
-      varying vec2 vUv; varying vec4 vShade; varying float vFar;
-      void main(){
-        float a = min(texture2D(map, vUv).a * 1.25, 1.0) * vShade.a;
-        if (a < 0.02) discard;
-        vec3 c = mix(vShade.rgb, haze, smoothstep(200.0, 440.0, vFar) * 0.35);
-        gl_FragColor = vec4(c, a * (1.0 - smoothstep(300.0, 380.0, vFar) * 0.6));
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-  });
-  const mesh = new THREE.Mesh(geo, material);
-  mesh.frustumCulled = false;
-  mesh.renderOrder = -1;
-  return { mesh, uniforms };
-}
-
 let puffTexture: THREE.Texture | null = null;
 /** A soft round puff for smoke and dust. */
 function puff() {
@@ -339,77 +118,37 @@ function seeded(seed: number) {
   };
 }
 
-/**
- * Grass for the island's top, tiled: broad light and dark patches, then
- * thousands of short blades, and a few clover-white and buttercup dots.
- * Everything is drawn nine times, shifted by the tile's width, so it wraps
- * without a seam.
- */
-function meadowTexture() {
-  const S = 512;
-  const c = document.createElement("canvas");
-  c.width = c.height = S;
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#7fae57";
-  g.fillRect(0, 0, S, S);
-  const rand = seeded(5);
-  const wrapped = (x: number, y: number, r: number, draw: () => void) => {
-    for (const dx of [-S, 0, S])
-      for (const dy of [-S, 0, S]) {
-        if (x + dx < -r || x + dx > S + r || y + dy < -r || y + dy > S + r)
-          continue;
-        g.save();
-        g.translate(x + dx, y + dy);
-        draw();
-        g.restore();
-      }
-  };
-  for (let i = 0; i < 90; i++) {
-    const r = 30 + rand() * 80;
-    const tone = ["168, 204, 104", "98, 146, 70", "140, 170, 84"][i % 3];
-    const a = 0.26 + rand() * 0.26;
-    wrapped(rand() * S, rand() * S, r, () => {
-      const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
-      grad.addColorStop(0, `rgba(${tone}, ${a})`);
-      grad.addColorStop(1, `rgba(${tone}, 0)`);
-      g.fillStyle = grad;
-      g.fillRect(-r, -r, r * 2, r * 2);
-    });
+let shadeTex: THREE.CanvasTexture | null = null;
+/** The soft shadow a tree's crown throws on the grass. */
+function treeShade() {
+  if (!shadeTex) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    const g = c.getContext("2d")!;
+    const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    r.addColorStop(0, "rgba(0,0,0,1)");
+    r.addColorStop(0.55, "rgba(0,0,0,0.8)");
+    r.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = r;
+    g.fillRect(0, 0, 64, 64);
+    shadeTex = new THREE.CanvasTexture(c);
   }
-  g.lineCap = "round";
-  for (let i = 0; i < 5200; i++) {
-    const len = 2 + rand() * 4;
-    const lean = (rand() - 0.5) * 3;
-    g.strokeStyle = [
-      "rgba(78, 128, 58, 0.5)",
-      "rgba(176, 212, 112, 0.45)",
-      "rgba(102, 152, 70, 0.5)",
-    ][i % 3];
-    g.lineWidth = 0.8 + rand() * 0.8;
-    wrapped(rand() * S, rand() * S, 6, () => {
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.lineTo(lean, -len);
-      g.stroke();
-    });
-  }
-  for (let i = 0; i < 70; i++) {
-    g.fillStyle =
-      i % 3 ? "rgba(255, 255, 240, 0.8)" : "rgba(250, 214, 90, 0.85)";
-    const r = 0.8 + rand() * 0.6;
-    wrapped(rand() * S, rand() * S, 2, () => {
-      g.beginPath();
-      g.arc(0, 0, r, 0, Math.PI * 2);
-      g.fill();
-    });
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
-  return t;
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshBasicMaterial({
+      map: shadeTex,
+      color: "#0a1408",
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+    }),
+  );
+  m.rotation.x = -Math.PI / 2;
+  m.userData.flat = true;
+  return m;
 }
-
 let wornTex: THREE.CanvasTexture | null = null;
 /**
  * Trodden earth, laid under a building so it stands on worn ground, not on
@@ -518,12 +257,10 @@ function tuftGeometry() {
 function seaMaterial() {
   const uniforms = {
     seaTime: { value: 0 },
-    // x, z, radius, and whether the shore follows `coast`.
-    seaShores: {
-      value: Array.from({ length: SHORES }, () => new THREE.Vector4()),
-    },
-    seaShoreCount: { value: 0 },
-    seaSky: { value: new THREE.Color("#bcd5ea") },
+    // How deep the water is over the whole land (kingdom-land.ts).
+    seaDepth: { value: null as THREE.Texture | null },
+    seaCentre: { value: new THREE.Vector2() },
+    seaSky: { value: new THREE.Color().setRGB(0.3, 0.38, 0.5) },
   };
   const material = new THREE.MeshStandardMaterial({
     color: "#ffffff",
@@ -544,8 +281,8 @@ function seaMaterial() {
         `#include <common>
         varying vec3 vSea;
         uniform float seaTime;
-        uniform vec4 seaShores[${SHORES}];
-        uniform int seaShoreCount;
+        uniform sampler2D seaDepth;
+        uniform vec2 seaCentre;
         uniform vec3 seaSky;
         float seaHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float seaNoise(vec2 p){
@@ -558,17 +295,10 @@ function seaMaterial() {
                + seaNoise(p * 1.15 - vec2(seaTime * 0.28, -seaTime * 0.2)) * 0.3
                + seaNoise(p * 2.7 + vec2(-seaTime * 0.4, seaTime * 0.36)) * 0.15;
         }
-        // The distance out from the nearest shore.
+        // How far out from the nearest shore, judged by the water's depth.
         float seaShore(vec2 p){
-          float d = 1000.0;
-          for (int i = 0; i < ${SHORES}; i++) {
-            if (i >= seaShoreCount) break;
-            vec2 q = p - seaShores[i].xy;
-            float a = atan(q.y, q.x);
-            float k = 1.0 + seaShores[i].w * (0.06 * sin(a * 3.0 + 1.0) + 0.035 * sin(a * 5.0 + 2.3) + 0.015 * sin(a * 9.0 + 0.7));
-            d = min(d, length(q) - seaShores[i].z * k);
-          }
-          return d;
+          float depth = texture2D(seaDepth, (p - seaCentre) / ${(LAND_HALF * 2).toFixed(1)} + 0.5).r * 8.0 - 2.0;
+          return depth * 4.4;
         }
         float seaFoam = 0.0;
         float seaFresnel = 0.0;`,
@@ -579,7 +309,7 @@ function seaMaterial() {
         float seaD = seaShore(vSea.xz) + (seaNoise(vSea.xz * 0.35) - 0.5) * 1.4;
         vec3 seaCol = mix(vec3(0.42, 0.9, 0.8), vec3(0.08, 0.56, 0.8), smoothstep(0.2, 3.8, seaD));
         seaCol = mix(seaCol, vec3(0.035, 0.28, 0.6), smoothstep(3.0, 13.0, seaD));
-        seaCol = mix(seaCol, vec3(0.025, 0.19, 0.46), smoothstep(14.0, 90.0, seaD));
+        seaCol = mix(seaCol, vec3(0.025, 0.19, 0.46), smoothstep(12.0, 26.0, seaD));
         // Surf: a bright edge on the sand, and thin broken lines that roll in.
         float seaBreak = seaNoise(vSea.xz * 1.3 + seaTime * 0.1);
         float seaEdge = 1.0 - smoothstep(0.0, 0.3 + 0.25 * sin(seaTime * 0.7), seaD + seaBreak * 0.35);
@@ -603,51 +333,19 @@ function seaMaterial() {
       .replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
-        totalEmissiveRadiance += seaSky * seaFresnel * 0.42 * (1.0 - seaFoam);`,
+        totalEmissiveRadiance += seaSky * seaFresnel * 0.12 * (1.0 - seaFoam);`,
       )
       .replace(
         "#include <opaque_fragment>",
         `// The sun on the water is a scatter of glints, not a sheet of white.
         float seaGlint = smoothstep(0.6, 0.85, seaNoise(vSea.xz * 5.0 + vec2(seaTime * 0.7, -seaTime * 0.5)));
         outgoingLight = totalDiffuse + totalEmissiveRadiance
-          + min(totalSpecular, vec3(2.6)) * (0.1 + 0.9 * seaGlint);
+          + min(reflectedLight.directSpecular, vec3(2.6)) * (0.1 + 0.9 * seaGlint)
+          + reflectedLight.indirectSpecular;
         #include <opaque_fragment>`,
       );
   };
   return { material, uniforms };
-}
-
-/** A far range of mountains, low on the horizon and pale with haze. */
-function farMountains() {
-  const g = new THREE.Group();
-  const rand = seeded(11);
-  const m = new THREE.MeshStandardMaterial({
-    color: "#6d8196",
-    roughness: 1,
-    flatShading: true,
-  });
-  for (let i = 0; i < 9; i++) {
-    // Ranges stand round most of the horizon, with gaps of open sea.
-    const a = (i / 9) * Math.PI * 2 + rand() * 0.3;
-    if (i % 4 === 3) continue;
-    const r = 215 + rand() * 40;
-    for (let j = 0; j < 5 + Math.floor(rand() * 4); j++) {
-      const h = 16 + rand() * 34;
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(h * (0.9 + rand() * 0.7), h, 6, 1),
-        m,
-      );
-      const b = a + (j - 3) * 0.075 + rand() * 0.03;
-      cone.position.set(
-        Math.cos(b) * (r + rand() * 20),
-        SEA + h / 2 - 1,
-        Math.sin(b) * (r + rand() * 20),
-      );
-      cone.rotation.y = rand() * 6;
-      g.add(cone);
-    }
-  }
-  return g;
 }
 
 /** Darkens the corners of the picture a little, as a lens does. */
@@ -678,7 +376,7 @@ export class KingdomScene {
   private tileMeshes: THREE.Mesh[] = [];
   private cursor: THREE.Mesh;
   private ghost: THREE.Group | null = null;
-  private clouds!: ReturnType<typeof cloudField>["uniforms"];
+  private land: LandShape | null = null;
   private birds: THREE.Group[] = [];
   private smoke: { sprite: THREE.Sprite; origin: THREE.Vector3; t: number }[] =
     [];
@@ -716,7 +414,6 @@ export class KingdomScene {
   private balloons: THREE.Object3D[] = [];
   private boats: THREE.Object3D[] = [];
   private sea!: ReturnType<typeof seaMaterial>["uniforms"];
-  private shores: [number, number, number, number][] = [];
   private touched = 0;
   private flock: THREE.Object3D[] = [];
   private flockKey = "";
@@ -756,21 +453,41 @@ export class KingdomScene {
       0.5,
       900,
     );
-    this.scene.fog = new THREE.Fog(HAZE, 55, 300);
+    this.scene.fog = new THREE.Fog(HAZE, 120, 500);
     const water = seaMaterial();
     this.sea = water.uniforms;
     const sea = new THREE.Mesh(
-      new THREE.CircleGeometry(420, 48).rotateX(-Math.PI / 2),
+      new THREE.CircleGeometry(480, 48).rotateX(-Math.PI / 2),
       water.material,
     );
     sea.position.y = SEA;
     sea.receiveShadow = true;
-    this.scene.add(sea, farMountains());
-    this.scene.add(skyDome());
+    this.scene.add(sea);
+    // The sky is a photograph of a real one; once it is here it also lights
+    // the scene, so shade is filled with the blue of that same sky.
+    const sky = skyDome(SUN, HAZE, () => {
+      if (this.disposed) return;
+      const around = new THREE.Scene();
+      around.add(sky.mesh.clone());
+      // The ground below the horizon bounces a little warm light back up.
+      const below = new THREE.Mesh(
+        new THREE.SphereGeometry(600, 16, 8, 0, Math.PI * 2, Math.PI / 2),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color().setRGB(0.1, 0.11, 0.06),
+          side: THREE.BackSide,
+        }),
+      );
+      around.add(below);
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      this.scene.environment = pmrem.fromScene(around, 0, 1, 1000).texture;
+      pmrem.dispose();
+      hemi.intensity = 0.12;
+    });
+    this.scene.add(sky.mesh);
 
-    // Warm sunlight against cool light from the sky, so shade reads blue.
+    // Until the sky arrives, a plain light stands in for it.
     const hemi = new THREE.HemisphereLight("#bcd6ff", "#8f7a5c", 1.0);
-    const sun = new THREE.DirectionalLight("#ffc888", 4.1);
+    const sun = new THREE.DirectionalLight("#fff1dc", 3.9);
     this.sun = sun;
     sun.position.copy(SUN).multiplyScalar(40);
     sun.castShadow = true;
@@ -798,9 +515,6 @@ export class KingdomScene {
     );
     this.cursor.visible = false;
     this.scene.add(this.cursor);
-    const clouds = cloudField();
-    this.clouds = clouds.uniforms;
-    this.scene.add(clouds.mesh);
     this.addBirds();
 
     this.controls = new OrbitControls(this.camera, renderer.domElement);
@@ -1026,68 +740,18 @@ export class KingdomScene {
     sc.updateProjectionMatrix();
     this.controls.maxDistance = radius * 4.2;
 
-    // The grass top: a slab whose edge follows the coast a little, then the
-    // tiles of the land on it.
-    const topGeo = new THREE.CylinderGeometry(radius, radius * 0.97, 0.7, 96);
-    const grass = meadowTexture();
-    // One tile of the texture covers about 7 m of meadow.
-    grass.repeat.setScalar(radius / 3.4);
-    const tp = topGeo.attributes.position;
-    for (let i = 0; i < tp.count; i++) {
-      const x = tp.getX(i);
-      const z = tp.getZ(i);
-      if (!x && !z) continue;
-      const k = this.edge(Math.atan2(z, x)) / radius;
-      tp.setX(i, x * k);
-      tp.setZ(i, z * k);
-    }
-    topGeo.computeVertexNormals();
-    const top = new THREE.Mesh(topGeo, [
-      // An earth bank shows between the grass and the sand.
-      mat("#a98b62", { flatShading: false }),
-      new THREE.MeshStandardMaterial({ map: grass, roughness: 0.95 }),
-      mat(C.meadow),
-    ]);
-    top.position.set(c, -0.35, c);
-    top.receiveShadow = true;
-    this.island.add(top);
-    // A sandy beach slopes from the meadow into the sea: wide where the
-    // coast stands out, narrow where it cuts in. The sea draws the shallows
-    // and surf along the same line.
-    const shore = radius * 1.16;
-    const beachGeo = new THREE.CylinderGeometry(1, 1, 1.3, 96, 1, true);
-    const bp = beachGeo.attributes.position;
-    for (let i = 0; i < bp.count; i++) {
-      const a = Math.atan2(bp.getZ(i), bp.getX(i));
-      const inner = this.edge(a) * 0.99;
-      // The slope crosses sea level 8/13 of the way down.
-      const r =
-        bp.getY(i) > 0
-          ? inner
-          : inner + ((shore * coast(a) - inner) * 1.3) / (-0.7 - SEA);
-      bp.setX(i, Math.cos(a) * r);
-      bp.setZ(i, Math.sin(a) * r);
-    }
-    beachGeo.computeVertexNormals();
-    const beach = new THREE.Mesh(
-      beachGeo,
-      mat("#ecdcae", { flatShading: false }),
+    // The country round the town: level under the town itself, then
+    // hills, forest and a bay.
+    const shape = landShape(radius);
+    this.land = shape;
+    const ground = landMesh(shape);
+    ground.position.set(c, 0, c);
+    this.island.add(ground);
+    const trees = forestSpots(
+      shape,
+      window.innerWidth < 700 ? 2200 : 6000,
+      radius * 2.4 + 4,
     );
-    beach.position.set(c, -1.35, c);
-    beach.receiveShadow = true;
-    this.island.add(beach);
-    this.shores = [[c, c, shore, 1]];
-    for (let i = 0; i < 14; i++) {
-      const a = rand() * Math.PI * 2;
-      const r = shore * coast(a) * (0.97 + rand() * 0.16);
-      const b = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(0.35 + rand() * 0.7, 0),
-        mat(i % 2 ? C.rock : C.rockDark),
-      );
-      b.position.set(c + Math.cos(a) * r, SEA - 0.1, c + Math.sin(a) * r);
-      b.castShadow = true;
-      this.island.add(b);
-    }
 
     // Buildable tiles: invisible, for picking, with a grid drawn over them
     // while the player builds.
@@ -1144,7 +808,7 @@ export class KingdomScene {
       const edge = Math.max(Math.abs(x - c), Math.abs(z - c));
       return (
         edge > landHalf + (walled ? 1.3 : 0.3) &&
-        Math.hypot(x - c, z - c) < this.edge(Math.atan2(z - c, x - c)) - margin
+        Math.hypot(x - c, z - c) < radius - margin
       );
     };
     const front = Math.atan2(19.5, 13);
@@ -1157,10 +821,20 @@ export class KingdomScene {
         const x = gx + (rand() + rand() - 1) * 1.7;
         const z = gz + (rand() + rand() - 1) * 1.7;
         if (!free(x, z, 0.8)) continue;
-        const item = tree(rand);
-        item.position.set(x, 0, z);
-        this.island.add(item);
+        const s = 0.8 + rand() * 0.45;
+        rand(); // keeps the groves where they were when some were firs
+        trees.push({ x: x - c, y: 0, z: z - c, s, kind: 0 });
+        // Its shadow on the grass, thrown away from the sun.
+        const shade = treeShade();
+        shade.scale.set(2.0 * s, 1.5 * s, 1);
+        shade.rotation.z = Math.atan2(SUN.z, -SUN.x);
+        shade.position.set(x - SUN.x * 2.2 * s, 0.02, z - SUN.z * 2.2 * s);
+        this.island.add(shade);
       }
+    }
+    for (const mesh of forest(trees, SUN)) {
+      mesh.position.set(c, 0, c);
+      this.island.add(mesh);
     }
     // Tufts of longer grass, so the meadow isn't a mown lawn up close.
     const tufts = new THREE.InstancedMesh(
@@ -1182,7 +856,7 @@ export class KingdomScene {
       tufts.setMatrixAt(placed, at.matrix);
       tufts.setColorAt(
         placed++,
-        tint.set(["#7aa650", "#94bd62", "#6a9848", "#a9c66e"][i % 4]),
+        tint.set(["#4f6f2c", "#5f7f34", "#46652a", "#6b8a3c"][i % 4]),
       );
     }
     tufts.count = placed;
@@ -1197,54 +871,34 @@ export class KingdomScene {
       this.island.add(item);
     }
 
-    // Sea stacks behind the kingdom: white cliffs with pines rising from
-    // the water, far enough back to frame it without hiding it.
-    const islets: [number, number, number, number, number][] = [
-      [-1.3, -1.25, 2.6, 5.5, 2.6],
-      [0.35, -1.8, 1.2, 4, 1.9],
-      [1.55, -0.8, 1.8, 3.4, 1.5],
-    ];
-    for (const [fx, fz, y, r, s] of islets) {
-      const g = this.islet(r, rand, 7, y);
-      g.position.set(c + fx * radius, y, c + fz * radius);
-      const cliff = peak(rand, s);
-      cliff.position.set(-r * 0.15, 0, -r * 0.1);
-      g.add(cliff);
-      if (s > 2) {
-        const second = peak(rand, s * 0.62);
-        second.position.set(r * 0.5, 0, r * 0.2);
-        g.add(second);
-      }
-      this.island.add(g);
-      this.shores.push([g.position.x, g.position.z, r * 1.1, 0]);
-    }
-    // A bare rock off to the side, where the kingdom's dragon keeps watch.
+    // A rock that stands in the sea is moved out if the shore reaches it.
+    const afloat = (x: number, z: number) => {
+      while (shape.height(x, z) > SEA - 0.9) x -= 3;
+      return [x, z];
+    };
+    const stacks: Stack[] = [];
+    // A bare rock off the shore, where the kingdom's dragon keeps watch.
     if (dragon) {
-      const g = this.islet(2.6, rand, 0, 2.2);
-      g.position.set(c + radius * 1.02, 2.2, c - radius * 1.22);
+      const [x, z] = afloat(shape.bay.x + 22, shape.bay.z + 34);
+      const g = this.islet(2.6, rand, 2.2);
+      g.position.set(c + x, 2.2, c + z);
       this.dragonSpot.copy(g.position);
       this.island.add(g);
-      this.shores.push([g.position.x, g.position.z, 2.6 * 1.1, 0]);
+      stacks.push({ x, z, r: 2.6 * 1.1 });
     }
-    this.shores.slice(0, SHORES).forEach((v, i) => {
-      this.sea.seaShores.value[i].set(...v);
-    });
-    this.sea.seaShoreCount.value = Math.min(this.shores.length, SHORES);
+    this.sea.seaDepth.value?.dispose();
+    this.sea.seaDepth.value = depthTexture(shape, stacks);
+    this.sea.seaCentre.value.set(c, c);
 
     this.controls.target.set(c, 1.6, c);
   }
 
-  /** The meadow's edge at angle `a` round the island's centre. */
-  private edge(a: number) {
-    return this.radius * (1 + (coast(a) - 1) * 0.5);
-  }
-
-  /** A small islet: a grass top on a rock that stands in the sea. */
-  private islet(r: number, rand: () => number, trees: number, y: number) {
+  /** A bare rock that stands in the sea. */
+  private islet(r: number, rand: () => number, y: number) {
     const g = new THREE.Group();
     const top = new THREE.Mesh(
       new THREE.CylinderGeometry(r, r * 0.94, 0.6, 18),
-      mat(trees ? C.meadow : C.rock),
+      mat(C.rock),
     );
     top.position.y = -0.3;
     top.receiveShadow = true;
@@ -1265,13 +919,6 @@ export class KingdomScene {
         Math.sin(a) * r * 1.2,
       );
       g.add(b);
-    }
-    for (let i = 0; i < trees; i++) {
-      const a = rand() * Math.PI * 2;
-      const d = r * (0.45 + rand() * 0.45);
-      const item = scenery(rand);
-      item.position.set(Math.cos(a) * d, 0, Math.sin(a) * d);
-      g.add(item);
     }
     return g;
   }
@@ -1310,6 +957,18 @@ export class KingdomScene {
         this.mixers.push({ mixer, owner: obj });
       }
     });
+    // A garden tree is one of the forest's trees, with its shade under it.
+    const tree = obj.userData.tree as { s: number; kind: number } | undefined;
+    if (tree) {
+      const turn = (obj.userData.turn as number) * 0.4;
+      for (const mesh of forest([{ x: turn, y: 0, z: -turn, ...tree }], SUN))
+        obj.add(mesh);
+      const shade = treeShade();
+      shade.scale.set(2.0 * tree.s, 1.5 * tree.s, 1);
+      shade.rotation.z = Math.atan2(SUN.z, -SUN.x);
+      shade.position.set(-SUN.x * 2.2 * tree.s, 0.03, -SUN.z * 2.2 * tree.s);
+      obj.add(shade);
+    }
     const smoke = obj.userData.smoke as THREE.Vector3 | undefined;
     if (smoke && !this.options.reducedMotion) {
       const origin = smoke
@@ -1491,7 +1150,7 @@ export class KingdomScene {
     for (let i = 0; i < 3 + rank; i++) {
       // The meadow between the land (or its wall) and the island's edge.
       const a = rand() * Math.PI * 2;
-      const d = this.edge(a) - 0.8 - rand() * 0.8;
+      const d = this.radius - 0.8 - rand() * 0.8;
       const sheep = add("sheep", 1.15, i * 0.9);
       sheep.position.set(c + Math.cos(a) * d, 0, c + Math.sin(a) * d);
       sheep.rotation.y = rand() * 6;
@@ -1623,8 +1282,16 @@ export class KingdomScene {
         this.controls.enabled = true;
       }
     } else this.controls.update();
+    // The camera never dips into a hillside.
+    if (this.land) {
+      const floor =
+        this.land.height(
+          this.camera.position.x - this.centre,
+          this.camera.position.z - this.centre,
+        ) + 0.8;
+      if (this.camera.position.y < floor) this.camera.position.y = floor;
+    }
 
-    this.clouds.time.value = time;
     for (const b of this.birds) {
       const { r, h, s, p } = b.userData;
       const a = time * s + p;
@@ -1646,12 +1313,14 @@ export class KingdomScene {
       (!this.touched || time - this.touched > 12);
     this.boats.forEach((b, i) => {
       const dir = i % 2 ? -1 : 1;
-      const a = time * 0.012 * dir + i * 2.1 + 0.4;
-      const r = this.radius * (1.75 + i * 0.55);
+      // Round and round, well out in the bay.
+      const a = time * 0.02 * dir + i * 2.1 + 0.4;
+      const r = 12 + i * 7;
+      const bay = this.land?.bay ?? { x: 0, z: 0 };
       b.position.set(
-        this.centre + Math.cos(a) * r,
+        this.centre + bay.x - 45 + Math.cos(a) * r,
         SEA - 0.05 + Math.sin(time * 1.1 + i) * 0.04,
-        this.centre + Math.sin(a) * r,
+        this.centre + bay.z + Math.sin(a) * r,
       );
       b.rotation.y = -a + (dir > 0 ? 0 : Math.PI);
       b.rotation.z = Math.sin(time * 0.9 + i) * 0.04;

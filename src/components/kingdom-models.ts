@@ -1,5 +1,7 @@
-// The kingdom's buildings, made from the Polyfork Medieval Village kit
-// (public/models/kingdom, CC BY 4.0, credited in CREDITS.md there). Each
+// The kingdom's buildings. The houses, church, mill, well, stall and gate are
+// realistic textured models (public/models/kingdom/real); the props and the
+// rest come from the Polyfork Medieval Village kit (public/models/kingdom).
+// All are CC BY 4.0 and credited in CREDITS.md there. Each
 // building is a small arrangement of kit models laid out in meters; one world
 // unit is 3 m, so a 2-unit tile is 6 m across and the hall's 3 x 3 grounds
 // are 18 m. The kit has no castle, so the keep, castle and palace add stone
@@ -12,17 +14,18 @@ import type { StageId } from "@/data/kingdom.mjs";
 export const METER = 1 / 3; // world units per meter
 
 const FILES = {
-  cottage: "thatched-cottage-0e63f5",
-  house: "two-story-house-40f6dc",
-  chapel: "stone-chapel-03e774",
+  cottage: "real/house-2",
+  house: "real/house-3",
+  towerHouse: "real/house-1",
+  longHouse: "real/house-4",
+  chapel: "real/church",
   watchtower: "watchtower-140f78",
-  windmill: "windmill-3aad49",
+  windmill: "real/windmill",
   forge: "blacksmith-forge-09fa85",
-  gatehouse: "village-gatehouse-181a9e",
+  gatehouse: "real/gate",
   barn: "timber-barn-90b3ce",
-  granary: "stilted-granary-3e7d7d",
-  well: "village-well-f8e361",
-  stall: "market-stall-94937d",
+  well: "real/well",
+  stall: "real/stall",
   fountain: "plaza-fountain-5a5f6e",
   statue: "standing-knight-statue-8bdcc9",
   crown: "crown-a294ce",
@@ -50,11 +53,6 @@ const FILES = {
   stump: "tree-stump-8c0513",
   pathA: "path-stone-a-aead48",
   pathB: "path-stone-b-6ed75c",
-  oak: "oak-tree-50ee7c",
-  broadleaf: "broadleaf-oak-997c22",
-  apple: "orchard-apple-tree-b21f85",
-  birch: "birch-tree-181b33",
-  pine: "tall-pine-tree-ab4108",
   bush: "round-bush-cd2ac0",
   shrub: "bush-8bb596",
   tuft: "grass-tuft-5ccff0",
@@ -65,10 +63,9 @@ const FILES = {
   tradesman: "tradesman-1707b9",
   merchant: "merchant-6f606b",
   guard: "village-guard-5f0f6f",
-  greatHall: "village-hall-c6d3c8",
+  greatHall: "real/manor",
   clock: "clock-tower-752081",
   brazier: "flame-brazier-bbf74a",
-  peak: "karst-limestone-peak-ee1b76",
   cypress: "columnar-evergreen-shrub-35a00b",
   balloon: "hot-air-balloon-a2a511",
   sailboat: "sailboat-3ee283",
@@ -86,17 +83,7 @@ export const PEOPLE: ModelName[] = [
 // The trees and bushes come from three Polyfork kits whose greens differ
 // (muted olive, bright emerald), so their leaves are pulled toward one
 // palette when they load. Trunks, blossom and fruit keep their colours.
-const FOLIAGE: ModelName[] = [
-  "oak",
-  "broadleaf",
-  "apple",
-  "birch",
-  "pine",
-  "bush",
-  "shrub",
-  "cypress",
-  "tuft",
-];
+const FOLIAGE: ModelName[] = ["bush", "shrub", "cypress", "tuft"];
 function unifyGreens(o: THREE.Object3D) {
   if (!(o instanceof THREE.Mesh)) return;
   const colors = o.geometry.getAttribute("color");
@@ -118,7 +105,31 @@ function unifyGreens(o: THREE.Object3D) {
   colors.needsUpdate = true;
 }
 
-type Loaded = { scene: THREE.Object3D; clips: THREE.AnimationClip[] };
+// The realistic buildings (the `real/` files) are textured models by several
+// Sketchfab authors, each in its own size and facing. This scales and turns
+// each one to stand where the kit model of the same name stood: sizes in
+// meters, the front toward +z.
+const FIT: Partial<
+  Record<ModelName, { s: number; ry?: number; chimney?: number[] }>
+> = {
+  cottage: { s: 0.63, ry: -Math.PI / 2 },
+  house: { s: 0.66 },
+  towerHouse: { s: 1 },
+  // Its tower stands higher than its chimney, so the chimney is given.
+  longHouse: { s: 1, chimney: [0.71, 10.1, -2.73] },
+  greatHall: { s: 1.3, ry: Math.PI },
+  chapel: { s: 7.7, ry: -Math.PI / 2 },
+  windmill: { s: 19 },
+  gatehouse: { s: 0.55 },
+  well: { s: 1 },
+  stall: { s: 0.5, ry: -Math.PI / 2 },
+};
+
+type Loaded = {
+  scene: THREE.Object3D;
+  clips: THREE.AnimationClip[];
+  top: THREE.Vector3;
+};
 const cache = new Map<ModelName, Loaded>();
 const loads = new Map<string, Promise<void>>();
 const BASE = "/models/kingdom/";
@@ -131,8 +142,14 @@ function load(names: ModelName[], key: string) {
     names.map(async (name) => {
       const gltf = await loader.loadAsync(`${BASE}${FILES[name]}.glb`);
       const root = gltf.scene;
-      // Stand every model on y = 0, centred on its footprint.
-      const box = new THREE.Box3().setFromObject(root);
+      const fit = FIT[name];
+      if (fit) {
+        root.scale.setScalar(fit.s);
+        root.rotation.y = fit.ry ?? 0;
+      }
+      // Stand every model on y = 0, centred on its footprint. The realistic
+      // models hold turned parts, so their box is measured point by point.
+      const box = new THREE.Box3().setFromObject(root, !!fit);
       const centre = box.getCenter(new THREE.Vector3());
       const wrap = new THREE.Group();
       root.position.set(-centre.x, -box.min.y, -centre.z);
@@ -145,7 +162,23 @@ function load(names: ModelName[], key: string) {
           o.frustumCulled = !(o instanceof THREE.SkinnedMesh);
         }
       });
-      cache.set(name, { scene: wrap, clips: gltf.animations });
+      // The highest point of a realistic house is its chimney top.
+      const top = new THREE.Vector3(0, box.max.y - box.min.y, 0);
+      if (fit?.chimney) top.fromArray(fit.chimney);
+      else if (fit) {
+        wrap.updateMatrixWorld(true);
+        const v = new THREE.Vector3();
+        top.y = -Infinity;
+        wrap.traverse((o) => {
+          if (!(o instanceof THREE.Mesh)) return;
+          const at = o.geometry.getAttribute("position");
+          for (let i = 0; i < at.count; i++) {
+            v.fromBufferAttribute(at, i).applyMatrix4(o.matrixWorld);
+            if (v.y > top.y) top.copy(v);
+          }
+        });
+      }
+      cache.set(name, { scene: wrap, clips: gltf.animations, top });
     }),
   ).then(() => undefined);
   loads.set(key, p);
@@ -155,10 +188,14 @@ function load(names: ModelName[], key: string) {
 const LIFE: ModelName[] = [...PEOPLE, "dragon", "sheep"];
 /** Loads the buildings and scenery once; later calls share the promise. */
 export const loadModels = () =>
-  load(
-    (Object.keys(FILES) as ModelName[]).filter((n) => !LIFE.includes(n)),
-    "world",
-  );
+  Promise.all([
+    load(
+      (Object.keys(FILES) as ModelName[]).filter((n) => !LIFE.includes(n)),
+      "world",
+    ),
+    (photoLoad ??= loadPhotos()),
+  ]).then(() => undefined);
+let photoLoad: Promise<void> | null = null;
 /** Villagers, sheep and the dragon, loaded after the kingdom is on screen. */
 export const loadPeople = () => load(LIFE, "people");
 
@@ -190,6 +227,15 @@ function put(g: THREE.Group, name: ModelName, p: Place = {}) {
   g.add(o);
   return o;
 }
+/** Where a placed house smokes: just under its chimney top, in meters. */
+function chimney(name: ModelName, p: Place = {}) {
+  const top = cache.get(name)?.top ?? new THREE.Vector3();
+  return top
+    .clone()
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), p.ry ?? 0)
+    .multiplyScalar(p.s ?? 1)
+    .add(new THREE.Vector3(p.x ?? 0, (p.y ?? 0) - 0.2, p.z ?? 0));
+}
 /** A finished building: laid out in meters, shown in world units. */
 function finish(inner: THREE.Group, extra: Record<string, unknown> = {}) {
   inner.scale.setScalar(METER);
@@ -207,8 +253,54 @@ function seeded(seed: number) {
 
 // ---- stone, roofs and banners for the castle -----------------------------
 
+// Photographs of castle blocks, clay roof tiles and slate (Poly Haven, CC0;
+// see CREDITS.md). They load with the models, before anything is built.
+type Photo = { map: THREE.Texture; normal: THREE.Texture | null };
+const photos: Record<string, Photo> = {};
+async function loadPhotos() {
+  const loader = new THREE.TextureLoader();
+  const get = async (file: string, colour: boolean) => {
+    const t = await loader.loadAsync(`${BASE}land/${file}.jpg`);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    if (colour) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  const [wall, wallN, tiles, tilesN, slate] = await Promise.all([
+    get("wall", true),
+    get("wall-n", false),
+    get("tiles", true),
+    get("tiles-n", false),
+    get("slate", true),
+  ]);
+  photos.wall = { map: wall, normal: wallN };
+  photos.tiles = { map: tiles, normal: tilesN };
+  photos.slate = { map: slate, normal: null };
+}
+/** A material from one of the photographs, repeated rx by ry times. */
+function photo(
+  name: string,
+  rx: number,
+  ry: number,
+  extra: THREE.MeshStandardMaterialParameters = {},
+) {
+  const src = photos[name];
+  const copy = (t: THREE.Texture) => {
+    const c = t.clone();
+    c.repeat.set(rx, ry);
+    c.needsUpdate = true;
+    return c;
+  };
+  return new THREE.MeshStandardMaterial({
+    map: copy(src.map),
+    normalMap: src.normal ? copy(src.normal) : null,
+    roughness: 0.9,
+    ...extra,
+  });
+}
+
 let stoneTex: THREE.CanvasTexture | null = null;
-/** Pale ashlar blocks with soft mortar, like the kit's chapel. */
+/** Pale ashlar blocks with soft mortar: the stand-in until the photo loads. */
 function stoneTexture() {
   if (stoneTex) return stoneTex;
   const c = document.createElement("canvas");
@@ -241,10 +333,39 @@ function stone(rx: number, ry: number) {
   const key = `stone:${rx.toFixed(1)}:${ry.toFixed(1)}`;
   let m = matCache.get(key);
   if (!m) {
-    const t = stoneTexture().clone();
-    t.repeat.set(rx, ry);
-    t.needsUpdate = true;
-    m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.92 });
+    if (photos.wall) m = photo("wall", rx * 0.8, ry * 0.8);
+    else {
+      const t = stoneTexture().clone();
+      t.repeat.set(rx, ry);
+      t.needsUpdate = true;
+      m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.92 });
+    }
+    matCache.set(key, m);
+  }
+  return m;
+}
+/**
+ * Roof tiles for a cone or pyramid roof `round` meters about its base and
+ * `slant` meters up its side: clay tiles for the reds, slate for other
+ * colours.
+ */
+function roofing(color: string, round: number, slant: number) {
+  const rx = Math.max(2, Math.round(round / 2.4));
+  const ry = Math.max(1, Math.round((slant / 2.4) * 2) / 2);
+  const key = `roof:${color}:${rx}:${ry}`;
+  let m = matCache.get(key);
+  if (!m) {
+    if (!photos.tiles) m = plain(color);
+    else if (color === ROOF || color === ROOF_DARK)
+      m = photo("tiles", rx, ry, {
+        color: color === ROOF ? "#f2d0c8" : "#a88f8a",
+        roughness: 0.82,
+      });
+    else
+      m = photo("slate", rx, ry, {
+        color: new THREE.Color(color).lerp(new THREE.Color("#ffffff"), 0.25),
+        roughness: 0.7,
+      });
     matCache.set(key, m);
   }
   return m;
@@ -440,7 +561,7 @@ function roundTower(
   const spire = opts.spire ?? r * 2.4;
   const roof = mesh(
     new THREE.ConeGeometry(r + 0.25, spire, 20),
-    plain(opts.roof ?? ROOF),
+    roofing(opts.roof ?? ROOF, (r + 0.25) * 6.28, Math.hypot(r, spire)),
     x,
     h + 0.7 + spire / 2,
     z,
@@ -535,7 +656,7 @@ function keep(
   if (opts.roof) {
     const roof = mesh(
       new THREE.ConeGeometry(w * 0.62, opts.roof, 4),
-      plain(tile),
+      roofing(tile, w * 3.5, Math.hypot(w * 0.45, opts.roof)),
       x,
       h + 0.4 + opts.roof / 2,
       z,
@@ -581,7 +702,13 @@ function keep(
         ),
       );
       g.add(
-        mesh(new THREE.ConeGeometry(1.15, 3, 12), plain(tile), tx, h + 3.7, tz),
+        mesh(
+          new THREE.ConeGeometry(1.15, 3, 12),
+          roofing(tile, 7.2, 3.2),
+          tx,
+          h + 3.7,
+          tz,
+        ),
       );
     }
 }
@@ -671,15 +798,14 @@ const M: Record<string, Maker> = {
   },
   tree: (rand) => {
     const g = new THREE.Group();
-    const kinds: ModelName[] = ["oak", "broadleaf", "apple", "birch", "pine"];
-    const kind = kinds[Math.floor(rand() * kinds.length)];
-    put(g, kind, {
-      ry: rand() * 6,
-      s: (0.95 + rand() * 0.3) * (kind === "pine" ? 0.68 : 1),
-    });
-    put(g, "bush", { x: 1.9, z: 1.6, ry: rand() * 6, s: 1.1 });
+    // The tree itself is one of the forest's real trees, which the scene
+    // plants here; the tile only says which kind and how big.
     put(g, "tuft", { x: -1.8, z: 1.8, s: 1.4 });
-    return finish(g);
+    put(g, "tuft", { x: 1.7, z: 1.5, s: 1.2 });
+    return finish(g, {
+      tree: { s: 0.5 + rand() * 0.14, kind: 0 },
+      turn: rand(),
+    });
   },
   flowers: (rand) => {
     const g = new THREE.Group();
@@ -697,12 +823,16 @@ const M: Record<string, Maker> = {
   },
   cottage: (rand) => {
     const g = new THREE.Group();
-    put(g, "cottage", { z: -0.3, s: 0.88 });
+    // Most cottages are the long jettied house; some are a tower house.
+    const tall = rand() > 0.7;
+    const kind: ModelName = tall ? "towerHouse" : "cottage";
+    const at: Place = tall ? { z: -0.6, s: 0.72 } : { z: -0.5, s: 0.88 };
+    put(g, kind, at);
     put(g, "barrel", { x: 2.4, z: 2.2 });
     put(g, "crate", { x: 1.6, z: 2.5, ry: 0.4 });
     put(g, "planter", { x: -1.2, z: 2.1 });
     if (rand() > 0.5) put(g, "wheelbarrow", { x: -2.4, z: 1.8, ry: 1.2 });
-    return finish(g, { smoke: new THREE.Vector3(1.5, 5.4, -1.2) });
+    return finish(g, tall ? {} : { smoke: chimney(kind, at) });
   },
   farm: (rand) => {
     const g = new THREE.Group();
@@ -730,10 +860,11 @@ const M: Record<string, Maker> = {
   },
   house: () => {
     const g = new THREE.Group();
-    put(g, "house", { s: 0.74 });
+    const at: Place = { z: -0.6, s: 0.74 };
+    put(g, "house", at);
     put(g, "planter", { x: -1.8, z: 2.6 });
     put(g, "barrel", { x: 2.4, z: 2.3 });
-    return finish(g, { smoke: new THREE.Vector3(1.5, 7, -1.5) });
+    return finish(g, { smoke: chimney("house", at) });
   },
   well: () => {
     const g = new THREE.Group();
@@ -745,8 +876,7 @@ const M: Record<string, Maker> = {
   },
   market: (rand) => {
     const g = new THREE.Group();
-    put(g, "stall", { x: -1.1, z: -0.6, s: 1.3, ry: 0.15 });
-    put(g, "stall", { x: 1.4, z: 0.7, s: 1.2, ry: -0.5 });
+    put(g, "stall", { x: -0.3, z: -1, s: 1.75, ry: 0.12 });
     put(g, "crate", { x: -2.3, z: 1.6, ry: rand() });
     put(g, "crate", { x: -1.5, z: 2.1, ry: rand() });
     put(g, "barrel", { x: 2.4, z: -1.6 });
@@ -851,25 +981,26 @@ const HALLS: Record<StageId, () => THREE.Group> = {
   },
   village: () => {
     const g = new THREE.Group();
-    put(g, "house", { z: -2.5, s: 1.05 });
+    const at: Place = { z: -2.5, s: 0.9 };
+    put(g, "longHouse", at);
     put(g, "planter", { x: -2.3, z: 2.2 });
     put(g, "planter", { x: 2.3, z: 2.2 });
     put(g, "lamp", { x: -4, z: 4.5 });
     put(g, "lamp", { x: 4, z: 4.5 });
     put(g, "signpost", { x: 6.3, z: 5.5, ry: -0.6 });
     put(g, "wagon", { x: -6, z: 3, ry: 0.6 });
-    put(g, "barrel", { x: 5.2, z: -1.5 });
-    put(g, "barrel", { x: 5.8, z: -0.7 });
-    put(g, "granary", { x: -6, z: -5, ry: 0.4 });
+    put(g, "barrel", { x: 6.4, z: 2.4 });
+    put(g, "barrel", { x: 7, z: 3.2 });
     for (let i = 0; i < 6; i++)
       put(g, "fence", { x: -5 + i * 2, z: 8.2, s: 1 });
-    banner(g, 0, 8.6, -2.5, 2.4);
-    return finish(g, { smoke: new THREE.Vector3(2, 9.6, -4) });
+    banner(g, 4.66, 11.3, -0.75, 2.4);
+    return finish(g, { smoke: chimney("longHouse", at) });
   },
   town: () => {
     const g = new THREE.Group();
     plaza(g, 8.8);
-    put(g, "greatHall", { z: -1.8, s: 0.95 });
+    const at: Place = { z: -1.8, s: 0.95 };
+    put(g, "greatHall", at);
     put(g, "brazier", { x: -3, z: 5.6, s: 1.4 });
     put(g, "brazier", { x: 3, z: 5.6, s: 1.4 });
     put(g, "lamp", { x: -6.5, z: 6.5 });
@@ -880,7 +1011,7 @@ const HALLS: Record<StageId, () => THREE.Group> = {
     put(g, "signpost", { x: -7.4, z: 7.6, ry: 0.4 });
     banner(g, -8, 0, 4, 8);
     banner(g, 8, 0, 4, 8);
-    return finish(g, { smoke: new THREE.Vector3(4.6, 15.5, -3) });
+    return finish(g, { smoke: chimney("greatHall", at) });
   },
   city: () => {
     const g = new THREE.Group();
@@ -905,7 +1036,7 @@ const HALLS: Record<StageId, () => THREE.Group> = {
     g.add(mesh(new THREE.BoxGeometry(4, 6, 6), stone(1.4, 2), -5, 3, -1));
     const hallRoof = mesh(
       new THREE.CylinderGeometry(0.01, 3.3, 4.2, 4, 1),
-      plain(ROOF_DARK),
+      roofing(ROOF_DARK, 18, 4.8),
       -5,
       7.6,
       -1,
@@ -976,7 +1107,7 @@ const HALLS: Record<StageId, () => THREE.Group> = {
     );
     const roof = mesh(
       new THREE.CylinderGeometry(0.01, 4.6, 4, 4, 1),
-      plain(BLUE),
+      roofing(BLUE, 26, 4.6),
       0,
       11.3,
       -1.2,
@@ -991,7 +1122,7 @@ const HALLS: Record<StageId, () => THREE.Group> = {
     );
     const gable = mesh(
       new THREE.ConeGeometry(2.9, 4, 4),
-      plain(BLUE),
+      roofing(BLUE, 16, 4.5),
       0,
       15,
       1.5,
@@ -1057,18 +1188,8 @@ export function makeHall(stage: StageId): THREE.Group {
   return HALLS[stage]();
 }
 
-// ---- the island's own trees, bushes and rocks ------------------------------
+// ---- the meadow's bushes, flowers and rocks ---------------------------------
 
-// Pines are scaled down: at full size they stand as tall as the wall towers.
-const TREES: [ModelName, number][] = [
-  ["oak", 1.05],
-  ["oak", 0.9],
-  ["broadleaf", 0.95],
-  ["birch", 1],
-  ["apple", 0.95],
-  ["pine", 0.72],
-  ["pine", 0.6],
-];
 const COVER: [ModelName, number][] = [
   ["bush", 1.3],
   ["shrub", 1.5],
@@ -1085,13 +1206,8 @@ function pick(list: [ModelName, number][], rand: () => number) {
   put(g, name, { ry: rand() * 6, s: s * (0.85 + rand() * 0.35) });
   return finish(g);
 }
-/** A tree for a grove, in world units. */
-export const tree = (rand: () => number): THREE.Object3D => pick(TREES, rand);
 /** Low ground cover: a bush, grass, flowers or a rock. */
 export const cover = (rand: () => number): THREE.Object3D => pick(COVER, rand);
-/** One piece of scenery of either kind, for the islets. */
-export const scenery = (rand: () => number): THREE.Object3D =>
-  rand() < 0.45 ? tree(rand) : cover(rand);
 export function spire(rand: () => number): THREE.Object3D {
   const g = new THREE.Group();
   put(g, "spire", { ry: rand() * 6, s: 1.5 + rand() * 1.5 });
@@ -1113,12 +1229,6 @@ export function person(name: ModelName, scale = 1) {
   };
 }
 
-/** A white cliff with pines, for the islets that float behind the kingdom. */
-export function peak(rand: () => number, scale = 1): THREE.Object3D {
-  const g = new THREE.Group();
-  put(g, "peak", { ry: rand() * 6, s: scale });
-  return finish(g);
-}
 /** A sailing boat; the model is toy-sized, so it is scaled up to 8 m. */
 export function boat(): THREE.Object3D {
   const g = new THREE.Group();
