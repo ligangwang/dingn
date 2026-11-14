@@ -37,7 +37,8 @@ const TERMS: Sections = [
     "Refunds",
     [
       "If you were charged but your coins didn't arrive, or you were charged twice, contact us and we will fix it or refund you in full.",
-      "You can ask for a refund of a coin pack within 14 days of buying it, as long as you haven't spent its coins.",
+      "Coins are delivered right away. Before you pay, you ask for immediate delivery and agree that you lose the right to cancel (the 14-day cancellation right in the EU and UK) once they are delivered. Your Stripe receipt confirms this.",
+      "So a purchase can't be cancelled just because you changed your mind, but you are always entitled to a fix or a refund if coins are missing or don't work as described.",
       "Refunds go back to the card or account you paid with. When a purchase is refunded or disputed, its coins are removed from your balance.",
       "Where you live, the law may give you more rights. These terms don't take them away.",
     ],
@@ -69,7 +70,7 @@ const PRIVACY: Sections = [
   [
     "Analytics",
     [
-      "dingn uses Google Analytics to count visits and see which games people play. You can turn it off on the analytics opt-out page.",
+      "dingn uses Google Analytics to count visits and see which games people play. You can turn it off for your browser at dingn.com/opt-out.",
     ],
   ],
   [
@@ -94,6 +95,19 @@ const PRIVACY: Sections = [
   ],
 ];
 
+/** Turns the dingn.com/opt-out mention into a link to that page. */
+function withLinks(text: string, href: (path: string) => string) {
+  const [before, after] = text.split("dingn.com/opt-out");
+  if (after === undefined) return text;
+  return (
+    <>
+      {before}
+      <Link href={href("/opt-out/")}>dingn.com/opt-out</Link>
+      {after}
+    </>
+  );
+}
+
 function LegalPage({
   eyebrow,
   title,
@@ -117,7 +131,7 @@ function LegalPage({
           <h2>{t(heading)}</h2>
           <ul>
             {points.map((point) => (
-              <li key={point}>{t(point)}</li>
+              <li key={point}>{withLinks(t(point), href)}</li>
             ))}
           </ul>
         </section>

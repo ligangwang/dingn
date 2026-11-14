@@ -787,7 +787,6 @@
   "Coins are added to your account a few seconds after Stripe confirms the payment.": "Stripe 确认付款几秒后，金币会添加到你的账号。",
   "Refunds": "退款",
   "If you were charged but your coins didn't arrive, or you were charged twice, contact us and we will fix it or refund you in full.": "如果你已付款但金币没有到账，或被重复扣款，请联系我们，我们会修复问题或全额退款。",
-  "You can ask for a refund of a coin pack within 14 days of buying it, as long as you haven't spent its coins.": "购买金币包后 14 天内，只要这些金币还没有花掉，你都可以申请退款。",
   "Refunds go back to the card or account you paid with. When a purchase is refunded or disputed, its coins are removed from your balance.": "退款会退回到你付款时使用的银行卡或账户。购买被退款或发生争议时，相应金币会从你的余额中扣除。",
   "Where you live, the law may give you more rights. These terms don't take them away.": "你所在地区的法律可能赋予你更多权利，这些条款不会剥夺这些权利。",
   "No warranty": "不作保证",
@@ -799,7 +798,6 @@
   "Coin purchases: what you bought, when, and the amount. Stripe processes the payment; dingn receives a record of it but never your card number.": "金币购买：你买了什么、时间和金额。付款由 Stripe 处理；dingn 会收到付款记录，但不会收到你的卡号。",
   "Feedback you send us.": "你发给我们的反馈。",
   "Analytics": "访问统计",
-  "dingn uses Google Analytics to count visits and see which games people play. You can turn it off on the analytics opt-out page.": "dingn 使用 Google Analytics 统计访问量，了解大家在玩哪些游戏。你可以在关闭访问统计页面中关闭它。",
   "How it is used": "信息的用途",
   "To run your account, save your games, deliver what you buy, prevent fraud and improve dingn.": "用于运行你的账号、保存游戏进度、发放你购买的内容、防止欺诈以及改进 dingn。",
   "dingn does not sell your data and does not show ads.": "dingn 不出售你的数据，也不展示广告。",
@@ -808,5 +806,9 @@
   "Your choices": "你的选择",
   "You can change your display name and avatar on your account page.": "你可以在账号页面更改显示名称和头像。",
   "To get a copy of your data or have your account deleted, contact us. Payment records may be kept as long as the law requires.": "如需获取你的数据副本或删除账号，请联系我们。付款记录可能会按法律要求的期限保留。",
-  "Changes to these terms": "条款变更"
+  "Changes to these terms": "条款变更",
+  "dingn uses Google Analytics to count visits and see which games people play. You can turn it off for your browser at dingn.com/opt-out.": "dingn 使用 Google Analytics 统计访问量，了解大家在玩哪些游戏。你可以在 dingn.com/opt-out 为你的浏览器关闭它。",
+  "Coins are delivered right away. Before you pay, you ask for immediate delivery and agree that you lose the right to cancel (the 14-day cancellation right in the EU and UK) once they are delivered. Your Stripe receipt confirms this.": "金币会立即到账。付款前，你要求立即发放金币，并同意金币到账后即失去取消购买的权利（即欧盟和英国的 14 天撤销权）。Stripe 收据会确认这一点。",
+  "So a purchase can't be cancelled just because you changed your mind, but you are always entitled to a fix or a refund if coins are missing or don't work as described.": "因此，不能仅因改变主意而取消购买；但如果金币缺失或与描述不符，你始终有权要求修复或退款。",
+  "I want my coins delivered right away, and I understand that I lose my right to cancel once they are delivered.": "我希望金币立即到账，并了解金币到账后我将失去取消购买的权利。"
 }

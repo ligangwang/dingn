@@ -16,10 +16,20 @@ it("shows the refund policy in the terms", () => {
     screen.getByRole("heading", { level: 1, name: "Terms of use" }),
   ).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Refunds" })).toBeTruthy();
-  expect(screen.getByText(/within 14 days/)).toBeTruthy();
+  expect(screen.getByText(/lose the right to cancel/)).toBeTruthy();
+  expect(screen.queryByText(/within 14 days/)).toBeNull();
   expect(
     screen.getByRole("link", { name: "Contact us" }).getAttribute("href"),
   ).toMatch(/^\/feedback\/?$/);
+});
+
+it("links the analytics opt-out page from the privacy policy", () => {
+  render(<Privacy />);
+  expect(
+    screen
+      .getByRole("link", { name: "dingn.com/opt-out" })
+      .getAttribute("href"),
+  ).toMatch(/^\/opt-out\/?$/);
 });
 
 it("translates every line of both pages into Simplified Chinese", () => {

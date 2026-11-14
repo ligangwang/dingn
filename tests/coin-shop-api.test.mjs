@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   buyCoins,
+  WAIVER_VERSION,
   coinPacks,
   fulfill,
   validPacks,
@@ -88,7 +89,7 @@ test("the shop is closed until Stripe is configured, and reports test mode", () 
   assert.deepEqual(coinPacks(deps).packs, []);
 });
 test("checkout charges the server's price for the pack, for the signed-in account", async () => {
-  await buyCoins(deps, "alice", "coins-800", "zh-CN");
+  await buyCoins(deps, "alice", "coins-800", "zh-CN", WAIVER_VERSION);
   const { params, options } = calls[0];
   assert.equal(params.mode, "payment");
   assert.deepEqual(params.line_items[0].price_data.unit_amount, 199);
@@ -100,14 +101,25 @@ test("checkout charges the server's price for the pack, for the signed-in accoun
     /^https:\/\/dingn\.com\/zh\/coins\/\?purchase=pending$/,
   );
   assert.match(options.idempotencyKey, /^dingn-coins-/);
+  assert.match(params.custom_text.submit.message, /right to cancel/);
+  assert.match(
+    params.payment_intent_data.description,
+    /^800 dingn coins\. .*right to cancel/,
+  );
+  const order = [...records.values()].find((r) => r.packId === "coins-800");
+  assert.equal(order.waiver.version, WAIVER_VERSION);
   await assert.rejects(
-    buyCoins(deps, "alice", "coins-999999", "en"),
+    buyCoins(deps, "alice", "coins-800", "en", undefined),
+    /waiver-required/,
+  );
+  await assert.rejects(
+    buyCoins(deps, "alice", "coins-999999", "en", WAIVER_VERSION),
     /pack-unavailable/,
   );
 });
 test("a confirmed payment adds the pack's coins once, keeping the existing balance", async () => {
   records.set("rewards/alice", { coins: 50, spent: 10, badges: { a: 1 } });
-  await buyCoins(deps, "alice", "coins-300", "en");
+  await buyCoins(deps, "alice", "coins-300", "en", WAIVER_VERSION);
   sessions[0].payment_status = "unpaid";
   await fulfill(deps, paid());
   assert.equal(balance(), 50);
@@ -119,7 +131,7 @@ test("a confirmed payment adds the pack's coins once, keeping the existing balan
   assert.deepEqual(records.get("rewards/alice").badges, { a: 1 });
 });
 test("a mismatched amount, currency or account never adds coins", async () => {
-  await buyCoins(deps, "alice", "coins-2200", "en");
+  await buyCoins(deps, "alice", "coins-2200", "en", WAIVER_VERSION);
   for (const [field, value] of [
     ["amount_total", 1],
     ["currency", "eur"],
@@ -133,7 +145,7 @@ test("a mismatched amount, currency or account never adds coins", async () => {
   assert.equal(balance(), 0);
 });
 test("a refund takes back unspent coins; one before payment blocks the credit", async () => {
-  await buyCoins(deps, "alice", "coins-800", "en");
+  await buyCoins(deps, "alice", "coins-800", "en", WAIVER_VERSION);
   await fulfill(deps, paid(0));
   records.get("rewards/alice").coins = 500; // 300 already spent
   await fulfill(deps, refund(0));
@@ -144,13 +156,13 @@ test("a refund takes back unspent coins; one before payment blocks the credit", 
     500,
   );
 
-  await buyCoins(deps, "alice", "coins-300", "en");
+  await buyCoins(deps, "alice", "coins-300", "en", WAIVER_VERSION);
   await fulfill(deps, refund(1));
   await fulfill(deps, paid(1));
   assert.equal(balance(), 0);
 });
 test("an expired checkout never adds coins", async () => {
-  await buyCoins(deps, "alice", "coins-300", "en");
+  await buyCoins(deps, "alice", "coins-300", "en", WAIVER_VERSION);
   sessions[0].status = "expired";
   sessions[0].payment_status = "unpaid";
   await fulfill(deps, {
