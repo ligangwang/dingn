@@ -298,9 +298,6 @@ export function Kingdom() {
         aria-label={t("Your kingdom in 3D")}
         role="img"
       />
-      <a className="kingdom-credit" href="/models/kingdom/CREDITS.md">
-        {t("3D models: Polyfork, CC BY 4.0")}
-      </a>
       {noWebgl && (
         <div className="kingdom-fallback panel">
           <p>

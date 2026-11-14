@@ -241,7 +241,7 @@ Names, feedback, saved associations, and English dictionary learning material re
 
 Crowd Rush, a 3D crowd-runner shooter, is published like any outside developer's game. Its code lives in its own repository, [ligangwang/crowdrush](https://github.com/ligangwang/crowdrush). Merging there uploads it to dingn with an upload key, and an admin approves it. It plays at `/play/crowdrush/`.
 
-Signed-in players' saves were copied to crowdrush's own field by a one-time migration: run the Website workflow by hand with **migration** set to `crowd-progress-dry-run` (counts only), then `crowd-progress` (`scripts/migrate-crowd-progress.mjs`). It never overwrites a crowdrush save and keeps the old fields. Saves kept only in a browser were not carried over. The Polyfork model credits stay at `public/models/crowd/CREDITS.md` for the footer link.
+Signed-in players' saves were copied to crowdrush's own field by a one-time migration: run the Website workflow by hand with **migration** set to `crowd-progress-dry-run` (counts only), then `crowd-progress` (`scripts/migrate-crowd-progress.mjs`). It never overwrites a crowdrush save and keeps the old fields. Saves kept only in a browser were not carried over. The Polyfork model credits stay at `public/models/crowd/CREDITS.md`, which the footer link reaches through `public/models/CREDITS.md`.
 
 ## Game platform
 
