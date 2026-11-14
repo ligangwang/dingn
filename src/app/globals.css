@@ -1182,6 +1182,9 @@ input[type="radio"] {
   border-radius: 20px;
   padding: 24px 16px 18px;
 }
+.coin-pack p:last-of-type {
+  margin-bottom: 10px;
+}
 .coin-pack.best {
   border-color: var(--green);
   box-shadow: 0 0 0 2px var(--sage);
@@ -1199,8 +1202,12 @@ input[type="radio"] {
   color: var(--green);
   font-weight: 700;
 }
+.coin-pack .coin-bonus.starter {
+  color: var(--muted);
+}
 .coin-pack .button {
-  margin-top: 10px;
+  /* Pins every buy button to the card bottom so the three line up. */
+  margin-top: auto;
   width: 100%;
 }
 .coin-tag {
