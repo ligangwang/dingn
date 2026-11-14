@@ -17,6 +17,38 @@
   display: block;
   width: 100%;
   height: 100%;
+  /* Hidden until the models are here, then faded in over the page's sky. */
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+.kingdom-canvas.is-ready canvas {
+  opacity: 1;
+}
+.kingdom-loading {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: min(260px, 70vw);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-weight: 600;
+  text-shadow: 0 1px 6px #1c3a66aa;
+}
+.kingdom-loading p {
+  margin: 0 0 10px;
+}
+.kingdom-loading .kingdom-progress {
+  background: #ffffff55;
+}
+.kingdom-loading .kingdom-progress span {
+  transition: width 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kingdom-canvas canvas,
+  .kingdom-loading .kingdom-progress span {
+    transition: none;
+  }
 }
 
 .kingdom-hud,

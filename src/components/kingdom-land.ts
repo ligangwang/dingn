@@ -131,12 +131,45 @@ export function depthTexture(shape: LandShape, stacks: Stack[]) {
   return t;
 }
 
+// Every picture the land is drawn from is counted as it is asked for, so the
+// page can wait until all of them are here before it shows the land.
+const pictures: Promise<void>[] = [];
+let onPicture: (() => void) | undefined;
+function picture(file: string) {
+  let arrived = () => {};
+  pictures.push(
+    new Promise<void>((done) => {
+      arrived = () => {
+        onPicture?.();
+        done();
+      };
+    }),
+  );
+  return new THREE.TextureLoader().load(
+    BASE + file,
+    arrived,
+    undefined,
+    arrived,
+  );
+}
+/** How many pictures `loadLand` waits for, for a progress bar. */
+export const LAND_FILES = 11;
+/**
+ * Starts the ground and tree pictures loading, alongside the models, and
+ * resolves when they are all here. `step` is called as each one arrives.
+ */
+export function loadLand(step?: () => void) {
+  onPicture = step;
+  groundTextures();
+  SPECIES.forEach((_, kind) => treeSheets(kind));
+  return Promise.all(pictures).then(() => undefined);
+}
+
 let textures: Record<string, THREE.Texture> | null = null;
 function groundTextures() {
   if (textures) return textures;
-  const loader = new THREE.TextureLoader();
   const load = (file: string, color = true) => {
-    const t = loader.load(BASE + file);
+    const t = picture(file);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.anisotropy = 8;
     if (color) t.colorSpace = THREE.SRGBColorSpace;
@@ -403,8 +436,27 @@ export type TreeSpot = {
 const treeMaterials: (THREE.ShaderMaterial | undefined)[] = [];
 
 /** All the trees at `spots` (measured from the returned meshes' position). */
+type Sheets = Record<"colour" | "facing" | "top", THREE.Texture>;
+const sheets: (Sheets | undefined)[] = [];
+/** A kind of tree's picture sheets: its sides, their facing, and its top. */
+function treeSheets(kind: number) {
+  const sp = SPECIES[kind];
+  return (sheets[kind] ??= (() => {
+    const colour = picture(`${sp.file}.webp`);
+    colour.colorSpace = THREE.SRGBColorSpace;
+    const facing = picture(`${sp.file}-n.webp`);
+    const top = picture(`${sp.file}-top.webp`);
+    top.colorSpace = THREE.SRGBColorSpace;
+    for (const t of [colour, facing, top]) {
+      t.generateMipmaps = true;
+      t.minFilter = THREE.LinearMipmapLinearFilter;
+      t.anisotropy = 4;
+    }
+    return { colour, facing, top };
+  })());
+}
+
 export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
-  const loader = new THREE.TextureLoader();
   const meshes: THREE.Mesh[] = [];
   SPECIES.forEach((sp, kind) => {
     const mine = spots.filter((s) => s.kind === kind);
@@ -446,20 +498,11 @@ export function forest(spots: TreeSpot[], sun: THREE.Vector3) {
     geo.setAttribute("at", new THREE.InstancedBufferAttribute(at, 4));
     geo.setAttribute("turn", new THREE.InstancedBufferAttribute(turn, 2));
     geo.instanceCount = mine.length;
-    const sheets = () => {
-      const colour = loader.load(`${BASE}${sp.file}.webp`);
-      colour.colorSpace = THREE.SRGBColorSpace;
-      const facing = loader.load(`${BASE}${sp.file}-n.webp`);
-      const top = loader.load(`${BASE}${sp.file}-top.webp`);
-      top.colorSpace = THREE.SRGBColorSpace;
-      for (const t of [colour, facing, top]) {
-        t.generateMipmaps = true;
-        t.minFilter = THREE.LinearMipmapLinearFilter;
-        t.anisotropy = 4;
-      }
-      return { colour, facing, top };
-    };
-    const material = (treeMaterials[kind] ??= treeMaterial(sp, sheets(), sun));
+    const material = (treeMaterials[kind] ??= treeMaterial(
+      sp,
+      treeSheets(kind),
+      sun,
+    ));
     const mesh = new THREE.Mesh(geo, material);
     mesh.frustumCulled = false;
     meshes.push(mesh);

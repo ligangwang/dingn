@@ -135,13 +135,15 @@ const cache = new Map<ModelName, Loaded>();
 const loads = new Map<string, Promise<void>>();
 const BASE = "/models/kingdom/";
 
-function load(names: ModelName[], key: string) {
+function load(names: ModelName[], key: string, step?: () => void) {
   let p = loads.get(key);
   if (p) return p;
   const loader = new GLTFLoader();
   p = Promise.all(
     names.map(async (name) => {
-      const gltf = await loader.loadAsync(`${BASE}${FILES[name]}.glb`);
+      const gltf = await loader
+        .loadAsync(`${BASE}${FILES[name]}.glb`)
+        .finally(step);
       const root = gltf.scene;
       const fit = FIT[name];
       if (fit) {
@@ -185,20 +187,28 @@ function load(names: ModelName[], key: string) {
   loads.set(key, p);
   return p;
 }
-// The living things are the heaviest files, so they load second.
+// The living things are heavy files, so they load second, and so does the
+// ship, which is far out in the bay.
 const LIFE: ModelName[] = [...PEOPLE, "dragon", "sheep"];
-/** Loads the buildings and scenery once; later calls share the promise. */
-export const loadModels = () =>
+const WORLD = (Object.keys(FILES) as ModelName[]).filter(
+  (n) => !LIFE.includes(n) && n !== "ship",
+);
+/** How many files `loadModels` waits for, for a progress bar. */
+export const MODEL_FILES = WORLD.length + 7;
+/**
+ * Loads the buildings and scenery once; later calls share the promise.
+ * `step` is called as each file arrives.
+ */
+export const loadModels = (step?: () => void) =>
   Promise.all([
-    load(
-      (Object.keys(FILES) as ModelName[]).filter((n) => !LIFE.includes(n)),
-      "world",
-    ),
-    (photoLoad ??= loadPhotos()),
+    load(WORLD, "world", step),
+    (photoLoad ??= loadPhotos(step)),
   ]).then(() => undefined);
 let photoLoad: Promise<void> | null = null;
 /** Villagers, sheep and the dragon, loaded after the kingdom is on screen. */
 export const loadPeople = () => load(LIFE, "people");
+/** The ship in the bay, loaded after the kingdom is on screen. */
+export const loadShip = () => load(["ship"], "ship");
 
 /** A copy of a model, in meters. */
 export function model(name: ModelName): THREE.Object3D {
@@ -258,10 +268,10 @@ function seeded(seed: number) {
 // see CREDITS.md). They load with the models, before anything is built.
 type Photo = { map: THREE.Texture; normal: THREE.Texture | null };
 const photos: Record<string, Photo> = {};
-async function loadPhotos() {
+async function loadPhotos(step?: () => void) {
   const loader = new THREE.TextureLoader();
   const get = async (file: string, colour: boolean) => {
-    const t = await loader.loadAsync(`${BASE}land/${file}.jpg`);
+    const t = await loader.loadAsync(`${BASE}land/${file}.jpg`).finally(step);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     if (colour) t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;

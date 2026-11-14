@@ -25,7 +25,8 @@ process.on("unhandledRejection", (error) => {
 });
 import http from "node:http";
 import https from "node:https";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 // `npm run preview -- --local-games` plays games published with
@@ -35,6 +36,17 @@ if (process.argv.includes("--local-games"))
 const root = path.resolve("out"),
   port = Number(process.env.PORT || 3001),
   host = process.env.HOST || "127.0.0.1";
+// A 3D model's ETag is a hash of its bytes, worked out the first time it is
+// asked for, so it stays the same across deploys that don't change the file.
+const etags = new Map();
+function etagOf(file) {
+  let tag = etags.get(file);
+  if (!tag) {
+    const hash = createHash("sha1").update(readFileSync(file));
+    etags.set(file, (tag = `"${hash.digest("base64url")}"`));
+  }
+  return tag;
+}
 /**
  * Sends an exported file after `change(text)` fills in what only the server
  * knows. If that fails or takes over two seconds (the registry is down, say),
@@ -238,6 +250,25 @@ http
       // developers' computers, so it must be readable from any origin.
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cache-Control", "public, max-age=3600");
+    } else if (
+      pathname.startsWith("/_next/static/") &&
+      res.statusCode !== 404
+    ) {
+      // Next names these files after their contents, so a name never changes
+      // what it holds and a browser may keep it for good.
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    } else if (pathname.startsWith("/models/") && res.statusCode !== 404) {
+      // The kingdom's models are many megabytes. A browser still asks about
+      // each one on every visit, but gets a short "unchanged" answer instead
+      // of the file when it already holds the same bytes.
+      const tag = etagOf(target);
+      res.setHeader("ETag", tag);
+      res.setHeader("Cache-Control", "no-cache");
+      if (req.headers["if-none-match"] === tag) {
+        res.statusCode = 304;
+        res.end();
+        return;
+      }
     } else res.setHeader("Cache-Control", "no-cache");
     createReadStream(target)
       .on("error", () => {

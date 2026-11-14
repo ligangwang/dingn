@@ -117,6 +117,8 @@ export function Kingdom() {
   const host = useRef<HTMLDivElement>(null);
   const scene = useRef<KingdomScene | null>(null);
   const [noWebgl, setNoWebgl] = useState(false);
+  // How much of the 3D kingdom has loaded, 0 to 1; null once it is shown.
+  const [loading, setLoading] = useState<number | null>(0);
   const [view, setView] = useState<KingdomView | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [pick, setPick] = useState<Pick>(null);
@@ -187,6 +189,8 @@ export function Kingdom() {
       scene.current = new KingdomScene(host.current, {
         onTile: (x, y) => onTile.current(x, y),
         reducedMotion: reducedMotion(),
+        onProgress: setLoading,
+        onReady: () => setLoading(null),
       });
       scene.current.set(shown, { animate: false });
     });
@@ -293,11 +297,19 @@ export function Kingdom() {
   return (
     <div className="kingdom-page">
       <div
-        className="kingdom-canvas"
+        className={`kingdom-canvas${loading === null ? " is-ready" : ""}`}
         ref={host}
         aria-label={t("Your kingdom in 3D")}
         role="img"
       />
+      {loading !== null && !noWebgl && (
+        <div className="kingdom-loading" role="status">
+          <p>{t("Building the kingdom…")}</p>
+          <div className="kingdom-progress" aria-hidden="true">
+            <span style={{ width: `${Math.round(loading * 100)}%` }} />
+          </div>
+        </div>
+      )}
       {noWebgl && (
         <div className="kingdom-fallback panel">
           <p>
