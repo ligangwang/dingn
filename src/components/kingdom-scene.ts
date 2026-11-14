@@ -41,7 +41,6 @@ import {
   makeBuilding,
   makeHall,
   person,
-  scenery,
 } from "./kingdom-models";
 
 export const T = 2; // a tile's width in world units
@@ -881,7 +880,7 @@ export class KingdomScene {
     // A bare rock off the shore, where the kingdom's dragon keeps watch.
     if (dragon) {
       const [x, z] = afloat(shape.bay.x + 22, shape.bay.z + 34);
-      const g = this.islet(2.6, rand, 0, 2.2);
+      const g = this.islet(2.6, rand, 2.2);
       g.position.set(c + x, 2.2, c + z);
       this.dragonSpot.copy(g.position);
       this.island.add(g);
@@ -894,12 +893,12 @@ export class KingdomScene {
     this.controls.target.set(c, 1.6, c);
   }
 
-  /** A small islet: a grass top on a rock that stands in the sea. */
-  private islet(r: number, rand: () => number, trees: number, y: number) {
+  /** A bare rock that stands in the sea. */
+  private islet(r: number, rand: () => number, y: number) {
     const g = new THREE.Group();
     const top = new THREE.Mesh(
       new THREE.CylinderGeometry(r, r * 0.94, 0.6, 18),
-      mat(trees ? C.meadow : C.rock),
+      mat(C.rock),
     );
     top.position.y = -0.3;
     top.receiveShadow = true;
@@ -920,13 +919,6 @@ export class KingdomScene {
         Math.sin(a) * r * 1.2,
       );
       g.add(b);
-    }
-    for (let i = 0; i < trees; i++) {
-      const a = rand() * Math.PI * 2;
-      const d = r * (0.45 + rand() * 0.45);
-      const item = scenery(rand);
-      item.position.set(Math.cos(a) * d, 0, Math.sin(a) * d);
-      g.add(item);
     }
     return g;
   }

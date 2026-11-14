@@ -24,7 +24,6 @@ const FILES = {
   forge: "blacksmith-forge-09fa85",
   gatehouse: "real/gate",
   barn: "timber-barn-90b3ce",
-  granary: "stilted-granary-3e7d7d",
   well: "real/well",
   stall: "real/stall",
   fountain: "plaza-fountain-5a5f6e",
@@ -54,11 +53,6 @@ const FILES = {
   stump: "tree-stump-8c0513",
   pathA: "path-stone-a-aead48",
   pathB: "path-stone-b-6ed75c",
-  oak: "oak-tree-50ee7c",
-  broadleaf: "broadleaf-oak-997c22",
-  apple: "orchard-apple-tree-b21f85",
-  birch: "birch-tree-181b33",
-  pine: "tall-pine-tree-ab4108",
   bush: "round-bush-cd2ac0",
   shrub: "bush-8bb596",
   tuft: "grass-tuft-5ccff0",
@@ -72,7 +66,6 @@ const FILES = {
   greatHall: "real/manor",
   clock: "clock-tower-752081",
   brazier: "flame-brazier-bbf74a",
-  peak: "karst-limestone-peak-ee1b76",
   cypress: "columnar-evergreen-shrub-35a00b",
   balloon: "hot-air-balloon-a2a511",
   sailboat: "sailboat-3ee283",
@@ -90,17 +83,7 @@ export const PEOPLE: ModelName[] = [
 // The trees and bushes come from three Polyfork kits whose greens differ
 // (muted olive, bright emerald), so their leaves are pulled toward one
 // palette when they load. Trunks, blossom and fruit keep their colours.
-const FOLIAGE: ModelName[] = [
-  "oak",
-  "broadleaf",
-  "apple",
-  "birch",
-  "pine",
-  "bush",
-  "shrub",
-  "cypress",
-  "tuft",
-];
+const FOLIAGE: ModelName[] = ["bush", "shrub", "cypress", "tuft"];
 function unifyGreens(o: THREE.Object3D) {
   if (!(o instanceof THREE.Mesh)) return;
   const colors = o.geometry.getAttribute("color");
@@ -1205,18 +1188,8 @@ export function makeHall(stage: StageId): THREE.Group {
   return HALLS[stage]();
 }
 
-// ---- the island's own trees, bushes and rocks ------------------------------
+// ---- the meadow's bushes, flowers and rocks ---------------------------------
 
-// Pines are scaled down: at full size they stand as tall as the wall towers.
-const TREES: [ModelName, number][] = [
-  ["oak", 1.05],
-  ["oak", 0.9],
-  ["broadleaf", 0.95],
-  ["birch", 1],
-  ["apple", 0.95],
-  ["pine", 0.72],
-  ["pine", 0.6],
-];
 const COVER: [ModelName, number][] = [
   ["bush", 1.3],
   ["shrub", 1.5],
@@ -1233,13 +1206,8 @@ function pick(list: [ModelName, number][], rand: () => number) {
   put(g, name, { ry: rand() * 6, s: s * (0.85 + rand() * 0.35) });
   return finish(g);
 }
-/** A tree for a grove, in world units. */
-export const tree = (rand: () => number): THREE.Object3D => pick(TREES, rand);
 /** Low ground cover: a bush, grass, flowers or a rock. */
 export const cover = (rand: () => number): THREE.Object3D => pick(COVER, rand);
-/** One piece of scenery of either kind, for the islets. */
-export const scenery = (rand: () => number): THREE.Object3D =>
-  rand() < 0.45 ? tree(rand) : cover(rand);
 export function spire(rand: () => number): THREE.Object3D {
   const g = new THREE.Group();
   put(g, "spire", { ry: rand() * 6, s: 1.5 + rand() * 1.5 });
@@ -1261,12 +1229,6 @@ export function person(name: ModelName, scale = 1) {
   };
 }
 
-/** A white cliff with pines, for the islets that float behind the kingdom. */
-export function peak(rand: () => number, scale = 1): THREE.Object3D {
-  const g = new THREE.Group();
-  put(g, "peak", { ry: rand() * 6, s: scale });
-  return finish(g);
-}
 /** A sailing boat; the model is toy-sized, so it is scaled up to 8 m. */
 export function boat(): THREE.Object3D {
   const g = new THREE.Group();
