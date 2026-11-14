@@ -340,7 +340,7 @@ test("a game pays coins for play only up to its daily allowance", () => {
     balance: 15,
     left: DAILY_GAME_COINS - 10,
   });
-  earn(10);
+  for (let i = 2; i < DAILY_GAME_COINS / 10; i++) earn(10);
   assert.equal(earn(10).left, 0);
   // the allowance is spent: nothing more today
   assert.deepEqual(earn(4), {

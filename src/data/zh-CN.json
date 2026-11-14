@@ -682,7 +682,7 @@
   "Test coins (not saved)": "测试金币（未保存）",
   "Badge earned": "获得徽章",
   "Sells an upgrade listed in your game.json \"shop\", such as \"power-1\", for the player's dingn coins. dingn asks the player to confirm first. spend() fails with the code \"cancelled\", \"not_enough_coins\", \"requires\" or \"signed_out\". shop() gives your upgrades and which ones the player owns.": "出售 game.json \"shop\" 中列出的升级（例如 \"power-1\"），花费玩家的 dingn 金币。dingn 会先请玩家确认。spend() 可能以代码 \"cancelled\"、\"not_enough_coins\"、\"requires\" 或 \"signed_out\" 失败。shop() 返回游戏的升级以及玩家已拥有哪些。",
-  "Pays the signed-in player 1 to 10 dingn coins for play itself, such as a failed level that still got somewhere. Each game can pay a player up to 30 coins a day this way, on top of its badges; past that, earn() pays 0. dingn shows the coins over the game. It fails with the code \"signed_out\" when no one is signed in.": "为玩法本身向已登录玩家支付 1 到 10 个 dingn 金币，例如虽然失败但有所进展的关卡。每个游戏每天最多以这种方式向一位玩家支付 30 个金币，不计入徽章奖励；超出后 earn() 支付 0。dingn 会在游戏上方显示金币。无人登录时会以 \"signed_out\" 代码失败。",
+  "Pays the signed-in player 1 to 10 dingn coins for play itself, such as a failed level that still got somewhere. Each game can pay a player up to 200 coins a day this way, on top of its badges; past that, earn() pays 0. dingn shows the coins over the game. It fails with the code \"signed_out\" when no one is signed in.": "为玩法本身向已登录玩家支付 1 到 10 个 dingn 金币，例如虽然失败但有所进展的关卡。每个游戏每天最多以这种方式向一位玩家支付 200 个金币，不计入徽章奖励；超出后 earn() 支付 0。dingn 会在游戏上方显示金币。无人登录时会以 \"signed_out\" 代码失败。",
   "Wallet: {0} coins": "钱包：{0} 金币",
   "See everything in your account →": "在账户中查看全部 →",
   "Badges": "徽章",
