@@ -304,7 +304,7 @@ badge or opens the kingdom, or all at once by the Website workflow's
 Badges pay once, so a game can also pay a few coins for play itself, such as
 a failed level that still got somewhere: `dingn.rewards.earn(coins)`.
 
-- 1 to 10 coins a call (`MAX_EARN`), and at most 30 coins a day from each game
+- 1 to 10 coins a call (`MAX_EARN`), and at most 200 coins a day from each game
   to each player (`DAILY_GAME_COINS`, by UTC day). Past that, `earn()` returns
   `{ coins: 0, left: 0 }`. It returns `{ coins, left }`, where `left` is what
   the game can still pay today.

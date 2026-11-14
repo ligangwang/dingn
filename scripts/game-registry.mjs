@@ -45,8 +45,11 @@ export const TIER_COINS = { bronze: 10, silver: 25, gold: 50, diamond: 100 };
 /** Most coins all of one game's badges can pay together. */
 export const MAX_GAME_COINS = 1000;
 // Coins a game may pay a player each UTC day for play itself (rewards.earn),
-// such as a failed level that still got somewhere. Apart from MAX_GAME_COINS.
-export const DAILY_GAME_COINS = 30;
+// such as a cleared level, coins picked up on the way, or a failed level that
+// still got somewhere. Apart from MAX_GAME_COINS. High enough for a good day of
+// play (about 25 wins), low enough that replaying an easy level or a game
+// reporting fake wins can't mint coins without end.
+export const DAILY_GAME_COINS = 200;
 // The most one rewards.earn call may ask for.
 export const MAX_EARN = 10;
 const MAX_BADGE_TITLE = 60;

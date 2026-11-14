@@ -85,7 +85,7 @@ export type DingnGame = {
     /**
      * Pays the signed-in player 1-10 dingn coins for play itself, such as a
      * failed level that still got somewhere. Each game can pay a player at
-     * most 30 coins a day this way, on top of its badges. Rejects with code
+     * most 200 coins a day this way, on top of its badges. Rejects with code
      * "signed_out" for a signed-out player.
      */
     earn(coins: number): Promise<Earning>;

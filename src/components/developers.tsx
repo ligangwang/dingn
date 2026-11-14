@@ -48,7 +48,7 @@ const REFERENCE: [string, string][] = [
   ],
   [
     "dingn.rewards.earn(coins)",
-    'Pays the signed-in player 1 to 10 dingn coins for play itself, such as a failed level that still got somewhere. Each game can pay a player up to 30 coins a day this way, on top of its badges; past that, earn() pays 0. dingn shows the coins over the game. It fails with the code "signed_out" when no one is signed in.',
+    'Pays the signed-in player 1 to 10 dingn coins for play itself, such as a failed level that still got somewhere. Each game can pay a player up to 200 coins a day this way, on top of its badges; past that, earn() pays 0. dingn shows the coins over the game. It fails with the code "signed_out" when no one is signed in.',
   ],
   [
     "dingn.requestSignIn()",
