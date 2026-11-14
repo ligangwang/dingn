@@ -9,10 +9,12 @@ export type Item = {
 };
 export type Purchase = {
   id: string;
+  /** "coins" for a coin pack; game items have no kind. */
+  kind?: "coins";
   itemId: string;
   game: string;
   name: Record<string, string>;
-  status: "pending" | "owned" | "revoked" | "expired";
+  status: "pending" | "owned" | "paid" | "revoked" | "expired";
   createdAt: number;
   unitAmount: number;
   currency: string;

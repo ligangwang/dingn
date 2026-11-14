@@ -158,6 +158,44 @@ export function CoinCount() {
   );
 }
 
+/** Game titles by id, fetched once per page so the wallet can name games. */
+const titleCache = new Map<
+  string,
+  Promise<{ en: string; zh: string } | null>
+>();
+function gameTitleOf(id: string) {
+  if (!titleCache.has(id))
+    titleCache.set(
+      id,
+      fetch(`/api/games/${encodeURIComponent(id)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((game) => game?.title ?? null)
+        .catch(() => null),
+    );
+  return titleCache.get(id)!;
+}
+/** Each game's title in the current language, or its id until it loads. */
+function useGameTitles(ids: string[]) {
+  const { locale } = useLocale();
+  const key = [...new Set(ids)].sort().join(",");
+  const [titles, setTitles] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let active = true;
+    for (const id of key ? key.split(",") : [])
+      void gameTitleOf(id).then((title) => {
+        if (active && title)
+          setTitles((all) => ({
+            ...all,
+            [id]: locale === "zh-CN" ? title.zh : title.en,
+          }));
+      });
+    return () => {
+      active = false;
+    };
+  }, [key, locale]);
+  return (id: string) => titles[id] ?? id;
+}
+
 /** What is in a player's wallet: coins, badges and the upgrades they own. */
 export function WalletSummary({
   wallet,
@@ -168,6 +206,10 @@ export function WalletSummary({
 }) {
   const { t, locale } = useLocale();
   const badges = compact ? wallet.badges.slice(0, 8) : wallet.badges;
+  const gameName = useGameTitles([
+    ...badges.map((b) => b.game),
+    ...wallet.items.map((i) => i.game),
+  ]);
   return (
     <div className={compact ? "wallet-summary compact" : "wallet-summary"}>
       <p className="wallet-coins">
@@ -184,7 +226,7 @@ export function WalletSummary({
           {badges.map((badge) => (
             <li
               key={`${badge.game}/${badge.id}`}
-              title={`${titleOf(badge.title, locale)} · ${badge.game}`}
+              title={`${titleOf(badge.title, locale)} · ${gameName(badge.game)}`}
             >
               <BadgeMedal
                 tier={badge.tier}
@@ -210,7 +252,7 @@ export function WalletSummary({
           {wallet.items.map((item) => (
             <li key={`${item.game}/${item.id}`}>
               <span>{item.title ? titleOf(item.title, locale) : item.id}</span>
-              <small>{item.game}</small>
+              <small>{gameName(item.game)}</small>
             </li>
           ))}
         </ul>

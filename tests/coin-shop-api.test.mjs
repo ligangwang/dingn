@@ -6,6 +6,7 @@ import {
   WAIVER_VERSION,
   coinPacks,
   fulfill,
+  inventory,
   validPacks,
 } from "../scripts/billing.mjs";
 const packs = JSON.parse(
@@ -23,6 +24,15 @@ beforeEach(() => {
   calls = [];
   const db = {
     doc: (path) => ({ path }),
+    collection: (name) => ({
+      where: (field, op, value) => ({
+        get: async () => ({
+          docs: [...records]
+            .filter(([p, r]) => p.startsWith(name + "/") && r[field] === value)
+            .map(([, r]) => ({ data: () => r })),
+        }),
+      }),
+    }),
     runTransaction: async (fn) =>
       fn({
         get: async (ref) => ({ data: () => records.get(ref.path) }),
@@ -172,4 +182,21 @@ test("an expired checkout never adds coins", async () => {
   sessions[0].payment_status = "paid";
   await fulfill(deps, paid());
   assert.equal(balance(), 0);
+});
+
+test("purchase history lists paid and refunded coin packs, not abandoned checkouts", async () => {
+  await buyCoins(deps, "alice", "coins-300", "en", WAIVER_VERSION);
+  sessions[0].payment_status = "paid";
+  await fulfill(deps, paid());
+  await buyCoins(deps, "alice", "coins-800", "en", WAIVER_VERSION);
+  for (const [path, order] of records)
+    if (order.packId === "coins-800")
+      records.set(path, { ...order, expiresAt: Date.now() - 1 });
+  const history = await inventory(deps, "alice");
+  assert.equal(history.length, 1);
+  assert.equal(history[0].kind, "coins");
+  assert.equal(history[0].status, "paid");
+  assert.equal(history[0].name.en, "300 coins");
+  assert.equal(history[0].unitAmount, 99);
+  assert.deepEqual(await inventory(deps, "bob"), []);
 });

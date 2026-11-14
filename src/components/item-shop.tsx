@@ -67,6 +67,7 @@ export function ItemShop() {
   }
   const labels = {
     owned: "Owned",
+    paid: "Coins added",
     pending: "Awaiting payment confirmation",
     revoked: "Refunded or disputed",
     expired: "Checkout expired",
