@@ -1240,3 +1240,16 @@ input[type="radio"] {
   font-size: 12px;
   margin-bottom: 12px;
 }
+.admin-setting {
+  border: 1px solid var(--line, #414859);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin: 20px 0;
+}
+.admin-setting h2 {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+.admin-setting p {
+  margin: 0 0 12px;
+}

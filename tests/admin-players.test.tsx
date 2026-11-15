@@ -8,11 +8,19 @@ import type { Player } from "../src/lib/admin-games";
 const mocks = vi.hoisted(() => ({
   session: { user: { uid: "me" }, ready: true, isAdmin: true },
   listPlayers: vi.fn(),
+  getSettings: vi.fn(async () => ({ leaderboardPublic: false })),
+  updateSettings: vi.fn(async (change: { leaderboardPublic: boolean }) => ({
+    leaderboardPublic: change.leaderboardPublic,
+  })),
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
 }));
-vi.mock("../src/lib/admin-games", () => ({ listPlayers: mocks.listPlayers }));
+vi.mock("../src/lib/admin-games", () => ({
+  listPlayers: mocks.listPlayers,
+  getSettings: mocks.getSettings,
+  updateSettings: mocks.updateSettings,
+}));
 
 const player = (uid: string, extra: Partial<Player> = {}): Player => ({
   uid,
@@ -96,4 +104,19 @@ it("can retry or go back after a page fails to load", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Try again" }));
   expect(await screen.findByText("cy@x.com")).toBeTruthy();
   expect(mocks.listPlayers).toHaveBeenLastCalledWith(2);
+});
+
+it("makes the leaderboard public and hides it again", async () => {
+  mocks.listPlayers.mockResolvedValue({ players: [], total: 0, pages: 1 });
+  render(<AdminPlayers />);
+  expect(await screen.findByText(/Admins only/)).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "Make it public" }));
+  expect(mocks.updateSettings).toHaveBeenLastCalledWith({
+    leaderboardPublic: true,
+  });
+  expect(await screen.findByText(/Public: everyone/)).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "Hide it again" }));
+  expect(mocks.updateSettings).toHaveBeenLastCalledWith({
+    leaderboardPublic: false,
+  });
 });

@@ -660,5 +660,12 @@
   "Scramble the cube, then turn it face by face until every side is one color again.": "打乱魔方，再一面一面地转动，直到每一面都恢复成同一种颜色。",
   "Play Rubik's Cube →": "开始玩魔方 →",
   "01 / CASUAL": "01 / 休闲",
-  "02 / MEMORY": "02 / 记忆"
+  "02 / MEMORY": "02 / 记忆",
+  "Only admins see this. Make it public on the Players admin page.": "目前只有管理员能看到。可在“玩家”管理页面将其公开。",
+  "The setting could not be loaded.": "无法加载此设置。",
+  "Public: everyone sees Top players on the home page.": "已公开：所有人都能在首页看到排行榜。",
+  "Admins only: players don’t see Top players on the home page yet.": "仅管理员可见：玩家暂时看不到首页的排行榜。",
+  "Hide it again": "重新隐藏",
+  "Make it public": "公开",
+  "That didn’t save. Try again.": "保存失败，请重试。"
 }

@@ -59,7 +59,6 @@ export const startPlay = <C>(game: GameId) =>
 export const finishPlay = (playId: string, answers: unknown) =>
   call<PlayResult>("/api/play/finish", { playId, answers });
 export const fetchStats = () => call<PlayerStats>("/api/me");
+/** The top players; `shown` is false while too few players have XP. */
 export const fetchLeaderboard = () =>
-  call<{ entries: LeaderboardEntry[] }>("/api/leaderboard").then(
-    (r) => r.entries,
-  );
+  call<{ shown: boolean; entries: LeaderboardEntry[] }>("/api/leaderboard");

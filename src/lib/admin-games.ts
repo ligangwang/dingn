@@ -108,3 +108,17 @@ export async function listReports() {
 export async function closeReport(id: string, action: "dismiss" | "resolve") {
   await api("/api/admin/reports/update", { id, action });
 }
+
+/** Site-wide switches (scripts/site-settings.mjs). */
+export type SiteSettings = { leaderboardPublic: boolean };
+
+export async function getSettings() {
+  return (await api<{ settings: SiteSettings }>("/api/admin/settings"))
+    .settings;
+}
+
+export async function updateSettings(change: Partial<SiteSettings>) {
+  return (
+    await api<{ settings: SiteSettings }>("/api/admin/settings/update", change)
+  ).settings;
+}

@@ -18,6 +18,7 @@ import {
 } from "./game-registry.mjs";
 import { closeReport, openReports } from "./game-reports.mjs";
 import { allPlays } from "./game-stats.mjs";
+import { readSettings, updateSettings } from "./site-settings.mjs";
 import { queueMail } from "./mail.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
@@ -31,6 +32,8 @@ export const adminGameRoutes = [
   "/api/admin/players",
   "/api/admin/reports",
   "/api/admin/reports/update",
+  "/api/admin/settings",
+  "/api/admin/settings/update",
 ];
 const MAX_REASON = 500;
 
@@ -450,6 +453,17 @@ export async function handleAdminGames(
       );
     if (pathname === "/api/admin/reports")
       return send(res, 200, { reports: await openReports() });
+    if (pathname === "/api/admin/settings")
+      return send(res, 200, { settings: await readSettings({ fresh: true }) });
+    if (pathname === "/api/admin/settings/update") {
+      if (typeof body.leaderboardPublic !== "boolean")
+        throw new ApiError(400, "invalid-request");
+      const settings = await updateSettings({
+        leaderboardPublic: body.leaderboardPublic,
+      });
+      console.log("site settings", admin.uid, JSON.stringify(settings));
+      return send(res, 200, { settings });
+    }
     if (pathname === "/api/admin/reports/update") {
       await closeReport(body.id, body.action, admin.uid);
       return send(res, 200, { ok: true });
