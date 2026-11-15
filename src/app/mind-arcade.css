@@ -142,7 +142,7 @@ select {
 }
 .arena-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 .arena {
@@ -194,6 +194,12 @@ select {
 }
 .crowd-arena .arena-symbol {
   color: #6cc4ff;
+}
+.puzzle-arena {
+  background: linear-gradient(150deg, #3a2a1c, #1d1a21);
+}
+.puzzle-arena .arena-symbol {
+  color: #ffb45c;
 }
 @media (max-width: 1040px) and (min-width: 761px) {
   .arena-grid {

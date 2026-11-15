@@ -255,7 +255,6 @@
   "Exit full screen": "退出全屏",
   "Casual": "休闲",
   "Play Number or Card Ladder →": "玩数字阶梯或扑克牌阶梯 →",
-  "TWO WAYS TO PLAY": "即刻开玩",
   "02 / CASUAL": "02 / 休闲",
   "Your account does not have permission to manage dingn.": "你的账号没有管理 dingn 的权限。",
   "Games could not be loaded. Try again.": "游戏列表加载失败，请重试。",
@@ -656,5 +655,10 @@
   "Coins are delivered right away. Before you pay, you ask for immediate delivery and agree that you lose the right to cancel (the 14-day cancellation right in the EU and UK) once they are delivered. Your Stripe receipt confirms this.": "金币会立即到账。付款前，你要求立即发放金币，并同意金币到账后即失去取消购买的权利（即欧盟和英国的 14 天撤销权）。Stripe 收据会确认这一点。",
   "So a purchase can't be cancelled just because you changed your mind, but you are always entitled to a fix or a refund if coins are missing or don't work as described.": "因此，不能仅因改变主意而取消购买；但如果金币缺失或与描述不符，你始终有权要求修复或退款。",
   "I want my coins delivered right away, and I understand that I lose my right to cancel once they are delivered.": "我希望金币立即到账，并了解金币到账后我将失去取消购买的权利。",
-  "Coins added": "金币已到账"
+  "Coins added": "金币已到账",
+  "Puzzle": "益智",
+  "03 / PUZZLE": "03 / 益智",
+  "Twist it back.": "把它转回原样。",
+  "Scramble the cube, then turn it face by face until every side is one color again.": "打乱魔方，再一面一面地转动，直到每一面都恢复成同一种颜色。",
+  "Play Rubik's Cube →": "开始玩魔方 →"
 }

@@ -4,7 +4,13 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import { CastleIcon, CrowdIcon, MemoryIcon, ShieldIcon } from "./icons";
+import {
+  CastleIcon,
+  CrowdIcon,
+  MemoryIcon,
+  PuzzleIcon,
+  ShieldIcon,
+} from "./icons";
 import { LevelBadge } from "./xp";
 import { Avatar } from "./avatar";
 import { CoinCount } from "./rewards";
@@ -23,6 +29,7 @@ export function Header() {
         {[
           ["/play/memory/", "Memory", MemoryIcon] as const,
           ["/play/crowdrush/", "Casual", CrowdIcon] as const,
+          ["/play/rubikscube/", "Puzzle", PuzzleIcon] as const,
           ["/kingdom/", "Kingdom", CastleIcon] as const,
         ].map(([href, label, Icon]) => (
           <Link
