@@ -136,6 +136,9 @@ test("old links to the Memory games open the Memory game, in the same language",
   expect(retiredRedirect("/en/card/")).toBe("/play/memory/#card");
   expect(retiredRedirect("/toString/")).toBeNull();
   expect(retiredRedirect("/play/memory/")).toBeNull();
+  expect(retiredRedirect("/play/crowd/")).toBe("/play/crowdrush/");
+  expect(retiredRedirect("/zh/play/crowd")).toBe("/zh/play/crowdrush/");
+  expect(retiredRedirect("/play/crowdrush/")).toBeNull();
   expect(retiredRedirect("/logic/?lang=zh-CN")).toBe("/zh/");
   expect(retiredRedirect("/zh/decisions/?lang=en")).toBe("/");
   expect(retiredRedirect("/word/?lang=zh")).toBe("/zh/play/memory/#word");

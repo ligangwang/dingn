@@ -49,6 +49,7 @@ export function developerRedirect(headers, requestUrl) {
  * Old addresses of games that left the website: Logic and Decisions were
  * retired (their links open the home page), and the Memory games moved into
  * the Memory game at /play/memory/, which opens a lab named in the hash.
+ * The old `crowd` copy of Crowd Rush gives way to `crowdrush`.
  */
 const MOVED = {
   logic: "/",
@@ -57,6 +58,8 @@ const MOVED = {
   number: "/play/memory/#number",
   word: "/play/memory/#word",
   card: "/play/memory/#card",
+  // Crowd Rush's id before it moved to its own repository.
+  "play/crowd": "/play/crowdrush/",
 };
 
 /**
@@ -65,7 +68,7 @@ const MOVED = {
  */
 export function retiredRedirect(requestUrl) {
   const url = new URL(requestUrl, "http://localhost");
-  const match = /^(\/zh|\/en)?\/([a-z-]+)\/?$/.exec(url.pathname);
+  const match = /^(\/zh|\/en)?\/([a-z-]+|play\/crowd)\/?$/.exec(url.pathname);
   const target = match && Object.hasOwn(MOVED, match[2]) && MOVED[match[2]];
   if (!target) return null;
   // An old ?lang= link picks the language, as localizedRedirect does.
