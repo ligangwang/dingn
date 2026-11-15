@@ -64,9 +64,12 @@ const MOVED = {
  * (/word/ → /play/memory/#word, /zh/logic/ → /zh/). Returns null otherwise.
  */
 export function retiredRedirect(requestUrl) {
-  const { pathname } = new URL(requestUrl, "http://localhost");
-  const match = /^(\/zh|\/en)?\/([a-z-]+)\/?$/.exec(pathname);
+  const url = new URL(requestUrl, "http://localhost");
+  const match = /^(\/zh|\/en)?\/([a-z-]+)\/?$/.exec(url.pathname);
   const target = match && Object.hasOwn(MOVED, match[2]) && MOVED[match[2]];
   if (!target) return null;
-  return match[1] === "/zh" ? "/zh" + target : target;
+  // An old ?lang= link picks the language, as localizedRedirect does.
+  const lang = url.searchParams.get("lang");
+  const zh = lang ? lang.toLowerCase().startsWith("zh") : match[1] === "/zh";
+  return zh ? "/zh" + target : target;
 }
