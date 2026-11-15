@@ -27,54 +27,6 @@ export const pages = {
         "探索 dingn 游戏平台，畅玩记忆阶梯：快速的记忆挑战，还有 3D 人潮突击。",
     },
   },
-  "/memory-ladder/": {
-    index: true,
-    en: {
-      title: "Memory Ladder",
-      description:
-        "Catch a sequence of digits, hold it in your head and climb up to 20 digits with three lives.",
-    },
-    zh: {
-      title: "记忆阶梯",
-      description: "记住一串数字，在脑中保持住，带着三条命一路爬到 20 位。",
-    },
-  },
-  "/number/": {
-    index: true,
-    en: {
-      title: "Numbers",
-      description:
-        "Practise the Major System: turn numbers into sounds, words and pictures you can remember.",
-    },
-    zh: {
-      title: "数字实验室",
-      description: "练习数字记忆法：把数字变成容易记住的声音、单词和画面。",
-    },
-  },
-  "/word/": {
-    index: true,
-    en: {
-      title: "Words",
-      description:
-        "Explore the Major System word universe and link words back to the numbers they encode.",
-    },
-    zh: {
-      title: "单词世界",
-      description: "探索数字记忆法的单词世界，把单词和它们代表的数字联系起来。",
-    },
-  },
-  "/card/": {
-    index: true,
-    en: {
-      title: "Playing cards",
-      description:
-        "Memorise a deck of playing cards with images from the Major System.",
-    },
-    zh: {
-      title: "扑克牌练习",
-      description: "借助数字记忆法的图像，记住一整副扑克牌。",
-    },
-  },
   "/feedback/": {
     index: true,
     en: {
@@ -215,10 +167,6 @@ export type PagePath = keyof typeof pages;
 /** Only these pages go in the sitemap; sign-in and account pages stay out of it. */
 export const sitemapPaths: PagePath[] = [
   "/",
-  "/memory-ladder/",
-  "/number/",
-  "/word/",
-  "/card/",
   "/feedback/",
   "/kingdom/",
   "/developers/",

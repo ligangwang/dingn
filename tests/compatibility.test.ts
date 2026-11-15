@@ -94,7 +94,7 @@ test("shuffling neither mutates nor drops cards", () => {
   );
 });
 test("sign-in returns only to supported local pages", () => {
-  assert.equal(safeDestination("/number/"), "/number/");
+  assert.equal(safeDestination("/play/memory/"), "/play/memory/");
   for (const bad of [
     "https://evil.example",
     "//evil.example",

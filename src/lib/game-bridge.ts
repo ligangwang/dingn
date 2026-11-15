@@ -95,6 +95,13 @@ export const storageKey = (gameId: string, key: string) =>
  * "/zh//evil" into "//evil".
  */
 export const SITE_PATH = /^(?!.*\/\/)\/[A-Za-z0-9\-._~/]*$/;
+/**
+ * The address's hash, passed on to the game so a link can open one part of
+ * it (/play/memory/#word). Only a short plain word, never script or a path.
+ */
+export const gameHash = (hash: string) =>
+  /^#[a-z][a-z0-9-]{0,30}$/.test(hash) ? hash : "";
+
 /** The `accounts/{uid}` field that holds a game's progress. */
 export const progressField = (gameId: string) => `game_progress_${gameId}`;
 

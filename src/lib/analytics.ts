@@ -3,10 +3,7 @@ export const consentKey = "dingn.analytics-consent.v1";
 export type AnalyticsConsent = "granted" | "denied" | null;
 const pages: Record<string, string> = {
   "/": "Home",
-  "/memory-ladder/": "Memory Ladder",
-  "/word/": "Words",
-  "/number/": "Numbers",
-  "/card/": "Cards",
+  "/play/memory/": "Memory",
   "/signin/": "Sign in",
   "/feedback/": "Feedback",
 };

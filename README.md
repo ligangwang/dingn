@@ -28,9 +28,7 @@ The homepage feedback link opens `/feedback/`. Signed-in users can submit up to 
 
 Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project dingn-193716` before releasing the form. These rules preserve legacy collection access but exclude feedback from the old catch-all permission. Test with `npm run test:rules` in an environment with Firebase CLI and Java 21; the tests use only the `demo-dingn-feedback` emulator project.
 
-- `/word/`: random words, previous/next history, exact word search, pronunciation, definitions, and Major System numbers.
-- `/number/`: one- through four-digit groups, paginated browsing, exact number search, and saved favorite word associations.
-- `/card/`: all 52 original card mappings and images, reveal, previous/next, shuffle, reset, and favorite words.
+- `/play/memory/`: the Memory game (Memory Ladder and the Number, Word and Card labs). It lives in its own repository, `ligangwang/memory`, and is published through the game SDK like Crowd Rush. The old `/memory-ladder/`, `/number/`, `/word/` and `/card/` addresses redirect to it.
 - `/account/`: player display name, game items and purchase history, a link to the games, and sign-out. Legacy practice pages start with answers hidden; there is no account-level mode selector.
 - `/signin/`: Google sign-in with a validated return destination.
 
@@ -194,7 +192,7 @@ In authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (
 
 ## Mind arcade and authentication domain
 
-dingn has two game categories: Memory (Memory Ladder and the Major System labs) and Casual (Crowd Rush). The Logic Lab and Decision Room games were retired; their old addresses (`/logic/`, `/decisions/` and the `/zh/` copies) redirect to the home page.
+dingn has two game categories: Memory (the Memory game: Memory Ladder and the Major System labs, from `ligangwang/memory`) and Casual (Crowd Rush). The Logic Lab and Decision Room games were retired; their old addresses (`/logic/`, `/decisions/` and the `/zh/` copies) redirect to the home page.
 
 Production uses Cloud Run. `scripts/preview.mjs` transparently forwards GET/POST/HEAD requests under `/__/auth/` to the fixed Firebase Authentication helper host with HTTPS verification, while the client retains `authDomain: dingn.com`. Google OAuth must authorize `https://dingn.com/__/auth/handler`. Firebase Hosting stays disabled; reserved authentication helper endpoints still work.
 
@@ -236,7 +234,7 @@ networks separately.
 
 ## XP and leaderboard
 
-Signed-in players earn XP for the Memory Ladder games. The browser never writes XP. Instead, `scripts/game-api.mjs` runs inside the website server and uses the Firebase Admin SDK:
+Signed-in players earn XP from game badges (`scripts/rewards.mjs`). The play API below graded the built-in Memory Ladder, which moved to the Memory game; no website page calls it now. The browser never writes XP. Instead, `scripts/game-api.mjs` runs inside the website server and uses the Firebase Admin SDK:
 
 - `POST /api/play/start` reads the player from the dingn session cookie (verified with the Admin SDK) and creates a single-use `plays/{id}` record. The server generates the warm-up digits.
 - `POST /api/play/finish` grades the raw answers against the server's own challenge. Before it awards XP in a transaction, it checks:
@@ -264,7 +262,7 @@ The homepage memory game is a climb from three digits up to 20. Correct answers 
 
 ## Platform brand and languages
 
-dingn is the game platform. Memory Ladder is playable at `/memory-ladder/` and on the homepage; existing practice and game links remain supported.
+dingn is the game platform. Its games (Memory at `/play/memory/`, Crowd Rush at `/play/crowdrush/`) are published through the game SDK from their own repositories; old practice and game links redirect to them.
 
 The shared `LocaleProvider` supports English (`en`) and Simplified Chinese (`zh-CN`). The header selector remembers the choice under `dingn.locale`. On first load, `?lang=` takes priority over a saved preference, followed by the browser language. The document language updates for assistive technology. Language changes do not remount games or reset progress.
 

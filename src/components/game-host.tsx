@@ -37,6 +37,7 @@ import {
 import {
   accountProgress,
   BridgeError,
+  gameHash,
   handleGameRequest,
   isGameRequest,
   progressField,
@@ -546,7 +547,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         {!loaded && <p className="play-status">{t("Loading game…")}</p>}
         <iframe
           ref={frame}
-          src={state.game.url}
+          src={state.game.url + gameHash(location.hash)}
           title={title}
           sandbox={SANDBOX}
           allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope"

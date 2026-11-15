@@ -36,12 +36,12 @@ test("no tag or events before permission, on previews, or on private pages", () 
 });
 test("tracks one sanitized view per route and disables automatic page views", () => {
   syncAnalytics("granted", "/?email=private@example.com", "dingn.com");
-  syncAnalytics("granted", "/word?search=secret#private", "dingn.com");
-  syncAnalytics("granted", "/word/", "dingn.com");
+  syncAnalytics("granted", "/play/memory?search=secret#private", "dingn.com");
+  syncAnalytics("granted", "/play/memory/", "dingn.com");
   expect(views()).toHaveLength(2);
   expect(views()[1][2]).toMatchObject({
-    page_location: "https://dingn.com/word/",
-    page_title: "Words",
+    page_location: "https://dingn.com/play/memory/",
+    page_title: "Memory",
     page_referrer: "https://dingn.com/",
   });
   expect(JSON.stringify(commands())).not.toMatch(/private|secret/);
@@ -52,10 +52,10 @@ test("tracks one sanitized view per route and disables automatic page views", ()
 });
 test("revocation stops collection and re-grant resumes without adding a second tag", () => {
   syncAnalytics("granted", "/", "dingn.com");
-  syncAnalytics("denied", "/word/", "dingn.com");
+  syncAnalytics("denied", "/play/memory/", "dingn.com");
   expect(state[`ga-disable-${measurementId}`]).toBe(true);
   expect(views()).toHaveLength(1);
-  syncAnalytics("granted", "/word/", "dingn.com");
+  syncAnalytics("granted", "/play/memory/", "dingn.com");
   expect(state[`ga-disable-${measurementId}`]).toBe(false);
   expect(views()).toHaveLength(2);
   expect(document.querySelectorAll("#dingn-google-analytics")).toHaveLength(1);

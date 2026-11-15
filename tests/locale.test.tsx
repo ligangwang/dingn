@@ -66,7 +66,7 @@ test("language paths map between English and /zh/ URLs", () => {
   expect(localePath("/zhuyin/", "en")).toBe("/zhuyin/");
   expect(localeFromPath("/zh/")).toBe("zh-CN");
   expect(localeFromPath("/zhuyin/")).toBe("en");
-  expect(safeDestination("/zh/memory-ladder/")).toBe("/zh/memory-ladder/");
+  expect(safeDestination("/zh/play/memory/")).toBe("/zh/play/memory/");
   expect(safeDestination("https://evil.example/", "zh-CN")).toBe("/zh/");
 });
 test("the server redirects legacy language URLs permanently", () => {
@@ -85,14 +85,12 @@ test("the server redirects legacy language URLs permanently", () => {
   expect(localizedRedirect("/en")).toBe("/");
 });
 test("every Chinese page declares its own canonical URL and hreflang alternates", () => {
-  const meta = pageMetadata("/memory-ladder/", "zh-CN");
-  expect(meta.alternates?.canonical).toBe(
-    "https://dingn.com/zh/memory-ladder/",
-  );
+  const meta = pageMetadata("/feedback/", "zh-CN");
+  expect(meta.alternates?.canonical).toBe("https://dingn.com/zh/feedback/");
   expect(meta.alternates?.languages).toEqual({
-    en: "https://dingn.com/memory-ladder/",
-    "zh-CN": "https://dingn.com/zh/memory-ladder/",
-    "x-default": "https://dingn.com/memory-ladder/",
+    en: "https://dingn.com/feedback/",
+    "zh-CN": "https://dingn.com/zh/feedback/",
+    "x-default": "https://dingn.com/feedback/",
   });
 });
 
@@ -126,6 +124,22 @@ test("old links to the retired Logic and Decisions games open the home page", ()
   expect(retiredRedirect("/decisions")).toBe("/");
   expect(retiredRedirect("/zh/logic/?x=1")).toBe("/zh/");
   expect(retiredRedirect("/en/decisions/")).toBe("/");
-  expect(retiredRedirect("/memory-ladder/")).toBeNull();
+  expect(retiredRedirect("/feedback/")).toBeNull();
   expect(retiredRedirect("/play/crowdrush/")).toBeNull();
+});
+
+test("old links to the Memory games open the Memory game, in the same language", () => {
+  expect(retiredRedirect("/memory-ladder/")).toBe("/play/memory/");
+  expect(retiredRedirect("/zh/memory-ladder")).toBe("/zh/play/memory/");
+  expect(retiredRedirect("/word/")).toBe("/play/memory/#word");
+  expect(retiredRedirect("/zh/number/")).toBe("/zh/play/memory/#number");
+  expect(retiredRedirect("/en/card/")).toBe("/play/memory/#card");
+  expect(retiredRedirect("/toString/")).toBeNull();
+  expect(retiredRedirect("/play/memory/")).toBeNull();
+  expect(retiredRedirect("/play/crowd/")).toBe("/play/crowdrush/");
+  expect(retiredRedirect("/zh/play/crowd")).toBe("/zh/play/crowdrush/");
+  expect(retiredRedirect("/play/crowdrush/")).toBeNull();
+  expect(retiredRedirect("/logic/?lang=zh-CN")).toBe("/zh/");
+  expect(retiredRedirect("/zh/decisions/?lang=en")).toBe("/");
+  expect(retiredRedirect("/word/?lang=zh")).toBe("/zh/play/memory/#word");
 });
