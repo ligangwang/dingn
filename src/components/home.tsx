@@ -54,7 +54,7 @@ export function Home() {
                 "Catch a sequence. Hold it in your head. Recall it before it slips away.",
               )}
             </p>
-            <strong>{t("Play Memory →")}</strong>
+            <strong>{t("Play Memory Ladder →")}</strong>
           </Link>
           <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
             <CrowdIcon className="arena-symbol" size={52} />
@@ -71,17 +71,17 @@ export function Home() {
       </section>
       <Leaderboard />
       <section className="memory-library">
-        <p className="eyebrow">{t("GO DEEPER WITH MEMORY")}</p>
+        <p className="eyebrow">{t("PRACTICE, NO SCORE")}</p>
         <h2>{t("Build connections that stick.")}</h2>
         <p>
           {t(
-            "Explore the Major System: turn numbers into sounds, words, and pictures you can remember.",
+            "Learn the Major System at your own pace: turn numbers into sounds, words, and pictures you can remember.",
           )}
         </p>
         <div className="library-links">
-          <Link href={href("/play/memory/#number")}>{t("Number lab ↗")}</Link>
-          <Link href={href("/play/memory/#word")}>{t("Word universe ↗")}</Link>
-          <Link href={href("/play/memory/#card")}>{t("Deck quest ↗")}</Link>
+          <Link href={href("/play/memory/#number")}>{t("Number practice ↗")}</Link>
+          <Link href={href("/play/memory/#word")}>{t("Word practice ↗")}</Link>
+          <Link href={href("/play/memory/#card")}>{t("Card practice ↗")}</Link>
         </div>
       </section>
       <p className="support">
