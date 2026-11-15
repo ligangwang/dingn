@@ -9,6 +9,7 @@ import { LegalLinks } from "@/components/legal";
 import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import "./mind-arcade.css";
+import "./catalog.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://dingn.com"),
   title: {

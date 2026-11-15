@@ -26,6 +26,10 @@ signed out, and scores last until the page closes.
 
 - Change `game.json`: `id` (lowercase letters and digits), `title`,
   `description` and `version`. Every new release needs a new version.
+- Pick a `category`: `casual`, `memory` or `puzzle`. Once approved, your game
+  is listed on that category's page and in its menu on dingn.
+- Add a `cover` picture (for example `cover.png`, 16:10, about 800×500) for
+  your game's card. Without one, dingn draws a card from your title.
 - Use relative paths (`style.css`, `img/hero.png`) for your files. Your game
   is served from its own folder, not the site root.
 - Save with `dingn.storage` and `dingn.progress`, not `localStorage` or

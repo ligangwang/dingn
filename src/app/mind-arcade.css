@@ -480,6 +480,7 @@ h2 {
   height: 52px;
 }
 nav > a,
+.nav-category > a,
 .admin-menu > summary {
   display: inline-flex;
   align-items: center;
@@ -696,6 +697,7 @@ nav > a,
     font-size: 12px;
   }
   nav > a,
+  .nav-category > a,
   .admin-menu > summary {
     flex-direction: column;
     gap: 2px;
@@ -720,6 +722,7 @@ nav > a,
     font-size: 11px;
   }
   nav > a,
+  .nav-category > a,
   .admin-menu > summary {
     padding: 6px 4px;
   }
@@ -729,6 +732,7 @@ nav > a,
     font-size: 11px;
   }
   nav > a,
+  .nav-category > a,
   .admin-menu > summary {
     padding: 6px 5px;
   }
@@ -738,6 +742,7 @@ nav > a,
     display: none;
   }
   nav > a,
+  .nav-category > a,
   .admin-menu > summary {
     padding: 8px;
   }

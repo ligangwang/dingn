@@ -7,6 +7,7 @@
     "zh": "五秒内尽可能快地点击。"
   },
   "entry": "index.html",
+  "category": "casual",
   "badges": [
     {
       "id": "taps-30",
