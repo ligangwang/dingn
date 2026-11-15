@@ -27,6 +27,44 @@ export const pages = {
         "探索 dingn 游戏平台，畅玩数字阶梯和扑克牌阶梯：快速的记忆挑战，还有 3D 人潮突击。",
     },
   },
+  "/casual/": {
+    index: true,
+    en: {
+      title: "Casual games",
+      description:
+        "Quick, bright games to pick up any time: play Crowd Rush and more free casual games on dingn.",
+    },
+    zh: {
+      title: "休闲游戏",
+      description:
+        "随时上手的轻松小游戏：在 dingn 免费畅玩人潮突击等休闲游戏。",
+    },
+  },
+  "/memory/": {
+    index: true,
+    en: {
+      title: "Memory games",
+      description:
+        "Train your memory with Number Ladder, Card Ladder and Major System practice on dingn.",
+    },
+    zh: {
+      title: "记忆游戏",
+      description:
+        "在 dingn 用数字阶梯、扑克牌阶梯和主要记忆法练习训练你的记忆力。",
+    },
+  },
+  "/puzzle/": {
+    index: true,
+    en: {
+      title: "Puzzle games",
+      description:
+        "Twist, turn and think your way through puzzle games on dingn, like the 3D Rubik's Cube.",
+    },
+    zh: {
+      title: "益智游戏",
+      description: "在 dingn 玩 3D 魔方等益智游戏，转一转、想一想。",
+    },
+  },
   "/feedback/": {
     index: true,
     en: {
@@ -167,6 +205,9 @@ export type PagePath = keyof typeof pages;
 /** Only these pages go in the sitemap; sign-in and account pages stay out of it. */
 export const sitemapPaths: PagePath[] = [
   "/",
+  "/casual/",
+  "/memory/",
+  "/puzzle/",
   "/feedback/",
   "/kingdom/",
   "/developers/",

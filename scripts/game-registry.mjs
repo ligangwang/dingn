@@ -20,6 +20,17 @@ export const VERSION = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
 const MAX_TITLE = 80,
   MAX_DESCRIPTION = 300;
 
+/**
+ * The catalog's categories, in menu order: each has a page on the website
+ * (/casual/, /memory/, /puzzle/) listing its games. A game names its own in
+ * game.json; a game that names none is casual.
+ */
+export const CATEGORIES = ["casual", "memory", "puzzle"];
+// dingn's own games published before game.json had a category.
+const KNOWN_CATEGORY = { memory: "memory", rubikscube: "puzzle" };
+/** A cover picture in the game's files, shown on its catalog card. */
+export const COVER = /^[\w.-]+(\/[\w.-]+)*\.(png|jpe?g|webp|avif|gif|svg)$/i;
+
 // Badges a game can award (scripts/rewards.mjs). dingn draws them, so a game
 // picks a tier and either a level number or one of these icons.
 export const BADGE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
@@ -137,11 +148,13 @@ export function validateShop(raw, problems) {
       );
     else if (seen.has(item.id))
       problems.push(`${at}.id "${item.id}" is used twice`);
-    if (!(
-      Number.isInteger(item.price) &&
-      item.price >= 1 &&
-      item.price <= MAX_PRICE
-    ))
+    if (
+      !(
+        Number.isInteger(item.price) &&
+        item.price >= 1 &&
+        item.price <= MAX_PRICE
+      )
+    )
       problems.push(
         `${at}.price must be a whole number from 1 to ${MAX_PRICE}`,
       );
@@ -211,6 +224,17 @@ export function validateManifest(raw) {
     entry.includes("..")
   )
     problems.push("entry must be a relative .html path");
+  if (m.category != null && !CATEGORIES.includes(m.category))
+    problems.push(`category must be one of ${CATEGORIES.join(", ")}`);
+  if (
+    m.cover != null &&
+    (typeof m.cover !== "string" ||
+      !COVER.test(m.cover) ||
+      m.cover.includes(".."))
+  )
+    problems.push(
+      "cover must be a relative path to a .png, .jpg, .webp, .avif, .gif or .svg picture",
+    );
   const badges = validateBadges(m.badges, problems);
   const shop = validateShop(m.shop, problems);
   if (problems.length)
@@ -224,9 +248,31 @@ export function validateManifest(raw) {
       zh: m.description?.zh?.trim() ?? "",
     },
     entry,
+    ...(m.category != null ? { category: m.category } : {}),
+    ...(m.cover != null ? { cover: m.cover } : {}),
     badges,
     shop,
   };
+}
+
+/** The category a game is listed under. */
+export function categoryOf(record, version) {
+  const named = version?.category;
+  if (CATEGORIES.includes(named)) return named;
+  return KNOWN_CATEGORY[record?.id] ?? "casual";
+}
+
+/**
+ * When a game joined the catalog: the earliest version dingn published or
+ * approved, so the catalog can mark new games. Null when there is none.
+ */
+export function addedAt(record) {
+  const times = Object.values(record?.versions ?? {})
+    .filter((v) => !isPreview(record, v))
+    .map((v) => v.reviewedAt ?? v.publishedAt)
+    .filter((t) => typeof t === "string")
+    .sort();
+  return times[0] ?? null;
 }
 
 /**
@@ -261,6 +307,12 @@ export function publicGame(record, requested) {
     description: resolved.description,
     entry: resolved.entry,
     url: `/g/${record.id}/${resolved.version}/${resolved.entry}`,
+    // Where the catalog lists it, and its card's picture.
+    category: categoryOf(record, resolved),
+    cover: resolved.cover
+      ? `/g/${record.id}/${resolved.version}/${resolved.cover}`
+      : null,
+    addedAt: addedAt(record),
     // The badges this version can award, for the player page.
     badges: resolved.badges ?? [],
     // The upgrades this version sells for coins.
@@ -352,6 +404,8 @@ export function addVersion(
     title: manifest.title,
     description: manifest.description,
     entry: manifest.entry,
+    ...(manifest.category ? { category: manifest.category } : {}),
+    ...(manifest.cover ? { cover: manifest.cover } : {}),
     ...(manifest.badges?.length ? { badges: manifest.badges } : {}),
     ...(manifest.shop?.length ? { shop: manifest.shop } : {}),
     publishedAt: now,
@@ -435,6 +489,38 @@ export const isGamesPath = (pathname) =>
   pathname.startsWith("/g/");
 
 /**
+ * Plays per game in the last 7 and 30 days, for the catalog's Popular order
+ * and Hot tags. Empty when the counts can't be read: the catalog still lists
+ * every game.
+ */
+async function recentPlays() {
+  try {
+    const { allPlays } = await import("./game-stats.mjs");
+    return await cached("plays", allPlays);
+  } catch (error) {
+    console.error("games api plays", error.message);
+    return {};
+  }
+}
+
+/** The catalog: listed games at their live versions, with recent plays. */
+export function catalog(records, plays = {}) {
+  return records
+    .filter((r) => r.status === "listed")
+    .map((r) => {
+      const game = publicGame(r);
+      // A developer's game appears once dingn approved a version.
+      if (!game || game.preview) return null;
+      const counts = plays[r.id];
+      return {
+        ...game,
+        plays: { week: counts?.week ?? 0, month: counts?.month ?? 0 },
+      };
+    })
+    .filter(Boolean);
+}
+
+/**
  * GET /api/games            → listed games, live versions
  * GET /api/games/<id>?v=…   → one game at the requested version
  * GET /g/<id>/<version>/…   → a published game file
@@ -450,18 +536,11 @@ export async function handleGames(req, res, pathname) {
       return await serveGameFile(req, res, pathname);
     const url = new URL(req.url, "http://localhost");
     if (pathname === "/api/games" || pathname === "/api/games/") {
-      const games = await cached("list", listRecords);
-      return sendJson(
-        res,
-        200,
-        {
-          games: games
-            .filter((r) => r.status === "listed")
-            .map((r) => publicGame(r))
-            .filter(Boolean),
-        },
-        30,
-      );
+      const [records, plays] = await Promise.all([
+        cached("list", listRecords),
+        recentPlays(),
+      ]);
+      return sendJson(res, 200, { games: catalog(records, plays) }, 30);
     }
     const id = pathname.slice("/api/games/".length).replace(/\/$/, "");
     const requested = url.searchParams.get("v") ?? "";

@@ -72,6 +72,17 @@ test("admin changes: release, rollback, beta and catalog listing", () => {
   );
   assert.equal(admin.applyChange(record, { action: "clear-beta" }).beta, null);
   assert.equal(admin.applyChange(record, { action: "list" }).status, "listed");
+  // Approving a game's first live version lists it on its category page;
+  // later releases leave the listing as the admin set it.
+  const fresh = { ...record, live: null };
+  assert.equal(
+    admin.applyChange(fresh, { action: "set-live", version: "1.0.0" }).status,
+    "listed",
+  );
+  assert.equal(
+    admin.applyChange(record, { action: "set-live", version: "1.1.0" }).status,
+    "unlisted",
+  );
   for (const bad of [
     { action: "set-live", version: "9.9.9" },
     { action: "set-live" },

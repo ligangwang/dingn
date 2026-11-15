@@ -14,7 +14,9 @@ const MANIFEST = `{
   "version": "1.0.0",
   "title": { "en": "My Game", "zh": "我的游戏" },
   "description": { "en": "…", "zh": "…" },
-  "entry": "index.html"
+  "entry": "index.html",
+  "category": "casual",
+  "cover": "cover.png"
 }`;
 
 const REFERENCE: [string, string][] = [
@@ -182,6 +184,11 @@ export function Developers() {
       <p>
         {t(
           "The id is 2 to 31 lowercase letters and digits, starting with a letter. Every release needs a new version, because published versions never change.",
+        )}
+      </p>
+      <p>
+        {t(
+          "category is casual, memory or puzzle: once approved, your game is listed on that category's page and in its menu. cover is an optional picture in your files for your game's card, 16:10, about 800×500. Without one, dingn draws a card from your title.",
         )}
       </p>
 

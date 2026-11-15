@@ -1,10 +1,44 @@
 "use client";
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
-import { CrowdIcon, MemoryIcon, PuzzleIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/xp";
+import { CATEGORY_INFO, TopGames, useCatalog } from "@/components/catalog";
+import type { Category } from "@/lib/catalog";
+
+/** The home page's category cards, in menu order. */
+const ARENAS: {
+  category: Category;
+  className: string;
+  eyebrow: string;
+  title: string;
+  text: string;
+}[] = [
+  {
+    category: "casual",
+    className: "crowd-arena",
+    eyebrow: "01 / CASUAL",
+    title: "Pick up and play.",
+    text: "Quick, bright games you can jump into any time and put down just as fast.",
+  },
+  {
+    category: "memory",
+    className: "memory-arena",
+    eyebrow: "02 / MEMORY",
+    title: "Make it stick.",
+    text: "Catch a string of digits or a whole shuffled deck. Hold it in your head. Recall it before it slips away.",
+  },
+  {
+    category: "puzzle",
+    className: "puzzle-arena",
+    eyebrow: "03 / PUZZLE",
+    title: "Twist it back.",
+    text: "Scramble the cube, then turn it face by face until every side is one color again.",
+  },
+];
+
 export function Home() {
-  const { t, locale, href } = useLocale();
+  const { t, href } = useLocale();
+  const catalog = useCatalog();
 
   return (
     <div className="mind-home container">
@@ -45,39 +79,21 @@ export function Home() {
           <span>{t("No sign-in needed")}</span>
         </div>
         <div className="arena-grid">
-          <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
-            <CrowdIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("01 / CASUAL")}</p>
-            <h2>{t("Grow your squad.")}</h2>
-            <p>
-              {t(
-                "Pick the right gates, blast through crates and rival squads, then beat the boss.",
-              )}
-            </p>
-            <strong>{t("Play Crowd Rush →")}</strong>
-          </Link>
-          <Link href={href("/play/memory/")} className="arena memory-arena">
-            <MemoryIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("02 / MEMORY")}</p>
-            <h2>{t("Make it stick.")}</h2>
-            <p>
-              {t(
-                "Catch a string of digits or a whole shuffled deck. Hold it in your head. Recall it before it slips away.",
-              )}
-            </p>
-            <strong>{t("Play Number or Card Ladder →")}</strong>
-          </Link>
-          <Link href={href("/play/rubikscube/")} className="arena puzzle-arena">
-            <PuzzleIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("03 / PUZZLE")}</p>
-            <h2>{t("Twist it back.")}</h2>
-            <p>
-              {t(
-                "Scramble the cube, then turn it face by face until every side is one color again.",
-              )}
-            </p>
-            <strong>{t("Play Rubik's Cube →")}</strong>
-          </Link>
+          {ARENAS.map(({ category, className, eyebrow, title, text }) => {
+            const { path, Icon, label } = CATEGORY_INFO[category];
+            return (
+              <div key={category} className={`arena ${className}`}>
+                <Link href={href(path)} className="arena-link">
+                  <Icon className="arena-symbol" size={52} />
+                  <p className="eyebrow">{t(eyebrow)}</p>
+                  <h2>{t(title)}</h2>
+                  <p>{t(text)}</p>
+                  <strong>{t(`See all ${label.toLowerCase()} games →`)}</strong>
+                </Link>
+                <TopGames games={catalog} category={category} />
+              </div>
+            );
+          })}
         </div>
       </section>
       <Leaderboard />

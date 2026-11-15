@@ -154,3 +154,69 @@ test("the API serves the live, beta or a pinned version, and the sandboxed files
   assert.equal((await call("/g/hello/1.0.0/missing.js")).status, 404);
   assert.equal((await call("/g/hello/1.0.0/../../registry.json")).status, 404);
 });
+
+test("game.json names a category and a cover for the catalog", () => {
+  const m = registry.validateManifest(
+    manifest("1.0.0", { category: "puzzle", cover: "art/cover.webp" }),
+  );
+  assert.equal(m.category, "puzzle");
+  assert.equal(m.cover, "art/cover.webp");
+  for (const bad of [
+    { category: "racing" },
+    { cover: "../cover.png" },
+    { cover: "cover.exe" },
+    { cover: 3 },
+  ])
+    assert.throws(
+      () => registry.validateManifest(manifest("1.0.0", bad)),
+      /category|cover/,
+    );
+  const record = registry.addVersion(null, m, { listed: true });
+  const game = registry.publicGame(record);
+  assert.equal(game.category, "puzzle");
+  assert.equal(game.cover, "/g/hello/1.0.0/art/cover.webp");
+  assert.equal(game.addedAt, record.versions["1.0.0"].publishedAt);
+  // A game that names no category is casual; dingn's older games keep theirs.
+  const plain = registry.addVersion(
+    null,
+    registry.validateManifest(manifest("1.0.0")),
+  );
+  assert.equal(registry.publicGame(plain).category, "casual");
+  assert.equal(registry.publicGame(plain).cover, null);
+  assert.equal(
+    registry.publicGame({ ...plain, id: "rubikscube" }).category,
+    "puzzle",
+  );
+});
+
+test("the catalog lists approved, listed games with their recent plays", () => {
+  const now = "2026-11-01T00:00:00.000Z";
+  const mine = registry.addVersion(
+    null,
+    registry.validateManifest(manifest("1.0.0")),
+    { listed: true, now },
+  );
+  const hidden = { ...mine, id: "hidden", status: "unlisted" };
+  // An outside developer's game never approved stays out.
+  const preview = { ...mine, id: "preview", owner: "dev1" };
+  const approved = {
+    ...preview,
+    id: "approved",
+    versions: {
+      "1.0.0": {
+        ...mine.versions["1.0.0"],
+        reviewedAt: "2026-11-10T00:00:00.000Z",
+      },
+    },
+  };
+  const games = registry.catalog([mine, hidden, preview, approved], {
+    hello: { week: 4, month: 9, total: 20 },
+  });
+  assert.deepEqual(
+    games.map((g) => [g.id, g.plays, g.addedAt]),
+    [
+      ["hello", { week: 4, month: 9 }, now],
+      ["approved", { week: 0, month: 0 }, "2026-11-10T00:00:00.000Z"],
+    ],
+  );
+});

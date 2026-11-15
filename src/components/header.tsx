@@ -4,13 +4,14 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
+import { CastleIcon, ShieldIcon } from "./icons";
+import { CATEGORY_INFO, playPath, useCatalog } from "./catalog";
 import {
-  CastleIcon,
-  CrowdIcon,
-  MemoryIcon,
-  PuzzleIcon,
-  ShieldIcon,
-} from "./icons";
+  CATEGORIES,
+  gamesIn,
+  type CatalogGame,
+  type Category,
+} from "@/lib/catalog";
 import { LevelBadge } from "./xp";
 import { Avatar } from "./avatar";
 import { CoinCount } from "./rewards";
@@ -19,6 +20,9 @@ export function Header() {
 
   const path = usePathname();
   const { user, ready, profile, isAdmin } = useSession();
+  const catalog = useCatalog();
+  const here = (href: string) =>
+    path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
   return (
     <header className="site-header">
       <Link className="brand" href={to("/")} aria-label={t("dingn home")}>
@@ -26,26 +30,22 @@ export function Header() {
         {t("dingn")}
       </Link>
       <nav aria-label={t("Main navigation")}>
-        {[
-          ["/play/crowdrush/", "Casual", CrowdIcon] as const,
-          ["/play/memory/", "Memory", MemoryIcon] as const,
-          ["/play/rubikscube/", "Puzzle", PuzzleIcon] as const,
-          ["/kingdom/", "Kingdom", CastleIcon] as const,
-        ].map(([href, label, Icon]) => (
-          <Link
-            key={href}
-            href={to(href)}
-            aria-label={t(label)}
-            aria-current={
-              path.replace(/\/$/, "") === to(href).replace(/\/$/, "")
-                ? "page"
-                : undefined
-            }
-          >
-            <Icon className="nav-icon" size={18} />
-            <span className="nav-label">{t(label)}</span>
-          </Link>
+        {CATEGORIES.map((category) => (
+          <CategoryMenu
+            key={category}
+            category={category}
+            path={path}
+            games={catalog}
+          />
         ))}
+        <Link
+          href={to("/kingdom/")}
+          aria-label={t("Kingdom")}
+          aria-current={here("/kingdom/") ? "page" : undefined}
+        >
+          <CastleIcon className="nav-icon" size={18} />
+          <span className="nav-label">{t("Kingdom")}</span>
+        </Link>
         {ready && isAdmin && <AdminMenu key={path} path={path} />}
         {ready && user && <LevelBadge />}
         {ready && user && <CoinCount />}
@@ -71,6 +71,60 @@ export function Header() {
         </div>
       </nav>
     </header>
+  );
+}
+
+/**
+ * A category in the menu: its link opens the category page, and hovering or
+ * focusing it lists the category's games to jump straight into.
+ */
+function CategoryMenu({
+  category,
+  path,
+  games,
+}: {
+  category: Category;
+  path: string;
+  games: CatalogGame[] | null;
+}) {
+  const { t, locale, href: to } = useLocale();
+  const { label, path: page, Icon } = CATEGORY_INFO[category];
+  const lang = locale === "zh-CN" ? "zh" : "en";
+  const list = games ? gamesIn(games, category, lang) : [];
+  const same = (href: string) =>
+    path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
+  // A game's page counts as being inside its category.
+  const inside = same(page) || list.some((g) => same(playPath(g.id)));
+  return (
+    <div className="nav-category">
+      <Link
+        href={to(page)}
+        aria-label={t(label)}
+        aria-current={inside ? "page" : undefined}
+      >
+        <Icon className="nav-icon" size={18} />
+        <span className="nav-label">{t(label)}</span>
+      </Link>
+      {list.length > 0 && (
+        <ul className="nav-games">
+          {list.map((g) => (
+            <li key={g.id}>
+              <Link
+                href={to(playPath(g.id))}
+                aria-current={same(playPath(g.id)) ? "page" : undefined}
+              >
+                {g.title[lang] || g.title.en}
+              </Link>
+            </li>
+          ))}
+          <li className="nav-all">
+            <Link href={to(page)}>
+              {t(`All ${label.toLowerCase()} games →`)}
+            </Link>
+          </li>
+        </ul>
+      )}
+    </div>
   );
 }
 

@@ -282,6 +282,14 @@ export function applyChange(
         } = next.versions[version];
         next.versions = { ...next.versions, [version]: kept };
       }
+      // Approving a game's first live version puts it in the catalog, on
+      // its category's page. Admins can still hide it there.
+      if (
+        action === "set-live" &&
+        !record.live &&
+        (next.status ?? "unlisted") === "unlisted"
+      )
+        next.status = "listed";
       return next;
     }
     case "reject": {

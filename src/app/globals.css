@@ -129,7 +129,8 @@ nav {
   align-items: center;
   gap: 8px;
 }
-nav > a {
+nav > a,
+.nav-category > a {
   padding: 9px 17px;
   text-decoration: none;
   color: var(--muted);
@@ -137,7 +138,9 @@ nav > a {
   border-radius: 30px;
 }
 nav > a:hover,
-nav > a[aria-current="page"] {
+.nav-category > a:hover,
+nav > a[aria-current="page"],
+.nav-category > a[aria-current="page"] {
   color: var(--green);
   background: var(--sage);
 }
@@ -864,7 +867,8 @@ input[type="radio"] {
   nav {
     gap: 3px;
   }
-  nav > a {
+  nav > a,
+  .nav-category > a {
     padding: 8px 10px;
   }
   .nav-label {
