@@ -24,7 +24,7 @@ on:
       migration:
         description: One-time data migration to run instead (dry-run only counts)
         type: choice
-        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp]
+        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites]
         default: none
 
 permissions:
@@ -216,7 +216,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: read
+      # write: memory-export pushes the exported data to a branch.
+      contents: write
       id-token: write
     env:
       FIREBASE_PROJECT_ID: dingn-193716
@@ -245,3 +246,22 @@ jobs:
           set -o pipefail
           if [ "${{ inputs.migration }}" = badge-xp ]; then apply=--apply; else apply=; fi
           node scripts/backfill-badge-xp.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Export the Major System library for the Memory game
+        if: inputs.migration == 'memory-export'
+        run: |
+          set -o pipefail
+          node scripts/export-memory-data.mjs "$RUNNER_TEMP/memory-data" | tee -a "$GITHUB_STEP_SUMMARY"
+          du -sh "$RUNNER_TEMP/memory-data" | tee -a "$GITHUB_STEP_SUMMARY"
+          cd "$RUNNER_TEMP/memory-data"
+          git init -q -b memory-data-export
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "Major System library exported for the Memory game"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" memory-data-export
+          echo 'Pushed to the `memory-data-export` branch.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Move Major System favorites into Memory progress
+        if: startsWith(inputs.migration, 'memory-favorites')
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.migration }}" = memory-favorites ]; then apply=--apply; else apply=; fi
+          node scripts/migrate-memory-favorites.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
