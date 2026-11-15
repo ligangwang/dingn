@@ -1,7 +1,7 @@
 "use client";
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
-import { CrowdIcon, MemoryIcon } from "@/components/icons";
+import { CrowdIcon, MemoryIcon, PuzzleIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/xp";
 export function Home() {
   const { t, locale, href } = useLocale();
@@ -39,7 +39,7 @@ export function Home() {
       <section id="games">
         <div className="mind-heading">
           <div>
-            <p className="eyebrow">{t("TWO WAYS TO PLAY")}</p>
+            <p className="eyebrow">{t("THREE WAYS TO PLAY")}</p>
             <h2>{t("Your mind. Your playground.")}</h2>
           </div>
           <span>{t("No sign-in needed")}</span>
@@ -66,6 +66,17 @@ export function Home() {
               )}
             </p>
             <strong>{t("Play Crowd Rush →")}</strong>
+          </Link>
+          <Link href={href("/play/rubikscube/")} className="arena puzzle-arena">
+            <PuzzleIcon className="arena-symbol" size={52} />
+            <p className="eyebrow">{t("03 / PUZZLE")}</p>
+            <h2>{t("Twist it back.")}</h2>
+            <p>
+              {t(
+                "Scramble the cube, then turn it face by face until every side is one color again.",
+              )}
+            </p>
+            <strong>{t("Play Rubik's Cube →")}</strong>
           </Link>
         </div>
       </section>

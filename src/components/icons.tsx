@@ -77,6 +77,19 @@ export function CrowdIcon(props: IconProps) {
   );
 }
 
+/** Puzzle: a cube with its faces split into a grid. */
+export function PuzzleIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 2.5 20.5 7v10L12 21.5 3.5 17V7z" />
+      <path d="M3.5 7 12 11.5 20.5 7M12 11.5v10" />
+      <path d="M7.75 4.75 16.25 9.25M16.25 4.75 7.75 9.25" />
+      <path d="M3.5 12l8.5 4.5 8.5-4.5" />
+      <path d="M7.75 9.25v10M16.25 9.25v10" />
+    </Svg>
+  );
+}
+
 /** Kingdom: a castle with three towers. */
 export function CastleIcon(props: IconProps) {
   return (
