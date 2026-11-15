@@ -260,9 +260,11 @@ async function unpinOthers(game) {
       other.featuredAt &&
       categoryOf(other, other.versions?.[other.live]) === category
     )
-      await updateRecord(other.id, (record) =>
-        applyChange(record, { action: "unfeature" }),
-      );
+      // Directly, not through applyChange, which refuses taken-down games.
+      await updateRecord(other.id, (record) => {
+        const { featuredAt: _f, ...kept } = record;
+        return kept;
+      });
 }
 
 /** Applies one admin change to a record. Throws ApiError for a bad request. */
@@ -348,8 +350,10 @@ export function applyChange(
     }
     case "take-down":
       // Stops the game everywhere: the player, its files and the catalog.
+      // A taken-down game also leaves its category page's banner.
+      const { featuredAt: _f, ...rest } = record;
       return {
-        ...record,
+        ...rest,
         status: "removed",
         removedReason: reasonOf(reason),
         removedAt: now,
