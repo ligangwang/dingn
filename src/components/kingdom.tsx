@@ -369,7 +369,7 @@ export function Kingdom() {
                 `${xpToNext.toLocaleString(locale)} XP to go. Play a brain game or earn a badge in any game.`,
               )}
             </p>
-            <Link className="button" href={href("/logic/")}>
+            <Link className="button" href={href("/memory-ladder/")}>
               {t("Play a game")}
             </Link>
           </>

@@ -1,7 +1,6 @@
 // Server-authoritative game rules. Pure functions only: the HTTP layer in
 // game-api.mjs loads documents, calls these, and writes the results inside a
 // Firestore transaction. Nothing here trusts a score sent by the browser.
-import { readFileSync } from "node:fs";
 import {
   dailyLadder,
   LADDER_MAX,
@@ -11,19 +10,13 @@ import {
   scoreLadder,
 } from "../src/data/ladder.mjs";
 
-const rounds = JSON.parse(
-  readFileSync(new URL("../src/data/mind-games.json", import.meta.url), "utf8"),
-);
-
-export const GAMES = ["warmup", "logic", "decisions", "ladder", "ladder_daily"];
+export const GAMES = ["warmup", "ladder", "ladder_daily"];
 export const DAILY_XP_CAP = 300;
 export const STARTS_PER_HOUR = 60;
 export const PLAY_TTL_MS = 30 * 60 * 1000;
 /** Fastest believable completion for each game, in milliseconds. */
 export const MIN_DURATION_MS = {
   warmup: 3000,
-  logic: 8000,
-  decisions: 8000,
   // three quick misses at three digits
   ladder: 9000,
   ladder_daily: 9000,
@@ -63,7 +56,7 @@ export function newChallenge(game, randomInt) {
     return { sequences: ladderSequences(() => randomInt(10)) };
   if (game === "warmup")
     return { digits: Array.from({ length: 3 }, () => randomInt(10)).join("") };
-  return { rounds: rounds[game].length };
+  throw new GameError(400, "bad_game", "Unknown game.");
 }
 
 /** Rate-limits starts per player per hour. Returns the counter update. */
@@ -100,19 +93,7 @@ export function grade(play, answers) {
     const correct = answers === play.challenge.digits;
     return { score: correct ? 1 : 0, max: 1 };
   }
-  const key = rounds[play.game];
-  if (
-    !Array.isArray(answers) ||
-    answers.length !== key.length ||
-    !answers.every(
-      (a, i) => Number.isInteger(a) && a >= 0 && a < key[i].options.length,
-    )
-  )
-    throw new GameError(400, "bad_answers", "Answers don't match this game.");
-  return {
-    score: answers.filter((a, i) => a === key[i].answer).length,
-    max: key.length,
-  };
+  throw new GameError(400, "bad_game", "Unknown game.");
 }
 
 export function xpFor(game, score, max) {

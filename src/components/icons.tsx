@@ -36,28 +36,6 @@ export function MemoryIcon(props: IconProps) {
   );
 }
 
-/** Logic: an interlocking puzzle piece. */
-export function LogicIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M5 8h3.2a2 2 0 1 1 3.6 0H15v3.2a2 2 0 1 1 0 3.6V19h-3.2a2 2 0 1 0-3.6 0H5v-4.2a2 2 0 1 0 0-3.6Z" />
-    </Svg>
-  );
-}
-
-/** Decisions: one path splitting into two. */
-export function DecisionIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <circle cx="6" cy="19" r="2" />
-      <path d="M6 17V12a4 4 0 0 1 4-4h8" />
-      <path d="M6 12a4 4 0 0 0 4 4h8" />
-      <path d="m15 5 3 3-3 3" />
-      <path d="m15 13 3 3-3 3" />
-    </Svg>
-  );
-}
-
 export function MailIcon(props: IconProps) {
   return (
     <Svg {...props}>

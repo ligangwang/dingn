@@ -19,12 +19,12 @@ export const pages = {
     en: {
       title: "dingn — Games & Adventures",
       description:
-        "Discover games on dingn, home of Memory Ladder: quick memory, logic and decision challenges and the 3D Crowd Rush.",
+        "Discover games on dingn, home of Memory Ladder: quick memory challenges and the 3D Crowd Rush.",
     },
     zh: {
       title: "dingn — 游戏与冒险",
       description:
-        "探索 dingn 游戏平台，畅玩记忆阶梯：快速的记忆、逻辑与决策挑战，还有 3D 人潮突击。",
+        "探索 dingn 游戏平台，畅玩记忆阶梯：快速的记忆挑战，还有 3D 人潮突击。",
     },
   },
   "/memory-ladder/": {
@@ -37,30 +37,6 @@ export const pages = {
     zh: {
       title: "记忆阶梯",
       description: "记住一串数字，在脑中保持住，带着三条命一路爬到 20 位。",
-    },
-  },
-  "/logic/": {
-    index: true,
-    en: {
-      title: "Logic lab",
-      description:
-        "Connect the clues and put your reasoning to work in four quick logic puzzles.",
-    },
-    zh: {
-      title: "逻辑实验室",
-      description: "串起线索，在四道快速逻辑题中检验你的推理能力。",
-    },
-  },
-  "/decisions/": {
-    index: true,
-    en: {
-      title: "Decision room",
-      description:
-        "Weigh the odds, work with a budget, and discover why the goal matters.",
-    },
-    zh: {
-      title: "决策室",
-      description: "权衡概率、管好预算，发现目标为什么重要。",
     },
   },
   "/number/": {
@@ -240,8 +216,6 @@ export type PagePath = keyof typeof pages;
 export const sitemapPaths: PagePath[] = [
   "/",
   "/memory-ladder/",
-  "/logic/",
-  "/decisions/",
   "/number/",
   "/word/",
   "/card/",

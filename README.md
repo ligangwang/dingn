@@ -194,7 +194,7 @@ In authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (
 
 ## Mind arcade and authentication domain
 
-Memory Sprint, Logic Lab (`/logic/`), and Decision Room (`/decisions/`) are public games. Logic and decision rounds explain each answer, lock each submitted choice, and reset scores when replayed. No game score is persisted. Existing memory practice, account, feedback, and admin features remain available.
+dingn has two game categories: Memory (Memory Ladder and the Major System labs) and Casual (Crowd Rush). The Logic Lab and Decision Room games were retired; their old addresses (`/logic/`, `/decisions/` and the `/zh/` copies) redirect to the home page.
 
 Production uses Cloud Run. `scripts/preview.mjs` transparently forwards GET/POST/HEAD requests under `/__/auth/` to the fixed Firebase Authentication helper host with HTTPS verification, while the client retains `authDomain: dingn.com`. Google OAuth must authorize `https://dingn.com/__/auth/handler`. Firebase Hosting stays disabled; reserved authentication helper endpoints still work.
 
@@ -236,10 +236,10 @@ networks separately.
 
 ## XP and leaderboard
 
-Signed-in players earn XP for the warm-up, Logic and Decisions games. The browser never writes XP. Instead, `scripts/game-api.mjs` runs inside the website server and uses the Firebase Admin SDK:
+Signed-in players earn XP for the Memory Ladder games. The browser never writes XP. Instead, `scripts/game-api.mjs` runs inside the website server and uses the Firebase Admin SDK:
 
 - `POST /api/play/start` reads the player from the dingn session cookie (verified with the Admin SDK) and creates a single-use `plays/{id}` record. The server generates the warm-up digits.
-- `POST /api/play/finish` grades the raw answers against the server's own answer key (`src/data/mind-games.json`). Before it awards XP in a transaction, it checks:
+- `POST /api/play/finish` grades the raw answers against the server's own challenge. Before it awards XP in a transaction, it checks:
   - that the play belongs to this player and hasn't already been scored
   - the minimum play time and the 30-minute expiry
   - the hourly start limit and the daily XP cap
