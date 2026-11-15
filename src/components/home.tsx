@@ -86,7 +86,7 @@ export function Home() {
           </Link>
           <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
             <CrowdIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("04 / ACTION")}</p>
+            <p className="eyebrow">{t("04 / CASUAL")}</p>
             <h2>{t("Grow your squad.")}</h2>
             <p>
               {t(
