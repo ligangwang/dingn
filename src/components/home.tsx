@@ -51,10 +51,10 @@ export function Home() {
             <h2>{t("Make it stick.")}</h2>
             <p>
               {t(
-                "Catch a sequence. Hold it in your head. Recall it before it slips away.",
+                "Catch a string of digits or a whole shuffled deck. Hold it in your head. Recall it before it slips away.",
               )}
             </p>
-            <strong>{t("Play Memory Ladder →")}</strong>
+            <strong>{t("Play Number or Card Ladder →")}</strong>
           </Link>
           <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
             <CrowdIcon className="arena-symbol" size={52} />
@@ -79,7 +79,9 @@ export function Home() {
           )}
         </p>
         <div className="library-links">
-          <Link href={href("/play/memory/#number")}>{t("Number practice ↗")}</Link>
+          <Link href={href("/play/memory/#number")}>
+            {t("Number practice ↗")}
+          </Link>
           <Link href={href("/play/memory/#word")}>{t("Word practice ↗")}</Link>
           <Link href={href("/play/memory/#card")}>{t("Card practice ↗")}</Link>
         </div>

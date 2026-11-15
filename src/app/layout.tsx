@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s · dingn",
   },
   description:
-    "Discover games on dingn, home of Memory Ladder. 探索 dingn 游戏平台，畅玩记忆阶梯。",
+    "Discover games on dingn, home of Number Ladder and Card Ladder. 探索 dingn 游戏平台，畅玩数字阶梯和扑克牌阶梯。",
   icons: { icon: "/dingn-mark.svg" },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {

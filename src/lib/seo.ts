@@ -19,12 +19,12 @@ export const pages = {
     en: {
       title: "dingn — Games & Adventures",
       description:
-        "Discover games on dingn, home of Memory Ladder: quick memory challenges and the 3D Crowd Rush.",
+        "Discover games on dingn, home of Number Ladder and Card Ladder: quick memory challenges and the 3D Crowd Rush.",
     },
     zh: {
       title: "dingn — 游戏与冒险",
       description:
-        "探索 dingn 游戏平台，畅玩记忆阶梯：快速的记忆挑战，还有 3D 人潮突击。",
+        "探索 dingn 游戏平台，畅玩数字阶梯和扑克牌阶梯：快速的记忆挑战，还有 3D 人潮突击。",
     },
   },
   "/feedback/": {
