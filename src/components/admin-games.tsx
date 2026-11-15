@@ -108,7 +108,12 @@ function GameList() {
       setGames(
         (list) =>
           list?.map((g) =>
-            g.id === updated.id ? { ...updated, plays: g.plays } : g,
+            g.id === updated.id
+              ? { ...updated, plays: g.plays }
+              : // Featuring a game unpins the others in its category.
+                change.action === "feature" && g.category === updated.category
+                ? { ...g, featuredAt: null }
+                : g,
           ) ?? null,
       );
       setNotice(done);
@@ -396,6 +401,10 @@ function GameCard({
     : game.id;
   const listed = game.status === "listed";
   const removed = game.status === "removed";
+  // The category page's name, as the menu shows it.
+  const page = { casual: "Casual", memory: "Memory", puzzle: "Puzzle" }[
+    game.category ?? "casual"
+  ];
   const date = (iso: string | null) =>
     iso
       ? new Date(iso).toLocaleString(locale === "zh-CN" ? "zh-CN" : "en")
@@ -414,6 +423,9 @@ function GameCard({
               : listed
                 ? t("Shown in the catalog")
                 : t("Hidden from the catalog")}
+            {listed && game.featuredAt && (
+              <> · {t(`Featured on the ${page} page`)}</>
+            )}
             {game.owner && <> · {t(`Uploaded by ${game.owner}`)}</>}
             {game.plays && (
               <>
@@ -462,6 +474,29 @@ function GameCard({
             >
               {listed ? t("Hide from catalog") : t("Show in catalog")}
             </button>
+            {listed && game.live && (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                aria-pressed={!!game.featuredAt}
+                onClick={() =>
+                  apply(
+                    game,
+                    { action: game.featuredAt ? "unfeature" : "feature" },
+                    game.featuredAt
+                      ? t(
+                          `${title} is no longer featured. The ${page} page picks its banner game itself.`,
+                        )
+                      : t(`${title} is featured on the ${page} page.`),
+                  )
+                }
+              >
+                {game.featuredAt
+                  ? t("Stop featuring")
+                  : t(`Feature on the ${page} page`)}
+              </button>
+            )}
             {game.beta && (
               <button
                 type="button"

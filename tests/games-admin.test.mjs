@@ -159,3 +159,71 @@ test("only admins, from the website, can see and change games", async () => {
     400,
   );
 });
+
+test("an admin pins one game per category to its page's banner", async () => {
+  const add = (id, category) =>
+    registry.updateRecord(id, (r) =>
+      registry.addVersion(
+        r,
+        registry.validateManifest({
+          id,
+          version: "1.0.0",
+          title: { en: id, zh: id },
+          ...(category ? { category } : {}),
+        }),
+        { listed: true },
+      ),
+    );
+  await add("gems");
+  await add("pets");
+  await add("cube", "puzzle");
+  await add("hidden");
+  await registry.updateRecord("hidden", (r) => ({ ...r, status: "unlisted" }));
+
+  const feature = (id, action = "feature") =>
+    call("/api/admin/games/update", { id, action });
+  assert.equal((await feature("hidden")).status, 400);
+  const gems = await feature("gems");
+  assert.equal(gems.status, 200);
+  assert.equal(gems.body.game.category, "casual");
+  assert.ok(gems.body.game.featuredAt);
+  await feature("cube");
+  // Pets takes over Casual's banner; Puzzle keeps its own.
+  await feature("pets");
+  const featured = async () =>
+    Object.fromEntries(
+      (await registry.listRecords()).map((r) => [r.id, !!r.featuredAt]),
+    );
+  assert.deepEqual(
+    Object.entries(await featured())
+      .filter(([, on]) => on)
+      .map(([id]) => id)
+      .sort(),
+    ["cube", "pets"],
+  );
+  registry.clearRegistryCache();
+  const catalog = registry.catalog(await registry.listRecords());
+  assert.ok(catalog.find((g) => g.id === "pets").featuredAt);
+  assert.equal(catalog.find((g) => g.id === "gems").featuredAt, null);
+  await feature("pets", "unfeature");
+  assert.equal((await featured()).pets, false);
+
+  // Taking a pinned game down unpins it, and a pin left on a taken-down game
+  // (from before that rule) never blocks featuring another.
+  await feature("gems");
+  await call("/api/admin/games/update", {
+    id: "gems",
+    action: "take-down",
+    reason: "Broken",
+  });
+  assert.equal((await featured()).gems, false);
+  await registry.updateRecord("gems", (r) => ({
+    ...r,
+    featuredAt: "2026-01-01T00:00:00Z",
+  }));
+  assert.equal((await feature("pets")).status, 200);
+  assert.deepEqual(
+    [(await featured()).gems, (await featured()).pets],
+    [false, true],
+  );
+});

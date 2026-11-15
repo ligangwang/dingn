@@ -17,6 +17,8 @@ export type CatalogGame = {
   cover: string | null;
   /** When the game joined the catalog (ISO time), or null. */
   addedAt: string | null;
+  /** When an admin pinned it to its category's banner, or null. */
+  featuredAt?: string | null;
   plays: { week: number; month: number };
   badges: BadgeDef[];
 };
@@ -106,15 +108,23 @@ export function tagOf(
   return top.id === game.id ? "hot" : null;
 }
 
+/** The game an admin pinned to a category's banner, if any. */
+export const pinnedGame = (games: CatalogGame[]) =>
+  games
+    .filter((g) => g.featuredAt)
+    .sort((a, b) => b.featuredAt!.localeCompare(a.featuredAt!))[0] ?? null;
+
 /**
- * The banner game: the newest game of the last NEW_DAYS days, otherwise the
- * most played.
+ * The banner game: the one an admin pinned, otherwise the newest game of the
+ * last NEW_DAYS days, otherwise the most played.
  */
 export function featuredGame(
   games: CatalogGame[],
   now = Date.now(),
 ): CatalogGame | null {
   if (!games.length) return null;
+  const pinned = pinnedGame(games);
+  if (pinned) return pinned;
   const newest = sortGames(games, "new", "en")[0];
   if (newest.addedAt && now - time(newest) < NEW_DAYS * 86_400_000)
     return newest;

@@ -14,6 +14,10 @@ export type Plays = { total: number; week: number; month: number };
 export type AdminGame = {
   id: string;
   status: "listed" | "unlisted" | "removed";
+  /** Its category page: casual, memory or puzzle. */
+  category: "casual" | "memory" | "puzzle";
+  /** When it was pinned to its category page's banner, or null. */
+  featuredAt: string | null;
   /** Why the game was taken down, if it was. */
   removedReason: string | null;
   plays: Plays | null;
@@ -26,7 +30,10 @@ export type AdminGame = {
 };
 export type GameChange =
   | { action: "set-live" | "set-beta"; version: string }
-  | { action: "clear-beta" | "list" | "unlist" | "restore" }
+  | {
+      action:
+        "clear-beta" | "list" | "unlist" | "restore" | "feature" | "unfeature";
+    }
   | { action: "reject"; version: string; reason: string }
   | { action: "take-down"; reason: string }
   | { action: "transfer"; email: string };
