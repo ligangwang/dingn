@@ -160,14 +160,18 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
   const { t, locale, href } = useLocale();
 
   // Refetch whenever this player's XP changes so fresh scores show up.
-  const xp = useSession().stats?.xp;
+  const { stats, isAdmin } = useSession();
+  const xp = stats?.xp;
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
+  const [shown, setShown] = useState(false);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let active = true;
     fetchLeaderboard()
       .then((value) => {
-        if (active) setEntries(value);
+        if (!active) return;
+        setEntries(value.entries);
+        setShown(value.shown);
       })
       .catch(() => {
         if (active) setFailed(true);
@@ -176,17 +180,19 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
       active = false;
     };
   }, [xp]);
+  // Until an admin makes it public (Players admin page), only admins see the
+  // board. Nobody sees an empty or broken board while it loads.
+  if (failed || !entries || (!shown && !isAdmin)) return null;
   return (
     <section className="leaderboard" id="leaderboard" aria-label={t(title)}>
       <p className="eyebrow">{t("Leaderboard")}</p>
       <h2>{t(title)}</h2>
-      {failed ? (
+      {!shown && (
         <p className="muted">
-          {t("The leaderboard isn’t available right now.")}
+          {t("Only admins see this. Make it public on the Players admin page.")}
         </p>
-      ) : !entries ? (
-        <p className="muted">{t("Loading…")}</p>
-      ) : !entries.length ? (
+      )}
+      {!entries.length ? (
         <p className="muted">{t("No scores yet. Sign in and be the first.")}</p>
       ) : (
         <ol>

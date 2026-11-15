@@ -644,3 +644,28 @@ test("developers upload from scripts and CI with an upload key", async () => {
     "too-many-keys",
   );
 });
+
+test("the leaderboard stays admins-only until an admin makes it public", async () => {
+  const settings = await import("../scripts/site-settings.mjs");
+  assert.deepEqual((await adminCall("/api/admin/settings", {})).body.settings, {
+    leaderboardPublic: false,
+  });
+  assert.equal(
+    (
+      await adminCall("/api/admin/settings/update", {
+        leaderboardPublic: "yes",
+      })
+    ).status,
+    400,
+  );
+  const open = await adminCall("/api/admin/settings/update", {
+    leaderboardPublic: true,
+    somethingElse: true,
+  });
+  assert.deepEqual(open.body.settings, { leaderboardPublic: true });
+  assert.equal((await settings.readSettings()).leaderboardPublic, true);
+  assert.deepEqual(settings.cleanSettings({ leaderboardPublic: 1 }), {
+    leaderboardPublic: false,
+  });
+  await adminCall("/api/admin/settings/update", { leaderboardPublic: false });
+});

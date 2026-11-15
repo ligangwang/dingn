@@ -12,6 +12,7 @@ import {
   publicName,
   settle,
 } from "./game-core.mjs";
+import { readSettings } from "./site-settings.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 let adminPromise;
@@ -84,9 +85,16 @@ async function verify(req, res) {
   }
 }
 
+/**
+ * The top ten players. `shown` says whether everyone may see them: an admin
+ * makes the leaderboard public from the admin pages; until then only admins
+ * see it.
+ */
 let board = { at: 0, entries: null };
 async function leaderboard() {
-  if (board.entries && Date.now() - board.at < 30_000) return board.entries;
+  const shown = (await readSettings()).leaderboardPublic;
+  if (board.entries && Date.now() - board.at < 30_000)
+    return { shown, entries: board.entries };
   const { db } = await admin();
   const snap = await db
     .collection("players")
@@ -98,7 +106,7 @@ async function leaderboard() {
     return { name: p.name || "Player", xp: p.xp || 0, level: p.level || 1 };
   });
   board = { at: Date.now(), entries };
-  return entries;
+  return { shown, entries };
 }
 
 async function start(req, res) {
@@ -185,7 +193,7 @@ const routes = {
   "/api/play/start": start,
   "/api/play/finish": finish,
   "/api/me": me,
-  "/api/leaderboard": async () => ({ entries: await leaderboard() }),
+  "/api/leaderboard": leaderboard,
 };
 export const gameRoutes = Object.keys(routes);
 

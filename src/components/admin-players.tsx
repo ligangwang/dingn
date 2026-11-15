@@ -6,7 +6,12 @@ import { useEffect, useState } from "react";
 import { AdminOnly } from "./admin-games";
 import { useLocale } from "./locale";
 import { useSession } from "./session";
-import { listPlayers, type Player } from "@/lib/admin-games";
+import {
+  getSettings,
+  listPlayers,
+  updateSettings,
+  type Player,
+} from "@/lib/admin-games";
 
 const PROVIDERS: Record<string, string> = {
   "google.com": "Google",
@@ -79,6 +84,7 @@ function PlayerList() {
           "Every dingn account, including developers and admins, most recently active first. Change who can upload or administer on the Users page.",
         )}
       </p>
+      <LeaderboardSwitch />
       {total > 0 && <p>{t(`${total} players`)}</p>}
       {error && (
         <p role="alert" className="error">
@@ -149,5 +155,61 @@ function PlayerList() {
         </button>
       </nav>
     </div>
+  );
+}
+
+/** Makes the home page leaderboard public, or admins-only again. */
+function LeaderboardSwitch() {
+  const { t } = useLocale();
+  const [open, setOpen] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    getSettings()
+      .then((s) => setOpen(s.leaderboardPublic))
+      .catch(() => setError(true));
+  }, []);
+  async function flip() {
+    if (open === null) return;
+    setSaving(true);
+    setError(false);
+    try {
+      setOpen(
+        (await updateSettings({ leaderboardPublic: !open })).leaderboardPublic,
+      );
+    } catch {
+      setError(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <section className="admin-setting" aria-label={t("Leaderboard")}>
+      <h2>{t("Leaderboard")}</h2>
+      <p>
+        {open === null
+          ? t(error ? "The setting could not be loaded." : "Loading…")
+          : t(
+              open
+                ? "Public: everyone sees Top players on the home page."
+                : "Admins only: players don’t see Top players on the home page yet.",
+            )}
+      </p>
+      {open !== null && (
+        <button
+          type="button"
+          className={open ? "secondary-button" : "button small"}
+          disabled={saving}
+          onClick={flip}
+        >
+          {t(open ? "Hide it again" : "Make it public")}
+        </button>
+      )}
+      {error && open !== null && (
+        <p role="alert" className="error">
+          {t("That didn’t save. Try again.")}
+        </p>
+      )}
+    </section>
   );
 }
