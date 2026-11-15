@@ -11,6 +11,7 @@ import { CrowdIcon, MemoryIcon, PuzzleIcon } from "./icons";
 import { database, doc, getDoc } from "@/lib/database";
 import {
   featuredGame,
+  pinnedGame,
   gamesIn,
   loadCatalog,
   playerProgress,
@@ -191,7 +192,11 @@ export function CategoryPage({ category }: { category: Category }) {
     () => (catalog ? gamesIn(catalog, category, l) : null),
     [catalog, category, l],
   );
-  const featured = games && games.length > 1 ? featuredGame(games) : null;
+  // One game needs no banner, unless an admin pinned it there.
+  const featured =
+    games && (games.length > 1 || pinnedGame(games))
+      ? featuredGame(games)
+      : null;
   const started = (games ?? [])
     .filter((g) => progress[g.id])
     .sort((a, b) =>

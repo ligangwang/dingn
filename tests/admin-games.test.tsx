@@ -34,6 +34,8 @@ const title = { en: "Crowd Rush", zh: "人潮突击" };
 const crowd: AdminGame = {
   id: "crowd",
   status: "unlisted",
+  category: "casual",
+  featuredAt: null,
   live: "1.0.0",
   beta: "1.1.0",
   updatedAt: null,
@@ -115,6 +117,33 @@ it("releases the beta after confirming, and lists the game", async () => {
   });
 });
 
+it("pins a listed game to its category page's banner", async () => {
+  mocks.listGames.mockResolvedValue([{ ...crowd, status: "listed" }]);
+  mocks.changeGame.mockImplementation(async (_id, change) => ({
+    ...crowd,
+    status: "listed",
+    featuredAt: change.action === "feature" ? "2026-11-15T20:00:00Z" : null,
+  }));
+  render(<AdminGames />);
+  const card = await screen.findByRole("region", { name: "Crowd Rush" });
+  await userEvent.click(
+    within(card).getByRole("button", { name: "Feature on the Casual page" }),
+  );
+  expect(mocks.changeGame).toHaveBeenLastCalledWith("crowd", {
+    action: "feature",
+  });
+  expect(
+    await screen.findByText("Crowd Rush is featured on the Casual page."),
+  ).toBeTruthy();
+  expect(within(card).getByText(/Featured on the Casual page/)).toBeTruthy();
+  await userEvent.click(
+    within(card).getByRole("button", { name: "Stop featuring" }),
+  );
+  expect(mocks.changeGame).toHaveBeenLastCalledWith("crowd", {
+    action: "unfeature",
+  });
+});
+
 it("does nothing when the release is not confirmed", async () => {
   vi.spyOn(window, "confirm").mockReturnValue(false);
   render(<AdminGames />);
@@ -129,6 +158,8 @@ it("does nothing when the release is not confirmed", async () => {
 const skyhop: AdminGame = {
   id: "skyhop",
   status: "unlisted",
+  category: "casual",
+  featuredAt: null,
   live: null,
   beta: "1.0.0",
   updatedAt: null,

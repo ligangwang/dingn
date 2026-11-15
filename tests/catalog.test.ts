@@ -65,6 +65,9 @@ test("the banner shows the newest game, otherwise the most played", () => {
   assert.equal(featuredGame(gamesIn(all, "casual"), NOW)?.id, "pawpal");
   assert.equal(featuredGame([crowd, gems], NOW)?.id, "crowdrush");
   assert.equal(featuredGame([], NOW), null);
+  // A game an admin pinned wins over both.
+  const pinned = { ...gems, featuredAt: "2026-11-14T00:00:00Z" };
+  assert.equal(featuredGame([crowd, pet, pinned], NOW)?.id, "gemsurge");
 });
 
 test("a player's progress comes from their badges and saved games", () => {

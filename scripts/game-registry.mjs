@@ -313,6 +313,8 @@ export function publicGame(record, requested) {
       ? `/g/${record.id}/${resolved.version}/${resolved.cover}`
       : null,
     addedAt: addedAt(record),
+    // When an admin pinned it to its category page's banner, or null.
+    featuredAt: record.featuredAt ?? null,
     // The badges this version can award, for the player page.
     badges: resolved.badges ?? [],
     // The upgrades this version sells for coins.

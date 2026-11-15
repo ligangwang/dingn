@@ -9,6 +9,7 @@ import { ApiError, readBody, refresh, validateOrigin } from "./api.mjs";
 import {
   ID,
   VERSION,
+  categoryOf,
   clearRegistryCache,
   compareVersions,
   isPreview,
@@ -69,6 +70,9 @@ export function adminGame(record, plays = null) {
   return {
     id: record.id,
     status: record.status ?? "unlisted",
+    // Its category page, and when an admin pinned it to that page's banner.
+    category: categoryOf(record, record.versions?.[record.live]),
+    featuredAt: record.featuredAt ?? null,
     removedReason: record.removedReason ?? null,
     plays,
     live: record.live ?? null,
@@ -247,6 +251,20 @@ async function developerByEmail(value, users) {
   return { uid: user.uid, email: user.email ?? email };
 }
 
+/** Unpins every other game featured in `game`'s category. */
+async function unpinOthers(game) {
+  const category = categoryOf(game, game.versions?.[game.live]);
+  for (const other of await listRecords())
+    if (
+      other.id !== game.id &&
+      other.featuredAt &&
+      categoryOf(other, other.versions?.[other.live]) === category
+    )
+      await updateRecord(other.id, (record) =>
+        applyChange(record, { action: "unfeature" }),
+      );
+}
+
 /** Applies one admin change to a record. Throws ApiError for a bad request. */
 export function applyChange(
   record,
@@ -319,6 +337,15 @@ export function applyChange(
         status: action === "list" ? "listed" : "unlisted",
         updatedAt: now,
       };
+    case "feature":
+      // Pins the game to its category page's banner.
+      if (record.status !== "listed" || !record.live)
+        throw new ApiError(400, "not-listed");
+      return { ...record, featuredAt: now, updatedAt: now };
+    case "unfeature": {
+      const { featuredAt: _f, ...kept } = record;
+      return { ...kept, updatedAt: now };
+    }
     case "take-down":
       // Stops the game everywhere: the player, its files and the catalog.
       return {
@@ -499,6 +526,8 @@ export async function handleAdminGames(
       before = record;
       return change(record, body);
     });
+    // One pinned game per category: featuring a game unpins the others.
+    if (body.action === "feature") await unpinOthers(updated);
     clearRegistryCache();
     console.log("games admin", body.id, body.action, body.version ?? "");
     const mail = ownerMail(before, updated, body);
