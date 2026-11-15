@@ -147,10 +147,6 @@ export function shuffle<T>(items: readonly T[], random = Math.random): T[] {
 }
 export function safeDestination(value: string | null, locale: Locale = "en") {
   return [
-    "/memory-ladder/",
-    "/word/",
-    "/number/",
-    "/card/",
     "/account/",
     "/",
     "/admin/feedback/",
@@ -158,6 +154,7 @@ export function safeDestination(value: string | null, locale: Locale = "en") {
     "/admin/users/",
     "/admin/players/",
     "/play/crowdrush/",
+    "/play/memory/",
   ].includes(stripLocale(value ?? ""))
     ? value!
     : localePath("/", locale);

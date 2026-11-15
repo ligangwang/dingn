@@ -1,7 +1,6 @@
 "use client";
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
-import { WarmUp } from "@/components/warm-up";
 import { CrowdIcon, MemoryIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/xp";
 export function Home() {
@@ -46,7 +45,7 @@ export function Home() {
           <span>{t("No sign-in needed")}</span>
         </div>
         <div className="arena-grid">
-          <a href="#warm-up" className="arena memory-arena">
+          <Link href={href("/play/memory/")} className="arena memory-arena">
             <MemoryIcon className="arena-symbol" size={52} />
             <p className="eyebrow">{t("01 / MEMORY")}</p>
             <h2>{t("Make it stick.")}</h2>
@@ -55,8 +54,8 @@ export function Home() {
                 "Catch a sequence. Hold it in your head. Recall it before it slips away.",
               )}
             </p>
-            <strong>{t("Play Memory Ladder ↓")}</strong>
-          </a>
+            <strong>{t("Play Memory →")}</strong>
+          </Link>
           <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
             <CrowdIcon className="arena-symbol" size={52} />
             <p className="eyebrow">{t("02 / CASUAL")}</p>
@@ -70,9 +69,6 @@ export function Home() {
           </Link>
         </div>
       </section>
-      <div id="warm-up">
-        <WarmUp />
-      </div>
       <Leaderboard />
       <section className="memory-library">
         <p className="eyebrow">{t("GO DEEPER WITH MEMORY")}</p>
@@ -83,9 +79,9 @@ export function Home() {
           )}
         </p>
         <div className="library-links">
-          <Link href={href("/number/")}>{t("Number lab ↗")}</Link>
-          <Link href={href("/word/")}>{t("Word universe ↗")}</Link>
-          <Link href={href("/card/")}>{t("Deck quest ↗")}</Link>
+          <Link href={href("/play/memory/#number")}>{t("Number lab ↗")}</Link>
+          <Link href={href("/play/memory/#word")}>{t("Word universe ↗")}</Link>
+          <Link href={href("/play/memory/#card")}>{t("Deck quest ↗")}</Link>
         </div>
       </section>
       <p className="support">

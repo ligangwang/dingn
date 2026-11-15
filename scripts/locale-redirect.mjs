@@ -45,16 +45,28 @@ export function developerRedirect(headers, requestUrl) {
   return `https://dingn.com${zh ? "/zh" : ""}${rest}${url.search}`;
 }
 
-/** Games dingn no longer offers. Their old addresses open the home page. */
-const RETIRED = ["logic", "decisions"];
+/**
+ * Old addresses of games that left the website: Logic and Decisions were
+ * retired (their links open the home page), and the Memory games moved into
+ * the Memory game at /play/memory/, which opens a lab named in the hash.
+ */
+const MOVED = {
+  logic: "/",
+  decisions: "/",
+  "memory-ladder": "/play/memory/",
+  number: "/play/memory/#number",
+  word: "/play/memory/#word",
+  card: "/play/memory/#card",
+};
 
 /**
- * Where an old link to a retired game goes: the home page in the same
- * language (/logic/ → /, /zh/decisions/ → /zh/). Returns null otherwise.
+ * Where an old link to a moved or retired game goes, in the same language
+ * (/word/ → /play/memory/#word, /zh/logic/ → /zh/). Returns null otherwise.
  */
 export function retiredRedirect(requestUrl) {
   const { pathname } = new URL(requestUrl, "http://localhost");
-  const match = /^(\/zh|\/en)?\/([a-z]+)\/?$/.exec(pathname);
-  if (!match || !RETIRED.includes(match[2])) return null;
-  return match[1] === "/zh" ? "/zh/" : "/";
+  const match = /^(\/zh|\/en)?\/([a-z-]+)\/?$/.exec(pathname);
+  const target = match && Object.hasOwn(MOVED, match[2]) && MOVED[match[2]];
+  if (!target) return null;
+  return match[1] === "/zh" ? "/zh" + target : target;
 }

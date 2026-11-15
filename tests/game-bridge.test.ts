@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  gameHash,
   accountProgress,
   handleGameRequest,
   isGameRequest,
@@ -304,4 +305,17 @@ test("a game spends coins only for a signed-in player, through the host", async 
     shop && "result" in shop && (shop.result as unknown[]).length,
     1,
   );
+});
+
+test("only a short plain hash is passed on to a game", () => {
+  assert.equal(gameHash("#word"), "#word");
+  assert.equal(gameHash(""), "");
+  for (const bad of [
+    "#/evil",
+    "#javascript:x",
+    "#Word",
+    "#a b",
+    "#" + "a".repeat(40),
+  ])
+    assert.equal(gameHash(bad), "");
 });
