@@ -189,18 +189,6 @@ select {
 .memory-arena .arena-symbol {
   color: #d5ff58;
 }
-.logic-arena {
-  background: linear-gradient(150deg, #392d50, #1d1d2b);
-}
-.logic-arena .arena-symbol {
-  color: #c0a7ff;
-}
-.decision-arena {
-  background: linear-gradient(150deg, #403024, #221e24);
-}
-.decision-arena .arena-symbol {
-  color: #ffc49d;
-}
 .crowd-arena {
   background: linear-gradient(150deg, #1c3550, #18202c);
 }
@@ -1230,10 +1218,6 @@ html[lang="zh-CN"] .eyebrow {
   box-shadow: 0 10px 30px #d5ff5833;
   animation: badge-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.game-badge.decisions {
-  background: #ffb38a;
-  box-shadow: 0 10px 30px #ffb38a33;
-}
 .mind-page > .game-badge + .eyebrow {
   margin-top: 16px;
 }
@@ -1242,12 +1226,6 @@ html[lang="zh-CN"] .eyebrow {
   overflow: hidden;
   background:
     radial-gradient(circle at 100% 0%, #d5ff5814, transparent 40%),
-    radial-gradient(#ffffff0a 1px, transparent 1px) 0 0 / 18px 18px,
-    #1b2030;
-}
-.mind-panel.decisions {
-  background:
-    radial-gradient(circle at 100% 0%, #ffb38a1a, transparent 40%),
     radial-gradient(#ffffff0a 1px, transparent 1px) 0 0 / 18px 18px,
     #1b2030;
 }

@@ -44,3 +44,17 @@ export function developerRedirect(headers, requestUrl) {
     rest = "/developers" + (rest === "/" ? "/" : rest);
   return `https://dingn.com${zh ? "/zh" : ""}${rest}${url.search}`;
 }
+
+/** Games dingn no longer offers. Their old addresses open the home page. */
+const RETIRED = ["logic", "decisions"];
+
+/**
+ * Where an old link to a retired game goes: the home page in the same
+ * language (/logic/ → /, /zh/decisions/ → /zh/). Returns null otherwise.
+ */
+export function retiredRedirect(requestUrl) {
+  const { pathname } = new URL(requestUrl, "http://localhost");
+  const match = /^(\/zh|\/en)?\/([a-z]+)\/?$/.exec(pathname);
+  if (!match || !RETIRED.includes(match[2])) return null;
+  return match[1] === "/zh" ? "/zh/" : "/";
+}

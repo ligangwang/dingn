@@ -2,12 +2,7 @@
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
 import { WarmUp } from "@/components/warm-up";
-import {
-  CrowdIcon,
-  DecisionIcon,
-  LogicIcon,
-  MemoryIcon,
-} from "@/components/icons";
+import { CrowdIcon, MemoryIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/xp";
 export function Home() {
   const { t, locale, href } = useLocale();
@@ -45,7 +40,7 @@ export function Home() {
       <section id="games">
         <div className="mind-heading">
           <div>
-            <p className="eyebrow">{t("FOUR WAYS TO PLAY")}</p>
+            <p className="eyebrow">{t("TWO WAYS TO PLAY")}</p>
             <h2>{t("Your mind. Your playground.")}</h2>
           </div>
           <span>{t("No sign-in needed")}</span>
@@ -62,31 +57,9 @@ export function Home() {
             </p>
             <strong>{t("Play Memory Ladder ↓")}</strong>
           </a>
-          <Link href={href("/logic/")} className="arena logic-arena">
-            <LogicIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("02 / LOGIC")}</p>
-            <h2>{t("Crack the pattern.")}</h2>
-            <p>
-              {t(
-                "Connect the clues and put your reasoning to work in four quick puzzles.",
-              )}
-            </p>
-            <strong>{t("Play logic lab →")}</strong>
-          </Link>
-          <Link href={href("/decisions/")} className="arena decision-arena">
-            <DecisionIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("03 / DECISIONS")}</p>
-            <h2>{t("Choose your move.")}</h2>
-            <p>
-              {t(
-                "Weigh the odds, work with a budget, and discover why the goal matters.",
-              )}
-            </p>
-            <strong>{t("Play decision room →")}</strong>
-          </Link>
           <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
             <CrowdIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("04 / ACTION")}</p>
+            <p className="eyebrow">{t("02 / CASUAL")}</p>
             <h2>{t("Grow your squad.")}</h2>
             <p>
               {t(

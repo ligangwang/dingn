@@ -36,7 +36,7 @@ test("XP routes are POST-only, CSRF-checked and need a session", async () => {
     "/api/play/finish",
     "/api/play/start",
   ]);
-  assert.equal((await call("GET", "/logic/")).handled, false);
+  assert.equal((await call("GET", "/memory-ladder/")).handled, false);
   assert.equal((await call("POST", "/api/auth/login", json)).handled, false);
   assert.equal((await call("GET", "/api/me", json)).status, 405);
   // Cross-site or header-less requests are refused before anything else.

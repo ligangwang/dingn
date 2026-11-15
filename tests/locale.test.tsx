@@ -13,21 +13,13 @@ import { pageMetadata } from "../src/lib/seo";
 import {
   developerRedirect,
   localizedRedirect,
+  retiredRedirect,
 } from "../scripts/locale-redirect.mjs";
-import games from "../src/data/mind-games.json";
 import catalog from "../src/data/zh-CN.json";
 afterEach(() => {
   cleanup();
   localStorage.clear();
   history.replaceState({}, "", "/");
-});
-test("all authored game questions, explanations and word choices have Chinese translations", () => {
-  for (const rounds of Object.values(games))
-    for (const game of rounds) {
-      for (const text of [game.title, game.prompt, game.why, ...game.options]) {
-        if (/[a-z]/i.test(text)) expect(catalog).toHaveProperty(text);
-      }
-    }
 });
 test("specific sentence templates take priority over generic digit templates", () => {
   expect(translate("Round 2 · 4 digits", "zh-CN")).toBe(
@@ -74,7 +66,7 @@ test("language paths map between English and /zh/ URLs", () => {
   expect(localePath("/zhuyin/", "en")).toBe("/zhuyin/");
   expect(localeFromPath("/zh/")).toBe("zh-CN");
   expect(localeFromPath("/zhuyin/")).toBe("en");
-  expect(safeDestination("/zh/logic/")).toBe("/zh/logic/");
+  expect(safeDestination("/zh/memory-ladder/")).toBe("/zh/memory-ladder/");
   expect(safeDestination("https://evil.example/", "zh-CN")).toBe("/zh/");
 });
 test("the server redirects legacy language URLs permanently", () => {
@@ -82,7 +74,9 @@ test("the server redirects legacy language URLs permanently", () => {
   expect(localizedRedirect("/zh/word/")).toBeNull();
   expect(localizedRedirect("/word/?lang=zh-CN")).toBe("/zh/word/");
   expect(localizedRedirect("/?lang=zh-CN&a=1")).toBe("/zh/?a=1");
-  expect(localizedRedirect("/zh/logic/?lang=en")).toBe("/logic/");
+  expect(localizedRedirect("/zh/memory-ladder/?lang=en")).toBe(
+    "/memory-ladder/",
+  );
   expect(localizedRedirect("/zh/?lang=en")).toBe("/");
   expect(localizedRedirect("/account/?purchase=pending&lang=zh-CN")).toBe(
     "/zh/account/?purchase=pending",
@@ -91,12 +85,14 @@ test("the server redirects legacy language URLs permanently", () => {
   expect(localizedRedirect("/en")).toBe("/");
 });
 test("every Chinese page declares its own canonical URL and hreflang alternates", () => {
-  const meta = pageMetadata("/logic/", "zh-CN");
-  expect(meta.alternates?.canonical).toBe("https://dingn.com/zh/logic/");
+  const meta = pageMetadata("/memory-ladder/", "zh-CN");
+  expect(meta.alternates?.canonical).toBe(
+    "https://dingn.com/zh/memory-ladder/",
+  );
   expect(meta.alternates?.languages).toEqual({
-    en: "https://dingn.com/logic/",
-    "zh-CN": "https://dingn.com/zh/logic/",
-    "x-default": "https://dingn.com/logic/",
+    en: "https://dingn.com/memory-ladder/",
+    "zh-CN": "https://dingn.com/zh/memory-ladder/",
+    "x-default": "https://dingn.com/memory-ladder/",
   });
 });
 
@@ -123,4 +119,13 @@ test("developer.dingn.com and dev.dingn.com open the developer pages", () => {
   );
   expect(at("dingn.com", "/")).toBeNull();
   expect(at("dingn-web-hlue2fivja-uc.a.run.app", "/")).toBeNull();
+});
+
+test("old links to the retired Logic and Decisions games open the home page", () => {
+  expect(retiredRedirect("/logic/")).toBe("/");
+  expect(retiredRedirect("/decisions")).toBe("/");
+  expect(retiredRedirect("/zh/logic/?x=1")).toBe("/zh/");
+  expect(retiredRedirect("/en/decisions/")).toBe("/");
+  expect(retiredRedirect("/memory-ladder/")).toBeNull();
+  expect(retiredRedirect("/play/crowdrush/")).toBeNull();
 });

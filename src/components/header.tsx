@@ -4,14 +4,7 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import {
-  CastleIcon,
-  CrowdIcon,
-  DecisionIcon,
-  LogicIcon,
-  MemoryIcon,
-  ShieldIcon,
-} from "./icons";
+import { CastleIcon, CrowdIcon, MemoryIcon, ShieldIcon } from "./icons";
 import { LevelBadge } from "./xp";
 import { Avatar } from "./avatar";
 import { CoinCount } from "./rewards";
@@ -28,9 +21,7 @@ export function Header() {
       </Link>
       <nav aria-label={t("Main navigation")}>
         {[
-          ["/logic/", "Logic", LogicIcon] as const,
           ["/memory-ladder/", "Memory", MemoryIcon] as const,
-          ["/decisions/", "Decisions", DecisionIcon] as const,
           ["/play/crowdrush/", "Casual", CrowdIcon] as const,
           ["/kingdom/", "Kingdom", CastleIcon] as const,
         ].map(([href, label, Icon]) => (

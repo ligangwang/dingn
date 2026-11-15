@@ -157,8 +157,6 @@ export function safeDestination(value: string | null, locale: Locale = "en") {
     "/admin/games/",
     "/admin/users/",
     "/admin/players/",
-    "/logic/",
-    "/decisions/",
     "/play/crowdrush/",
   ].includes(stripLocale(value ?? ""))
     ? value!

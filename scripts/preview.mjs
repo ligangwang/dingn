@@ -1,7 +1,11 @@
 import { handleApi } from "./api.mjs";
 import { handleBilling } from "./billing.mjs";
 import { gameRoutes, handleGameApi } from "./game-api.mjs";
-import { developerRedirect, localizedRedirect } from "./locale-redirect.mjs";
+import {
+  developerRedirect,
+  localizedRedirect,
+  retiredRedirect,
+} from "./locale-redirect.mjs";
 import {
   cachedRecord,
   cachedRecords,
@@ -178,7 +182,7 @@ http
       req.pipe(upstream);
       return;
     }
-    const moved = localizedRedirect(req.url);
+    const moved = retiredRedirect(req.url) ?? localizedRedirect(req.url);
     if (moved) {
       res.writeHead(301, { Location: moved, "Cache-Control": "no-cache" });
       res.end();
