@@ -114,7 +114,6 @@
   "THREE WAYS TO PLAY": "即刻开玩",
   "Your mind. Your playground.": "你的游戏天地。",
   "No sign-in needed": "无需登录",
-  "01 / MEMORY": "01 / 记忆",
   "Make it stick.": "把它记在心里。",
   "Catch a string of digits or a whole shuffled deck. Hold it in your head. Recall it before it slips away.": "看一串数字或一整副洗好的牌，把它记住，再凭记忆重现。",
   "PRACTICE, NO SCORE": "练习，不计分",
@@ -255,7 +254,6 @@
   "Exit full screen": "退出全屏",
   "Casual": "休闲",
   "Play Number or Card Ladder →": "玩数字阶梯或扑克牌阶梯 →",
-  "02 / CASUAL": "02 / 休闲",
   "Your account does not have permission to manage dingn.": "你的账号没有管理 dingn 的权限。",
   "Games could not be loaded. Try again.": "游戏列表加载失败，请重试。",
   "That change could not be saved. Try again.": "更改未能保存，请重试。",
@@ -660,5 +658,7 @@
   "03 / PUZZLE": "03 / 益智",
   "Twist it back.": "把它转回原样。",
   "Scramble the cube, then turn it face by face until every side is one color again.": "打乱魔方，再一面一面地转动，直到每一面都恢复成同一种颜色。",
-  "Play Rubik's Cube →": "开始玩魔方 →"
+  "Play Rubik's Cube →": "开始玩魔方 →",
+  "01 / CASUAL": "01 / 休闲",
+  "02 / MEMORY": "02 / 记忆"
 }

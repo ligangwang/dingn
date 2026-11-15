@@ -45,20 +45,9 @@ export function Home() {
           <span>{t("No sign-in needed")}</span>
         </div>
         <div className="arena-grid">
-          <Link href={href("/play/memory/")} className="arena memory-arena">
-            <MemoryIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("01 / MEMORY")}</p>
-            <h2>{t("Make it stick.")}</h2>
-            <p>
-              {t(
-                "Catch a string of digits or a whole shuffled deck. Hold it in your head. Recall it before it slips away.",
-              )}
-            </p>
-            <strong>{t("Play Number or Card Ladder →")}</strong>
-          </Link>
           <Link href={href("/play/crowdrush/")} className="arena crowd-arena">
             <CrowdIcon className="arena-symbol" size={52} />
-            <p className="eyebrow">{t("02 / CASUAL")}</p>
+            <p className="eyebrow">{t("01 / CASUAL")}</p>
             <h2>{t("Grow your squad.")}</h2>
             <p>
               {t(
@@ -66,6 +55,17 @@ export function Home() {
               )}
             </p>
             <strong>{t("Play Crowd Rush →")}</strong>
+          </Link>
+          <Link href={href("/play/memory/")} className="arena memory-arena">
+            <MemoryIcon className="arena-symbol" size={52} />
+            <p className="eyebrow">{t("02 / MEMORY")}</p>
+            <h2>{t("Make it stick.")}</h2>
+            <p>
+              {t(
+                "Catch a string of digits or a whole shuffled deck. Hold it in your head. Recall it before it slips away.",
+              )}
+            </p>
+            <strong>{t("Play Number or Card Ladder →")}</strong>
           </Link>
           <Link href={href("/play/rubikscube/")} className="arena puzzle-arena">
             <PuzzleIcon className="arena-symbol" size={52} />

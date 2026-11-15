@@ -27,8 +27,8 @@ export function Header() {
       </Link>
       <nav aria-label={t("Main navigation")}>
         {[
-          ["/play/memory/", "Memory", MemoryIcon] as const,
           ["/play/crowdrush/", "Casual", CrowdIcon] as const,
+          ["/play/memory/", "Memory", MemoryIcon] as const,
           ["/play/rubikscube/", "Puzzle", PuzzleIcon] as const,
           ["/kingdom/", "Kingdom", CastleIcon] as const,
         ].map(([href, label, Icon]) => (
