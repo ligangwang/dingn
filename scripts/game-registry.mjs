@@ -49,7 +49,7 @@ export const MAX_GAME_COINS = 1000;
 // still got somewhere. Apart from MAX_GAME_COINS. High enough for a good day of
 // play (about 25 wins), low enough that replaying an easy level or a game
 // reporting fake wins can't mint coins without end.
-export const DAILY_GAME_COINS = 200;
+export const DAILY_GAME_COINS = 500;
 // The most one rewards.earn call may ask for.
 export const MAX_EARN = 10;
 const MAX_BADGE_TITLE = 60;
