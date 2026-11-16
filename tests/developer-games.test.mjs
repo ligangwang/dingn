@@ -70,6 +70,8 @@ function deflatedZip(files) {
   return Buffer.concat([...local, directory, end]);
 }
 
+/** A cover for game.json, with "cover.png" in the zip. */
+const COVER = { cover: "cover.png" };
 const gameJson = (id, version, extra = {}) =>
   JSON.stringify({
     id,
@@ -143,7 +145,9 @@ test("unzip refuses unsafe, oversized and broken zips", () => {
 
 test("an upload needs game.json, an entry page and files dingn can serve", () => {
   const prepared = uploads.prepareUpload({
-    "sky/game.json": Buffer.from(gameJson("skyhop", "1.0.0")),
+    "sky/game.json": Buffer.from(
+      gameJson("skyhop", "1.0.0", { cover: "img/hero.png" }),
+    ),
     "sky/index.html": Buffer.from("<p>hop</p>"),
     "sky/img/hero.png": Buffer.from("png"),
   });
@@ -180,6 +184,49 @@ test("an upload needs game.json, an entry page and files dingn can serve", () =>
       "setup.exe": "x",
     }),
     "unsupported-type",
+  );
+});
+
+test("an upload needs a cover picture in its files, up to 1 MB", () => {
+  const code = (files) => {
+    try {
+      uploads.prepareUpload(
+        Object.fromEntries(
+          Object.entries(files).map(([k, v]) => [k, Buffer.from(v)]),
+        ),
+      );
+    } catch (error) {
+      return `${error.message} ${error.detail}`.trim();
+    }
+    return "ok";
+  };
+  const cover = { cover: "cover.jpg" };
+  assert.equal(
+    code({ "game.json": gameJson("skyhop", "1.0.0"), "index.html": "x" }),
+    "missing-cover",
+  );
+  assert.equal(
+    code({
+      "game.json": gameJson("skyhop", "1.0.0", cover),
+      "index.html": "x",
+    }),
+    "missing-cover-file cover.jpg",
+  );
+  assert.equal(
+    code({
+      "game.json": gameJson("skyhop", "1.0.0", cover),
+      "index.html": "x",
+      "cover.jpg": "x".repeat(uploads.MAX_COVER_BYTES + 1),
+    }),
+    "cover-too-large cover.jpg",
+  );
+  assert.equal(
+    code({
+      "game.json": gameJson("skyhop", "1.0.0", cover),
+      "index.html": "x",
+      "cover.jpg": "jpg",
+    }),
+    "ok",
   );
 });
 
@@ -245,7 +292,8 @@ test("developers upload a zip and it becomes their game's beta", async () => {
   const ada = { uid: "ada", email: "ada@example.com", developer: true };
   const visitor = { uid: "eve", email: "eve@example.com" };
   const zip = deflatedZip({
-    "game.json": gameJson("cloudhop", "1.0.0"),
+    "game.json": gameJson("cloudhop", "1.0.0", COVER),
+    "cover.png": "png",
     "index.html": "<p>hop</p>",
     "js/main.js": "console.log(1)",
   });
@@ -283,7 +331,8 @@ test("developers upload a zip and it becomes their game's beta", async () => {
   const bob = { uid: "bob", email: "bob@example.com", developer: true };
   const stolen = await upload(
     deflatedZip({
-      "game.json": gameJson("cloudhop", "2.0.0"),
+      "game.json": gameJson("cloudhop", "2.0.0", COVER),
+      "cover.png": "png",
       "index.html": "<p>mine</p>",
     }),
     bob,
@@ -292,7 +341,8 @@ test("developers upload a zip and it becomes their game's beta", async () => {
   assert.equal(stolen.body.error, "not-your-game");
   const crowd = await upload(
     deflatedZip({
-      "game.json": gameJson("crowd", "9.0.0"),
+      "game.json": gameJson("crowd", "9.0.0", COVER),
+      "cover.png": "png",
       "index.html": "x",
     }),
     bob,
@@ -488,7 +538,8 @@ test("every uploaded file is sandboxed, whatever its type or case", async () => 
   const ada = { uid: "ada", email: "ada@example.com", developer: true };
   const result = await upload(
     deflatedZip({
-      "game.json": gameJson("cloudhop", "1.1.0"),
+      "game.json": gameJson("cloudhop", "1.1.0", COVER),
+      "cover.png": "png",
       "index.html": "<p>hop</p>",
       "attack.HTML": "<script>alert(1)</script>",
       "attack.svg":
