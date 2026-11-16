@@ -32,6 +32,7 @@ it("blocks forged purchases, ownership, Stripe records, XP, the game registry an
       "developers/alice",
       "gameReports/report1",
       "gameStats/crowd",
+      "funnelStats/2026-11-16",
       "mail/mail1",
       "rewards/alice",
     ]) {

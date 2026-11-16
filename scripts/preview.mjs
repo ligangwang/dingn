@@ -28,6 +28,7 @@ import { handleGameReports, reportRoutes } from "./game-reports.mjs";
 import { handleGamePlays, startFlushing, statsRoutes } from "./game-stats.mjs";
 import { handleRewards, rewardRoutes } from "./rewards.mjs";
 import { handleKingdom, kingdomRoutes } from "./kingdom.mjs";
+import { funnelRoutes, handleFunnel, startFunnelFlushing } from "./funnel.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -95,6 +96,7 @@ const types = {
   ".zip": "application/zip",
 };
 startFlushing();
+startFunnelFlushing();
 http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
@@ -122,6 +124,10 @@ http
     }
     if (rewardRoutes.includes(pathname)) {
       void handleRewards(req, res, pathname);
+      return;
+    }
+    if (funnelRoutes.includes(pathname)) {
+      void handleFunnel(req, res, pathname);
       return;
     }
     if (kingdomRoutes.includes(pathname)) {
@@ -215,7 +221,7 @@ http
             cachedRecord(id),
             liveCatalog(),
           ]);
-          return gamePageHtml(html, record, !!play[1], games);
+          return gamePageHtml(html, record, !!play[1], games, req.url);
         },
       ).catch(() => {
         res.writeHead(500);
@@ -224,7 +230,9 @@ http
       return;
     }
     // The home and category pages, with their games filled in as links.
-    const listing = /^\/(zh\/)?(?:(casual|memory|puzzle|adventure)\/)?$/.exec(pathname);
+    const listing = /^\/(zh\/)?(?:(casual|memory|puzzle|adventure)\/)?$/.exec(
+      pathname,
+    );
     if (listing) {
       const [, zh, category] = listing;
       void sendFilled(

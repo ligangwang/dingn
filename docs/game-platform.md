@@ -225,7 +225,42 @@ await dingn.progress.save({ level: 3 }); // the player's account (signed in only
 await dingn.rewards.unlock("level-10"); // a badge from game.json
 dingn.requestSignIn();
 dingn.ready(); // hides the loading screen
+dingn.roundEnded(); // a round was played to the end (play statistics)
 ```
+
+### Challenge links
+
+After a round, a game can ask for a link that challenges a friend to beat
+the score on the same round:
+
+```js
+const url = await dingn.challengeLink({
+  mode: "ladder", // which game mode (1-24 lowercase letters, digits, dashes)
+  seed: "2026-11-16", // which round, so the friend plays the same one
+  score: 10, // a whole number
+  unit: "digits", // points, digits, cards, levels, stars, words or coins
+});
+// → https://dingn.com/play/memory/?challenge=ladder&seed=2026-11-16&score=10&unit=digits
+```
+
+The game shares the link itself (`navigator.share` or the clipboard; the
+frame allows both). Whoever opens it sees "A friend reached 10 digits in
+Memory. Can you beat it?" above the game and in the link preview, and the
+game gets the challenge as `dingn.challenge` (null otherwise) to start that
+round and compare at the end. Everything is in the address, so nothing is
+stored, and the words come from dingn (`src/data/challenge.mjs`), never from
+the link. Visits through a challenge link count as "referred" in the funnel.
+
+### The funnel
+
+`/admin/funnel/` shows where players come from and how far they get: visits,
+game starts, finished rounds (from `dingn.roundEnded()`), return visits,
+players back within a week, challenge links sent and the friends they
+brought, by source (`utm_source` or `ref` in the address, a challenge link,
+or the referring site). The browser keeps only the day of its first visit
+and its source (`src/lib/funnel.ts`), sends counts without an id, and sends
+nothing after /opt-out. `scripts/funnel.mjs` adds them up per day in
+Firestore `funnelStats/{YYYY-MM-DD}`.
 
 The game runs in a sandboxed frame with its own opaque origin, both in the
 `sandbox` attribute and in the `Content-Security-Policy: sandbox` header on

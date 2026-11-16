@@ -4,6 +4,10 @@ import Link from "next/link";
 import { Leaderboard } from "@/components/xp";
 import { CATEGORY_INFO, TopGames, useCatalog } from "@/components/catalog";
 import type { Category } from "@/lib/catalog";
+import { useEffect, useState } from "react";
+import { useOptionalSession } from "@/components/session";
+import { STAGES } from "@/data/kingdom.mjs";
+import { fetchKingdom, type KingdomView } from "@/lib/kingdom";
 
 /** The home page's category cards, in menu order. */
 const ARENAS: {
@@ -51,31 +55,27 @@ export function Home() {
     <div className="mind-home container">
       <section className="mind-hero">
         <div>
-          <p className="eyebrow">{t("THE DINGN GAME PLATFORM")}</p>
+          <p className="eyebrow">{t("PLAY · EARN · BUILD")}</p>
           <h1>
-            {t("Your next adventure.")}
+            {t("Quick games.")}
             <br />
-            <span>{t("Starts here.")}</span>
+            <span>{t("One growing kingdom.")}</span>
           </h1>
           <p className="lede">
-            {t("Quick challenges today. New worlds to explore tomorrow.")}
+            {t("Play a round, earn coins, and build your world.")}
             <br />
-            {t("One platform. Your own way to play.")}
+            {t("Every dingn game pays into the same kingdom.")}
           </p>
-          <a className="button" href="#games">
-            {t("Find your next game ↗")}
-          </a>
-          <p className="hero-caption">
-            {t("Short rounds. Fresh perspectives. Your pace.")}
-          </p>
+          <div className="hero-actions">
+            <a className="button" href="#games">
+              {t("Play a game ↗")}
+            </a>
+            <Link className="secondary-button" href={href("/kingdom/")}>
+              {t("See the kingdom →")}
+            </Link>
+          </div>
         </div>
-        <div className="mind-art" aria-hidden="true">
-          <span className="orbit-label">{t("THINK / PLAY / REPEAT")}</span>
-          <img src="/dingn-mark.svg" alt="" />
-          <span className="art-chip chip-one">32 → ☾</span>
-          <span className="art-chip chip-two">{t("WHAT’S NEXT?")}</span>
-          <span className="art-chip chip-three">{t("YOUR MOVE ↗")}</span>
-        </div>
+        <HeroKingdom />
       </section>
       <section id="games">
         <div className="mind-heading">
@@ -124,6 +124,102 @@ export function Home() {
           {t("Have a game idea? Help shape dingn ↗")}
         </Link>
       </p>
+    </div>
+  );
+}
+
+/**
+ * The hero's picture: a grown kingdom, with the player's own progress on it.
+ * Signed out, it shows the road from camp to capital instead.
+ */
+function HeroKingdom() {
+  const { t, locale, href } = useLocale();
+  const session = useOptionalSession();
+  const signedIn = !!session?.user;
+  const [view, setView] = useState<KingdomView | null>(null);
+  useEffect(() => {
+    if (!signedIn) return setView(null);
+    let current = true;
+    fetchKingdom()
+      .then((v) => current && setView(v))
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [signedIn]);
+  const name = (title: { en: string; zh: string }) =>
+    locale === "zh-CN" ? title.zh : title.en;
+  const stage = STAGES.find((s) => s.id === view?.stage);
+  const next = STAGES.find((s) => s.level > (view?.level ?? 0));
+  // XP needed for a level, as src/components/kingdom-card.tsx.
+  const xpFor = (level: number) => 50 * level * (level - 1);
+  const toGo = view && next ? Math.max(0, xpFor(next.level) - view.xp) : 0;
+  const from = stage ? xpFor(stage.level) : 0;
+  const share =
+    view && next
+      ? Math.min(1, Math.max(0, (view.xp - from) / (xpFor(next.level) - from)))
+      : 1;
+  return (
+    <div className="hero-kingdom">
+      <img
+        src="/home/kingdom-capital.jpg"
+        alt={t(
+          "A walled capital on a green island by the sea, grown in the dingn kingdom",
+        )}
+        width={960}
+        height={541}
+        fetchPriority="high"
+      />
+      <div className="hero-kingdom-card">
+        {view ? (
+          <>
+            <p className="eyebrow">{t("YOUR KINGDOM")}</p>
+            <strong>
+              {stage
+                ? t(`${name(stage.title)} · account level ${view.level}`)
+                : t(`Account level ${view.level}`)}
+            </strong>
+            {next ? (
+              <>
+                <span
+                  className="hero-kingdom-bar"
+                  role="progressbar"
+                  aria-label={t(
+                    `Progress to ${name(next.title).toLowerCase()}`,
+                  )}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(share * 100)}
+                >
+                  <span style={{ width: `${share * 100}%` }} />
+                </span>
+                <span>
+                  {t(
+                    `${toGo.toLocaleString(locale)} XP to a ${name(next.title).toLowerCase()}`,
+                  )}
+                </span>
+              </>
+            ) : (
+              <span>{t("Your capital is complete.")}</span>
+            )}
+            <Link href={href("/kingdom/")}>{t("Build with your coins →")}</Link>
+          </>
+        ) : (
+          <>
+            <p className="eyebrow">{t("FROM CAMP TO CAPITAL")}</p>
+            <ol className="hero-stages" aria-label={t("Kingdom stages")}>
+              {STAGES.map((s) => (
+                <li key={s.id}>{name(s.title)}</li>
+              ))}
+            </ol>
+            <span>
+              {t(
+                "Earn XP and coins in any dingn game, then grow a camp into a capital.",
+              )}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 }

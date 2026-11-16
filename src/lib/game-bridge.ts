@@ -3,6 +3,7 @@
 // Everything a game sends is untrusted: keys, sizes and methods are checked
 // here, and a game can only reach its own storage and progress.
 import type { Locale } from "./i18n";
+import { validChallenge, type Challenge } from "@/data/challenge.mjs";
 
 export const PROTOCOL = 1;
 /** Largest stored value or progress save, as JSON. */
@@ -44,6 +45,12 @@ export type BridgeContext = {
   /** Opens a dingn page (an already checked site path such as "/"). */
   navigate: (path: string) => void;
   ready: () => void;
+  /** The friend's challenge the page's address opened, if any. */
+  challenge?: Challenge | null;
+  /** The address of this game's page that opens a checked challenge. */
+  challengeLink?: (challenge: Challenge) => string;
+  /** The game finished a round (for the play statistics). */
+  roundEnded?: () => void;
   /**
    * Coins and badges (src/lib/rewards.ts). `unlock` records a badge for the
    * signed-in player; `list` gives the game's badges and which are earned.
@@ -164,6 +171,7 @@ async function answer(
         version: ctx.version,
         locale: ctx.locale,
         player: ctx.player,
+        challenge: ctx.challenge ?? null,
       };
     case "storage.get": {
       const k = key(request.params);
@@ -257,6 +265,23 @@ async function answer(
     }
     case "ready":
       ctx.ready();
+      return null;
+    case "challenge.link": {
+      const challenge = validChallenge(request.params);
+      if (!challenge)
+        throw new BridgeError(
+          "invalid",
+          'A challenge needs a mode, a whole score of 0 or more and a unit such as "points".',
+        );
+      if (!ctx.challengeLink)
+        throw new BridgeError(
+          "unavailable",
+          "Challenge links are not available here.",
+        );
+      return ctx.challengeLink(challenge);
+    }
+    case "roundEnded":
+      ctx.roundEnded?.();
       return null;
     default:
       throw new BridgeError(

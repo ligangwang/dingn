@@ -213,3 +213,41 @@ test("the home page fills each category's top games", () => {
   // Only an empty slot is filled, and a page without one is unchanged.
   assert.equal(fillSlot("<p>hi</p>", "games", "x"), "<p>hi</p>");
 });
+
+test("a challenge link's preview shows the score to beat", () => {
+  const url =
+    "/play/crowdrush/?challenge=run&seed=2026-11-16&score=42&unit=points";
+  const en = gamePageHtml(page, game(), false, [], url);
+  assert.match(
+    en,
+    /og:title" content="A friend reached 42 points in Crowd Rush. Can you beat it\?"/,
+  );
+  assert.match(en, /twitter:title" content="A friend reached 42 points/);
+  assert.match(
+    en,
+    /og:description" content="Play the same challenge free on dingn/,
+  );
+  assert.match(
+    en,
+    /og:url" content="https:\/\/dingn.com\/play\/crowdrush\/\?challenge=run&amp;seed=2026-11-16&amp;score=42&amp;unit=points"/,
+  );
+  // The page itself is still the game's page.
+  assert.match(
+    en,
+    /rel="canonical" href="https:\/\/dingn.com\/play\/crowdrush\/"/,
+  );
+  const zh = gamePageHtml(page, game(), true, [], "/zh" + url);
+  assert.match(
+    zh,
+    /og:title" content="朋友在「人潮突击」中达到了 42 分，你能超过吗？"/,
+  );
+  // A malformed challenge leaves the normal preview.
+  const bad = gamePageHtml(
+    page,
+    game(),
+    false,
+    [],
+    "/play/crowdrush/?challenge=run&score=lots&unit=points",
+  );
+  assert.match(bad, /og:title" content="Crowd Rush"/);
+});

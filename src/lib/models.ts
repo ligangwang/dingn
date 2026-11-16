@@ -153,6 +153,7 @@ export function safeDestination(value: string | null, locale: Locale = "en") {
     "/admin/games/",
     "/admin/users/",
     "/admin/players/",
+    "/admin/funnel/",
     "/play/crowdrush/",
     "/play/memory/",
     "/play/rubikscube/",

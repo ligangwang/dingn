@@ -116,6 +116,17 @@ html.play-window-full body {
     min-height: 300px;
   }
 }
+.play-challenge {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #dff7c8;
+  color: #1f3b0c;
+  font-size: 0.95rem;
+}
+.play-challenge span {
+  opacity: 0.8;
+}
 .play-preview {
   margin: 0;
   padding: 8px 12px;

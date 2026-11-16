@@ -209,6 +209,11 @@ export const pages = {
     en: { title: "Players admin" },
     zh: { title: "玩家管理" },
   },
+  "/admin/funnel/": {
+    index: false,
+    en: { title: "Funnel admin" },
+    zh: { title: "增长漏斗" },
+  },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },

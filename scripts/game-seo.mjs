@@ -11,6 +11,11 @@
 // page's empty `data-fill` slots (src/components/server-fill.tsx) with plain
 // links to the games, and adds schema.org data (JSON-LD) to the <head>.
 import { categoryOf, isPreview, resolveVersion } from "./game-registry.mjs";
+import {
+  challengeFromQuery,
+  challengeText,
+  challengeUrl,
+} from "../src/data/challenge.mjs";
 
 const SITE = "https://dingn.com";
 
@@ -120,9 +125,11 @@ function cardHtml(game, zh) {
  * The play page for one game: `html` with that game's title, description,
  * robots, addresses, share picture and schema.org data when it may be
  * indexed, otherwise `html` unchanged. `games` is the catalog (/api/games),
- * for the links to the category's other games.
+ * for the links to the category's other games. When the request's address
+ * (`requestUrl`) is a friend's challenge link, the link preview shows the
+ * score to beat (src/data/challenge.mjs).
  */
-export function gamePageHtml(html, record, zh, games = []) {
+export function gamePageHtml(html, record, zh, games = [], requestUrl = "") {
   const live = indexableGame(record);
   if (!live) return html;
   const id = record.id;
@@ -205,6 +212,32 @@ export function gamePageHtml(html, record, zh, games = []) {
         `<meta name="twitter:image" content="${escape(cover)}"/>`,
       ],
     );
+  const challenge = challengeFromQuery(new URL(requestUrl || "/", SITE).search);
+  if (challenge) {
+    const said = challengeText(challenge, name, zh);
+    swaps.push(
+      [
+        /<meta property="og:url" content="[^"]*"\/>/,
+        `<meta property="og:url" content="${escape(challengeUrl(SITE, id, challenge, zh))}"/>`,
+      ],
+      [
+        /<meta property="og:title" content="[^"]*"\/>/,
+        `<meta property="og:title" content="${escape(said.title)}"/>`,
+      ],
+      [
+        /<meta name="twitter:title" content="[^"]*"\/>/,
+        `<meta name="twitter:title" content="${escape(said.title)}"/>`,
+      ],
+      [
+        /<meta property="og:description" content="[^"]*"\/>/,
+        `<meta property="og:description" content="${escape(said.description)}"/>`,
+      ],
+      [
+        /<meta name="twitter:description" content="[^"]*"\/>/,
+        `<meta name="twitter:description" content="${escape(said.description)}"/>`,
+      ],
+    );
+  }
   let page = swaps.reduce(
     (out, [from, to]) => out.replace(from, () => to),
     html,

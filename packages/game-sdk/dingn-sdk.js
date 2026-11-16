@@ -19,6 +19,9 @@
 //   await dingn.rewards.earn(3);          // a few coins for play, capped each day
 //   dingn.navigate("/");                  // leave the game for a dingn page
 //   dingn.ready();                        // hide the website's loading screen
+//   dingn.challenge;                      // the friend's challenge this page opened, or null
+//   await dingn.challengeLink({ mode: "daily", seed: "2026-11-16", score: 10, unit: "points" });
+//   dingn.roundEnded();                   // a round was played to the end
 //
 // Opened on its own (not inside dingn), connect() still works in a local
 // mode: signed out, English, and storage that lasts until the page closes.
@@ -93,6 +96,8 @@ function connectToHost(host, timeout) {
       locale: info.locale,
       player: info.player,
       embedded: true,
+      // Websites from before challenge links send none.
+      challenge: info.challenge ?? null,
       onPlayer(fn) {
         listeners.add(fn);
         return () => listeners.delete(fn);
@@ -116,6 +121,8 @@ function connectToHost(host, timeout) {
       requestSignIn: () => notify("signIn"),
       navigate: (path) => notify("navigate", { path }),
       ready: () => notify("ready"),
+      challengeLink: (challenge) => request("challenge.link", challenge),
+      roundEnded: () => notify("roundEnded"),
     };
     return game;
   });
@@ -136,6 +143,7 @@ function standalone() {
     locale: lang.toLowerCase().startsWith("zh") ? "zh-CN" : "en",
     player: { signedIn: false, name: "", avatar: "" },
     embedded: false,
+    challenge: null,
     onPlayer: () => () => {},
     storage: {
       get: async (key) =>
@@ -155,5 +163,12 @@ function standalone() {
       location.href = path;
     },
     ready() {},
+    challengeLink: () =>
+      Promise.reject(
+        Object.assign(new Error("Challenge links work on dingn."), {
+          code: "unavailable",
+        }),
+      ),
+    roundEnded() {},
   };
 }
