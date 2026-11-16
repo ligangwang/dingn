@@ -172,6 +172,15 @@ test("text from a game can't break out of the page or its JSON-LD", () => {
   const html = gamePageHtml(page, evil, false, games);
   assert.doesNotMatch(html, /<script>alert/);
   assert.equal(ldOf(html)[0].name, "</script><script>alert(1)</script>");
+  // `$` patterns in a title are text, not replacement tokens.
+  const dollar = game({
+    versions: {
+      "1.0.0": { ...version, title: { en: "Dollar $' $` $& Game", zh: "x" } },
+    },
+  });
+  const out = gamePageHtml(page, dollar, false, games);
+  assert.match(out, /<title>Dollar \$' \$` \$&amp; Game – Play/);
+  assert.equal(ldOf(out)[0].name, "Dollar $' $` $& Game");
 });
 
 test("category pages list their games, most played first", () => {

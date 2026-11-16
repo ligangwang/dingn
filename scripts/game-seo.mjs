@@ -54,7 +54,9 @@ const jsonLd = (data) =>
     "<",
     "\\u003c",
   )}</script>`;
-const addToHead = (html, extra) => html.replace("</head>", `${extra}</head>`);
+// Replacements go through callbacks so a `$` in a game's text stays literal.
+const addToHead = (html, extra) =>
+  html.replace("</head>", () => `${extra}</head>`);
 
 /** Puts `inner` into the page's empty slot named `name`, if it has one. */
 export function fillSlot(html, name, inner) {
@@ -201,7 +203,10 @@ export function gamePageHtml(html, record, zh, games = []) {
         `<meta name="twitter:image" content="${escape(cover)}"/>`,
       ],
     );
-  let page = swaps.reduce((out, [from, to]) => out.replace(from, to), html);
+  let page = swaps.reduce(
+    (out, [from, to]) => out.replace(from, () => to),
+    html,
+  );
 
   const url = pageUrl(id, zh);
   const names = CATEGORY_NAMES[category];

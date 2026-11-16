@@ -87,6 +87,7 @@ const types = {
   ".xml": "application/xml; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
   ".ttf": "font/ttf",
   ".ico": "image/x-icon",
   ".ts": "text/plain; charset=utf-8",
