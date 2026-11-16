@@ -8,6 +8,7 @@ import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { useWallet } from "./rewards";
 import { CrowdIcon, MemoryIcon, PuzzleIcon } from "./icons";
+import { ServerFill } from "./server-fill";
 import { database, doc, getDoc } from "@/lib/database";
 import {
   featuredGame,
@@ -219,7 +220,13 @@ export function CategoryPage({ category }: { category: Category }) {
         )}
       </header>
 
-      {!games && <p className="category-loading">{t("Loading games…")}</p>}
+      {!games && (
+        <>
+          {/* The server lists the games here until the catalog loads. */}
+          <ServerFill name="games" className="game-grid server-games" />
+          <p className="category-loading">{t("Loading games…")}</p>
+        </>
+      )}
 
       {games && !games.length && (
         <div className="category-empty">
@@ -326,7 +333,12 @@ export function TopGames({
 }) {
   const { locale, href } = useLocale();
   const l = lang(locale);
-  const top = games ? gamesIn(games, category, l).slice(0, 3) : [];
+  // Until the catalog loads, the server's list of the top games.
+  if (!games)
+    return (
+      <ServerFill as="ul" name={`top-${category}`} className="arena-games" />
+    );
+  const top = gamesIn(games, category, l).slice(0, 3);
   if (!top.length) return null;
   return (
     <ul className="arena-games">

@@ -522,6 +522,15 @@ export function catalog(records, plays = {}) {
     .filter(Boolean);
 }
 
+/** The catalog as /api/games serves it, from the short caches. */
+export async function liveCatalog() {
+  const [records, plays] = await Promise.all([
+    cached("list", listRecords),
+    recentPlays(),
+  ]);
+  return catalog(records, plays);
+}
+
 /**
  * GET /api/games            → listed games, live versions
  * GET /api/games/<id>?v=…   → one game at the requested version
@@ -538,11 +547,7 @@ export async function handleGames(req, res, pathname) {
       return await serveGameFile(req, res, pathname);
     const url = new URL(req.url, "http://localhost");
     if (pathname === "/api/games" || pathname === "/api/games/") {
-      const [records, plays] = await Promise.all([
-        cached("list", listRecords),
-        recentPlays(),
-      ]);
-      return sendJson(res, 200, { games: catalog(records, plays) }, 30);
+      return sendJson(res, 200, { games: await liveCatalog() }, 30);
     }
     const id = pathname.slice("/api/games/".length).replace(/\/$/, "");
     const requested = url.searchParams.get("v") ?? "";
@@ -656,6 +661,8 @@ function fileHeaders(file) {
     // in the player's frame or redirects to the player (serveGameFile).
     headers["Cache-Control"] = "no-cache";
     headers["Vary"] = "Sec-Fetch-Dest";
+    // A game's own page is never a search result: its player page is.
+    headers["X-Robots-Tag"] = "noindex";
   }
   return headers;
 }

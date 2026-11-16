@@ -718,5 +718,11 @@
   "category is casual, memory or puzzle: once approved, your game is listed on that category's page and in its menu. cover is required: a picture in your files that shows your game, used for its card and its category page's banner. Make it 16:10, about 1200×750, a .jpg, .png or .webp up to 1 MB, with no text on it, since dingn shows your title next to it.": "category 可以是 casual（休闲）、memory（记忆）或 puzzle（益智）：游戏通过审核后，会出现在该分类的页面和菜单里。cover 是必填项：游戏文件中一张展示游戏画面的图片，用作游戏卡片和分类页横幅。比例 16:10，约 1200×750，.jpg、.png 或 .webp 格式，不超过 1 MB。图上不要放文字，dingn 会在旁边显示游戏标题。",
   "game.json needs a cover: a picture of your game for its card, 16:10, about 1200×750, for example \"cover\": \"cover.jpg\".": "game.json 需要 cover：一张展示游戏画面的卡片图片，比例 16:10，约 1200×750，例如 \"cover\": \"cover.jpg\"。",
   "The zip does not have the cover picture named in game.json:": "压缩包里没有 game.json 中指定的封面图片：",
-  "The cover picture is over 1 MB. Make it smaller:": "封面图片超过 1 MB，请压缩后再上传："
+  "The cover picture is over 1 MB. Make it smaller:": "封面图片超过 1 MB，请压缩后再上传：",
+  "Breadcrumb": "页面路径",
+  "About {0}": "关于{0}",
+  "More casual games": "更多休闲游戏",
+  "More memory games": "更多记忆游戏",
+  "More puzzle games": "更多益智游戏",
+  "{0} – Play free online": "{0} - 免费在线玩"
 }

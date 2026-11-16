@@ -512,3 +512,18 @@ html.play-window-full body {
   width: 22px;
   height: 22px;
 }
+/* What the game is, and more like it (src/components/game-about.tsx). */
+.game-about {
+  margin-top: 20px;
+}
+.game-about h1,
+.game-about h2 {
+  margin: 16px 0 8px;
+  font-size: 1.25rem;
+}
+.game-about .lede {
+  max-width: 70ch;
+}
+.game-about .game-grid {
+  margin-top: 12px;
+}

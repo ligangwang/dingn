@@ -92,6 +92,15 @@ test("every Chinese page declares its own canonical URL and hreflang alternates"
     "zh-CN": "https://dingn.com/zh/feedback/",
     "x-default": "https://dingn.com/feedback/",
   });
+  // Link previews show a large picture in the page's language.
+  expect(meta.twitter).toMatchObject({ card: "summary_large_image" });
+  expect(meta.openGraph?.images).toEqual([
+    expect.objectContaining({ url: "https://dingn.com/og-zh.jpg" }),
+  ]);
+  expect(pageMetadata("/signin/", "en").robots).toEqual({
+    index: false,
+    follow: false,
+  });
 });
 
 test("developer.dingn.com and dev.dingn.com open the developer pages", () => {

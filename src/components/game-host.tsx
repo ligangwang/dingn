@@ -5,6 +5,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "./locale";
+import { GameAbout } from "./game-about";
+import { ServerFill } from "./server-fill";
+import type { Category } from "@/lib/catalog";
 import { useOptionalSession } from "./session";
 import { database, doc, getDoc, setDoc } from "@/lib/database";
 import {
@@ -59,6 +62,8 @@ export type PublishedGame = {
   badges?: BadgeDef[];
   /** The upgrades this version sells for coins. */
   shop?: ShopDef[];
+  /** Where the catalog lists it. */
+  category?: Category;
 };
 
 /** The bridge error for a failed purchase (codes from scripts/rewards.mjs). */
@@ -274,7 +279,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       : game.title.en
     : "";
   useEffect(() => {
-    if (title) document.title = `${title} · dingn`;
+    // As the server titles the page (gameTitle in scripts/game-seo.mjs).
+    if (title) document.title = `${t(`${title} – Play free online`)} · dingn`;
   }, [title]);
 
   const user = session?.user ?? null;
@@ -483,6 +489,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     return (
       <div className="container play-page">
         <p className="play-status">{t("Loading game…")}</p>
+        {/* The server describes the game here until it loads. */}
+        <ServerFill name="game" className="game-about" />
       </div>
     );
   if (state.status !== "ready")
@@ -559,6 +567,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         {ask && <SpendConfirm ask={ask} gameTitle={title} />}
       </div>
       <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
+      <GameAbout game={state.game} />
       <ReportGame game={state.game} signedIn={!!user} />
     </div>
   );

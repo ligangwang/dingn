@@ -17,52 +17,53 @@ export const pages = {
   "/": {
     index: true,
     en: {
-      title: "dingn — Games & Adventures",
+      title: "dingn — Free online games & adventures",
       description:
-        "Discover games on dingn, home of Number Ladder and Card Ladder: quick memory challenges and the 3D Crowd Rush.",
+        "Play free games in your browser on dingn: the 3D Crowd Rush runner, Gem Surge match-3, Pawpal, a 3D Rubik's Cube and memory challenges. No download.",
     },
     zh: {
-      title: "dingn — 游戏与冒险",
+      title: "dingn — 免费在线游戏与冒险",
       description:
-        "探索 dingn 游戏平台，畅玩数字阶梯和扑克牌阶梯：快速的记忆挑战，还有 3D 人潮突击。",
+        "在 dingn 打开浏览器就能免费玩：3D 跑酷人潮突击、宝石狂潮三消、萌宠伙伴、3D 魔方和记忆挑战，无需下载。",
     },
   },
   "/casual/": {
     index: true,
     en: {
-      title: "Casual games",
+      title: "Free casual games online",
       description:
-        "Quick, bright games to pick up any time: play Crowd Rush and more free casual games on dingn.",
+        "Quick, bright games to pick up any time: play Crowd Rush, Gem Surge, Pawpal and more free casual games in your browser on dingn.",
     },
     zh: {
-      title: "休闲游戏",
+      title: "免费在线休闲游戏",
       description:
-        "随时上手的轻松小游戏：在 dingn 免费畅玩人潮突击等休闲游戏。",
+        "随时上手的轻松小游戏：在 dingn 打开浏览器免费畅玩人潮突击、宝石狂潮、萌宠伙伴等休闲游戏。",
     },
   },
   "/memory/": {
     index: true,
     en: {
-      title: "Memory games",
+      title: "Free memory games online",
       description:
-        "Train your memory with Number Ladder, Card Ladder and Major System practice on dingn.",
+        "Train your memory for free in your browser: Number Ladder, Card Ladder and Major System practice on dingn.",
     },
     zh: {
-      title: "记忆游戏",
+      title: "免费在线记忆游戏",
       description:
-        "在 dingn 用数字阶梯、扑克牌阶梯和主要记忆法练习训练你的记忆力。",
+        "在 dingn 免费在线训练记忆力：数字阶梯、扑克牌阶梯和主要记忆法练习。",
     },
   },
   "/puzzle/": {
     index: true,
     en: {
-      title: "Puzzle games",
+      title: "Free puzzle games online",
       description:
-        "Twist, turn and think your way through puzzle games on dingn, like the 3D Rubik's Cube.",
+        "Twist, turn and think your way through free puzzle games in your browser on dingn, like the 3D Rubik's Cube with a step-by-step solver.",
     },
     zh: {
-      title: "益智游戏",
-      description: "在 dingn 玩 3D 魔方等益智游戏，转一转、想一想。",
+      title: "免费在线益智游戏",
+      description:
+        "在 dingn 打开浏览器免费玩 3D 魔方等益智游戏，转一转、想一想，还有分步解法。",
     },
   },
   "/feedback/": {
@@ -77,12 +78,13 @@ export const pages = {
     },
   },
   "/signin/": {
-    index: true,
+    // Nothing for a search engine to show: kept out of results.
+    index: false,
     en: { title: "Sign in" },
     zh: { title: "登录" },
   },
   "/account/": {
-    index: true,
+    index: false,
     en: { title: "Your account" },
     zh: { title: "我的账号" },
   },
@@ -210,6 +212,7 @@ export const sitemapPaths: PagePath[] = [
   "/puzzle/",
   "/feedback/",
   "/kingdom/",
+  "/coins/",
   "/developers/",
   "/developers/agreement/",
 ];
@@ -223,24 +226,74 @@ export function alternates(path: PagePath) {
   };
 }
 
-/** Title, description, canonical URL and hreflang alternates for a page. */
+/**
+ * The picture link previews show (1200×630), in each language. A game's page
+ * swaps in the game's own cover (scripts/game-seo.mjs).
+ */
+export const shareImage = (locale: Locale) => ({
+  url: siteUrl + (locale === "zh-CN" ? "/og-zh.jpg" : "/og.jpg"),
+  width: 1200,
+  height: 630,
+  alt:
+    locale === "zh-CN"
+      ? "dingn：打开浏览器就能玩的免费游戏"
+      : "dingn: free games to play in your browser",
+});
+
+/** Title, description, canonical URL, hreflang and share card for a page. */
 export function pageMetadata(path: PagePath, locale: Locale): Metadata {
   const page: Page = pages[path];
   const copy = locale === "zh-CN" ? page.zh : page.en;
   const url = siteUrl + localePath(path, locale);
+  const image = shareImage(locale);
+  const description = copy.description ? { description: copy.description } : {};
   return {
     title: path === "/" ? { absolute: copy.title } : copy.title,
-    ...(copy.description ? { description: copy.description } : {}),
+    ...description,
     alternates: { canonical: url, languages: alternates(path) },
     openGraph: {
       url,
       title: copy.title,
-      ...(copy.description ? { description: copy.description } : {}),
+      ...description,
       siteName: "dingn",
       locale: locale === "zh-CN" ? "zh_CN" : "en_US",
       alternateLocale: locale === "zh-CN" ? "en_US" : "zh_CN",
       type: "website",
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: copy.title,
+      ...description,
+      images: [image.url],
     },
     ...(page.index ? {} : { robots: { index: false, follow: false } }),
+  };
+}
+
+/** The site and its publisher, for search engines (schema.org JSON-LD). */
+export function siteJsonLd(locale: Locale) {
+  const home = siteUrl + localePath("/", locale);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": siteUrl + "/#organization",
+        name: "dingn",
+        url: siteUrl + "/",
+        logo: siteUrl + "/dingn-mark.svg",
+      },
+      {
+        "@type": "WebSite",
+        "@id": home + "#website",
+        name: "dingn",
+        url: home,
+        inLanguage: locale,
+        description: (locale === "zh-CN" ? pages["/"].zh : pages["/"].en)
+          .description,
+        publisher: { "@id": siteUrl + "/#organization" },
+      },
+    ],
   };
 }
