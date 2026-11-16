@@ -34,6 +34,13 @@ const ARENAS: {
     title: "Twist it back.",
     text: "Scramble the cube, then turn it face by face until every side is one color again.",
   },
+  {
+    category: "adventure",
+    className: "adventure-arena",
+    eyebrow: "04 / ADVENTURE",
+    title: "Find them all.",
+    text: "Set out across mythic realms, bind the spirits you meet and fill your codex page by page.",
+  },
 ];
 
 export function Home() {
@@ -73,7 +80,7 @@ export function Home() {
       <section id="games">
         <div className="mind-heading">
           <div>
-            <p className="eyebrow">{t("THREE WAYS TO PLAY")}</p>
+            <p className="eyebrow">{t("FOUR WAYS TO PLAY")}</p>
             <h2>{t("Your mind. Your playground.")}</h2>
           </div>
         </div>

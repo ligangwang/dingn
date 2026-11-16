@@ -14,8 +14,8 @@ export type Plays = { total: number; week: number; month: number };
 export type AdminGame = {
   id: string;
   status: "listed" | "unlisted" | "removed";
-  /** Its category page: casual, memory or puzzle. */
-  category: "casual" | "memory" | "puzzle";
+  /** Its category page: casual, memory, puzzle or adventure. */
+  category: "casual" | "memory" | "puzzle" | "adventure";
   /** When it was pinned to its category page's banner, or null. */
   featuredAt: string | null;
   /** Why the game was taken down, if it was. */

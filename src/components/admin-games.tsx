@@ -402,7 +402,12 @@ function GameCard({
   const listed = game.status === "listed";
   const removed = game.status === "removed";
   // The category page's name, as the menu shows it.
-  const page = { casual: "Casual", memory: "Memory", puzzle: "Puzzle" }[
+  const page = {
+    casual: "Casual",
+    memory: "Memory",
+    puzzle: "Puzzle",
+    adventure: "Adventure",
+  }[
     game.category ?? "casual"
   ];
   const date = (iso: string | null) =>

@@ -142,7 +142,8 @@ select {
 }
 .arena-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Four categories: two rows of two. */
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 .arena {
@@ -200,6 +201,12 @@ select {
 }
 .puzzle-arena .arena-symbol {
   color: #ffb45c;
+}
+.adventure-arena {
+  background: linear-gradient(150deg, #1f3a34, #171e23);
+}
+.adventure-arena .arena-symbol {
+  color: #6fe3b4;
 }
 @media (max-width: 1040px) and (min-width: 761px) {
   .arena-grid {

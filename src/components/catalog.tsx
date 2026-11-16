@@ -1,5 +1,5 @@
 "use client";
-// The category pages (/casual/, /memory/, /puzzle/), the menu's game lists
+// The category pages (/casual/, /memory/, /puzzle/, /adventure/), the menu's game lists
 // and the home page's thumbnails, all filled from the catalog
 // (src/lib/catalog.ts): whatever games are listed and approved.
 import Link from "next/link";
@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { useWallet } from "./rewards";
-import { CrowdIcon, MemoryIcon, PuzzleIcon } from "./icons";
+import { AdventureIcon, CrowdIcon, MemoryIcon, PuzzleIcon } from "./icons";
 import { ServerFill } from "./server-fill";
 import { database, doc, getDoc } from "@/lib/database";
 import {
@@ -48,6 +48,12 @@ export const CATEGORY_INFO: Record<
     path: "/puzzle/",
     Icon: PuzzleIcon,
     tagline: "Twist, turn and think your way through.",
+  },
+  adventure: {
+    label: "Adventure",
+    path: "/adventure/",
+    Icon: AdventureIcon,
+    tagline: "Explore new worlds and collect what you find.",
   },
 };
 

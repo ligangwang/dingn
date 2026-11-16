@@ -26,7 +26,8 @@ signed out, and scores last until the page closes.
 
 - Change `game.json`: `id` (lowercase letters and digits), `title`,
   `description` and `version`. Every new release needs a new version.
-- Pick a `category`: `casual`, `memory` or `puzzle`. Once approved, your game
+- Pick a `category`: `casual`, `memory`, `puzzle` or
+  `adventure`. Once approved, your game
   is listed on that category's page and in its menu on dingn.
 - Replace `cover.png` with a picture of your game. dingn needs a `cover` in
   every upload and shows it on your game's card and its category banner:

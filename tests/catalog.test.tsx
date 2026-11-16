@@ -77,10 +77,10 @@ it("each menu category opens its page and lists its games", async () => {
   const casual = screen.getByRole("link", { name: "Casual" });
   expect(casual.getAttribute("href")).toBe("/casual");
   expect(
-    ["Memory", "Puzzle", "Kingdom"].map((name) =>
+    ["Memory", "Puzzle", "Adventure", "Kingdom"].map((name) =>
       screen.getByRole("link", { name }).getAttribute("href"),
     ),
-  ).toEqual(["/memory", "/puzzle", "/kingdom"]);
+  ).toEqual(["/memory", "/puzzle", "/adventure", "/kingdom"]);
   // On a game's page, its category is the current one.
   await screen.findByText("PAWPAL");
   expect(casual.getAttribute("aria-current")).toBe("page");

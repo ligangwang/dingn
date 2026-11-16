@@ -4,7 +4,7 @@
 // in the menu and on the home page without a website change.
 import type { BadgeDef } from "./rewards";
 
-export const CATEGORIES = ["casual", "memory", "puzzle"] as const;
+export const CATEGORIES = ["casual", "memory", "puzzle", "adventure"] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export type CatalogGame = {
