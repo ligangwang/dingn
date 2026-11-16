@@ -76,7 +76,6 @@ export function Home() {
             <p className="eyebrow">{t("THREE WAYS TO PLAY")}</p>
             <h2>{t("Your mind. Your playground.")}</h2>
           </div>
-          <span>{t("No sign-in needed")}</span>
         </div>
         <div className="arena-grid">
           {ARENAS.map(({ category, className, eyebrow, title, text }) => {
