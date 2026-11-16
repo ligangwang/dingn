@@ -12,7 +12,7 @@ import { consentKey } from "./analytics";
 import { challengeFromQuery } from "@/data/challenge.mjs";
 
 export const FUNNEL_KEY = "dingn.funnel.v1";
-const SOURCE = /^[a-z0-9_-]{1,40}$/;
+const SOURCE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 /** A browser that comes back within this many days counts toward "returners". */
 export const RETURN_DAYS = 7;
 

@@ -24,7 +24,10 @@ import { ID, cachedRecord } from "./game-registry.mjs";
 import { getDoc, incrementDoc } from "./platform-store.mjs";
 
 export const funnelRoutes = ["/api/funnel", "/api/admin/funnel"];
-export const SOURCE = /^[a-z0-9_-]{1,40}$/;
+// Starts with a letter or digit: Firestore refuses field names like `__x__`.
+export const SOURCE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+/** Most fields one write adds to (Firestore allows 500 transforms a commit). */
+export const MAX_FIELDS_PER_WRITE = 400;
 /** Source metrics, in the order the admin page shows them. */
 export const SOURCE_METRICS = [
   "visitors",
@@ -116,14 +119,17 @@ export async function flushFunnel() {
   const batch = [...pending];
   pending.clear();
   for (const [date, counts] of batch) {
-    try {
-      await incrementDoc("funnelStats", date, counts);
-    } catch (error) {
-      console.error("funnel stats", date, error);
-      const doc = pending.get(date) ?? {};
-      for (const [name, n] of Object.entries(counts))
-        doc[name] = (doc[name] ?? 0) + n;
-      pending.set(date, doc);
+    const entries = Object.entries(counts);
+    for (let i = 0; i < entries.length; i += MAX_FIELDS_PER_WRITE) {
+      const part = entries.slice(i, i + MAX_FIELDS_PER_WRITE);
+      try {
+        await incrementDoc("funnelStats", date, Object.fromEntries(part));
+      } catch (error) {
+        console.error("funnel stats", date, error);
+        const doc = pending.get(date) ?? {};
+        for (const [name, n] of part) doc[name] = (doc[name] ?? 0) + n;
+        pending.set(date, doc);
+      }
     }
   }
 }

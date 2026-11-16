@@ -72,6 +72,7 @@ test("reports are checked before they count", () => {
     null,
     { event: "visit" },
     { event: "visit", source: "Google.com" },
+    { event: "visit", source: "__name__" },
     { event: "visit", source: "a", new: "yes" },
     { event: "buy", source: "a", game: "memory" },
     { event: "start", source: "a" },
@@ -168,4 +169,19 @@ test("reports are saved by day and only admins can read them", async () => {
     (await store.getDoc("funnelStats", today)).sources.tiktok.visitors,
     1,
   );
+});
+
+test("a big day is saved in writes Firestore accepts", async () => {
+  // 453 fields, so more than one write.
+  const date = "2030-01-01";
+  const now = new Date(`${date}T12:00:00Z`);
+  for (let i = 0; i < 150; i++)
+    for (const event of ["start", "finish", "share"])
+      funnel.recordReport({ event, source: `s${i}`, game: "memory" }, now);
+  await funnel.flushFunnel();
+  const doc = await store.getDoc("funnelStats", date);
+  assert.equal(Object.keys(doc.sources).length, 150);
+  assert.equal(doc.games.memory.starts, 150);
+  assert.equal(doc.sources.s149.shares, 1);
+  assert.ok(funnel.MAX_FIELDS_PER_WRITE < 453);
 });
