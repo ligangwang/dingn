@@ -124,6 +124,10 @@
   color: #ffb45c;
   background: linear-gradient(150deg, #3a2a1c, #1d1a21);
 }
+.category-adventure .category-symbol {
+  color: #6fe3b4;
+  background: linear-gradient(150deg, #1f3a34, #171e23);
+}
 .category-head .eyebrow {
   margin: 0;
 }

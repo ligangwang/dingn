@@ -224,7 +224,7 @@ http
       return;
     }
     // The home and category pages, with their games filled in as links.
-    const listing = /^\/(zh\/)?(?:(casual|memory|puzzle)\/)?$/.exec(pathname);
+    const listing = /^\/(zh\/)?(?:(casual|memory|puzzle|adventure)\/)?$/.exec(pathname);
     if (listing) {
       const [, zh, category] = listing;
       void sendFilled(

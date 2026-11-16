@@ -188,7 +188,7 @@ export function Developers() {
       </p>
       <p>
         {t(
-          "category is casual, memory or puzzle: once approved, your game is listed on that category's page and in its menu. cover is required: a picture in your files that shows your game, used for its card and its category page's banner. Make it 16:10, about 1200×750, a .jpg, .png or .webp up to 1 MB, with no text on it, since dingn shows your title next to it.",
+          "category is casual, memory, puzzle or adventure: once approved, your game is listed on that category's page and in its menu. cover is required: a picture in your files that shows your game, used for its card and its category page's banner. Make it 16:10, about 1200×750, a .jpg, .png or .webp up to 1 MB, with no text on it, since dingn shows your title next to it.",
         )}
       </p>
 

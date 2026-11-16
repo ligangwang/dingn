@@ -66,6 +66,19 @@ export const pages = {
         "在 dingn 打开浏览器免费玩 3D 魔方等益智游戏，转一转、想一想，还有分步解法。",
     },
   },
+  "/adventure/": {
+    index: true,
+    en: {
+      title: "Free adventure games online",
+      description:
+        "Explore new worlds for free in your browser on dingn: adventure games like Mythbound, where you bind mythical spirits and fill your codex.",
+    },
+    zh: {
+      title: "免费在线冒险游戏",
+      description:
+        "在 dingn 打开浏览器免费玩《灵契藏鉴》等冒险游戏：探索秘境，与灵兽结契，填满你的藏鉴。",
+    },
+  },
   "/feedback/": {
     index: true,
     en: {
@@ -210,6 +223,7 @@ export const sitemapPaths: PagePath[] = [
   "/casual/",
   "/memory/",
   "/puzzle/",
+  "/adventure/",
   "/feedback/",
   "/kingdom/",
   "/coins/",

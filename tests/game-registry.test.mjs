@@ -187,6 +187,15 @@ test("game.json names a category and a cover for the catalog", () => {
     registry.publicGame({ ...plain, id: "rubikscube" }).category,
     "puzzle",
   );
+  // Adventure is a category of its own.
+  const quest = registry.validateManifest(
+    manifest("1.0.0", { category: "adventure", cover: "cover.jpg" }),
+  );
+  assert.equal(
+    registry.publicGame(registry.addVersion(null, quest, { listed: true }))
+      .category,
+    "adventure",
+  );
 });
 
 test("the catalog lists approved, listed games with their recent plays", () => {

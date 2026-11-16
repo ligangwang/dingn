@@ -22,10 +22,10 @@ const MAX_TITLE = 80,
 
 /**
  * The catalog's categories, in menu order: each has a page on the website
- * (/casual/, /memory/, /puzzle/) listing its games. A game names its own in
+ * (/casual/, /memory/, /puzzle/, /adventure/) listing its games. A game names its own in
  * game.json; a game that names none is casual.
  */
-export const CATEGORIES = ["casual", "memory", "puzzle"];
+export const CATEGORIES = ["casual", "memory", "puzzle", "adventure"];
 // dingn's own games published before game.json had a category.
 const KNOWN_CATEGORY = { memory: "memory", rubikscube: "puzzle" };
 /** A cover picture in the game's files, shown on its catalog card. */

@@ -192,7 +192,7 @@ In authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (
 
 ## Mind arcade and authentication domain
 
-dingn has three game categories, in this order on the menu: Casual (Crowd Rush, from `ligangwang/crowdrush`), Memory (the Memory game: Number Ladder, Card Ladder and the Major System labs, from `ligangwang/memory`) and Puzzle (Rubik's Cube at `/play/rubikscube/`, from `ligangwang/rubikscube`). The Logic Lab and Decision Room games were retired; their old addresses (`/logic/`, `/decisions/` and the `/zh/` copies) redirect to the home page.
+dingn has four game categories, in this order on the menu: Casual (Crowd Rush, from `ligangwang/crowdrush`), Memory (the Memory game: Number Ladder, Card Ladder and the Major System labs, from `ligangwang/memory`), Puzzle (Rubik's Cube at `/play/rubikscube/`, from `ligangwang/rubikscube`) and Adventure (Mythbound at `/play/mythbound/`, from `ligangwang/mythbound`). The Logic Lab and Decision Room games were retired; their old addresses (`/logic/`, `/decisions/` and the `/zh/` copies) redirect to the home page.
 
 Production uses Cloud Run. `scripts/preview.mjs` transparently forwards GET/POST/HEAD requests under `/__/auth/` to the fixed Firebase Authentication helper host with HTTPS verification, while the client retains `authDomain: dingn.com`. Google OAuth must authorize `https://dingn.com/__/auth/handler`. Firebase Hosting stays disabled; reserved authentication helper endpoints still work.
 

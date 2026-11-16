@@ -37,11 +37,13 @@ const CATEGORY_NAMES = {
   casual: { en: "Casual games", zh: "休闲游戏" },
   memory: { en: "Memory games", zh: "记忆游戏" },
   puzzle: { en: "Puzzle games", zh: "益智游戏" },
+  adventure: { en: "Adventure games", zh: "冒险游戏" },
 };
 const MORE = {
   casual: { en: "More casual games", zh: "更多休闲游戏" },
   memory: { en: "More memory games", zh: "更多记忆游戏" },
   puzzle: { en: "More puzzle games", zh: "更多益智游戏" },
+  adventure: { en: "More adventure games", zh: "更多冒险游戏" },
 };
 
 /** A game's page title (keep in step with src/components/game-host.tsx). */

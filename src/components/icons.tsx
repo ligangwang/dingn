@@ -90,6 +90,17 @@ export function PuzzleIcon(props: IconProps) {
   );
 }
 
+/** Adventure: a compass with its needle pointing the way. */
+export function AdventureIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5z" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+    </Svg>
+  );
+}
+
 /** Kingdom: a castle with three towers. */
 export function CastleIcon(props: IconProps) {
   return (
