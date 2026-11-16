@@ -129,3 +129,27 @@ export async function updateSettings(change: Partial<SiteSettings>) {
     await api<{ settings: SiteSettings }>("/api/admin/settings/update", change)
   ).settings;
 }
+
+/** The growth funnel's counts (scripts/funnel.mjs), by source and by game. */
+export type FunnelRow = {
+  visitors: number;
+  new: number;
+  starts: number;
+  finishes: number;
+  shares: number;
+  returning: number;
+  returners: number;
+  referred: number;
+};
+export type FunnelReport = {
+  days: number;
+  from: string;
+  to: string;
+  total: FunnelRow;
+  sources: Record<string, FunnelRow>;
+  games: Record<string, Pick<FunnelRow, "starts" | "finishes" | "shares">>;
+};
+
+export async function getFunnel(days: number) {
+  return await api<FunnelReport>("/api/admin/funnel", { days });
+}

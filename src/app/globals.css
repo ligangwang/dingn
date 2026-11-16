@@ -1257,3 +1257,28 @@ input[type="radio"] {
 .admin-setting p {
   margin: 0 0 12px;
 }
+.funnel-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0;
+  margin: 16px 0;
+  list-style: none;
+}
+.funnel-steps li {
+  flex: 1 1 140px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #1b2030;
+}
+.admin-funnel h2 {
+  margin-top: 32px;
+}
+.funnel-steps strong {
+  display: block;
+  font-size: 1.6rem;
+}
+.funnel-steps small {
+  color: var(--muted);
+}

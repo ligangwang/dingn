@@ -3,6 +3,7 @@
 // developer's own computer) the way /play/<id>/ does, with a test player
 // instead of the real account. Every SDK call is answered by the same
 // bridge as real games (src/lib/game-bridge) and shown in a log.
+import { challengeUrl } from "@/data/challenge.mjs";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "./locale";
@@ -140,6 +141,9 @@ export function DevPlayground() {
     signIn: () => setSignedIn(true),
     navigate: () => {},
     ready: () => setReady(true),
+    // A link to the playground game's page as it would be on dingn.
+    challengeLink: (c) =>
+      challengeUrl(location.origin, "playground", c, locale === "zh-CN"),
     // The playground has no game.json, so any badge id unlocks once and any
     // item can be bought, as tests that pay, charge and save nothing.
     rewards: {
@@ -301,7 +305,7 @@ export function DevPlayground() {
             src={url}
             title={t("Your game")}
             sandbox={SANDBOX}
-            allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope"
+            allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; clipboard-write; web-share"
             allowFullScreen
           />
         </div>

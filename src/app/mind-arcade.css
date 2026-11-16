@@ -125,6 +125,87 @@ select {
   transform: rotate(-6deg);
   font-size: 12px;
 }
+.mind-hero > * {
+  min-width: 0;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.hero-actions .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 22px;
+  border-radius: 28px;
+  border: 1px solid #59627a;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hero-kingdom {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid #404354;
+  box-shadow: 0 24px 60px #0007;
+  background: #1b2030;
+}
+.hero-kingdom img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 960 / 541;
+  object-fit: cover;
+}
+.hero-kingdom-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px 18px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #dfe3ee;
+}
+.hero-kingdom-card .eyebrow {
+  margin: 0;
+  color: #d5ff58;
+}
+.hero-kingdom-card strong {
+  font: 700 20px/1.2 var(--font-display);
+  color: #fff;
+}
+.hero-kingdom-card a {
+  color: #d5ff58;
+  font-weight: 600;
+}
+.hero-kingdom-bar {
+  display: block;
+  height: 8px;
+  border-radius: 8px;
+  background: #ffffff26;
+  overflow: hidden;
+}
+.hero-kingdom-bar span {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: 8px;
+  background: #d5ff58;
+}
+.hero-stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+  color: #fff;
+}
+.hero-stages li:not(:last-child)::after {
+  content: " →";
+  color: #d5ff58;
+}
 .mind-heading {
   display: flex;
   justify-content: space-between;

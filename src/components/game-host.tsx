@@ -48,6 +48,13 @@ import {
   type BridgeContext,
   type Player,
 } from "@/lib/game-bridge";
+import {
+  challengeFromQuery,
+  challengeText,
+  challengeUrl,
+  type Challenge,
+} from "@/data/challenge.mjs";
+import { trackGame } from "@/lib/funnel";
 
 export type PublishedGame = {
   id: string;
@@ -135,6 +142,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     | { status: "ready"; game: PublishedGame; pinned: string }
   >({ status: "loading" });
   const [loaded, setLoaded] = useState(false);
+  // A friend's challenge in the address (?challenge=…), read once.
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const lastRound = useRef(0);
   const stage = useRef<HTMLDivElement>(null);
   // Full screen: the browser's own where it works, otherwise (iPhone Safari,
   // or a request the browser refuses) the stage simply fills the window.
@@ -251,6 +261,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   useEffect(() => {
     const id = gameId ?? gameIdFromPath(location.pathname);
     const requested = new URLSearchParams(location.search).get("v") ?? "";
+    setChallenge(challengeFromQuery(location.search));
     if (!id) return setState({ status: "missing" });
     let active = true;
     fetch(
@@ -327,6 +338,18 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;
     },
     ready: () => setLoaded(true),
+    challenge,
+    challengeLink: (c) => {
+      trackGame("share", game.id);
+      return challengeUrl(location.origin, game.id, c, locale === "zh-CN");
+    },
+    roundEnded: () => {
+      // A few seconds apart at most, so a game calling it in a loop can't
+      // flood the statistics.
+      if (Date.now() - lastRound.current < 3000) return;
+      lastRound.current = Date.now();
+      trackGame("finish", game.id);
+    },
     rewards: {
       unlock: async (id) => {
         const def = game.badges?.find((b) => b.id === id);
@@ -468,7 +491,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
 
   // Count one play each time a game opens, for its developer's stats.
   useEffect(() => {
-    if (game) countPlay(game.id, game.version);
+    if (!game) return;
+    countPlay(game.id, game.version);
+    trackGame("start", game.id);
   }, [game?.id, game?.version]);
 
   // Tell the game when the player signs in or out.
@@ -530,6 +555,14 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           {t("Full screen")}
         </button>
       </div>
+      {challenge && (
+        <p className="play-challenge" role="note">
+          <strong>
+            {challengeText(challenge, title, locale === "zh-CN").title}
+          </strong>{" "}
+          <span>{t("You play the same round. Beat that score to win.")}</span>
+        </p>
+      )}
       {state.game.preview && (
         <p className="play-preview" role="note">
           {t(
@@ -558,7 +591,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           src={state.game.url + gameHash(location.hash)}
           title={title}
           sandbox={SANDBOX}
-          allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope"
+          allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; clipboard-write; web-share"
           allowFullScreen
           onLoad={() => setTimeout(() => setLoaded(true), 4000)}
         />

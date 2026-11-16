@@ -70,7 +70,7 @@ const PRIVACY: Sections = [
   [
     "Analytics",
     [
-      "dingn uses Google Analytics to count visits and see which games people play. You can turn it off for your browser at dingn.com/opt-out.",
+      "dingn uses Google Analytics, and its own anonymous counts, to see how many people visit, which games they play, whether they come back and which links brought them. dingn's counts keep only the day of your first visit and where it came from in your browser, never who you are. You can turn both off for your browser at dingn.com/opt-out.",
     ],
   ],
   [

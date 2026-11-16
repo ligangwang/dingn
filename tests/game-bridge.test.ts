@@ -64,8 +64,62 @@ test("init tells the game who is playing, in which language", async () => {
       version: "1.0.0",
       locale: "zh-CN",
       player: { signedIn: true, name: "Ada", avatar: "" },
+      challenge: null,
     },
   });
+});
+
+test("a game gets the friend's challenge and can make challenge links", async () => {
+  const { ctx, calls } = context(false);
+  const challenge = {
+    mode: "ladder",
+    seed: "2026-11-16",
+    score: 10,
+    unit: "digits" as const,
+  };
+  ctx.challenge = challenge;
+  ctx.challengeLink = (c) =>
+    `https://dingn.com/play/hello/?challenge=${c.mode}&score=${c.score}`;
+  ctx.roundEnded = () => void calls.push("roundEnded");
+  const init = await handleGameRequest(ask("init"), ctx);
+  assert.deepEqual(
+    init &&
+      "result" in init &&
+      (init.result as { challenge: unknown }).challenge,
+    challenge,
+  );
+  const link = await handleGameRequest(
+    ask("challenge.link", { mode: "ladder", score: 12, unit: "digits" }),
+    ctx,
+  );
+  assert.equal(
+    link && "result" in link && link.result,
+    "https://dingn.com/play/hello/?challenge=ladder&score=12",
+  );
+  for (const params of [
+    { mode: "ladder", score: 12, unit: "dollars" },
+    { mode: "ladder", score: -1, unit: "digits" },
+    { score: 12, unit: "digits" },
+  ]) {
+    const reply = await handleGameRequest(ask("challenge.link", params), ctx);
+    assert.equal(
+      reply && "error" in reply && reply.error.code,
+      "invalid",
+      JSON.stringify(params),
+    );
+  }
+  assert.equal(
+    await handleGameRequest({ dingn: "game", v: 1, method: "roundEnded" }, ctx),
+    null,
+  );
+  assert.deepEqual(calls, ["roundEnded"]);
+  // Where dingn makes no links (an old page), the game hears so.
+  delete ctx.challengeLink;
+  const none = await handleGameRequest(
+    ask("challenge.link", { mode: "a", score: 1, unit: "points" }),
+    ctx,
+  );
+  assert.equal(none && "error" in none && none.error.code, "unavailable");
 });
 
 test("a game's storage is namespaced to that game and size-limited", async () => {
