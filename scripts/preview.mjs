@@ -11,8 +11,14 @@ import {
   cachedRecords,
   handleGames,
   isGamesPath,
+  liveCatalog,
 } from "./game-registry.mjs";
-import { gamePageHtml, sitemapWithGames } from "./game-seo.mjs";
+import {
+  categoryPageHtml,
+  gamePageHtml,
+  homePageHtml,
+  sitemapWithGames,
+} from "./game-seo.mjs";
 import { adminGameRoutes, handleAdminGames } from "./games-admin.mjs";
 import {
   developerGameRoutes,
@@ -81,6 +87,7 @@ const types = {
   ".xml": "application/xml; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
   ".ttf": "font/ttf",
   ".ico": "image/x-icon",
   ".ts": "text/plain; charset=utf-8",
@@ -203,7 +210,31 @@ http
         res,
         path.join(root, play[1] ? "zh" : "", "play", "index.html"),
         types[".html"],
-        async (html) => gamePageHtml(html, await cachedRecord(id), !!play[1]),
+        async (html) => {
+          const [record, games] = await Promise.all([
+            cachedRecord(id),
+            liveCatalog(),
+          ]);
+          return gamePageHtml(html, record, !!play[1], games);
+        },
+      ).catch(() => {
+        res.writeHead(500);
+        res.end();
+      });
+      return;
+    }
+    // The home and category pages, with their games filled in as links.
+    const listing = /^\/(zh\/)?(?:(casual|memory|puzzle)\/)?$/.exec(pathname);
+    if (listing) {
+      const [, zh, category] = listing;
+      void sendFilled(
+        res,
+        path.join(root, zh ? "zh" : "", category ?? "", "index.html"),
+        types[".html"],
+        async (html) =>
+          category
+            ? categoryPageHtml(html, await liveCatalog(), category, !!zh)
+            : homePageHtml(html, await liveCatalog(), !!zh),
       ).catch(() => {
         res.writeHead(500);
         res.end();

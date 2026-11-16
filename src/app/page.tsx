@@ -1,6 +1,12 @@
 import { Home } from "@/components/home";
-import { pageMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
+import { pageMetadata, siteJsonLd } from "@/lib/seo";
 export const metadata = pageMetadata("/", "en");
 export default function Page() {
-  return <Home />;
+  return (
+    <>
+      <JsonLd data={siteJsonLd("en")} />
+      <Home />
+    </>
+  );
 }

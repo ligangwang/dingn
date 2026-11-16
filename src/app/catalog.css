@@ -446,3 +446,29 @@
     transform: none;
   }
 }
+
+/* Games the server filled in (src/components/server-fill.tsx). */
+.arena-games:empty,
+.server-games:empty {
+  display: none;
+}
+.server-games:not(:empty) + .category-loading {
+  display: none;
+}
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--muted, #8a90a3);
+}
+.breadcrumbs li + li::before {
+  content: "›";
+  margin-right: 6px;
+}
+.breadcrumbs a {
+  color: inherit;
+}

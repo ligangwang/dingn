@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+# Admin tools say noindex too. /api/ stays open: pages fetch their games
+# from it, and search engines run those pages to see them.
+Disallow: /admin/
+Disallow: /zh/admin/
 
 Sitemap: https://dingn.com/sitemap.xml
