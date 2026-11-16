@@ -35,6 +35,11 @@ const PROBLEMS: Record<string, string> = {
   "bad-file": "These file names cannot be served (hidden or unsafe):",
   "unsupported-type": "These kinds of files are not allowed:",
   "missing-entry": "The zip does not have the entry page named in game.json:",
+  "missing-cover":
+    'game.json needs a cover: a picture of your game for its card, 16:10, about 1200×750, for example "cover": "cover.jpg".',
+  "missing-cover-file":
+    "The zip does not have the cover picture named in game.json:",
+  "cover-too-large": "The cover picture is over 1 MB. Make it smaller:",
   "not-your-game":
     "Another game already uses this id. Choose a different id in game.json.",
   "version-exists":

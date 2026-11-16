@@ -8,6 +8,7 @@
   },
   "entry": "index.html",
   "category": "casual",
+  "cover": "cover.png",
   "badges": [
     {
       "id": "taps-30",

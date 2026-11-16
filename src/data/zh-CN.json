@@ -702,7 +702,6 @@
   "Hot": "热门",
   "Pick up and play.": "拿起就玩。",
   "Quick, bright games you can jump into any time and put down just as fast.": "随时开玩、随时放下的轻松小游戏。",
-  "category is casual, memory or puzzle: once approved, your game is listed on that category's page and in its menu. cover is an optional picture in your files for your game's card, 16:10, about 800×500. Without one, dingn draws a card from your title.": "category 可以是 casual（休闲）、memory（记忆）或 puzzle（益智）：游戏通过审核后，会出现在该分类的页面和菜单里。cover 是游戏文件中的一张可选图片，用作游戏卡片，比例 16:10，约 800×500。没有的话，dingn 会用游戏标题画一张卡片。",
   "Feature on the Casual page": "在休闲页置顶推荐",
   "Featured on the Casual page": "已在休闲页置顶推荐",
   "Feature on the Memory page": "在记忆页置顶推荐",
@@ -715,5 +714,9 @@
   "{0} is featured on the Puzzle page.": "{0} 已在益智页置顶推荐。",
   "{0} is no longer featured. The Casual page picks its banner game itself.": "{0} 已取消推荐。休闲页会自动选择横幅游戏。",
   "{0} is no longer featured. The Memory page picks its banner game itself.": "{0} 已取消推荐。记忆页会自动选择横幅游戏。",
-  "{0} is no longer featured. The Puzzle page picks its banner game itself.": "{0} 已取消推荐。益智页会自动选择横幅游戏。"
+  "{0} is no longer featured. The Puzzle page picks its banner game itself.": "{0} 已取消推荐。益智页会自动选择横幅游戏。",
+  "category is casual, memory or puzzle: once approved, your game is listed on that category's page and in its menu. cover is required: a picture in your files that shows your game, used for its card and its category page's banner. Make it 16:10, about 1200×750, a .jpg, .png or .webp up to 1 MB, with no text on it, since dingn shows your title next to it.": "category 可以是 casual（休闲）、memory（记忆）或 puzzle（益智）：游戏通过审核后，会出现在该分类的页面和菜单里。cover 是必填项：游戏文件中一张展示游戏画面的图片，用作游戏卡片和分类页横幅。比例 16:10，约 1200×750，.jpg、.png 或 .webp 格式，不超过 1 MB。图上不要放文字，dingn 会在旁边显示游戏标题。",
+  "game.json needs a cover: a picture of your game for its card, 16:10, about 1200×750, for example \"cover\": \"cover.jpg\".": "game.json 需要 cover：一张展示游戏画面的卡片图片，比例 16:10，约 1200×750，例如 \"cover\": \"cover.jpg\"。",
+  "The zip does not have the cover picture named in game.json:": "压缩包里没有 game.json 中指定的封面图片：",
+  "The cover picture is over 1 MB. Make it smaller:": "封面图片超过 1 MB，请压缩后再上传："
 }

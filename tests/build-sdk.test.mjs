@@ -52,6 +52,7 @@ test("the website serves the SDK, its types and the starter game", async () => {
     const starter = unzip(await readFile(path.join(out, "starter.zip")));
     assert.deepEqual(Object.keys(starter).sort(), [
       "dingn-starter/README.md",
+      "dingn-starter/cover.png",
       "dingn-starter/game.json",
       "dingn-starter/index.html",
       "dingn-starter/main.js",

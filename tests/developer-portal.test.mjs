@@ -71,9 +71,15 @@ const adminCall = (pathname, body) =>
 const gameZip = (id, version) =>
   zipLib.zip({
     "game.json": Buffer.from(
-      JSON.stringify({ id, version, title: { en: "Moon Run", zh: "月跑" } }),
+      JSON.stringify({
+        id,
+        version,
+        title: { en: "Moon Run", zh: "月跑" },
+        cover: "cover.png",
+      }),
     ),
     "index.html": Buffer.from("<p>run</p>"),
+    "cover.png": Buffer.from("png"),
   });
 const mail = async () =>
   Object.values(

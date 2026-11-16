@@ -57,6 +57,9 @@ export const developerGameRoutes = [
 
 /** The developer agreement's version; /developers/agreement/ shows it. */
 export const AGREEMENT_VERSION = "2026-11-09";
+/** The largest cover picture an upload may bring. */
+export const MAX_COVER_BYTES = 1024 * 1024;
+
 /** How many games one developer can own, and upload in a day. */
 export const LIMITS = { games: 10, uploadsPerDay: 20 };
 
@@ -115,6 +118,13 @@ export function prepareUpload(zipped) {
     throw new UploadError(400, "unsupported-type", unsupported.join(", "));
   if (!files[manifest.entry])
     throw new UploadError(400, "missing-entry", manifest.entry);
+  // Every game's card and category banner shows its cover, so an upload
+  // must bring one.
+  if (!manifest.cover) throw new UploadError(400, "missing-cover");
+  if (!files[manifest.cover])
+    throw new UploadError(400, "missing-cover-file", manifest.cover);
+  if (files[manifest.cover].length > MAX_COVER_BYTES)
+    throw new UploadError(400, "cover-too-large", manifest.cover);
   return { manifest, files };
 }
 

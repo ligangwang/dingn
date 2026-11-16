@@ -28,8 +28,10 @@ signed out, and scores last until the page closes.
   `description` and `version`. Every new release needs a new version.
 - Pick a `category`: `casual`, `memory` or `puzzle`. Once approved, your game
   is listed on that category's page and in its menu on dingn.
-- Add a `cover` picture (for example `cover.png`, 16:10, about 800×500) for
-  your game's card. Without one, dingn draws a card from your title.
+- Replace `cover.png` with a picture of your game. dingn needs a `cover` in
+  every upload and shows it on your game's card and its category banner:
+  16:10, about 1200×750, a `.jpg`, `.png` or `.webp` up to 1 MB, with no
+  title text on it (dingn shows your title next to it).
 - Use relative paths (`style.css`, `img/hero.png`) for your files. Your game
   is served from its own folder, not the site root.
 - Save with `dingn.storage` and `dingn.progress`, not `localStorage` or
