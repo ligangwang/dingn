@@ -9,10 +9,11 @@ import {
 } from "@/lib/analytics";
 import { FUNNEL_KEY, trackVisit } from "@/lib/funnel";
 
-const isOptOut = (path: string) => path.replace(/\/$/, "") === "/opt-out";
+const isOptOut = (path: string) =>
+  ["/opt-out", "/zh/opt-out"].includes(path.replace(/\/$/, ""));
 
 /**
- * Google Analytics runs by default. Visiting /opt-out stores a denial in this
+ * Google Analytics runs by default. Visiting /opt-out (or /zh/opt-out) stores a denial in this
  * browser, which turns it off and clears the GA cookies from then on. The
  * same denial turns off dingn's own visit counts (src/lib/funnel.ts).
  */

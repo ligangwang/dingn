@@ -24,13 +24,14 @@ beforeEach(() => {
     delete state[key];
   document.getElementById("dingn-google-analytics")?.remove();
 });
-test("no tag or events before permission, on previews, or on private pages", () => {
+test("no tag or events before permission, on previews, or on admin pages", () => {
   for (const consent of [null, "denied"] as const)
     syncAnalytics(consent, "/", "dingn.com");
   syncAnalytics("granted", "/", "localhost");
   syncAnalytics("granted", "/", "dingn-web.run.app");
   syncAnalytics("granted", "/admin/feedback/", "dingn.com");
-  syncAnalytics("granted", "/account/", "dingn.com");
+  syncAnalytics("granted", "/zh/admin/users/", "dingn.com");
+  syncAnalytics("granted", "/admin", "dingn.com");
   expect(document.getElementById("dingn-google-analytics")).toBeNull();
   expect(commands()).toEqual([]);
 });
@@ -41,7 +42,7 @@ test("tracks one sanitized view per route and disables automatic page views", ()
   expect(views()).toHaveLength(2);
   expect(views()[1][2]).toMatchObject({
     page_location: "https://dingn.com/play/memory/",
-    page_title: "Memory",
+    page_title: "Play memory",
     page_referrer: "https://dingn.com/",
   });
   expect(JSON.stringify(commands())).not.toMatch(/private|secret/);
@@ -70,5 +71,32 @@ test("clears Analytics cookies while preserving other cookies", () => {
   clearAnalyticsCookies();
   expect(document.cookie).not.toContain("_ga");
   expect(document.cookie).toContain("preference=keep");
-  expect(analyticsPage("/unknown/")).toBeNull();
+});
+test("tracks every page except admin, in both languages", () => {
+  expect(analyticsPage("/")).toEqual({ path: "/", title: "Home" });
+  expect(analyticsPage("/zh")).toEqual({ path: "/zh/", title: "Home (zh)" });
+  expect(analyticsPage("/casual/")).toEqual({
+    path: "/casual/",
+    title: "Casual",
+  });
+  expect(analyticsPage("/zh/puzzle")).toEqual({
+    path: "/zh/puzzle/",
+    title: "Puzzle (zh)",
+  });
+  expect(analyticsPage("/play/crowdrush/?challenge=abc")).toEqual({
+    path: "/play/crowdrush/",
+    title: "Play crowdrush",
+  });
+  expect(analyticsPage("/account/")).toEqual({
+    path: "/account/",
+    title: "Account",
+  });
+  expect(analyticsPage("/kingdom/")?.title).toBe("Kingdom");
+  expect(analyticsPage("/admin/")).toBeNull();
+  expect(analyticsPage("/admin/players/")).toBeNull();
+  expect(analyticsPage("/zh/admin/feedback/")).toBeNull();
+  expect(analyticsPage("/play/someone@example.com/")).toEqual({
+    path: "/other/",
+    title: "Other",
+  });
 });

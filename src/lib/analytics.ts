@@ -1,18 +1,49 @@
 export const measurementId = "G-QDV6QLR932";
 export const consentKey = "dingn.analytics-consent.v1";
 export type AnalyticsConsent = "granted" | "denied" | null;
-const pages: Record<string, string> = {
+const titles: Record<string, string> = {
   "/": "Home",
-  "/play/memory/": "Memory",
-  "/signin/": "Sign in",
+  "/account/": "Account",
+  "/adventure/": "Adventure",
+  "/casual/": "Casual",
+  "/coins/": "Coins",
+  "/developers/": "Developers",
+  "/developers/agreement/": "Developer agreement",
+  "/developers/games/": "Developer games",
+  "/developers/playground/": "Developer playground",
   "/feedback/": "Feedback",
+  "/kingdom/": "Kingdom",
+  "/memory/": "Memory games",
+  "/opt-out/": "Opt out",
+  "/privacy/": "Privacy",
+  "/puzzle/": "Puzzle",
+  "/signin/": "Sign in",
+  "/terms/": "Terms",
 };
+const SEGMENT = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+/**
+ * Every page is tracked except the admin pages (/admin/ and /zh/admin/).
+ * Paths are reduced to plain lowercase segments, so no query, hash or odd
+ * text reaches Google; a path that doesn't fit is reported as "/other/".
+ */
 export function analyticsPage(path: string) {
   const clean = path.split(/[?#]/)[0];
   const normalized = clean.endsWith("/") ? clean : clean + "/";
-  return pages[normalized]
-    ? { path: normalized, title: pages[normalized] }
-    : null;
+  const zh = normalized === "/zh/" || normalized.startsWith("/zh/");
+  const rest = zh ? normalized.slice(3) || "/" : normalized;
+  const segments = rest.split("/").filter(Boolean);
+  if (segments[0] === "admin") return null;
+  if (!segments.every((part) => SEGMENT.test(part)))
+    return { path: zh ? "/zh/other/" : "/other/", title: "Other" };
+  const title =
+    titles[rest] ??
+    (segments[0] === "play" && segments.length === 2
+      ? `Play ${segments[1]}`
+      : segments.join(" / "));
+  return {
+    path: normalized,
+    title: zh ? `${title} (zh)` : title,
+  };
 }
 type AnalyticsWindow = Window & {
   dataLayer?: unknown[];
