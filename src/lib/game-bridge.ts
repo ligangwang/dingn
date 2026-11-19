@@ -28,7 +28,7 @@ export type HostReply =
       dingn: "host";
       v: number;
       id: number;
-      error: { code: string; message: string };
+      error: { code: string; message: string; balance?: number };
     };
 
 export type BridgeContext = {
@@ -125,6 +125,8 @@ export class BridgeError extends Error {
   constructor(
     readonly code: string,
     message: string,
+    /** The player's coins, sent with "not_enough_coins". */
+    readonly balance?: number,
   ) {
     super(message);
   }
@@ -312,6 +314,9 @@ export async function handleGameRequest(
       error: {
         code: known ? error.code : "unavailable",
         message: known ? error.message : "dingn could not do that right now.",
+        ...(known && typeof error.balance === "number"
+          ? { balance: error.balance }
+          : {}),
       },
     };
   }

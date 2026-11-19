@@ -74,10 +74,10 @@ export type PublishedGame = {
 };
 
 /** The bridge error for a failed purchase (codes from scripts/rewards.mjs). */
-function spendError(error: unknown) {
+function spendError(error: unknown, balance: number) {
   const code = (error as { code?: string })?.code ?? "";
   if (code === "not-enough-coins")
-    return new BridgeError("not_enough_coins", "Not enough coins.");
+    return new BridgeError("not_enough_coins", "Not enough coins.", balance);
   if (code === "requires")
     return new BridgeError(
       "requires",
@@ -404,14 +404,18 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           );
         // An unreviewed version only pretends, so it may ask with any balance.
         if (!game.preview && wallet.coins < def.price)
-          throw new BridgeError("not_enough_coins", "Not enough coins.");
+          throw new BridgeError(
+            "not_enough_coins",
+            "Not enough coins.",
+            wallet.coins,
+          );
         if (!(await confirmSpend(def, wallet.coins)))
           throw new BridgeError("cancelled", "The player did not buy it.");
         let result;
         try {
           result = await spendCoins(game.id, game.version, id);
         } catch (error) {
-          throw spendError(error);
+          throw spendError(error, wallet.coins);
         }
         // An unreviewed version's purchases are only pretend, but remembered
         // for this visit so its developer can try every tier.

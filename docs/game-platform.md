@@ -367,7 +367,9 @@ game lists them in `game.json`; each is bought once and kept:
 - The game calls `dingn.rewards.spend(id)`. dingn itself asks the player
   "Buy Power +1?" over the game, so a game can never spend coins without the
   player pressing Buy. It returns `{ new, coins }`, or fails with the code
-  `cancelled`, `not_enough_coins`, `requires` or `signed_out`.
+  `cancelled`, `not_enough_coins`, `requires` or `signed_out`. A
+  `not_enough_coins` error also carries `balance`, the player's coins, so the
+  game can show how many more are needed.
 - `dingn.rewards.shop()` lists the items and which ones the player owns. The
   game applies what is owned (for example, more damage).
 - The server charges and records a purchase in one Firestore transaction, so

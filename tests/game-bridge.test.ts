@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   gameHash,
   accountProgress,
+  BridgeError,
   handleGameRequest,
   isGameRequest,
   MAX_VALUE,
@@ -359,6 +360,28 @@ test("a game spends coins only for a signed-in player, through the host", async 
     shop && "result" in shop && (shop.result as unknown[]).length,
     1,
   );
+});
+
+test("a purchase the player can't afford tells the game their balance", async () => {
+  const { ctx } = context(true);
+  ctx.rewards = {
+    unlock: async () => ({ new: true, coins: 0 }),
+    list: async () => [],
+    spend: async () => {
+      throw new BridgeError("not_enough_coins", "Not enough coins.", 120);
+    },
+    shop: async () => [],
+    earn: async (coins) => ({ coins, left: 0 }),
+  };
+  const reply = await handleGameRequest(
+    ask("rewards.spend", { id: "power-1" }),
+    ctx,
+  );
+  assert.deepEqual(reply && "error" in reply && reply.error, {
+    code: "not_enough_coins",
+    message: "Not enough coins.",
+    balance: 120,
+  });
 });
 
 test("only a short plain hash is passed on to a game", () => {

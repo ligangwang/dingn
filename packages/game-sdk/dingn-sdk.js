@@ -66,6 +66,9 @@ function connectToHost(host, timeout) {
       call.reject(
         Object.assign(new Error(msg.error.message || msg.error.code), {
           code: msg.error.code,
+          ...(typeof msg.error.balance === "number"
+            ? { balance: msg.error.balance }
+            : {}),
         }),
       );
     else call.resolve(msg.result);
