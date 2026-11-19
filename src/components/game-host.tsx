@@ -404,14 +404,27 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           );
         // An unreviewed version only pretends, so it may ask with any balance.
         if (!game.preview && wallet.coins < def.price)
-          throw new BridgeError("not_enough_coins", "Not enough coins.");
+          throw new BridgeError(
+            "not_enough_coins",
+            "Not enough coins.",
+            wallet.coins,
+          );
         if (!(await confirmSpend(def, wallet.coins)))
           throw new BridgeError("cancelled", "The player did not buy it.");
         let result;
         try {
           result = await spendCoins(game.id, game.version, id);
         } catch (error) {
-          throw spendError(error);
+          const failure = spendError(error);
+          if (failure.code !== "not_enough_coins") throw failure;
+          // The cached wallet could afford it, so coins were spent elsewhere
+          // meanwhile: send the server's newer balance, or none.
+          const fresh = await loadWallet(user.uid, true);
+          throw new BridgeError(
+            failure.code,
+            failure.message,
+            fresh && fresh.coins < def.price ? fresh.coins : undefined,
+          );
         }
         // An unreviewed version's purchases are only pretend, but remembered
         // for this visit so its developer can try every tier.

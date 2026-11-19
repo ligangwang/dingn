@@ -93,7 +93,9 @@ export type DingnGame = {
      * Buys an upgrade from game.json's `shop` with the player's dingn coins.
      * dingn asks the player to confirm first. Rejects with code "cancelled"
      * (the player said no), "not_enough_coins", "requires" (buy the upgrade
-     * it requires first) or "signed_out".
+     * it requires first) or "signed_out". A "not_enough_coins" error also
+     * carries `balance`, the coins the player has, so the game can show how
+     * many more they need.
      */
     spend(id: string): Promise<Purchase>;
     shop(): Promise<ShopItem[]>;
