@@ -792,5 +792,8 @@
   "Use at least 8 characters. We'll email you a link to activate your account.": "至少 8 个字符。我们会给你发一封邮件，点击链接激活账号。",
   "We sent an activation link to {0}. Open it to activate your account, then sign in here.": "激活链接已发送到 {0}。打开链接激活账号后，在这里登录。",
   "The two passwords don’t match. Type the same password in both boxes.": "两次输入的密码不一致，请在两个框中输入相同的密码。",
-  "Activate your account first: open the link we emailed you. We just sent a new one.": "请先激活账号：打开我们发给你的邮件中的链接。我们刚刚又发了一封。"
+  "Activate your account first: open the link we emailed you. We just sent a new one.": "请先激活账号：打开我们发给你的邮件中的链接。我们刚刚又发了一封。",
+  "Create free account": "免费创建账号",
+  "Nice round! Create a free dingn account and you and your friend both get 100 coins.": "打得不错！免费创建 dingn 账号，你和朋友都能得到 100 金币。",
+  "Not now": "以后再说"
 }

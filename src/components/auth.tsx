@@ -14,7 +14,12 @@ export function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  // ?create=1 (from a challenge's invitation) opens on "Create account".
   const [create, setCreate] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("create") === "1")
+      setCreate(true);
+  }, []);
   // Where the activation link was sent, after making an account.
   const [sent, setSent] = useState("");
   const [pending, setPending] = useState(false);

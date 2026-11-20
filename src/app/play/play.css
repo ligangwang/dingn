@@ -544,3 +544,25 @@ html.play-window-full body {
 .game-about .game-grid {
   margin-top: 12px;
 }
+
+/* After a visitor's first round from a friend's challenge: sign up for coins. */
+.play-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff3c4;
+  color: #3b2f05;
+}
+.play-invite p {
+  flex: 1 1 260px;
+  margin: 0;
+  font-weight: 600;
+}
+.play-challenge-join a {
+  color: inherit;
+  text-decoration: underline;
+}

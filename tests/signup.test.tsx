@@ -69,3 +69,11 @@ it("explains an account that isn't activated yet", async () => {
     "Activate your account first: open the link we emailed you. We just sent a new one.",
   );
 });
+
+it("opens on creating an account when a challenge's invitation sends you", async () => {
+  history.replaceState({}, "", "/signin/?create=1&next=%2Fplay%2Fskyhop%2F");
+  render(<SignIn />);
+  expect(await screen.findByLabelText("Confirm password")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Create account" })).toBeTruthy();
+  history.replaceState({}, "", "/");
+});
