@@ -4,7 +4,7 @@
 // game reported, not one typed into the address.
 //
 //   POST /api/challenges { game, mode, seed?, score, unit, rules? } → { id }
-//   GET  /api/challenges/<id> → { id, game, mode, seed?, score, unit, rules?, name }
+//   GET  /api/challenges/<id> → { id, game, mode, seed?, score, unit, rules?, name, mine }
 //
 // Each one is a server-only Firestore document, `challenges/{id}`:
 //
@@ -17,7 +17,9 @@
 // when they made it, the one leaderboards show (both null for a guest), so a
 // link can say "Ada reached …" instead of "A friend reached …". Challenges are
 // private: only someone with the link can open one, and nothing lists them.
-// Opening one shows the nickname, never the uid.
+// Opening one shows the nickname, never the uid, and `mine` says whether the
+// signed-in player opening it is the one who made it (their own score to
+// beat).
 // `public` is always false for now; it is there so a player can later choose
 // to share a challenge with the dingn community.
 import { randomBytes } from "node:crypto";
@@ -102,13 +104,9 @@ export async function findChallenge(id) {
   return shownChallenge(id, await getDoc("challenges", id));
 }
 
-/**
- * The signed-in player's uid and nickname, or nulls for a guest (or a stale
- * session).
- */
-async function maker(req, res, verify, exchange, account) {
-  const guest = { uid: null, name: null };
-  if (!hasSession(req)) return guest;
+/** The signed-in player's token claims, or null for a guest (or a stale session). */
+async function signedIn(req, res, verify, exchange) {
+  if (!hasSession(req)) return null;
   try {
     const token = await exchange(req, res);
     const check =
@@ -118,12 +116,21 @@ async function maker(req, res, verify, exchange, account) {
           await (await import("./games-admin.mjs")).firebaseAuth()
         ).verifyIdToken(t));
     const claims = await check(token);
-    if (!claims?.uid) return guest;
-    const profile = await account(claims.uid).catch(() => null);
-    return { uid: claims.uid, name: nickname(profile?.user_name, claims.name) };
+    return claims?.uid ? claims : null;
   } catch {
-    return guest;
+    return null;
   }
+}
+
+/**
+ * The signed-in player's uid and nickname, or nulls for a guest (or a stale
+ * session).
+ */
+async function maker(req, res, verify, exchange, account) {
+  const claims = await signedIn(req, res, verify, exchange);
+  if (!claims) return { uid: null, name: null };
+  const profile = await account(claims.uid).catch(() => null);
+  return { uid: claims.uid, name: nickname(profile?.user_name, claims.name) };
 }
 
 const send = (res, status, body, cache = "no-store") => {
@@ -149,12 +156,20 @@ export async function handleChallenges(
     if (pathname !== "/api/challenges") {
       if (req.method !== "GET") throw new ApiError(405, "method-not-allowed");
       throttle(req);
-      const found = await findChallenge(
-        pathname.slice("/api/challenges/".length),
-      );
+      const id = pathname.slice("/api/challenges/".length);
+      const doc = CHALLENGE_ID.test(id) ? await getDoc("challenges", id) : null;
+      const found = shownChallenge(id, doc);
       if (!found) throw new ApiError(404, "not-found");
-      // A saved challenge never changes, but one may be taken down.
-      return send(res, 200, found, "public, max-age=300");
+      // Whether the player opening it made it: then it's their own score to
+      // beat. Only a yes or no; the uid itself is never sent. The answer
+      // depends on who asks, so nothing may cache it.
+      const viewer = doc.uid
+        ? await signedIn(req, res, verify, exchange)
+        : null;
+      return send(res, 200, {
+        ...found,
+        mine: !!viewer && viewer.uid === doc.uid,
+      });
     }
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
     validateOrigin(req);

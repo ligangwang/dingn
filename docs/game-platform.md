@@ -274,7 +274,10 @@ frame allows both). Whoever opens it sees "A friend reached 10 digits in
 Memory. Can you beat it?" (with the player's nickname instead of "A friend"
 when they are signed in) above the game and in the link preview, and the
 game gets the challenge as `dingn.challenge` (null otherwise) to start that
-round and compare at the end. `rules` (1-64 letters, digits, dots, dashes
+round and compare at the end. When the player opening the link made it themselves (signed in to the
+same account, or in the same browser), `dingn.challenge.mine` is true and
+the banner says "Your score to beat: 10 digits in Memory." Show it as their
+own score to beat rather than a friend's. `rules` (1-64 letters, digits, dots, dashes
 or underscores) is for whatever else makes a round fair to compare, such as
 the upgrades or helpers the player had: dingn saves it and gives it back
 unchanged, and the game plays the friend's round under the same rules. The

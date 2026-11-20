@@ -6,6 +6,8 @@ export type Challenge = {
   score: number;
   unit: ChallengeUnit;
   rules?: string;
+  /** Opened by the player who made it: their own score to beat. */
+  mine?: boolean;
 };
 export const UNITS: Record<
   ChallengeUnit,

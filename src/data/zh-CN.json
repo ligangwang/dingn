@@ -783,5 +783,6 @@
   "Review keys could not be loaded.": "无法加载审核密钥。",
   "A review key lets a script or an assistant review games for you: it can list the games and approve or reject a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games and https://dingn.com/api/admin/games/update with the header Authorization: Bearer followed by the key. A key stops working when it is revoked or its account is no longer an admin.": "审核密钥让脚本或助手替你审核游戏：只能列出游戏、批准或退回某个版本，不能做别的。向 https://dingn.com/api/admin/games 和 https://dingn.com/api/admin/games/update 发送 POST 请求，并带上请求头 Authorization: Bearer 加密钥。密钥被撤销或其账号不再是管理员时立即失效。",
   "Key name, such as Claude": "密钥名称，例如 Claude",
-  "Revoke {0}? Anything using it will stop working.": "撤销 {0}？使用它的程序将无法再审核。"
+  "Revoke {0}? Anything using it will stop working.": "撤销 {0}？使用它的程序将无法再审核。",
+  "Play the same round again and beat your own score.": "再玩同一局，超过你自己的成绩。"
 }

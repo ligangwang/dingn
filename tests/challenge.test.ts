@@ -86,6 +86,15 @@ test("the words come from dingn, not from the link", () => {
     challengeText({ ...c, score: 10 }, "记忆", true).title,
     "朋友在「记忆」中达到了 10 位数字，你能超过吗？",
   );
+  // Opened by the player who made it: their own score to beat.
+  assert.equal(
+    challengeText({ ...c, mine: true }, "Memory", false, "Ada").title,
+    "Your score to beat: 1 digit in Memory.",
+  );
+  assert.equal(
+    challengeText({ ...c, score: 10, mine: true }, "记忆", true).title,
+    "你要超越的成绩：「记忆」10 位数字",
+  );
   // The nickname of the player who made it, when they were signed in.
   assert.equal(
     challengeText(c, "Memory", false, "Ada").title,
