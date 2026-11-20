@@ -120,3 +120,23 @@ it("makes the leaderboard public and hides it again", async () => {
     leaderboardPublic: false,
   });
 });
+
+it("opens on the player a leaderboard link names, and marks their row", async () => {
+  history.replaceState({}, "", "/admin/players/?uid=cy");
+  Element.prototype.scrollIntoView = vi.fn();
+  mocks.listPlayers.mockResolvedValue({
+    players: [player("bo"), player("cy")],
+    total: 51,
+    pages: 2,
+    page: 2,
+  });
+  render(<AdminPlayers />);
+  const cell = await screen.findByText("cy@x.com");
+  expect(mocks.listPlayers).toHaveBeenCalledWith(1, "cy");
+  // It moved to page 2, without loading that page a second time.
+  expect(mocks.listPlayers).toHaveBeenCalledTimes(1);
+  expect(cell.closest("tr")?.className).toBe("admin-player-wanted");
+  expect(screen.getByText("bo@x.com").closest("tr")?.className).toBe("");
+  expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  history.replaceState({}, "", "/");
+});

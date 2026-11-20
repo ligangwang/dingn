@@ -1312,3 +1312,8 @@ input[type="radio"] {
 .admin-key-list li {
   margin: 6px 0;
 }
+
+/* A player opened from the leaderboard, on the Players admin page. */
+.admin-player-wanted > * {
+  background: rgba(255, 210, 63, 0.14);
+}

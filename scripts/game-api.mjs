@@ -91,10 +91,29 @@ async function verify(req, res) {
  * see it.
  */
 let board = { at: 0, entries: null };
-async function leaderboard() {
-  const shown = (await readSettings()).leaderboardPublic;
+/** Whether the request comes from a signed-in admin. Never throws. */
+async function isAdmin(req, res) {
+  if (!/(?:^|;\s*)__session=/.test(req.headers.cookie ?? "")) return false;
+  try {
+    return (await verify(req, res)).admin === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The top ten players. An admin also gets each one's account id, so the
+ * board can link to them on the Players admin page; nobody else does.
+ */
+async function leaderboard(req, res) {
+  const [shown, admin] = await Promise.all([
+    readSettings().then((s) => s.leaderboardPublic),
+    isAdmin(req, res),
+  ]);
+  const visible = (entries) =>
+    admin ? entries : entries.map(({ uid: _uid, ...entry }) => entry);
   if (board.entries && Date.now() - board.at < 30_000)
-    return { shown, entries: board.entries };
+    return { shown, entries: visible(board.entries) };
   const { db } = await admin();
   const snap = await db
     .collection("players")
@@ -103,10 +122,15 @@ async function leaderboard() {
     .get();
   const entries = snap.docs.map((d) => {
     const p = d.data();
-    return { name: p.name || "Player", xp: p.xp || 0, level: p.level || 1 };
+    return {
+      uid: d.id,
+      name: p.name || "Player",
+      xp: p.xp || 0,
+      level: p.level || 1,
+    };
   });
   board = { at: Date.now(), entries };
-  return { shown, entries };
+  return { shown, entries: visible(entries) };
 }
 
 async function start(req, res) {

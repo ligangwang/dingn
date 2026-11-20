@@ -224,9 +224,11 @@ const seen = (p) => p.lastActive ?? p.lastSignIn ?? p.createdAt ?? "";
  * sorts; that is fine for thousands of accounts.
  */
 async function players(body, users) {
-  const page = body.page ?? 1;
+  let page = body.page ?? 1;
   if (!Number.isInteger(page) || page < 1)
     throw new ApiError(400, "invalid-request");
+  // Asked for one account (from the leaderboard): the page it is on.
+  const uid = typeof body.uid === "string" ? body.uid : "";
   const all = [];
   let pageToken;
   do {
@@ -237,11 +239,14 @@ async function players(body, users) {
   all.sort(
     (a, b) => seen(b).localeCompare(seen(a)) || a.email.localeCompare(b.email),
   );
+  const found = uid ? all.findIndex((p) => p.uid === uid) : -1;
+  if (found >= 0) page = Math.floor(found / PLAYERS_PER_PAGE) + 1;
   const start = (page - 1) * PLAYERS_PER_PAGE;
   return {
     players: all.slice(start, start + PLAYERS_PER_PAGE),
     total: all.length,
     pages: Math.max(1, Math.ceil(all.length / PLAYERS_PER_PAGE)),
+    page,
   };
 }
 
