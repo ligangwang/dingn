@@ -106,12 +106,13 @@ async function isAdmin(req, res) {
  * board can link to them on the Players admin page; nobody else does.
  */
 async function leaderboard(req, res) {
-  const [shown, admin] = await Promise.all([
+  // (Not named `admin`: that is the Admin SDK's initializer below.)
+  const [shown, forAdmin] = await Promise.all([
     readSettings().then((s) => s.leaderboardPublic),
     isAdmin(req, res),
   ]);
   const visible = (entries) =>
-    admin ? entries : entries.map(({ uid: _uid, ...entry }) => entry);
+    forAdmin ? entries : entries.map(({ uid: _uid, ...entry }) => entry);
   if (board.entries && Date.now() - board.at < 30_000)
     return { shown, entries: visible(board.entries) };
   const { db } = await admin();

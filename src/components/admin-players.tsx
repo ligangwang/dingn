@@ -45,6 +45,8 @@ function PlayerList() {
   const [attempt, setAttempt] = useState(0);
   // Set when a load has already brought the page it moves to.
   const skipLoad = useRef(false);
+  // The wanted player is looked up once, on the first load only.
+  const lookedUp = useRef(false);
 
   useEffect(() => {
     if (skipLoad.current) {
@@ -55,7 +57,8 @@ function PlayerList() {
     setPlayers(null);
     setError(false);
     // The first load finds the wanted player's page; paging on is as usual.
-    const find = wanted && page === 1 && attempt === 0 ? wanted : undefined;
+    const find = wanted && !lookedUp.current ? wanted : undefined;
+    lookedUp.current = true;
     (find ? listPlayers(page, find) : listPlayers(page))
       .then((result) => {
         if (!current) return;
