@@ -157,6 +157,31 @@ afterwards so CI stops publishing it.
 version live (and marks it reviewed); **Send back** asks for a reason, clears
 the beta and shows the reason to the developer on `/developers/games/`.
 
+An admin can also review from a script or an assistant with a **review key**,
+created and revoked under "Review keys" at the bottom of `/admin/games/` (at
+most 5 per admin, shown once, stored as a hash in `developers/{uid}`
+`adminKeys`). Send it as `Authorization: Bearer dak.<uid>.<id>.<secret>` in a
+JSON POST; it needs no session or website origin:
+
+```bash
+# Every game and its versions; `reviewed: false` and no `rejected` = waiting.
+curl -sX POST https://dingn.com/api/admin/games \
+  -H "Authorization: Bearer $DINGN_REVIEW_KEY" -H "Content-Type: application/json"
+# Approve: make the version live.
+curl -sX POST https://dingn.com/api/admin/games/update \
+  -H "Authorization: Bearer $DINGN_REVIEW_KEY" -H "Content-Type: application/json" \
+  -d '{"id":"gemsurge","action":"set-live","version":"1.3.1"}'
+# Send back, with the reason the developer receives.
+curl -sX POST https://dingn.com/api/admin/games/update \
+  -H "Authorization: Bearer $DINGN_REVIEW_KEY" -H "Content-Type: application/json" \
+  -d '{"id":"gemsurge","action":"reject","version":"1.3.1","reason":"…"}'
+```
+
+A review key can do only those three things; anything else answers 403
+`not-allowed-with-key`. It stops working when it is revoked or its account
+loses the `admin` claim. Upload keys (`dgk.…`) can never review, so a game's
+CI secret cannot approve its own uploads.
+
 ### Reports and take-down
 
 Signed-in players can report a game from its player page (reason and

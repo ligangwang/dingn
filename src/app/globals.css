@@ -1282,3 +1282,33 @@ input[type="radio"] {
 .funnel-steps small {
   color: var(--muted);
 }
+
+/* Admin review keys */
+.admin-keys {
+  margin-top: 40px;
+  max-width: 680px;
+}
+.admin-key {
+  display: block;
+  overflow-wrap: anywhere;
+  user-select: all;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.admin-key-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.admin-key-form input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.admin-key-list {
+  padding-left: 18px;
+}
+.admin-key-list li {
+  margin: 6px 0;
+}

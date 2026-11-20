@@ -1,20 +1,30 @@
-// Upload keys: let a developer upload from a script or CI (such as a GitHub
+// API keys, so a script or CI can call dingn without a browser session.
+//
+// Upload keys let a developer upload from a script or CI (such as a GitHub
 // Action) instead of the My games page. A developer creates a key on
 // /developers/games/ and sends it as `Authorization: Bearer <key>` with the
 // zip to /api/developer/games/upload. The key acts as that developer, with
 // the same ownership, limits and review as an upload from the page.
 //
-// A key is `dgk.<uid>.<id>.<secret>`. Only a SHA-256 hash of the secret is
-// stored, in the developer's `developers/{uid}` record (`keys`), so the key is
-// shown once, when it is created. Every use checks the account's current
-// claims, so removing or blocking a developer stops their keys at once.
+// Review keys let an admin review games from a script or an assistant: list
+// the games and their versions, approve a version (make it live) or send it
+// back. An admin creates one on /admin/games/ and sends it the same way to
+// /api/admin/games and /api/admin/games/update (scripts/games-admin.mjs). A
+// review key can do nothing else, and an upload key can never review, so a
+// game's CI secret cannot approve its own uploads.
+//
+// An upload key is `dgk.<uid>.<id>.<secret>` and a review key
+// `dak.<uid>.<id>.<secret>`. Only a SHA-256 hash of the secret is stored, in
+// the account's `developers/{uid}` record (`keys` and `adminKeys`), which
+// firestore.rules close to browsers. So a key is shown once, when it is
+// created. Every use checks the account's current claims, so removing a
+// developer or an admin stops their keys at once.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { ApiError } from "./api.mjs";
 import { getDoc, updateDoc } from "./platform-store.mjs";
 
-/** How many keys one developer can have at a time. */
+/** How many keys of each kind one account can have at a time. */
 export const MAX_KEYS = 5;
-const PREFIX = "dgk";
 
 const hash = (secret) => createHash("sha256").update(secret).digest("hex");
 
@@ -26,43 +36,106 @@ export const publicKey = ({ id, name, createdAt, lastUsedAt }) => ({
   lastUsedAt: lastUsedAt ?? null,
 });
 
-/** The developer's keys, newest first. */
-export async function listKeys(uid) {
-  const keys = (await getDoc("developers", uid))?.keys ?? [];
-  return keys.map(publicKey).reverse();
-}
+/** One kind of key: its prefix and the record field that holds its hashes. */
+function keyring(prefix, field) {
+  async function list(uid) {
+    const keys = (await getDoc("developers", uid))?.[field] ?? [];
+    return keys.map(publicKey).reverse();
+  }
 
-/** Creates a key and returns it, in full, with the key list. */
-export async function createKey(uid, rawName, now = new Date().toISOString()) {
-  const name = String(rawName ?? "")
-    .trim()
-    .slice(0, 60);
-  if (!name) throw new ApiError(400, "key-name-required");
-  const id = randomBytes(6).toString("hex");
-  const secret = randomBytes(32).toString("base64url");
-  await updateDoc("developers", uid, (record) => {
-    const keys = record?.keys ?? [];
-    if (keys.length >= MAX_KEYS) throw new ApiError(400, "too-many-keys");
-    return {
+  async function create(uid, rawName, now = new Date().toISOString()) {
+    const name = String(rawName ?? "")
+      .trim()
+      .slice(0, 60);
+    if (!name) throw new ApiError(400, "key-name-required");
+    const id = randomBytes(6).toString("hex");
+    const secret = randomBytes(32).toString("base64url");
+    await updateDoc("developers", uid, (record) => {
+      const keys = record?.[field] ?? [];
+      if (keys.length >= MAX_KEYS) throw new ApiError(400, "too-many-keys");
+      return {
+        ...record,
+        [field]: [...keys, { id, name, hash: hash(secret), createdAt: now }],
+      };
+    });
+    return { key: `${prefix}.${uid}.${id}.${secret}`, keys: await list(uid) };
+  }
+
+  /** Revoking a key that is already gone is not an error. */
+  async function revoke(uid, id) {
+    await updateDoc("developers", uid, (record) => ({
       ...record,
-      keys: [...keys, { id, name, hash: hash(secret), createdAt: now }],
-    };
-  });
-  return { key: `${PREFIX}.${uid}.${id}.${secret}`, keys: await listKeys(uid) };
+      [field]: (record?.[field] ?? []).filter((k) => k.id !== id),
+    }));
+    return { keys: await list(uid) };
+  }
+
+  const carried = (req) =>
+    (req.headers.authorization ?? "").startsWith(`Bearer ${prefix}.`);
+
+  /**
+   * Checks the request's key and returns the account it belongs to, as the
+   * account is now. `allow` may refuse the account by throwing. Throws
+   * ApiError 401 for an unknown or revoked key.
+   */
+  async function check(req, users, allow, now) {
+    const parts = String(req.headers.authorization)
+      .slice("Bearer ".length)
+      .trim()
+      .split(".");
+    if (
+      parts.length !== 4 ||
+      parts[0] !== prefix ||
+      !parts.every((part) => /^[A-Za-z0-9_-]{1,128}$/.test(part))
+    )
+      throw new ApiError(401, "invalid-key");
+    const [, uid, id, secret] = parts;
+    const stored = (await getDoc("developers", uid))?.[field]?.find(
+      (k) => k.id === id,
+    );
+    const given = Buffer.from(hash(secret), "hex");
+    const expected = Buffer.from(stored?.hash ?? "", "hex");
+    if (
+      !stored ||
+      expected.length !== given.length ||
+      !timingSafeEqual(given, expected)
+    )
+      throw new ApiError(401, "invalid-key");
+
+    let user;
+    try {
+      user = await users.getUser(uid);
+    } catch {
+      throw new ApiError(401, "invalid-key");
+    }
+    // A disabled account cannot sign in, so its keys stop working too.
+    if (user.disabled) throw new ApiError(401, "invalid-key");
+    const claims = user.customClaims ?? {};
+    allow(claims);
+    // Best effort: a failed note of when the key was used never fails a call.
+    await updateDoc("developers", uid, (record) => ({
+      ...record,
+      [field]: (record?.[field] ?? []).map((k) =>
+        k.id === id ? { ...k, lastUsedAt: now } : k,
+      ),
+    })).catch(() => {});
+    return { uid, email: user.email ?? "", claims };
+  }
+
+  return { list, create, revoke, carried, check };
 }
 
-/** Revokes one key. Revoking a key that is already gone is not an error. */
-export async function revokeKey(uid, id) {
-  await updateDoc("developers", uid, (record) => ({
-    ...record,
-    keys: (record?.keys ?? []).filter((k) => k.id !== id),
-  }));
-  return { keys: await listKeys(uid) };
-}
+const upload = keyring("dgk", "keys");
+const review = keyring("dak", "adminKeys");
 
+/** The developer's upload keys, newest first. */
+export const listKeys = upload.list;
+/** Creates an upload key and returns it, in full, with the key list. */
+export const createKey = upload.create;
+/** Revokes one upload key. */
+export const revokeKey = upload.revoke;
 /** Whether a request carries an upload key rather than a session. */
-export const hasUploadKey = (req) =>
-  /^Bearer dgk\./.test(req.headers.authorization ?? "");
+export const hasUploadKey = upload.carried;
 
 /**
  * Checks the request's upload key and returns the claims of the account it
@@ -70,51 +143,49 @@ export const hasUploadKey = (req) =>
  * or revoked key.
  */
 export async function keyClaims(req, users, now = new Date().toISOString()) {
-  const parts = String(req.headers.authorization)
-    .slice("Bearer ".length)
-    .trim()
-    .split(".");
-  if (
-    parts.length !== 4 ||
-    parts[0] !== PREFIX ||
-    !parts.every((part) => /^[A-Za-z0-9_-]{1,128}$/.test(part))
-  )
-    throw new ApiError(401, "invalid-key");
-  const [, uid, id, secret] = parts;
-  const stored = (await getDoc("developers", uid))?.keys?.find(
-    (k) => k.id === id,
+  const { uid, email, claims } = await upload.check(
+    req,
+    users,
+    (claims) => {
+      if (claims.developerBlocked === true)
+        throw new ApiError(403, "developer-blocked");
+    },
+    now,
   );
-  const given = Buffer.from(hash(secret), "hex");
-  const expected = Buffer.from(stored?.hash ?? "", "hex");
-  if (
-    !stored ||
-    expected.length !== given.length ||
-    !timingSafeEqual(given, expected)
-  )
-    throw new ApiError(401, "invalid-key");
-
-  let user;
-  try {
-    user = await users.getUser(uid);
-  } catch {
-    throw new ApiError(401, "invalid-key");
-  }
-  // A disabled account cannot sign in, so its keys stop working too.
-  if (user.disabled) throw new ApiError(401, "invalid-key");
-  const claims = user.customClaims ?? {};
-  if (claims.developerBlocked === true)
-    throw new ApiError(403, "developer-blocked");
-  // Best effort: a failed note of when the key was used never fails an upload.
-  await updateDoc("developers", uid, (record) => ({
-    ...record,
-    keys: (record?.keys ?? []).map((k) =>
-      k.id === id ? { ...k, lastUsedAt: now } : k,
-    ),
-  })).catch(() => {});
   return {
     uid,
-    email: user.email ?? "",
+    email,
     developer: claims.developer === true,
     admin: claims.admin === true,
   };
+}
+
+/** The admin's review keys, newest first. */
+export const listAdminKeys = review.list;
+/** Creates a review key and returns it, in full, with the key list. */
+export const createAdminKey = review.create;
+/** Revokes one review key. */
+export const revokeAdminKey = review.revoke;
+/** Whether a request carries a review key rather than a session. */
+export const hasAdminKey = review.carried;
+
+/**
+ * Checks the request's review key and returns the admin it belongs to.
+ * Throws ApiError 401 for an unknown or revoked key, and 403 when the account
+ * is no longer an admin.
+ */
+export async function adminKeyClaims(
+  req,
+  users,
+  now = new Date().toISOString(),
+) {
+  const { uid, email } = await review.check(
+    req,
+    users,
+    (claims) => {
+      if (claims.admin !== true) throw new ApiError(403, "admin-required");
+    },
+    now,
+  );
+  return { uid, email, admin: true };
 }

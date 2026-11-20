@@ -4,7 +4,10 @@
 // so every version comes from the repository and passed its tests.
 //
 // Only accounts whose Firebase ID token has `admin: true` (the same claim as
-// the feedback inbox) may call these, and only as same-origin POSTs.
+// the feedback inbox) may call these, and only as same-origin POSTs. The one
+// exception is reviewing: an admin's review key (scripts/upload-keys.mjs),
+// sent as `Authorization: Bearer dak.…`, may list the games and approve or
+// reject a version from a script, and do nothing else.
 import { ApiError, readBody, refresh, validateOrigin } from "./api.mjs";
 import {
   ID,
@@ -20,6 +23,13 @@ import {
 import { closeReport, openReports } from "./game-reports.mjs";
 import { allPlays } from "./game-stats.mjs";
 import { readSettings, updateSettings } from "./site-settings.mjs";
+import {
+  adminKeyClaims,
+  createAdminKey,
+  hasAdminKey,
+  listAdminKeys,
+  revokeAdminKey,
+} from "./upload-keys.mjs";
 import { queueMail } from "./mail.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
@@ -35,8 +45,15 @@ export const adminGameRoutes = [
   "/api/admin/reports/update",
   "/api/admin/settings",
   "/api/admin/settings/update",
+  "/api/admin/keys",
 ];
 const MAX_REASON = 500;
+
+/** All a review key may do: list the games, and approve or reject a version. */
+const KEY_ACTIONS = new Set(["set-live", "reject"]);
+const keyAllows = (pathname, body) =>
+  pathname === "/api/admin/games" ||
+  (pathname === "/api/admin/games/update" && KEY_ACTIONS.has(body.action));
 
 let authPromise;
 /** The Firebase Admin SDK's auth, shared with the developer uploads API. */
@@ -439,6 +456,15 @@ export function ownerMail(before, after, { action, version }) {
   return null;
 }
 
+/** The admin's own review keys: list, create or revoke. */
+async function reviewKeys(body, uid) {
+  if (body.action === "list") return { keys: await listAdminKeys(uid) };
+  if (body.action === "create") return createAdminKey(uid, body.name);
+  if (body.action === "revoke" && typeof body.id === "string")
+    return revokeAdminKey(uid, body.id);
+  throw new ApiError(400, "invalid-request");
+}
+
 function send(res, status, body) {
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
@@ -459,14 +485,23 @@ export async function handleAdminGames(
 ) {
   try {
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
-    validateOrigin(req);
+    // A browser never sends a review key on its own, so a keyed call needs no
+    // origin check; everything else must come from the website.
+    const keyed = hasAdminKey(req);
+    if (!keyed) validateOrigin(req);
     const body = await readBody(req);
-    const admin = await requireAdmin(
-      req,
-      res,
-      verify ?? (async (t) => (await firebaseAuth()).verifyIdToken(t)),
-      exchange,
-    );
+    const admin = keyed
+      ? await adminKeyClaims(req, users ?? (await firebaseAuth()))
+      : await requireAdmin(
+          req,
+          res,
+          verify ?? (async (t) => (await firebaseAuth()).verifyIdToken(t)),
+          exchange,
+        );
+    if (keyed && !keyAllows(pathname, body))
+      throw new ApiError(403, "not-allowed-with-key");
+    if (pathname === "/api/admin/keys")
+      return send(res, 200, await reviewKeys(body, admin.uid));
     if (pathname.startsWith("/api/admin/developers"))
       return send(
         res,
@@ -533,7 +568,13 @@ export async function handleAdminGames(
     // One pinned game per category: featuring a game unpins the others.
     if (body.action === "feature") await unpinOthers(updated);
     clearRegistryCache();
-    console.log("games admin", body.id, body.action, body.version ?? "");
+    console.log(
+      "games admin",
+      body.id,
+      body.action,
+      body.version ?? "",
+      keyed ? `by key of ${admin.uid}` : admin.uid,
+    );
     const mail = ownerMail(before, updated, body);
     if (mail) await queueMail(mail.to, mail.subject, mail.text);
     return send(res, 200, { game: adminGame(updated) });
