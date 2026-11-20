@@ -10,7 +10,12 @@ import {
 import { cleanSource, landingSource, visitFor } from "../src/lib/funnel";
 
 test("a challenge link carries only the saved challenge's id", () => {
-  const url = challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", false);
+  const url = challengeUrl(
+    "https://dingn.com",
+    "memory",
+    "Xq3v9TzK1bWm",
+    false,
+  );
   assert.equal(url, "https://dingn.com/play/memory/?c=Xq3v9TzK1bWm");
   assert.equal(challengeIdFromQuery(new URL(url).search), "Xq3v9TzK1bWm");
   assert.equal(
@@ -38,11 +43,32 @@ test("malformed challenges are refused", () => {
     { mode: "ladder", seed: "a/b", score: 10, unit: "digits" },
     { mode: "ladder", score: 99999999999, unit: "digits" },
     { mode: "x", score: 1, unit: "toString" },
+    { mode: "ladder", score: 1, unit: "points", rules: "a b" },
+    { mode: "ladder", score: 1, unit: "points", rules: "" },
+    { mode: "ladder", score: 1, unit: "points", rules: "x".repeat(65) },
+    { mode: "ladder", score: 1, unit: "points", rules: 7 },
   ])
     assert.equal(validChallenge(raw), null, JSON.stringify(raw));
   assert.deepEqual(
     validChallenge({ mode: "classic", seed: null, score: 0, unit: "points" }),
     { mode: "classic", score: 0, unit: "points" },
+  );
+  // The round's rules come back unchanged.
+  assert.deepEqual(
+    validChallenge({
+      mode: "level",
+      seed: "12",
+      score: 5,
+      unit: "points",
+      rules: "u3-1-0-0-2-0.n1",
+    }),
+    {
+      mode: "level",
+      seed: "12",
+      score: 5,
+      unit: "points",
+      rules: "u3-1-0-0-2-0.n1",
+    },
   );
 });
 
@@ -60,16 +86,22 @@ test("the words come from dingn, not from the link", () => {
     challengeText({ ...c, score: 10 }, "记忆", true).title,
     "朋友在「记忆」中达到了 10 位数字，你能超过吗？",
   );
+  // The nickname of the player who made it, when they were signed in.
+  assert.equal(
+    challengeText(c, "Memory", false, "Ada").title,
+    "Ada reached 1 digit in Memory. Can you beat it?",
+  );
+  assert.equal(
+    challengeText({ ...c, score: 10 }, "记忆", true, "Ada").title,
+    "Ada在「记忆」中达到了 10 位数字，你能超过吗？",
+  );
 });
 
 test("a visit's source is its tag, a challenge, or the site it came from", () => {
   const page = "https://dingn.com/play/memory/";
   assert.equal(landingSource(page + "?utm_source=TikTok", ""), "tiktok");
   assert.equal(landingSource(page + "?ref=discord", ""), "discord");
-  assert.equal(
-    landingSource(page + "?c=Xq3v9TzK1bWm", ""),
-    "challenge",
-  );
+  assert.equal(landingSource(page + "?c=Xq3v9TzK1bWm", ""), "challenge");
   assert.equal(landingSource(page, "https://www.google.co.uk/"), "google");
   assert.equal(landingSource(page, "https://t.co/abc"), "x");
   assert.equal(

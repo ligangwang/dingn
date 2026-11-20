@@ -5,6 +5,7 @@ export type Challenge = {
   seed?: string;
   score: number;
   unit: ChallengeUnit;
+  rules?: string;
 };
 export const UNITS: Record<
   ChallengeUnit,
@@ -13,6 +14,7 @@ export const UNITS: Record<
 export const MODE: RegExp;
 export const SEED: RegExp;
 export const MAX_SCORE: number;
+export const RULES: RegExp;
 export function validChallenge(raw: unknown): Challenge | null;
 export const CHALLENGE_ID: RegExp;
 export function challengeIdFromQuery(search: string): string | null;
@@ -27,4 +29,5 @@ export function challengeText(
   challenge: Challenge,
   gameTitle: string,
   zh: boolean,
+  name?: string | null,
 ): { title: string; description: string };

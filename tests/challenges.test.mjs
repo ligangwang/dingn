@@ -29,7 +29,14 @@ after(() => rm(dir, { recursive: true, force: true }));
 
 function call(
   pathname,
-  { method = "POST", body, cookie = "", ip = "127.0.0.1", claims } = {},
+  {
+    method = "POST",
+    body,
+    cookie = "",
+    ip = "127.0.0.1",
+    claims,
+    profile = null,
+  } = {},
 ) {
   const req = Object.assign(Readable.from([JSON.stringify(body ?? {})]), {
     method,
@@ -58,6 +65,7 @@ function call(
           return claims;
         },
         exchange: async () => "t",
+        account: async () => profile,
       },
     );
   });
@@ -82,8 +90,13 @@ test("a challenge is saved privately and opened by its id", async () => {
     method: "GET",
   });
   assert.equal(read.status, 200);
-  // Who made it stays on the server.
-  assert.deepEqual(read.body, { id: made.body.id, game: "memory", ...round });
+  // Who made it stays on the server; a guest's says "A friend".
+  assert.deepEqual(read.body, {
+    id: made.body.id,
+    game: "memory",
+    ...round,
+    name: null,
+  });
   assert.equal(
     (await call("/api/challenges/Xq3v9TzK1bWm", { method: "GET" })).status,
     404,
@@ -94,13 +107,46 @@ test("a challenge is saved privately and opened by its id", async () => {
   );
 });
 
-test("a signed-in player's challenge records who made it", async () => {
+test("a challenge keeps the rules its round was played with", async () => {
+  const rules = "u3-1-0-0-2-0.n1";
+  const made = await call("/api/challenges", {
+    body: { game: "memory", ...round, rules },
+  });
+  assert.equal((await store.getDoc("challenges", made.body.id)).rules, rules);
+  const read = await call(`/api/challenges/${made.body.id}`, { method: "GET" });
+  assert.equal(read.body.rules, rules);
+  assert.equal(
+    (
+      await call("/api/challenges", {
+        body: { game: "memory", ...round, rules: "a b" },
+      })
+    ).status,
+    400,
+  );
+});
+
+test("a signed-in player's challenge records who made it, and shows their nickname", async () => {
   const made = await call("/api/challenges", {
     body: { game: "memory", ...round, score: 11 },
     cookie: "dingn-session=x",
-    claims: { uid: "ada" },
+    claims: { uid: "ada", name: "Ada Lovelace" },
+    profile: { user_name: " Countess\u0007 " },
   });
-  assert.equal((await store.getDoc("challenges", made.body.id)).uid, "ada");
+  const saved = await store.getDoc("challenges", made.body.id);
+  assert.equal(saved.uid, "ada");
+  assert.equal(saved.name, "Countess");
+  const read = await call(`/api/challenges/${made.body.id}`, {
+    method: "GET",
+  });
+  assert.equal(read.body.name, "Countess");
+  assert.equal(read.body.uid, undefined);
+  // Without a nickname, the first word of their sign-in name.
+  const named = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    cookie: "dingn-session=x",
+    claims: { uid: "ada", name: "Ada Lovelace" },
+  });
+  assert.equal((await store.getDoc("challenges", named.body.id)).name, "Ada");
   // A session that no longer works still makes a guest's challenge.
   const stale = await call("/api/challenges", {
     body: { game: "memory", ...round },
@@ -108,6 +154,14 @@ test("a signed-in player's challenge records who made it", async () => {
   });
   assert.equal(stale.status, 200);
   assert.equal((await store.getDoc("challenges", stale.body.id)).uid, null);
+  assert.equal((await store.getDoc("challenges", stale.body.id)).name, null);
+});
+
+test("a nickname is cleaned and kept short", () => {
+  assert.equal(challenges.nickname("x".repeat(40)), "x".repeat(24));
+  assert.equal(challenges.nickname("", "  "), null);
+  assert.equal(challenges.nickname(null, undefined), null);
+  assert.equal(challenges.nickname("\u202eAda\u2066", ""), "Ada");
 });
 
 test("only checked challenges for games on dingn are saved", async () => {
@@ -127,18 +181,19 @@ test("only checked challenges for games on dingn are saved", async () => {
       .status,
     404,
   );
-  assert.equal(
-    (await call("/api/challenges", { method: "GET" })).status,
-    405,
-  );
+  assert.equal((await call("/api/challenges", { method: "GET" })).status, 405);
 });
 
 test("one address can't fill the store", async () => {
   const ip = "10.0.0.9";
   for (let i = 0; i < challenges.MAX_PER_WINDOW; i++)
     assert.equal(
-      (await call("/api/challenges", { body: { game: "memory", ...round }, ip }))
-        .status,
+      (
+        await call("/api/challenges", {
+          body: { game: "memory", ...round },
+          ip,
+        })
+      ).status,
       200,
     );
   assert.equal(

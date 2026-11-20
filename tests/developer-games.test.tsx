@@ -270,31 +270,34 @@ it("opens a friend's saved challenge, and only this game's", async () => {
     mode: "run",
     score: 42,
     unit: "points",
+    name: "Ada",
   };
   for (const [owner, shown] of [
     ["skyhop", true],
     ["memory", false],
   ] as const) {
     history.replaceState({}, "", "/play/skyhop/?c=Xq3v9TzK1bWm");
-    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(
-      async (url) =>
-        new Response(
-          JSON.stringify(
-            String(url).startsWith("/api/games/")
-              ? skyhopGame
-              : String(url) === "/api/challenges/Xq3v9TzK1bWm"
-                ? { ...saved, game: owner }
-                : { ok: true },
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(
+        async (url) =>
+          new Response(
+            JSON.stringify(
+              String(url).startsWith("/api/games/")
+                ? skyhopGame
+                : String(url) === "/api/challenges/Xq3v9TzK1bWm"
+                  ? { ...saved, game: owner }
+                  : { ok: true },
+            ),
           ),
-        ),
-    );
+      );
     render(<GameHost />);
     await screen.findByTitle("Sky Hop");
     expect(
       fetch.mock.calls.some(([url]) => url === "/api/challenges/Xq3v9TzK1bWm"),
     ).toBe(true);
     const banner = screen.queryByText(
-      "A friend reached 42 points in Sky Hop. Can you beat it?",
+      "Ada reached 42 points in Sky Hop. Can you beat it?",
     );
     if (shown) expect(banner).toBeTruthy();
     else expect(banner).toBeNull();

@@ -146,6 +146,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   const [loaded, setLoaded] = useState(false);
   // A friend's saved challenge, from the id in the address (?c=…), read once.
   const [challenge, setChallenge] = useState<Challenge | null>(null);
+  // The nickname of the player who made it, or null for "A friend".
+  const [challenger, setChallenger] = useState<string | null>(null);
   const lastRound = useRef(0);
   const stage = useRef<HTMLDivElement>(null);
   // Full screen: the browser's own where it works, otherwise (iPhone Safari,
@@ -269,10 +271,14 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     // never starts without the challenge it was opened for. A link that
     // can't be read just opens the game.
     const cid = challengeIdFromQuery(location.search);
-    const saved: Promise<Challenge | null> = cid
+    const saved: Promise<{ c: Challenge; name: string | null } | null> = cid
       ? fetch(`/api/challenges/${cid}`)
           .then((r) => (r.ok ? r.json() : null))
-          .then((c) => (c?.game === id ? validChallenge(c) : null))
+          .then((found) => {
+            const c = found?.game === id ? validChallenge(found) : null;
+            const name = typeof found?.name === "string" ? found.name : null;
+            return c && { c, name };
+          })
           .catch(() => null)
       : Promise.resolve(null);
     fetch(
@@ -282,9 +288,10 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         if (!active) return;
         if (response.status === 404) return setState({ status: "missing" });
         if (!response.ok) throw new Error("unavailable");
-        const [game, challenge] = await Promise.all([response.json(), saved]);
+        const [game, friend] = await Promise.all([response.json(), saved]);
         if (!active) return;
-        setChallenge(challenge);
+        setChallenge(friend?.c ?? null);
+        setChallenger(friend?.name ?? null);
         setState({
           status: "ready",
           game,
@@ -589,7 +596,10 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       {challenge && (
         <p className="play-challenge" role="note">
           <strong>
-            {challengeText(challenge, title, locale === "zh-CN").title}
+            {
+              challengeText(challenge, title, locale === "zh-CN", challenger)
+                .title
+            }
           </strong>{" "}
           <span>{t("You play the same round. Beat that score to win.")}</span>
         </p>

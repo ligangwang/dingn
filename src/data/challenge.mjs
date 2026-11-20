@@ -24,11 +24,16 @@ export const UNITS = {
 export const MODE = /^[a-z][a-z0-9-]{0,23}$/;
 export const SEED = /^[A-Za-z0-9-]{1,32}$/;
 export const MAX_SCORE = 1_000_000_000;
+/**
+ * The rules the round was played with, in the game's own words (its upgrades,
+ * helpers allowed, …), so the friend plays under exactly the same ones.
+ */
+export const RULES = /^[A-Za-z0-9._-]{1,64}$/;
 
-/** A checked challenge (mode, seed, score, unit), or null. */
+/** A checked challenge (mode, seed, score, unit, rules), or null. */
 export function validChallenge(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const { mode, seed, score, unit } = raw;
+  const { mode, seed, score, unit, rules } = raw;
   if (typeof mode !== "string" || !MODE.test(mode)) return null;
   if (seed != null && (typeof seed !== "string" || !SEED.test(seed)))
     return null;
@@ -40,7 +45,15 @@ export function validChallenge(raw) {
   )
     return null;
   if (typeof unit !== "string" || !Object.hasOwn(UNITS, unit)) return null;
-  return { mode, ...(seed != null ? { seed } : {}), score, unit };
+  if (rules != null && (typeof rules !== "string" || !RULES.test(rules)))
+    return null;
+  return {
+    mode,
+    ...(seed != null ? { seed } : {}),
+    score,
+    unit,
+    ...(rules != null ? { rules } : {}),
+  };
 }
 
 /** A saved challenge's id: 12 letters, digits, dashes or underscores. */
@@ -66,18 +79,19 @@ export function scoreText(challenge, zh) {
 
 /**
  * What a challenge link says, for its link preview (title, description) and
- * the banner above the game (the same title).
+ * the banner above the game (the same title). `name` is the nickname of the
+ * player who made it, or null for "A friend".
  */
-export function challengeText(challenge, gameTitle, zh) {
+export function challengeText(challenge, gameTitle, zh, name = null) {
   const score = scoreText(challenge, zh);
   return zh
     ? {
-        title: `朋友在「${gameTitle}」中达到了 ${score}，你能超过吗？`,
+        title: `${name ?? "朋友"}在「${gameTitle}」中达到了 ${score}，你能超过吗？`,
         description:
           "在 dingn 免费玩同一个挑战：打开就能玩，无需登录。赢金币，建造你的王国。",
       }
     : {
-        title: `A friend reached ${score} in ${gameTitle}. Can you beat it?`,
+        title: `${name ?? "A friend"} reached ${score} in ${gameTitle}. Can you beat it?`,
         description:
           "Play the same challenge free on dingn. It starts right away, no sign-in needed. Earn coins and build your kingdom.",
       };

@@ -3,15 +3,21 @@
 // the link carries only its id, so the score a friend sees is the one the
 // game reported, not one typed into the address.
 //
-//   POST /api/challenges { game, mode, seed?, score, unit } → { id }
-//   GET  /api/challenges/<id> → { id, game, mode, seed?, score, unit }
+//   POST /api/challenges { game, mode, seed?, score, unit, rules? } → { id }
+//   GET  /api/challenges/<id> → { id, game, mode, seed?, score, unit, rules?, name }
 //
 // Each one is a server-only Firestore document, `challenges/{id}`:
 //
-//   { game, mode, seed, score, unit, uid, createdAt, public: false }
+//   { game, mode, seed, score, unit, rules, uid, name, createdAt, public: false }
 //
-// `uid` is the signed-in player who made it (null for a guest). Challenges are
+// `rules` is the game's own note of the rules the round was played with
+// (upgrades, helpers allowed), so the friend plays under the same ones.
+//
+// `uid` is the signed-in player who made it and `name` their dingn nickname
+// when they made it, the one leaderboards show (both null for a guest), so a
+// link can say "Ada reached …" instead of "A friend reached …". Challenges are
 // private: only someone with the link can open one, and nothing lists them.
+// Opening one shows the nickname, never the uid.
 // `public` is always false for now; it is there so a player can later choose
 // to share a challenge with the dingn community.
 import { randomBytes } from "node:crypto";
@@ -48,22 +54,47 @@ function limit(key, now = Date.now()) {
 /** A new challenge id: 12 random URL-safe characters (72 bits). */
 export const newChallengeId = () => randomBytes(9).toString("base64url");
 
+/**
+ * The nickname a challenge shows for its maker: their dingn nickname, else
+ * the first word of their sign-in name, at most 24 characters; or null.
+ * Control and text-direction characters are dropped, so a name can't
+ * rearrange the words around it.
+ */
+export function nickname(userName, tokenName) {
+  const clean = (text) =>
+    typeof text === "string"
+      ? text
+          .replace(
+            /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,
+            "",
+          )
+          .trim()
+      : "";
+  const pick = clean(userName) || clean(tokenName).split(/\s+/)[0];
+  return pick ? [...pick].slice(0, 24).join("") : null;
+}
+
 /** What anyone with the link may see of a saved challenge. */
 export function shownChallenge(id, doc) {
   if (!doc || typeof doc.game !== "string") return null;
   const challenge = validChallenge(doc);
-  return challenge ? { id, game: doc.game, ...challenge } : null;
+  if (!challenge) return null;
+  return { id, game: doc.game, ...challenge, name: nickname(doc.name) };
 }
 
-/** The saved challenge `id` (checked, without who made it), or null. */
+/** The saved challenge `id` (checked, with its maker's nickname but not their uid), or null. */
 export async function findChallenge(id) {
   if (typeof id !== "string" || !CHALLENGE_ID.test(id)) return null;
   return shownChallenge(id, await getDoc("challenges", id));
 }
 
-/** The signed-in player's uid, or null for a guest (or a stale session). */
-async function maker(req, res, verify, exchange) {
-  if (!hasSession(req)) return null;
+/**
+ * The signed-in player's uid and nickname, or nulls for a guest (or a stale
+ * session).
+ */
+async function maker(req, res, verify, exchange, account) {
+  const guest = { uid: null, name: null };
+  if (!hasSession(req)) return guest;
   try {
     const token = await exchange(req, res);
     const check =
@@ -72,9 +103,12 @@ async function maker(req, res, verify, exchange) {
         (
           await (await import("./games-admin.mjs")).firebaseAuth()
         ).verifyIdToken(t));
-    return (await check(token)).uid ?? null;
+    const claims = await check(token);
+    if (!claims?.uid) return guest;
+    const profile = await account(claims.uid).catch(() => null);
+    return { uid: claims.uid, name: nickname(profile?.user_name, claims.name) };
   } catch {
-    return null;
+    return guest;
   }
 }
 
@@ -90,7 +124,12 @@ export async function handleChallenges(
   req,
   res,
   pathname,
-  { verify, exchange = refresh } = {},
+  {
+    verify,
+    exchange = refresh,
+    // The player's dingn profile, where their nickname is.
+    account = (uid) => getDoc("accounts", uid),
+  } = {},
 ) {
   try {
     if (pathname !== "/api/challenges") {
@@ -112,14 +151,16 @@ export async function handleChallenges(
       throw new ApiError(400, "invalid-request");
     // Only games on dingn, so made-up ids can't fill the store.
     if (!(await cachedRecord(body.game))) throw new ApiError(404, "not-found");
-    const uid = await maker(req, res, verify, exchange);
+    const { uid, name } = await maker(req, res, verify, exchange, account);
     limit(uid ?? `ip:${req.socket.remoteAddress ?? "unknown"}`);
     const id = newChallengeId();
     await mergeDoc("challenges", id, {
       game: body.game,
       ...challenge,
       seed: challenge.seed ?? null,
+      rules: challenge.rules ?? null,
       uid,
+      name,
       createdAt: new Date().toISOString(),
       public: false,
     });

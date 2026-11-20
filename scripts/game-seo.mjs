@@ -211,7 +211,7 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
     );
   // Only this game's challenges: an id from another game's link is ignored.
   if (challenge?.game === id) {
-    const said = challengeText(challenge, name, zh);
+    const said = challengeText(challenge, name, zh, challenge.name ?? null);
     swaps.push(
       [
         /<meta property="og:url" content="[^"]*"\/>/,

@@ -247,6 +247,11 @@ test("a challenge link's preview shows the saved score to beat", () => {
     zh,
     /og:title" content="朋友在「人潮突击」中达到了 42 分，你能超过吗？"/,
   );
+  // With the maker's nickname when they were signed in.
+  assert.match(
+    gamePageHtml(page, game(), false, [], { ...saved, name: "Ada" }),
+    /og:title" content="Ada reached 42 points in Crowd Rush/,
+  );
   // Another game's challenge, or none, leaves the normal preview.
   for (const other of [{ ...saved, game: "memory" }, null])
     assert.match(
