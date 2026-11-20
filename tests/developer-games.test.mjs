@@ -532,6 +532,15 @@ test("the admin Players page sorts by last active and pages through everyone", a
   assert.equal(last.body.players.length, 20);
   // Never active sorts after everyone who was.
   assert.equal(last.body.players.at(-1).uid, "p3");
+
+  // Opened from the leaderboard: the page that player is on.
+  const found = await call({ page: 1, uid: "p3" });
+  assert.equal(found.body.page, 3);
+  assert.ok(found.body.players.some((p) => p.uid === "p3"));
+  const top = await call({ page: 1, uid: "p7" });
+  assert.equal(top.body.page, 1);
+  // An unknown account leaves the page as asked.
+  assert.equal((await call({ page: 2, uid: "nobody" })).body.page, 2);
 });
 
 test("every uploaded file is sandboxed, whatever its type or case", async () => {

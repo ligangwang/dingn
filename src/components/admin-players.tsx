@@ -2,7 +2,7 @@
 // Players admin: every dingn account, most recently active first, page by
 // page, with its roles and when it joined and was last seen. "Last sign-in" is
 // when they last signed in; "Last active" is their last visit while signed in. Changing access stays on the Users page.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AdminOnly } from "./admin-games";
 import { useLocale } from "./locale";
 import { useSession } from "./session";
@@ -30,6 +30,12 @@ export function AdminPlayers() {
 
 function PlayerList() {
   const { t, locale } = useLocale();
+  // Opened from a name on the leaderboard: show that player.
+  const [wanted] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : (new URLSearchParams(window.location.search).get("uid") ?? ""),
+  );
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -37,17 +43,32 @@ function PlayerList() {
   const [error, setError] = useState(false);
   // Bumped by Try again, to load the same page once more.
   const [attempt, setAttempt] = useState(0);
+  // Set when a load has already brought the page it moves to.
+  const skipLoad = useRef(false);
+  // The wanted player is looked up once, on the first load only.
+  const lookedUp = useRef(false);
 
   useEffect(() => {
+    if (skipLoad.current) {
+      skipLoad.current = false;
+      return;
+    }
     let current = true;
     setPlayers(null);
     setError(false);
-    listPlayers(page)
+    // The first load finds the wanted player's page; paging on is as usual.
+    const find = wanted && !lookedUp.current ? wanted : undefined;
+    lookedUp.current = true;
+    (find ? listPlayers(page, find) : listPlayers(page))
       .then((result) => {
         if (!current) return;
         setPlayers(result.players);
         setPages(result.pages);
         setTotal(result.total);
+        if (result.page && result.page !== page) {
+          skipLoad.current = true;
+          setPage(result.page);
+        }
       })
       .catch(() => current && setError(true));
     return () => {
@@ -55,6 +76,14 @@ function PlayerList() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, attempt]);
+
+  // Bring the wanted player into view once their row is on screen.
+  useEffect(() => {
+    if (!wanted || !players) return;
+    document
+      .getElementById(`player-${wanted}`)
+      ?.scrollIntoView({ block: "center" });
+  }, [wanted, players]);
 
   const date = (iso: string | null) =>
     iso
@@ -115,7 +144,13 @@ function PlayerList() {
             </thead>
             <tbody>
               {players.map((p) => (
-                <tr key={p.uid}>
+                <tr
+                  key={p.uid}
+                  id={`player-${p.uid}`}
+                  className={
+                    p.uid === wanted ? "admin-player-wanted" : undefined
+                  }
+                >
                   <th scope="row">
                     {p.name && <strong>{p.name}</strong>}
                     {p.name && <br />}

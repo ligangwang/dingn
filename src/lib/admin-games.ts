@@ -111,11 +111,14 @@ export type Player = {
 };
 
 /** One page (from 1) of players, most recently active first. */
-export async function listPlayers(page = 1) {
-  return await api<{ players: Player[]; total: number; pages: number }>(
-    "/api/admin/players",
-    { page },
-  );
+/** A page of players; with `uid`, the page that account is on. */
+export async function listPlayers(page = 1, uid?: string) {
+  return await api<{
+    players: Player[];
+    total: number;
+    pages: number;
+    page: number;
+  }>("/api/admin/players", uid ? { page, uid } : { page });
 }
 
 export type Report = {

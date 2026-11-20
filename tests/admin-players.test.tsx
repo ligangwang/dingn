@@ -120,3 +120,45 @@ it("makes the leaderboard public and hides it again", async () => {
     leaderboardPublic: false,
   });
 });
+
+it("opens on the player a leaderboard link names, and marks their row", async () => {
+  history.replaceState({}, "", "/admin/players/?uid=cy");
+  Element.prototype.scrollIntoView = vi.fn();
+  mocks.listPlayers.mockResolvedValue({
+    players: [player("bo"), player("cy")],
+    total: 51,
+    pages: 2,
+    page: 2,
+  });
+  render(<AdminPlayers />);
+  const cell = await screen.findByText("cy@x.com");
+  expect(mocks.listPlayers).toHaveBeenCalledWith(1, "cy");
+  // It moved to page 2, without loading that page a second time.
+  expect(mocks.listPlayers).toHaveBeenCalledTimes(1);
+  expect(cell.closest("tr")?.className).toBe("admin-player-wanted");
+  expect(screen.getByText("bo@x.com").closest("tr")?.className).toBe("");
+  expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  history.replaceState({}, "", "/");
+});
+
+it("looks the wanted player up only once, so Previous still reaches page 1", async () => {
+  history.replaceState({}, "", "/admin/players/?uid=cy");
+  Element.prototype.scrollIntoView = vi.fn();
+  mocks.listPlayers.mockImplementation(async (page: number, uid?: string) =>
+    uid
+      ? { players: [player("cy")], total: 51, pages: 2, page: 2 }
+      : {
+          players: [player(page === 1 ? "ada" : "cy")],
+          total: 51,
+          pages: 2,
+          page,
+        },
+  );
+  render(<AdminPlayers />);
+  await screen.findByText("cy@x.com");
+  await userEvent.click(screen.getByRole("button", { name: "Previous" }));
+  expect(await screen.findByText("ada@x.com")).toBeTruthy();
+  expect(mocks.listPlayers).toHaveBeenLastCalledWith(1);
+  expect(mocks.listPlayers).toHaveBeenCalledTimes(2);
+  history.replaceState({}, "", "/");
+});

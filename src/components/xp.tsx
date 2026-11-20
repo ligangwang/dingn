@@ -199,7 +199,20 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
           {entries.map((e, i) => (
             <li key={i}>
               <span className="rank">{i + 1}</span>
-              <span className="name">{e.name}</span>
+              <span className="name">
+                {e.uid ? (
+                  // Admins can open the player on the Players admin page.
+                  <a
+                    href={href(
+                      `/admin/players/?uid=${encodeURIComponent(e.uid)}`,
+                    )}
+                  >
+                    {e.name}
+                  </a>
+                ) : (
+                  e.name
+                )}
+              </span>
               <span className="lv">{t(`Lv ${e.level}`)}</span>
               <span className="pts">{t(`${e.xp} XP`)}</span>
             </li>

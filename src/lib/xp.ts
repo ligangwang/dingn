@@ -20,7 +20,13 @@ export type PlayResult = {
   floor: number;
   next: number;
 };
-export type LeaderboardEntry = { name: string; xp: number; level: number };
+export type LeaderboardEntry = {
+  name: string;
+  xp: number;
+  level: number;
+  /** The player's account id, sent only to admins. */
+  uid?: string;
+};
 
 export class XpError extends Error {
   constructor(
