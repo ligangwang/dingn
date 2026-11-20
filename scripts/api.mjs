@@ -59,6 +59,9 @@ function readCookie(req) {
     return "";
   }
 }
+/** Whether the request carries a dingn session cookie (signed in or not yet checked). */
+export const hasSession = (req) => readCookie(req) !== "";
+
 export async function refresh(req, res) {
   const token = readCookie(req);
   if (!token) throw new ApiError(401, "sign-in-required");

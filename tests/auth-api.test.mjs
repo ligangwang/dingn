@@ -1,7 +1,7 @@
 import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
-import { handleApi } from "../scripts/api.mjs";
+import { handleApi, hasSession } from "../scripts/api.mjs";
 const original = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = original;
@@ -65,6 +65,18 @@ test("password sign-in exchanges credentials only on server and stores refresh t
   assert.equal(JSON.stringify(result.body).includes("private-refresh"), false);
   assert.equal(JSON.stringify(result.body).includes(idToken), false);
   assert.match(calls[0].url, /^https:\/\/identitytoolkit.googleapis.com/);
+  // The cookie it sets is the one hasSession looks for (the leaderboard
+  // relies on it to recognise admins), and nothing else counts.
+  const sent = result.headers["Set-Cookie"].split(";")[0];
+  assert.equal(
+    hasSession({ headers: { cookie: `theme=dark; ${sent}` } }),
+    true,
+  );
+  assert.equal(
+    hasSession({ headers: { cookie: "__session=x; theme=dark" } }),
+    false,
+  );
+  assert.equal(hasSession({ headers: {} }), false);
 });
 test("rejects cross-origin, simple-form and non-POST requests before contacting upstream", async () => {
   const calls = stub([]);

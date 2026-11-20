@@ -2,7 +2,7 @@
 // here with the Firebase Admin SDK; Firestore rules deny browser writes to
 // `players` and `plays`, so XP can only change through these endpoints.
 import { randomInt } from "node:crypto";
-import { ApiError, refresh, validateOrigin } from "./api.mjs";
+import { ApiError, hasSession, refresh, validateOrigin } from "./api.mjs";
 import {
   GAMES,
   GameError,
@@ -93,7 +93,7 @@ async function verify(req, res) {
 let board = { at: 0, entries: null };
 /** Whether the request comes from a signed-in admin. Never throws. */
 async function isAdmin(req, res) {
-  if (!/(?:^|;\s*)__session=/.test(req.headers.cookie ?? "")) return false;
+  if (!hasSession(req)) return false;
   try {
     return (await verify(req, res)).admin === true;
   } catch {
