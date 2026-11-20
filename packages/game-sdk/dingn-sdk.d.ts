@@ -64,6 +64,13 @@ export type Challenge = {
   /** A whole number from 0 to 1,000,000,000. */
   score: number;
   unit: ChallengeUnit;
+  /**
+   * The rules the round was played with, in the game's own terms (1-64
+   * letters, digits, dots, dashes or underscores), such as the upgrades and
+   * helpers the player had, so the friend can play under exactly the same
+   * ones. dingn saves it with the challenge and gives it back unchanged.
+   */
+  rules?: string;
 };
 export type DingnGame = {
   gameId: string;

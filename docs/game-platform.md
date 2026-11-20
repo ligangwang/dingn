@@ -264,17 +264,37 @@ const url = await dingn.challengeLink({
   seed: "2026-11-16", // which round, so the friend plays the same one
   score: 10, // a whole number
   unit: "digits", // points, digits, cards, levels, stars, words or coins
+  rules: "u0-0-0-0-0-0", // optional: the round's rules, in the game's terms
 });
-// → https://dingn.com/play/memory/?challenge=ladder&seed=2026-11-16&score=10&unit=digits
+// → https://dingn.com/play/memory/?c=Xq3v9TzK1bWm
 ```
 
 The game shares the link itself (`navigator.share` or the clipboard; the
 frame allows both). Whoever opens it sees "A friend reached 10 digits in
-Memory. Can you beat it?" above the game and in the link preview, and the
+Memory. Can you beat it?" (with the player's nickname instead of "A friend"
+when they are signed in) above the game and in the link preview, and the
 game gets the challenge as `dingn.challenge` (null otherwise) to start that
-round and compare at the end. Everything is in the address, so nothing is
-stored, and the words come from dingn (`src/data/challenge.mjs`), never from
-the link. Visits through a challenge link count as "referred" in the funnel.
+round and compare at the end. `rules` (1-64 letters, digits, dots, dashes
+or underscores) is for whatever else makes a round fair to compare, such as
+the upgrades or helpers the player had: dingn saves it and gives it back
+unchanged, and the game plays the friend's round under the same rules. The
+words come from dingn
+(`src/data/challenge.mjs`), never from the link. Visits through a challenge
+link count as "referred" in the funnel.
+
+dingn saves each challenge when the link is made (`scripts/challenges.mjs`,
+`POST /api/challenges`), and the link carries only its id, so nobody can
+change the score by editing the address. The record is server-only Firestore
+`challenges/{id}`: the game, mode, seed, score, unit and rules, the signed-in
+player's uid and dingn nickname (null for a guest), when it was made, and
+`public: false`. The link and its preview name the player ("Ada reached 10
+digits in Memory"), or say "A friend" for a guest. Challenges are private:
+only someone with the link can open one (`GET /api/challenges/<id>`, which
+shows the nickname but never the uid), and nothing lists them. `public` is for letting players share a challenge with the dingn
+community later. Links in the old form (`?challenge=…&score=…`) open the game
+without a challenge. The score is still the one the game reports: dingn can't
+tell if a game in the browser was played fairly, but a saved score can't be
+changed afterwards.
 
 ### The funnel
 

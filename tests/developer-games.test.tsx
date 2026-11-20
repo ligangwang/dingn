@@ -254,3 +254,55 @@ it("creates an upload key, shows it once, and revokes keys", async () => {
   expect(mocks.revokeUploadKey).toHaveBeenCalledWith("a1b2c3d4e5f6");
   expect(screen.queryByText(/never used/)).toBeNull();
 });
+
+it("opens a friend's saved challenge, and only this game's", async () => {
+  const skyhopGame = {
+    id: "skyhop",
+    version: "1.0.0",
+    title,
+    description: { en: "", zh: "" },
+    entry: "index.html",
+    url: "/g/skyhop/1.0.0/index.html",
+  };
+  const saved = {
+    id: "Xq3v9TzK1bWm",
+    game: "skyhop",
+    mode: "run",
+    score: 42,
+    unit: "points",
+    name: "Ada",
+  };
+  for (const [owner, shown] of [
+    ["skyhop", true],
+    ["memory", false],
+  ] as const) {
+    history.replaceState({}, "", "/play/skyhop/?c=Xq3v9TzK1bWm");
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(
+        async (url) =>
+          new Response(
+            JSON.stringify(
+              String(url).startsWith("/api/games/")
+                ? skyhopGame
+                : String(url) === "/api/challenges/Xq3v9TzK1bWm"
+                  ? { ...saved, game: owner }
+                  : { ok: true },
+            ),
+          ),
+      );
+    render(<GameHost />);
+    await screen.findByTitle("Sky Hop");
+    expect(
+      fetch.mock.calls.some(([url]) => url === "/api/challenges/Xq3v9TzK1bWm"),
+    ).toBe(true);
+    const banner = screen.queryByText(
+      "Ada reached 42 points in Sky Hop. Can you beat it?",
+    );
+    if (shown) expect(banner).toBeTruthy();
+    else expect(banner).toBeNull();
+    cleanup();
+    vi.restoreAllMocks();
+  }
+  history.replaceState({}, "", "/");
+});

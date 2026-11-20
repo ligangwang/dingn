@@ -1,14 +1,15 @@
 // Challenge links: "I reached 10 digits on Memory. Your turn." A game asks
-// for one through the SDK (dingn.challengeLink) after a round, and the link
-// opens the same round for a friend:
+// for one through the SDK (dingn.challengeLink) after a round. dingn saves
+// the challenge (scripts/challenges.mjs) and the link carries only its id, so
+// nobody can change the score by editing the address:
 //
-//   /play/memory/?challenge=ladder&seed=2026-11-16&score=10&unit=digits
+//   /play/memory/?c=Xq3v9TzK1bWm
 //
-// Everything is in the address, so nothing is stored. The text a link shows
-// (the page's banner and its link preview) is put together here from those
-// checked fields and the game's own title, never from text in the link, so a
-// link cannot make dingn say anything else. The player page (game-host.tsx)
-// and the server's link previews (scripts/game-seo.mjs) both read this file.
+// The text a link shows (the page's banner and its link preview) is put
+// together here from the saved, checked fields and the game's own title,
+// never from text in the link, so a link cannot make dingn say anything else.
+// The player page (game-host.tsx), the server's link previews
+// (scripts/game-seo.mjs) and the challenge store all read this file.
 
 /** What a score can be counted in, with its words in both languages. */
 export const UNITS = {
@@ -23,11 +24,16 @@ export const UNITS = {
 export const MODE = /^[a-z][a-z0-9-]{0,23}$/;
 export const SEED = /^[A-Za-z0-9-]{1,32}$/;
 export const MAX_SCORE = 1_000_000_000;
+/**
+ * The rules the round was played with, in the game's own words (its upgrades,
+ * helpers allowed, …), so the friend plays under exactly the same ones.
+ */
+export const RULES = /^[A-Za-z0-9._-]{1,64}$/;
 
-/** A checked challenge (mode, seed, score, unit), or null. */
+/** A checked challenge (mode, seed, score, unit, rules), or null. */
 export function validChallenge(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const { mode, seed, score, unit } = raw;
+  const { mode, seed, score, unit, rules } = raw;
   if (typeof mode !== "string" || !MODE.test(mode)) return null;
   if (seed != null && (typeof seed !== "string" || !SEED.test(seed)))
     return null;
@@ -39,35 +45,29 @@ export function validChallenge(raw) {
   )
     return null;
   if (typeof unit !== "string" || !Object.hasOwn(UNITS, unit)) return null;
-  return { mode, ...(seed != null ? { seed } : {}), score, unit };
-}
-
-/** The challenge in a page address's query (`?challenge=…`), or null. */
-export function challengeFromQuery(search) {
-  const params = new URLSearchParams(search);
-  const mode = params.get("challenge");
-  if (!mode) return null;
-  const score = params.get("score") ?? "";
-  return validChallenge({
+  if (rules != null && (typeof rules !== "string" || !RULES.test(rules)))
+    return null;
+  return {
     mode,
-    seed: params.get("seed") ?? undefined,
-    score: /^\d{1,10}$/.test(score) ? Number(score) : NaN,
-    unit: params.get("unit"),
-  });
+    ...(seed != null ? { seed } : {}),
+    score,
+    unit,
+    ...(rules != null ? { rules } : {}),
+  };
 }
 
-/** The query that carries a checked challenge, without the "?". */
-export function challengeQuery(challenge) {
-  const params = new URLSearchParams({ challenge: challenge.mode });
-  if (challenge.seed) params.set("seed", challenge.seed);
-  params.set("score", String(challenge.score));
-  params.set("unit", challenge.unit);
-  return params.toString();
+/** A saved challenge's id: 12 letters, digits, dashes or underscores. */
+export const CHALLENGE_ID = /^[A-Za-z0-9_-]{12}$/;
+
+/** The challenge id in a page address's query (`?c=…`), or null. */
+export function challengeIdFromQuery(search) {
+  const id = new URLSearchParams(search).get("c");
+  return id && CHALLENGE_ID.test(id) ? id : null;
 }
 
-/** The address of a game's page that opens `challenge`. */
-export function challengeUrl(origin, gameId, challenge, zh) {
-  return `${origin}${zh ? "/zh" : ""}/play/${gameId}/?${challengeQuery(challenge)}`;
+/** The address of a game's page that opens the saved challenge `id`. */
+export function challengeUrl(origin, gameId, id, zh) {
+  return `${origin}${zh ? "/zh" : ""}/play/${gameId}/?c=${encodeURIComponent(id)}`;
 }
 
 /** "10 digits" or "10 位数字". */
@@ -79,18 +79,19 @@ export function scoreText(challenge, zh) {
 
 /**
  * What a challenge link says, for its link preview (title, description) and
- * the banner above the game (the same title).
+ * the banner above the game (the same title). `name` is the nickname of the
+ * player who made it, or null for "A friend".
  */
-export function challengeText(challenge, gameTitle, zh) {
+export function challengeText(challenge, gameTitle, zh, name = null) {
   const score = scoreText(challenge, zh);
   return zh
     ? {
-        title: `朋友在「${gameTitle}」中达到了 ${score}，你能超过吗？`,
+        title: `${name ?? "朋友"}在「${gameTitle}」中达到了 ${score}，你能超过吗？`,
         description:
           "在 dingn 免费玩同一个挑战：打开就能玩，无需登录。赢金币，建造你的王国。",
       }
     : {
-        title: `A friend reached ${score} in ${gameTitle}. Can you beat it?`,
+        title: `${name ?? "A friend"} reached ${score} in ${gameTitle}. Can you beat it?`,
         description:
           "Play the same challenge free on dingn. It starts right away, no sign-in needed. Earn coins and build your kingdom.",
       };

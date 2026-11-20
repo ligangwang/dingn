@@ -214,10 +214,16 @@ test("the home page fills each category's top games", () => {
   assert.equal(fillSlot("<p>hi</p>", "games", "x"), "<p>hi</p>");
 });
 
-test("a challenge link's preview shows the score to beat", () => {
-  const url =
-    "/play/crowdrush/?challenge=run&seed=2026-11-16&score=42&unit=points";
-  const en = gamePageHtml(page, game(), false, [], url);
+test("a challenge link's preview shows the saved score to beat", () => {
+  const saved = {
+    id: "Xq3v9TzK1bWm",
+    game: "crowdrush",
+    mode: "run",
+    seed: "2026-11-16",
+    score: 42,
+    unit: "points",
+  };
+  const en = gamePageHtml(page, game(), false, [], saved);
   assert.match(
     en,
     /og:title" content="A friend reached 42 points in Crowd Rush. Can you beat it\?"/,
@@ -229,25 +235,27 @@ test("a challenge link's preview shows the score to beat", () => {
   );
   assert.match(
     en,
-    /og:url" content="https:\/\/dingn.com\/play\/crowdrush\/\?challenge=run&amp;seed=2026-11-16&amp;score=42&amp;unit=points"/,
+    /og:url" content="https:\/\/dingn.com\/play\/crowdrush\/\?c=Xq3v9TzK1bWm"/,
   );
   // The page itself is still the game's page.
   assert.match(
     en,
     /rel="canonical" href="https:\/\/dingn.com\/play\/crowdrush\/"/,
   );
-  const zh = gamePageHtml(page, game(), true, [], "/zh" + url);
+  const zh = gamePageHtml(page, game(), true, [], saved);
   assert.match(
     zh,
     /og:title" content="朋友在「人潮突击」中达到了 42 分，你能超过吗？"/,
   );
-  // A malformed challenge leaves the normal preview.
-  const bad = gamePageHtml(
-    page,
-    game(),
-    false,
-    [],
-    "/play/crowdrush/?challenge=run&score=lots&unit=points",
+  // With the maker's nickname when they were signed in.
+  assert.match(
+    gamePageHtml(page, game(), false, [], { ...saved, name: "Ada" }),
+    /og:title" content="Ada reached 42 points in Crowd Rush/,
   );
-  assert.match(bad, /og:title" content="Crowd Rush"/);
+  // Another game's challenge, or none, leaves the normal preview.
+  for (const other of [{ ...saved, game: "memory" }, null])
+    assert.match(
+      gamePageHtml(page, game(), false, [], other),
+      /og:title" content="Crowd Rush"/,
+    );
 });

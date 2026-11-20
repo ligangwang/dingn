@@ -47,8 +47,11 @@ export type BridgeContext = {
   ready: () => void;
   /** The friend's challenge the page's address opened, if any. */
   challenge?: Challenge | null;
-  /** The address of this game's page that opens a checked challenge. */
-  challengeLink?: (challenge: Challenge) => string;
+  /**
+   * Saves a checked challenge and gives the address of this game's page that
+   * opens it.
+   */
+  challengeLink?: (challenge: Challenge) => Promise<string>;
   /** The game finished a round (for the play statistics). */
   roundEnded?: () => void;
   /**
