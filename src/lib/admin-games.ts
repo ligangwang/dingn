@@ -38,6 +38,26 @@ export type GameChange =
   | { action: "take-down"; reason: string }
   | { action: "transfer"; email: string };
 
+/** A review key: lets a script list games and approve or reject versions. */
+export type ReviewKey = {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+type ReviewKeysResult = { keys: ReviewKey[]; key?: string };
+
+/** The signed-in admin's review keys. */
+export async function listReviewKeys() {
+  return api<ReviewKeysResult>("/api/admin/keys", { action: "list" });
+}
+export async function createReviewKey(name: string) {
+  return api<ReviewKeysResult>("/api/admin/keys", { action: "create", name });
+}
+export async function revokeReviewKey(id: string) {
+  return api<ReviewKeysResult>("/api/admin/keys", { action: "revoke", id });
+}
+
 export async function listGames() {
   return (await api<{ games: AdminGame[] }>("/api/admin/games")).games;
 }

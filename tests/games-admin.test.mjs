@@ -227,3 +227,156 @@ test("an admin pins one game per category to its page's banner", async () => {
     [false, true],
   );
 });
+
+test("a review key can list games and approve or reject, and nothing else", async () => {
+  const manifest = (version) =>
+    registry.validateManifest({
+      id: "jewels",
+      version,
+      title: { en: "Jewels", zh: "珠宝" },
+    });
+  await registry.updateRecord("jewels", (r) =>
+    registry.addVersion(r, manifest("1.0.0")),
+  );
+  await registry.updateRecord("jewels", (r) =>
+    registry.addVersion(r, manifest("1.1.0"), { channel: "beta" }),
+  );
+  await registry.updateRecord("jewels", (r) =>
+    registry.addVersion(r, manifest("1.2.0"), { channel: "beta" }),
+  );
+
+  // The admin's account, as the Admin SDK reports it on each keyed call.
+  let accountClaims = { admin: true };
+  const users = {
+    async getUser(uid) {
+      return { uid, email: "boss@example.com", customClaims: accountClaims };
+    },
+  };
+  const session = { claims: { admin: true, uid: "boss" } };
+  const created = await call(
+    "/api/admin/keys",
+    { action: "create", name: "Claude" },
+    session,
+  );
+  assert.equal(created.status, 200);
+  const key = created.body.key;
+  assert.match(key, /^dak\.boss\.[0-9a-f]{12}\.[A-Za-z0-9_-]+$/);
+  assert.deepEqual(
+    created.body.keys.map((k) => k.name),
+    ["Claude"],
+  );
+  assert.equal(created.body.keys[0].hash, undefined);
+
+  // A script sends the key with no website origin and no session.
+  const keyed = (pathname, body, authorization = `Bearer ${key}`) => {
+    const req = Object.assign(Readable.from([JSON.stringify(body ?? {})]), {
+      method: "POST",
+      url: pathname,
+      headers: { authorization, "content-type": "application/json" },
+    });
+    return new Promise((resolve) => {
+      let status = 0;
+      const res = {
+        setHeader() {},
+        getHeader() {},
+        writeHead: (s) => (status = s),
+        end: (b) => resolve({ status, body: b ? JSON.parse(b) : null }),
+      };
+      void admin.handleAdminGames(req, res, pathname, {
+        verify: async () => {
+          throw new Error("a keyed call must not use the session");
+        },
+        exchange: async () => {
+          throw new Error("a keyed call must not use the session");
+        },
+        users,
+      });
+    });
+  };
+
+  const list = await keyed("/api/admin/games");
+  assert.equal(list.status, 200);
+  assert.ok(list.body.games.some((g) => g.id === "jewels"));
+
+  const approved = await keyed("/api/admin/games/update", {
+    id: "jewels",
+    action: "set-live",
+    version: "1.1.0",
+  });
+  assert.equal(approved.status, 200);
+  assert.equal((await registry.getRecord("jewels")).live, "1.1.0");
+
+  const rejected = await keyed("/api/admin/games/update", {
+    id: "jewels",
+    action: "reject",
+    version: "1.2.0",
+    reason: "The board is blank on phones.",
+  });
+  assert.equal(rejected.status, 200);
+  assert.equal(
+    (await registry.getRecord("jewels")).versions["1.2.0"].rejectReason,
+    "The board is blank on phones.",
+  );
+
+  // Everything else stays with a signed-in admin on the website.
+  const before = await registry.getRecord("jewels");
+  for (const [pathname, body] of [
+    [
+      "/api/admin/games/update",
+      { id: "jewels", action: "take-down", reason: "x" },
+    ],
+    ["/api/admin/games/update", { id: "jewels", action: "unlist" }],
+    [
+      "/api/admin/games/update",
+      { id: "jewels", action: "set-beta", version: "1.0.0" },
+    ],
+    [
+      "/api/admin/games/update",
+      { id: "jewels", action: "transfer", email: "a@b.c" },
+    ],
+    ["/api/admin/keys", { action: "create", name: "more" }],
+    ["/api/admin/admins/update", { action: "add", email: "a@b.c" }],
+    ["/api/admin/settings/update", { leaderboardPublic: true }],
+  ]) {
+    const refused = await keyed(pathname, body);
+    assert.equal(refused.status, 403, `${pathname} ${body.action ?? ""}`);
+    assert.equal(refused.body.error, "not-allowed-with-key");
+  }
+  const after = await registry.getRecord("jewels");
+  assert.equal(after.status, before.status);
+  assert.equal(after.beta, before.beta);
+  assert.equal(after.owner, before.owner);
+
+  // A wrong secret, a made-up key and an upload key are all refused.
+  const [, uid, id] = key.split(".");
+  assert.equal(
+    (await keyed("/api/admin/games", {}, `Bearer dak.${uid}.${id}.wrong`))
+      .status,
+    401,
+  );
+  assert.equal(
+    (await keyed("/api/admin/games", {}, "Bearer dak.nobody.abc.def")).status,
+    401,
+  );
+  assert.equal(
+    (await keyed("/api/admin/games", {}, `Bearer dgk.${uid}.${id}.x`)).status,
+    403,
+  );
+
+  // An account that is no longer an admin cannot use its keys.
+  accountClaims = { developer: true };
+  assert.equal((await keyed("/api/admin/games")).status, 403);
+  accountClaims = { admin: true };
+  assert.equal((await keyed("/api/admin/games")).status, 200);
+
+  // The key list shows when it was last used, and revoking stops it.
+  const listed = await call("/api/admin/keys", { action: "list" }, session);
+  assert.ok(listed.body.keys[0].lastUsedAt);
+  const revoked = await call(
+    "/api/admin/keys",
+    { action: "revoke", id: listed.body.keys[0].id },
+    session,
+  );
+  assert.deepEqual(revoked.body.keys, []);
+  assert.equal((await keyed("/api/admin/games")).status, 401);
+});
