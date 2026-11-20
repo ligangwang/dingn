@@ -223,10 +223,14 @@ export async function settleBadgeXp(uid, name = "") {
   return paid;
 }
 
-/** A player's coins, badges (newest first) and the upgrades they own. */
+/**
+ * A player's coins, badges (newest first), the upgrades they own and how
+ * many friends joined dingn through their challenges (scripts/referrals.mjs).
+ */
 export function wallet(doc) {
   return {
     coins: doc?.coins ?? 0,
+    friends: doc?.referrals?.friends ?? 0,
     badges: Object.values(doc?.badges ?? {}).sort((a, b) =>
       b.at.localeCompare(a.at),
     ),

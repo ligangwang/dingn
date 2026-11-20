@@ -244,6 +244,17 @@ export function WalletSummary({
           {t("Pass levels in games to earn badges and coins.")}
         </p>
       )}
+      {!compact && (
+        <p className="wallet-friends">
+          {(wallet.friends ?? 0) > 0 &&
+            t(
+              `Friends who joined through your challenges: ${wallet.friends}.`,
+            )}{" "}
+          {t(
+            "Each friend who joins dingn through your challenge link earns you up to 200 coins, plus badges at 3, 10, 25 and 50 friends.",
+          )}
+        </p>
+      )}
       <h3>
         {t("Upgrades")} <small>{wallet.items.length}</small>
       </h3>

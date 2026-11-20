@@ -77,13 +77,41 @@ export async function refresh(req, res) {
     throw e;
   }
 }
-async function identity(token) {
+/** The account behind a valid ID token, from Google's lookup. */
+async function lookup(token) {
   const result = await upstream(
     `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${key}`,
     { idToken: token },
   );
   const user = result.users?.[0];
   if (!user || user.disabled) throw new ApiError(401, "invalid-credential");
+  return user;
+}
+/**
+ * Email accounts made from this time on must open the activation link sent
+ * to their address before they can sign in. Older ones (made before
+ * activation existed) keep working; Google accounts are always verified.
+ */
+export const ACTIVATION_FROM = Date.parse("2026-11-21T00:00:00Z");
+export const needsActivation = (user) =>
+  user.emailVerified !== true && Number(user.createdAt) >= ACTIVATION_FROM;
+/**
+ * Emails the account's activation link (Firebase's "verify email" message).
+ * Its Continue button leads back to dingn's sign-in page where allowed.
+ */
+async function sendActivation(idToken, origin) {
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${key}`;
+  const request = { requestType: "VERIFY_EMAIL", idToken };
+  try {
+    await upstream(url, { ...request, continueUrl: `${origin}/signin/` });
+  } catch (e) {
+    // An address Firebase won't link back to: send the plain link.
+    if (e.status === 429) throw e;
+    await upstream(url, request);
+  }
+}
+async function identity(token, known) {
+  const user = known ?? (await lookup(token));
   // Claims are read only after Google's lookup has validated this token.
   const claims = JSON.parse(
     Buffer.from(token.split(".")[1], "base64url").toString(),
@@ -165,6 +193,9 @@ export async function handleApi(req, res) {
       const action = route.endsWith("signup") ? "signUp" : "signInWithPassword";
       if (action === "signUp" && body.password.length < 8)
         throw new ApiError(400, "weak-password");
+      // A new account's password is typed twice, so a typo can't lock it.
+      if (action === "signUp" && body.confirm !== body.password)
+        throw new ApiError(400, "password-mismatch");
       const result = await upstream(
         `https://identitytoolkit.googleapis.com/v1/accounts:${action}?key=${key}`,
         {
@@ -173,8 +204,21 @@ export async function handleApi(req, res) {
           returnSecureToken: true,
         },
       );
-      data = await identity(result.idToken);
-      cookie(res, result.refreshToken);
+      const origin = req.headers.origin;
+      if (action === "signUp") {
+        // Not signed in until the activation link in the email is opened.
+        await sendActivation(result.idToken, origin);
+        data = { activate: true, email: body.email.trim() };
+      } else {
+        const user = await lookup(result.idToken);
+        if (needsActivation(user)) {
+          // A fresh link, in case the first one was lost.
+          await sendActivation(result.idToken, origin).catch(() => {});
+          throw new ApiError(403, "email-not-verified");
+        }
+        data = await identity(result.idToken, user);
+        cookie(res, result.refreshToken);
+      }
     } else if (route === "/api/auth/google") {
       throttle(req);
       if (

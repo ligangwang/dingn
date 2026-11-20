@@ -127,6 +127,12 @@ html.play-window-full body {
 .play-challenge span {
   opacity: 0.8;
 }
+.play-challenge .play-challenge-join {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
+  opacity: 1;
+}
 .play-preview {
   margin: 0;
   padding: 8px 12px;

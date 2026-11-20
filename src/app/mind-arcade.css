@@ -1636,3 +1636,10 @@ nav a.account-link:has(.avatar-preset) {
   font-family: var(--font-display);
   font-weight: 700;
 }
+
+/* Friends brought through challenge links, in the wallet. */
+.wallet-friends {
+  margin: 4px 0 12px;
+  font-size: 0.9rem;
+  color: var(--muted, #5b6270);
+}

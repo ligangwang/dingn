@@ -35,6 +35,7 @@ import {
   isChallengePath,
 } from "./challenges.mjs";
 import { challengeIdFromQuery } from "../src/data/challenge.mjs";
+import { handleReferrals, referralRoutes } from "./referrals.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -134,6 +135,10 @@ http
     }
     if (funnelRoutes.includes(pathname)) {
       void handleFunnel(req, res, pathname);
+      return;
+    }
+    if (referralRoutes.includes(pathname)) {
+      void handleReferrals(req, res, pathname);
       return;
     }
     if (isChallengePath(pathname)) {

@@ -201,3 +201,100 @@ test("Google sign-in returns the provider photo as the default avatar, but only 
   const unsafe = await request("/api/auth/google", { refreshToken: "r" });
   assert.equal(unsafe.body.photoURL, null);
 });
+
+test("a new email account types its password twice and is activated by email, not signed in", async () => {
+  const mismatch = stub([]);
+  const typo = await request("/api/auth/signup", {
+    email: "new@example.com",
+    password: "secret-password",
+    confirm: "secret-passwrod",
+  });
+  assert.equal(typo.status, 400);
+  assert.equal(typo.body.error, "password-mismatch");
+  assert.equal(mismatch.length, 0);
+
+  const calls = stub([
+    { data: { idToken, refreshToken: "private-refresh" } },
+    { data: { email: "new@example.com" } },
+  ]);
+  const made = await request("/api/auth/signup", {
+    email: " new@example.com ",
+    password: "secret-password",
+    confirm: "secret-password",
+  });
+  assert.equal(made.status, 200);
+  assert.deepEqual(made.body, { activate: true, email: "new@example.com" });
+  // No session until the account is activated.
+  assert.equal(made.headers["Set-Cookie"], undefined);
+  assert.match(calls[1].url, /accounts:sendOobCode/);
+  assert.deepEqual(JSON.parse(calls[1].body), {
+    requestType: "VERIFY_EMAIL",
+    idToken,
+    continueUrl: "http://127.0.0.1:3001/signin/",
+  });
+});
+
+test("the activation email falls back to a plain link where dingn's address isn't allowed", async () => {
+  const calls = stub([
+    { data: { idToken, refreshToken: "r" } },
+    { status: 400, data: { error: { message: "UNAUTHORIZED_DOMAIN" } } },
+    { data: {} },
+  ]);
+  const made = await request("/api/auth/signup", {
+    email: "new@example.com",
+    password: "secret-password",
+    confirm: "secret-password",
+  });
+  assert.equal(made.status, 200);
+  assert.deepEqual(JSON.parse(calls[2].body), {
+    requestType: "VERIFY_EMAIL",
+    idToken,
+  });
+});
+
+test("an account not yet activated can't sign in and gets a new link; older accounts still can", async () => {
+  const { ACTIVATION_FROM } = await import("../scripts/api.mjs");
+  const calls = stub([
+    { data: { idToken, refreshToken: "private-refresh" } },
+    {
+      data: {
+        users: [
+          {
+            localId: "u2",
+            email: "new@example.com",
+            emailVerified: false,
+            createdAt: String(ACTIVATION_FROM + 1000),
+          },
+        ],
+      },
+    },
+    { data: {} },
+  ]);
+  const blocked = await request("/api/auth/login", {
+    email: "new@example.com",
+    password: "secret-password",
+  });
+  assert.equal(blocked.status, 403);
+  assert.equal(blocked.body.error, "email-not-verified");
+  assert.equal(blocked.headers["Set-Cookie"], undefined);
+  assert.match(calls[2].url, /accounts:sendOobCode/);
+
+  for (const user of [
+    // Activated.
+    { emailVerified: true, createdAt: String(ACTIVATION_FROM + 1000) },
+    // Made before activation existed.
+    { emailVerified: false, createdAt: String(ACTIVATION_FROM - 1000) },
+  ]) {
+    stub([
+      { data: { idToken, refreshToken: "private-refresh" } },
+      { data: { users: [{ localId: "u3", email: "a@example.com", ...user }] } },
+    ]);
+    const ok = await request("/api/auth/login", {
+      email: "a@example.com",
+      password: "secret-password",
+    });
+    assert.equal(ok.status, 200, JSON.stringify(user));
+    assert.equal(ok.body.uid, "u3");
+    assert.match(ok.headers["Set-Cookie"], /private-refresh/);
+  }
+});
