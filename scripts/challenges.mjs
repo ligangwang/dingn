@@ -36,17 +36,31 @@ import { CHALLENGE_ID, validChallenge } from "../src/data/challenge.mjs";
 export const isChallengePath = (pathname) =>
   pathname === "/api/challenges" || pathname.startsWith("/api/challenges/");
 
-/** Challenges one player (or address, for guests) may save in 10 minutes. */
+/** Challenges one player (or guest) may save in 10 minutes. */
 export const MAX_PER_WINDOW = 30;
+/** Challenges all guests together may save on one server in 10 minutes. */
+export const MAX_GUESTS_PER_WINDOW = 600;
 const WINDOW_MS = 600_000;
 const recent = new Map();
 
-function limit(key, now = Date.now()) {
+/**
+ * Who a guest is, for their quota: the browser's address as forwarded by the
+ * proxy in front (Cloud Run's own address is shared by many guests). A
+ * browser can make that header up, which is why guests also share one
+ * overall quota.
+ */
+export function guestKey(req) {
+  const forwarded = String(req.headers["x-forwarded-for"] ?? "")
+    .split(",")[0]
+    .trim();
+  return `ip:${forwarded || req.socket.remoteAddress || "unknown"}`;
+}
+
+function limit(key, max = MAX_PER_WINDOW, now = Date.now()) {
   for (const [k, times] of recent)
     if (times.every((t) => now - t >= WINDOW_MS)) recent.delete(k);
   const times = (recent.get(key) ?? []).filter((t) => now - t < WINDOW_MS);
-  if (times.length >= MAX_PER_WINDOW)
-    throw new ApiError(429, "too-many-requests");
+  if (times.length >= max) throw new ApiError(429, "too-many-requests");
   times.push(now);
   recent.set(key, times);
 }
@@ -152,7 +166,11 @@ export async function handleChallenges(
     // Only games on dingn, so made-up ids can't fill the store.
     if (!(await cachedRecord(body.game))) throw new ApiError(404, "not-found");
     const { uid, name } = await maker(req, res, verify, exchange, account);
-    limit(uid ?? `ip:${req.socket.remoteAddress ?? "unknown"}`);
+    if (uid) limit(uid);
+    else {
+      limit(guestKey(req));
+      limit("guests", MAX_GUESTS_PER_WINDOW);
+    }
     const id = newChallengeId();
     await mergeDoc("challenges", id, {
       game: body.game,

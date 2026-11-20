@@ -36,6 +36,7 @@ function call(
     ip = "127.0.0.1",
     claims,
     profile = null,
+    forwarded,
   } = {},
 ) {
   const req = Object.assign(Readable.from([JSON.stringify(body ?? {})]), {
@@ -46,6 +47,7 @@ function call(
       "x-dingn-request": "1",
       "content-type": "application/json",
       cookie,
+      ...(forwarded ? { "x-forwarded-for": forwarded } : {}),
     },
     socket: { remoteAddress: ip },
   });
@@ -184,21 +186,37 @@ test("only checked challenges for games on dingn are saved", async () => {
   assert.equal((await call("/api/challenges", { method: "GET" })).status, 405);
 });
 
-test("one address can't fill the store", async () => {
-  const ip = "10.0.0.9";
+test("each guest has their own quota, and all guests one together", async () => {
+  // Every guest reaches the server through the same proxy.
+  const make = (forwarded, ip = "169.254.1.1") =>
+    call("/api/challenges", {
+      body: { game: "memory", ...round },
+      ip,
+      forwarded,
+    }).then((r) => r.status);
   for (let i = 0; i < challenges.MAX_PER_WINDOW; i++)
-    assert.equal(
-      (
-        await call("/api/challenges", {
-          body: { game: "memory", ...round },
-          ip,
-        })
-      ).status,
-      200,
-    );
+    assert.equal(await make("203.0.113.9"), 200);
+  assert.equal(await make("203.0.113.9, 169.254.8.1"), 429);
+  // Another guest behind the same proxy is not held up.
+  assert.equal(await make("198.51.100.4"), 200);
+  // Made-up addresses still can't fill the store: all guests together stop
+  // at the overall quota (earlier tests' guests count towards it too).
+  let n = 0;
+  // (Through several proxies, past dingn's general per-address throttle.)
+  const fake = (n) => `10.9.${n >> 8}.${n & 255}`;
+  const most = challenges.MAX_GUESTS_PER_WINDOW;
+  while (n < most && (await make(fake(n), `169.254.2.${n >> 6}`)) === 200) n++;
+  assert.ok(n < challenges.MAX_GUESTS_PER_WINDOW - challenges.MAX_PER_WINDOW);
+  assert.ok(n > challenges.MAX_GUESTS_PER_WINDOW - 100);
+  // Signed-in players are counted by account instead.
   assert.equal(
-    (await call("/api/challenges", { body: { game: "memory", ...round }, ip }))
-      .status,
-    429,
+    (
+      await call("/api/challenges", {
+        body: { game: "memory", ...round },
+        cookie: "dingn-session=x",
+        claims: { uid: "grace" },
+      })
+    ).status,
+    200,
   );
 });
