@@ -9,7 +9,7 @@
 // nothing, as with Google Analytics.
 import { api } from "./api";
 import { consentKey } from "./analytics";
-import { challengeFromQuery } from "@/data/challenge.mjs";
+import { challengeIdFromQuery } from "@/data/challenge.mjs";
 
 export const FUNNEL_KEY = "dingn.funnel.v1";
 const SOURCE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
@@ -85,7 +85,7 @@ export function landingSource(href: string, referrer: string) {
     cleanSource(url.searchParams.get("utm_source")) ||
     cleanSource(url.searchParams.get("ref"));
   if (tagged) return tagged;
-  if (challengeFromQuery(url.search)) return "challenge";
+  if (challengeIdFromQuery(url.search)) return "challenge";
   let from: URL | null = null;
   try {
     from = referrer ? new URL(referrer) : null;

@@ -1,14 +1,15 @@
 // Challenge links: "I reached 10 digits on Memory. Your turn." A game asks
-// for one through the SDK (dingn.challengeLink) after a round, and the link
-// opens the same round for a friend:
+// for one through the SDK (dingn.challengeLink) after a round. dingn saves
+// the challenge (scripts/challenges.mjs) and the link carries only its id, so
+// nobody can change the score by editing the address:
 //
-//   /play/memory/?challenge=ladder&seed=2026-11-16&score=10&unit=digits
+//   /play/memory/?c=Xq3v9TzK1bWm
 //
-// Everything is in the address, so nothing is stored. The text a link shows
-// (the page's banner and its link preview) is put together here from those
-// checked fields and the game's own title, never from text in the link, so a
-// link cannot make dingn say anything else. The player page (game-host.tsx)
-// and the server's link previews (scripts/game-seo.mjs) both read this file.
+// The text a link shows (the page's banner and its link preview) is put
+// together here from the saved, checked fields and the game's own title,
+// never from text in the link, so a link cannot make dingn say anything else.
+// The player page (game-host.tsx), the server's link previews
+// (scripts/game-seo.mjs) and the challenge store all read this file.
 
 /** What a score can be counted in, with its words in both languages. */
 export const UNITS = {
@@ -42,32 +43,18 @@ export function validChallenge(raw) {
   return { mode, ...(seed != null ? { seed } : {}), score, unit };
 }
 
-/** The challenge in a page address's query (`?challenge=…`), or null. */
-export function challengeFromQuery(search) {
-  const params = new URLSearchParams(search);
-  const mode = params.get("challenge");
-  if (!mode) return null;
-  const score = params.get("score") ?? "";
-  return validChallenge({
-    mode,
-    seed: params.get("seed") ?? undefined,
-    score: /^\d{1,10}$/.test(score) ? Number(score) : NaN,
-    unit: params.get("unit"),
-  });
+/** A saved challenge's id: 12 letters, digits, dashes or underscores. */
+export const CHALLENGE_ID = /^[A-Za-z0-9_-]{12}$/;
+
+/** The challenge id in a page address's query (`?c=…`), or null. */
+export function challengeIdFromQuery(search) {
+  const id = new URLSearchParams(search).get("c");
+  return id && CHALLENGE_ID.test(id) ? id : null;
 }
 
-/** The query that carries a checked challenge, without the "?". */
-export function challengeQuery(challenge) {
-  const params = new URLSearchParams({ challenge: challenge.mode });
-  if (challenge.seed) params.set("seed", challenge.seed);
-  params.set("score", String(challenge.score));
-  params.set("unit", challenge.unit);
-  return params.toString();
-}
-
-/** The address of a game's page that opens `challenge`. */
-export function challengeUrl(origin, gameId, challenge, zh) {
-  return `${origin}${zh ? "/zh" : ""}/play/${gameId}/?${challengeQuery(challenge)}`;
+/** The address of a game's page that opens the saved challenge `id`. */
+export function challengeUrl(origin, gameId, id, zh) {
+  return `${origin}${zh ? "/zh" : ""}/play/${gameId}/?c=${encodeURIComponent(id)}`;
 }
 
 /** "10 digits" or "10 位数字". */

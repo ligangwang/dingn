@@ -83,7 +83,7 @@ test("tracks every page except admin, in both languages", () => {
     path: "/zh/puzzle/",
     title: "Puzzle (zh)",
   });
-  expect(analyticsPage("/play/crowdrush/?challenge=abc")).toEqual({
+  expect(analyticsPage("/play/crowdrush/?c=Xq3v9TzK1bWm")).toEqual({
     path: "/play/crowdrush/",
     title: "Play crowdrush",
   });

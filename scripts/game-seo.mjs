@@ -11,11 +11,7 @@
 // page's empty `data-fill` slots (src/components/server-fill.tsx) with plain
 // links to the games, and adds schema.org data (JSON-LD) to the <head>.
 import { categoryOf, isPreview, resolveVersion } from "./game-registry.mjs";
-import {
-  challengeFromQuery,
-  challengeText,
-  challengeUrl,
-} from "../src/data/challenge.mjs";
+import { challengeText, challengeUrl } from "../src/data/challenge.mjs";
 
 const SITE = "https://dingn.com";
 
@@ -125,11 +121,12 @@ function cardHtml(game, zh) {
  * The play page for one game: `html` with that game's title, description,
  * robots, addresses, share picture and schema.org data when it may be
  * indexed, otherwise `html` unchanged. `games` is the catalog (/api/games),
- * for the links to the category's other games. When the request's address
- * (`requestUrl`) is a friend's challenge link, the link preview shows the
+ * for the links to the category's other games. When the page was opened
+ * through a friend's challenge link, `challenge` is the saved challenge
+ * (findChallenge in scripts/challenges.mjs) and the link preview shows the
  * score to beat (src/data/challenge.mjs).
  */
-export function gamePageHtml(html, record, zh, games = [], requestUrl = "") {
+export function gamePageHtml(html, record, zh, games = [], challenge = null) {
   const live = indexableGame(record);
   if (!live) return html;
   const id = record.id;
@@ -212,13 +209,13 @@ export function gamePageHtml(html, record, zh, games = [], requestUrl = "") {
         `<meta name="twitter:image" content="${escape(cover)}"/>`,
       ],
     );
-  const challenge = challengeFromQuery(new URL(requestUrl || "/", SITE).search);
-  if (challenge) {
+  // Only this game's challenges: an id from another game's link is ignored.
+  if (challenge?.game === id) {
     const said = challengeText(challenge, name, zh);
     swaps.push(
       [
         /<meta property="og:url" content="[^"]*"\/>/,
-        `<meta property="og:url" content="${escape(challengeUrl(SITE, id, challenge, zh))}"/>`,
+        `<meta property="og:url" content="${escape(challengeUrl(SITE, id, challenge.id, zh))}"/>`,
       ],
       [
         /<meta property="og:title" content="[^"]*"\/>/,

@@ -79,8 +79,8 @@ test("a game gets the friend's challenge and can make challenge links", async ()
     unit: "digits" as const,
   };
   ctx.challenge = challenge;
-  ctx.challengeLink = (c) =>
-    `https://dingn.com/play/hello/?challenge=${c.mode}&score=${c.score}`;
+  ctx.challengeLink = async (c) =>
+    `https://dingn.com/play/hello/?c=${c.mode}-${c.score}`;
   ctx.roundEnded = () => void calls.push("roundEnded");
   const init = await handleGameRequest(ask("init"), ctx);
   assert.deepEqual(
@@ -95,7 +95,7 @@ test("a game gets the friend's challenge and can make challenge links", async ()
   );
   assert.equal(
     link && "result" in link && link.result,
-    "https://dingn.com/play/hello/?challenge=ladder&score=12",
+    "https://dingn.com/play/hello/?c=ladder-12",
   );
   for (const params of [
     { mode: "ladder", score: 12, unit: "dollars" },
@@ -114,6 +114,15 @@ test("a game gets the friend's challenge and can make challenge links", async ()
     null,
   );
   assert.deepEqual(calls, ["roundEnded"]);
+  // When dingn can't save the challenge, the game hears so.
+  ctx.challengeLink = async () => {
+    throw new Error("offline");
+  };
+  const failed = await handleGameRequest(
+    ask("challenge.link", { mode: "a", score: 1, unit: "points" }),
+    ctx,
+  );
+  assert.equal(failed && "error" in failed && failed.error.code, "unavailable");
   // Where dingn makes no links (an old page), the game hears so.
   delete ctx.challengeLink;
   const none = await handleGameRequest(

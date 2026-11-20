@@ -49,11 +49,13 @@ import {
   type Player,
 } from "@/lib/game-bridge";
 import {
-  challengeFromQuery,
+  challengeIdFromQuery,
   challengeText,
   challengeUrl,
+  validChallenge,
   type Challenge,
 } from "@/data/challenge.mjs";
+import { api } from "@/lib/api";
 import { trackGame } from "@/lib/funnel";
 
 export type PublishedGame = {
@@ -142,7 +144,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     | { status: "ready"; game: PublishedGame; pinned: string }
   >({ status: "loading" });
   const [loaded, setLoaded] = useState(false);
-  // A friend's challenge in the address (?challenge=…), read once.
+  // A friend's saved challenge, from the id in the address (?c=…), read once.
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const lastRound = useRef(0);
   const stage = useRef<HTMLDivElement>(null);
@@ -261,9 +263,18 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   useEffect(() => {
     const id = gameId ?? gameIdFromPath(location.pathname);
     const requested = new URLSearchParams(location.search).get("v") ?? "";
-    setChallenge(challengeFromQuery(location.search));
     if (!id) return setState({ status: "missing" });
     let active = true;
+    // Looked up alongside the game and given to it at start, so the game
+    // never starts without the challenge it was opened for. A link that
+    // can't be read just opens the game.
+    const cid = challengeIdFromQuery(location.search);
+    const saved: Promise<Challenge | null> = cid
+      ? fetch(`/api/challenges/${cid}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((c) => (c?.game === id ? validChallenge(c) : null))
+          .catch(() => null)
+      : Promise.resolve(null);
     fetch(
       `/api/games/${id}${requested ? `?v=${encodeURIComponent(requested)}` : ""}`,
     )
@@ -271,9 +282,12 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         if (!active) return;
         if (response.status === 404) return setState({ status: "missing" });
         if (!response.ok) throw new Error("unavailable");
+        const [game, challenge] = await Promise.all([response.json(), saved]);
+        if (!active) return;
+        setChallenge(challenge);
         setState({
           status: "ready",
-          game: await response.json(),
+          game,
           pinned: requested,
         });
       })
@@ -339,9 +353,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     },
     ready: () => setLoaded(true),
     challenge,
-    challengeLink: (c) => {
+    challengeLink: async (c) => {
+      const { id } = await api<{ id: string }>("/api/challenges", {
+        game: game.id,
+        ...c,
+      });
       trackGame("share", game.id);
-      return challengeUrl(location.origin, game.id, c, locale === "zh-CN");
+      return challengeUrl(location.origin, game.id, id, locale === "zh-CN");
     },
     roundEnded: () => {
       // A few seconds apart at most, so a game calling it in a loop can't

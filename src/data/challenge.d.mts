@@ -14,12 +14,12 @@ export const MODE: RegExp;
 export const SEED: RegExp;
 export const MAX_SCORE: number;
 export function validChallenge(raw: unknown): Challenge | null;
-export function challengeFromQuery(search: string): Challenge | null;
-export function challengeQuery(challenge: Challenge): string;
+export const CHALLENGE_ID: RegExp;
+export function challengeIdFromQuery(search: string): string | null;
 export function challengeUrl(
   origin: string,
   gameId: string,
-  challenge: Challenge,
+  id: string,
   zh: boolean,
 ): string;
 export function scoreText(challenge: Challenge, zh: boolean): string;

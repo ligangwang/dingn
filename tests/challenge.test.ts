@@ -2,54 +2,48 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  challengeFromQuery,
+  challengeIdFromQuery,
   challengeText,
   challengeUrl,
   validChallenge,
 } from "../src/data/challenge.mjs";
 import { cleanSource, landingSource, visitFor } from "../src/lib/funnel";
 
-test("a challenge link round-trips through its address", () => {
-  const challenge = {
-    mode: "ladder",
-    seed: "2026-11-16",
-    score: 10,
-    unit: "digits" as const,
-  };
-  const url = challengeUrl("https://dingn.com", "memory", challenge, false);
+test("a challenge link carries only the saved challenge's id", () => {
+  const url = challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", false);
+  assert.equal(url, "https://dingn.com/play/memory/?c=Xq3v9TzK1bWm");
+  assert.equal(challengeIdFromQuery(new URL(url).search), "Xq3v9TzK1bWm");
   assert.equal(
-    url,
-    "https://dingn.com/play/memory/?challenge=ladder&seed=2026-11-16&score=10&unit=digits",
+    challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", true),
+    "https://dingn.com/zh/play/memory/?c=Xq3v9TzK1bWm",
   );
-  assert.deepEqual(challengeFromQuery(new URL(url).search), challenge);
-  assert.match(
-    challengeUrl("https://dingn.com", "memory", challenge, true),
-    /^https:\/\/dingn\.com\/zh\/play\/memory\/\?/,
-  );
-  // No seed is fine: the game picks the round from the mode alone.
-  assert.deepEqual(
-    challengeFromQuery("?challenge=classic&score=0&unit=points"),
-    {
-      mode: "classic",
-      score: 0,
-      unit: "points",
-    },
-  );
-});
-
-test("malformed challenges are ignored", () => {
   for (const query of [
     "",
-    "?score=10&unit=digits",
-    "?challenge=Ladder&score=10&unit=digits",
-    "?challenge=ladder&score=-1&unit=digits",
-    "?challenge=ladder&score=1.5&unit=digits",
-    "?challenge=ladder&score=10&unit=dollars",
-    "?challenge=ladder&seed=a/b&score=10&unit=digits",
-    "?challenge=ladder&score=99999999999&unit=digits",
+    "?c=short",
+    "?c=Xq3v9TzK1bWm1",
+    "?c=Xq3v9TzK1b/m",
+    // The old links that carried the score in the address no longer count.
+    "?challenge=ladder&seed=2026-11-16&score=10&unit=digits",
   ])
-    assert.equal(challengeFromQuery(query), null, query);
-  assert.equal(validChallenge({ mode: "x", score: 1, unit: "toString" }), null);
+    assert.equal(challengeIdFromQuery(query), null, query);
+});
+
+test("malformed challenges are refused", () => {
+  for (const raw of [
+    { score: 10, unit: "digits" },
+    { mode: "Ladder", score: 10, unit: "digits" },
+    { mode: "ladder", score: -1, unit: "digits" },
+    { mode: "ladder", score: 1.5, unit: "digits" },
+    { mode: "ladder", score: 10, unit: "dollars" },
+    { mode: "ladder", seed: "a/b", score: 10, unit: "digits" },
+    { mode: "ladder", score: 99999999999, unit: "digits" },
+    { mode: "x", score: 1, unit: "toString" },
+  ])
+    assert.equal(validChallenge(raw), null, JSON.stringify(raw));
+  assert.deepEqual(
+    validChallenge({ mode: "classic", seed: null, score: 0, unit: "points" }),
+    { mode: "classic", score: 0, unit: "points" },
+  );
 });
 
 test("the words come from dingn, not from the link", () => {
@@ -73,7 +67,7 @@ test("a visit's source is its tag, a challenge, or the site it came from", () =>
   assert.equal(landingSource(page + "?utm_source=TikTok", ""), "tiktok");
   assert.equal(landingSource(page + "?ref=discord", ""), "discord");
   assert.equal(
-    landingSource(page + "?challenge=ladder&score=3&unit=digits", ""),
+    landingSource(page + "?c=Xq3v9TzK1bWm", ""),
     "challenge",
   );
   assert.equal(landingSource(page, "https://www.google.co.uk/"), "google");

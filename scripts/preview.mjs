@@ -29,6 +29,12 @@ import { handleGamePlays, startFlushing, statsRoutes } from "./game-stats.mjs";
 import { handleRewards, rewardRoutes } from "./rewards.mjs";
 import { handleKingdom, kingdomRoutes } from "./kingdom.mjs";
 import { funnelRoutes, handleFunnel, startFunnelFlushing } from "./funnel.mjs";
+import {
+  findChallenge,
+  handleChallenges,
+  isChallengePath,
+} from "./challenges.mjs";
+import { challengeIdFromQuery } from "../src/data/challenge.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -130,6 +136,10 @@ http
       void handleFunnel(req, res, pathname);
       return;
     }
+    if (isChallengePath(pathname)) {
+      void handleChallenges(req, res, pathname);
+      return;
+    }
     if (kingdomRoutes.includes(pathname)) {
       void handleKingdom(req, res, pathname);
       return;
@@ -217,11 +227,14 @@ http
         path.join(root, play[1] ? "zh" : "", "play", "index.html"),
         types[".html"],
         async (html) => {
-          const [record, games] = await Promise.all([
+          const cid = challengeIdFromQuery(new URL(req.url, "http://x").search);
+          const [record, games, challenge] = await Promise.all([
             cachedRecord(id),
             liveCatalog(),
+            // A friend's challenge link: its preview shows the score to beat.
+            cid ? findChallenge(cid).catch(() => null) : null,
           ]);
-          return gamePageHtml(html, record, !!play[1], games, req.url);
+          return gamePageHtml(html, record, !!play[1], games, challenge);
         },
       ).catch(() => {
         res.writeHead(500);

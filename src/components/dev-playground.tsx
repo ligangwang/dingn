@@ -141,9 +141,15 @@ export function DevPlayground() {
     signIn: () => setSignedIn(true),
     navigate: () => {},
     ready: () => setReady(true),
-    // A link to the playground game's page as it would be on dingn.
-    challengeLink: (c) =>
-      challengeUrl(location.origin, "playground", c, locale === "zh-CN"),
+    // A link shaped like dingn's (whose id names a saved challenge); the
+    // playground saves nothing, so the id is made up.
+    challengeLink: async () =>
+      challengeUrl(
+        location.origin,
+        "playground",
+        "playground-1",
+        locale === "zh-CN",
+      ),
     // The playground has no game.json, so any badge id unlocks once and any
     // item can be bought, as tests that pay, charge and save nothing.
     rewards: {
