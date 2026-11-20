@@ -26,11 +26,17 @@ type Session = {
   stats: PlayerStats | null;
   setStats: (stats: PlayerStats | null) => void;
   login: () => Promise<void>;
+  /**
+   * Signs in with email, or makes a new account (`create`, with the password
+   * typed again as `confirm`). A new account isn't signed in: it resolves
+   * with `activate` once its activation link is emailed.
+   */
   loginEmail: (
     email: string,
     password: string,
     create: boolean,
-  ) => Promise<void>;
+    confirm?: string,
+  ) => Promise<{ activate: boolean }>;
   logout: () => Promise<void>;
   updateProfile: (profile: Profile) => Promise<void>;
 };
@@ -118,13 +124,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             await sdk.signOut(auth);
           }
         },
-        loginEmail: async (email, password, create) => {
+        loginEmail: async (email, password, create, confirm) => {
+          if (create) {
+            await api("/api/auth/signup", { email, password, confirm });
+            return { activate: true };
+          }
           await accept(
-            await api<Account>(
-              create ? "/api/auth/signup" : "/api/auth/login",
-              { email, password },
-            ),
+            await api<Account>("/api/auth/login", { email, password }),
           );
+          return { activate: false };
         },
         logout: async () => {
           await api("/api/auth/logout");

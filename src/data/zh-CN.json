@@ -784,5 +784,16 @@
   "A review key lets a script or an assistant review games for you: it can list the games and approve or reject a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games and https://dingn.com/api/admin/games/update with the header Authorization: Bearer followed by the key. A key stops working when it is revoked or its account is no longer an admin.": "审核密钥让脚本或助手替你审核游戏：只能列出游戏、批准或退回某个版本，不能做别的。向 https://dingn.com/api/admin/games 和 https://dingn.com/api/admin/games/update 发送 POST 请求，并带上请求头 Authorization: Bearer 加密钥。密钥被撤销或其账号不再是管理员时立即失效。",
   "Key name, such as Claude": "密钥名称，例如 Claude",
   "Revoke {0}? Anything using it will stop working.": "撤销 {0}？使用它的程序将无法再审核。",
-  "Play the same round again and beat your own score.": "再玩同一局，超过你自己的成绩。"
+  "Play the same round again and beat your own score.": "再玩同一局，超过你自己的成绩。",
+  "New to dingn? Sign up free from this challenge and you and your friend both get 100 coins.": "第一次来 dingn？从这个挑战免费注册，你和朋友都能得到 100 金币。",
+  "Friends who joined through your challenges: {0}.": "通过你的挑战加入的朋友：{0} 位。",
+  "Each friend who joins dingn through your challenge link earns you up to 200 coins, plus badges at 3, 10, 25 and 50 friends.": "每位通过你的挑战链接加入 dingn 的朋友最多为你赢得 200 金币，带来 3、10、25、50 位朋友还有徽章。",
+  "Confirm password": "确认密码",
+  "Use at least 8 characters. We'll email you a link to activate your account.": "至少 8 个字符。我们会给你发一封邮件，点击链接激活账号。",
+  "We sent an activation link to {0}. Open it to activate your account, then sign in here.": "激活链接已发送到 {0}。打开链接激活账号后，在这里登录。",
+  "The two passwords don’t match. Type the same password in both boxes.": "两次输入的密码不一致，请在两个框中输入相同的密码。",
+  "Activate your account first: open the link we emailed you. We just sent a new one.": "请先激活账号：打开我们发给你的邮件中的链接。我们刚刚又发了一封。",
+  "Create free account": "免费创建账号",
+  "Nice round! Create a free dingn account and you and your friend both get 100 coins.": "打得不错！免费创建 dingn 账号，你和朋友都能得到 100 金币。",
+  "Not now": "以后再说"
 }

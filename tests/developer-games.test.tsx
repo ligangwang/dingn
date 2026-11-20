@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DeveloperGames } from "../src/components/developer-games";
 import { GameHost } from "../src/components/game-host";
@@ -364,6 +364,65 @@ it("opens the player's own challenge as their score to beat", async () => {
     cleanup();
     vi.restoreAllMocks();
   }
+  localStorage.clear();
+  history.replaceState({}, "", "/");
+});
+
+it("invites a visitor from a friend's challenge to sign up after their first round", async () => {
+  const skyhopGame = {
+    id: "skyhop",
+    version: "1.0.0",
+    title,
+    description: { en: "", zh: "" },
+    entry: "index.html",
+    url: "/g/skyhop/1.0.0/index.html",
+  };
+  localStorage.clear();
+  history.replaceState({}, "", "/play/skyhop/?c=Xq3v9TzK1bWm");
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    async (url) =>
+      new Response(
+        JSON.stringify(
+          String(url).startsWith("/api/games/")
+            ? skyhopGame
+            : String(url).startsWith("/api/challenges/")
+              ? {
+                  id: "Xq3v9TzK1bWm",
+                  game: "skyhop",
+                  mode: "run",
+                  score: 42,
+                  unit: "points",
+                  name: "Ada",
+                  mine: false,
+                }
+              : { ok: true },
+        ),
+      ),
+  );
+  render(<GameHost />);
+  const frame = (await screen.findByTitle("Sky Hop")) as HTMLIFrameElement;
+  // The banner already offers it.
+  const join = screen.getAllByRole("link", { name: "Create free account" });
+  expect(join[0].getAttribute("href")).toBe(
+    `/signin/?create=1&next=${encodeURIComponent("/play/skyhop/?c=Xq3v9TzK1bWm")}`,
+  );
+  expect(screen.queryByText(/^Nice round!/)).toBeNull();
+  // The game reports a finished round.
+  await act(async () => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: { dingn: "game", v: 1, method: "roundEnded" },
+        source: frame.contentWindow,
+      }),
+    );
+  });
+  expect(
+    await screen.findByText(
+      "Nice round! Create a free dingn account and you and your friend both get 100 coins.",
+    ),
+  ).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "Not now" }));
+  expect(screen.queryByText(/^Nice round!/)).toBeNull();
   localStorage.clear();
   history.replaceState({}, "", "/");
 });

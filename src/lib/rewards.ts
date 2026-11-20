@@ -35,6 +35,8 @@ export type ShopDef = {
 };
 export type Wallet = {
   coins: number;
+  /** Friends who joined dingn through this player's challenges. */
+  friends?: number;
   badges: EarnedBadge[];
   /** Upgrades the player owns, newest first. */
   items: { game: string; id: string; title?: { en: string; zh: string } }[];

@@ -57,6 +57,7 @@ import {
 } from "@/data/challenge.mjs";
 import { api } from "@/lib/api";
 import { madeHere, rememberChallenge } from "@/lib/my-challenges";
+import { claimReferral, noteArrival, referralOpen } from "@/lib/referral";
 import { trackGame } from "@/lib/funnel";
 
 export type PublishedGame = {
@@ -150,6 +151,15 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   // The nickname of the player who made it, or null for "A friend".
   const [challenger, setChallenger] = useState<string | null>(null);
   const lastRound = useRef(0);
+  const referralAsked = useRef(false);
+  // A visitor without an account who came through a friend's challenge,
+  // after their first finished round: the invitation to sign up.
+  const [invite, setInvite] = useState<"hidden" | "shown" | "dismissed">(
+    "hidden",
+  );
+  /** The sign-up page, in create-account mode, coming back to this game. */
+  const signUpHref = () =>
+    `${href("/signin/")}?create=1&next=${encodeURIComponent(location.pathname + location.search)}`;
   const stage = useRef<HTMLDivElement>(null);
   // Full screen: the browser's own where it works, otherwise (iPhone Safari,
   // or a request the browser refuses) the stage simply fills the window.
@@ -272,6 +282,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     // never starts without the challenge it was opened for. A link that
     // can't be read just opens the game.
     const cid = challengeIdFromQuery(location.search);
+    // A visitor who joins dingn from a friend's challenge earns them both coins.
+    if (cid) noteArrival(cid);
     const saved: Promise<{ c: Challenge; name: string | null } | null> = cid
       ? fetch(`/api/challenges/${cid}`)
           .then((r) => (r.ok ? r.json() : null))
@@ -379,6 +391,23 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       if (Date.now() - lastRound.current < 3000) return;
       lastRound.current = Date.now();
       trackGame("finish", game.id);
+      if (!user && referralOpen())
+        setInvite((was) => (was === "hidden" ? "shown" : was));
+      // A signed-in player who arrived through a friend's challenge: their
+      // first finished round on a page claims the coins for both of them.
+      if (user && !referralAsked.current) {
+        referralAsked.current = true;
+        void claimReferral().then((result) => {
+          if (result?.state !== "joined" || !result.coins) return;
+          const coins = result.coins;
+          earnToWallet(user.uid, { coins, balance: null, left: null });
+          setCoinToast((shown) => ({
+            key: ++toastKey.current,
+            coins: (shown?.coins ?? 0) + coins,
+            test: false,
+          }));
+        });
+      }
     },
     rewards: {
       unlock: async (id) => {
@@ -611,6 +640,14 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               ? t("Play the same round again and beat your own score.")
               : t("You play the same round. Beat that score to win.")}
           </span>
+          {!challenge.mine && !user && (
+            <span className="play-challenge-join">
+              {t(
+                "New to dingn? Sign up free from this challenge and you and your friend both get 100 coins.",
+              )}{" "}
+              <a href={signUpHref()}>{t("Create free account")}</a>
+            </span>
+          )}
         </p>
       )}
       {state.game.preview && (
@@ -649,6 +686,25 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         <CoinToast toast={coinToast} onDone={() => setCoinToast(null)} />
         {ask && <SpendConfirm ask={ask} gameTitle={title} />}
       </div>
+      {invite === "shown" && !user && (
+        <div className="play-invite" role="note">
+          <p>
+            {t(
+              "Nice round! Create a free dingn account and you and your friend both get 100 coins.",
+            )}
+          </p>
+          <a className="button" href={signUpHref()}>
+            {t("Create free account")}
+          </a>
+          <button
+            type="button"
+            className="quiet-link"
+            onClick={() => setInvite("dismissed")}
+          >
+            {t("Not now")}
+          </button>
+        </div>
+      )}
       <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
       <GameAbout game={state.game} />
       <ReportGame game={state.game} signedIn={!!user} />

@@ -13,7 +13,15 @@ export function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  // ?create=1 (from a challenge's invitation) opens on "Create account".
   const [create, setCreate] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("create") === "1")
+      setCreate(true);
+  }, []);
+  // Where the activation link was sent, after making an account.
+  const [sent, setSent] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -30,8 +38,18 @@ export function SignIn() {
     setError("");
     try {
       if (emailLogin) {
-        await loginEmail(email, password, create);
+        if (create && password !== confirm)
+          throw Object.assign(new Error("mismatch"), {
+            code: "password-mismatch",
+          });
+        const { activate } = await loginEmail(email, password, create, confirm);
         setPassword("");
+        setConfirm("");
+        if (activate) {
+          // Activated by the link in the email; then they sign in here.
+          setSent(email.trim());
+          setCreate(false);
+        }
       } else await login();
     } catch (e) {
       setError(friendlyError(e));
@@ -87,7 +105,35 @@ export function SignIn() {
             onChange={(event) => setPassword(event.target.value)}
             disabled={pending}
           />
-          {create && <p>{t("Use at least 8 characters.")}</p>}
+          {create && (
+            <>
+              <label htmlFor="signin-confirm">{t("Confirm password")}</label>
+              <input
+                id="signin-confirm"
+                name="confirm"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                maxLength={4096}
+                value={confirm}
+                onChange={(event) => setConfirm(event.target.value)}
+                disabled={pending}
+              />
+              <p>
+                {t(
+                  "Use at least 8 characters. We'll email you a link to activate your account.",
+                )}
+              </p>
+            </>
+          )}
+          {sent && (
+            <p role="status" className="signin-sent">
+              {t(
+                `We sent an activation link to ${sent}. Open it to activate your account, then sign in here.`,
+              )}
+            </p>
+          )}
           <button className="button" type="submit" disabled={!ready || pending}>
             {t(
               pending
@@ -103,6 +149,8 @@ export function SignIn() {
             disabled={pending}
             onClick={() => {
               setCreate(!create);
+              setConfirm("");
+              setSent("");
               setError("");
             }}
           >

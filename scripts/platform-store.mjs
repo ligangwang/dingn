@@ -98,6 +98,37 @@ export async function updateDocs([ca, ia], [cb, ib], change) {
   });
 }
 
+/**
+ * Like updateDocs for any number of documents: `change(docs)` gets each
+ * document (null when missing) and returns the next ones, `undefined` for a
+ * document to leave as it is. In Firestore all of it is one transaction,
+ * which may run `change` again if a document changed meanwhile, so `change`
+ * must be pure and callers must read the outcome from what it returns.
+ * Returns the documents `change` returned on the attempt that was saved.
+ */
+export async function updateMany(refs, change) {
+  if (localDir()) {
+    const all = new Map();
+    for (const [c] of refs) if (!all.has(c)) all.set(c, await readLocal(c));
+    const next = change(refs.map(([c, id]) => all.get(c)[id] ?? null));
+    refs.forEach(([c, id], i) => {
+      if (next[i] !== undefined) all.get(c)[id] = next[i];
+    });
+    for (const [c, docs] of all) await writeLocal(c, docs);
+    return next;
+  }
+  const db = await firestore();
+  const handles = refs.map(([c, id]) => db.collection(c).doc(id));
+  return db.runTransaction(async (tx) => {
+    const snaps = await Promise.all(handles.map((ref) => tx.get(ref)));
+    const next = change(snaps.map((s) => (s.exists ? s.data() : null)));
+    handles.forEach((ref, i) => {
+      if (next[i] !== undefined) tx.set(ref, next[i]);
+    });
+    return next;
+  });
+}
+
 /** Adds a document with a new id and returns the id. */
 export async function addDoc(collection, data) {
   if (localDir()) {
