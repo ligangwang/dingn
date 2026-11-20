@@ -98,7 +98,10 @@ test("a challenge is saved privately and opened by its id", async () => {
     game: "memory",
     ...round,
     name: null,
+    mine: false,
   });
+  // Who opens it changes the answer, so nothing may cache it.
+  assert.equal(read.headers["Cache-Control"], "no-store");
   assert.equal(
     (await call("/api/challenges/Xq3v9TzK1bWm", { method: "GET" })).status,
     404,
@@ -107,6 +110,33 @@ test("a challenge is saved privately and opened by its id", async () => {
     (await call("/api/challenges/not-an-id", { method: "GET" })).status,
     404,
   );
+});
+
+test("a challenge says whether the player opening it made it, never who did", async () => {
+  const made = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    cookie: "dingn-session=x",
+    claims: { uid: "ada" },
+  });
+  const open = (claims) =>
+    call(`/api/challenges/${made.body.id}`, {
+      method: "GET",
+      ...(claims ? { cookie: "dingn-session=x", claims } : {}),
+    }).then((r) => r.body);
+  assert.equal((await open({ uid: "ada" })).mine, true);
+  assert.equal((await open({ uid: "grace" })).mine, false);
+  // A guest, or a session that no longer works.
+  assert.equal((await open(null)).mine, false);
+  assert.equal(
+    (
+      await call(`/api/challenges/${made.body.id}`, {
+        method: "GET",
+        cookie: "dingn-session=x",
+      })
+    ).body.mine,
+    false,
+  );
+  assert.equal((await open({ uid: "ada" })).uid, undefined);
 });
 
 test("a challenge keeps the rules its round was played with", async () => {

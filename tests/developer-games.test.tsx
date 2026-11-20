@@ -306,3 +306,64 @@ it("opens a friend's saved challenge, and only this game's", async () => {
   }
   history.replaceState({}, "", "/");
 });
+
+it("opens the player's own challenge as their score to beat", async () => {
+  const skyhopGame = {
+    id: "skyhop",
+    version: "1.0.0",
+    title,
+    description: { en: "", zh: "" },
+    entry: "index.html",
+    url: "/g/skyhop/1.0.0/index.html",
+  };
+  const saved = {
+    id: "Xq3v9TzK1bWm",
+    game: "skyhop",
+    mode: "run",
+    score: 42,
+    unit: "points",
+    name: "Ada",
+  };
+  // Theirs by their account, or made in this browser while signed out.
+  for (const [mine, local] of [
+    [true, false],
+    [false, true],
+    [false, false],
+  ] as const) {
+    localStorage.clear();
+    if (local)
+      localStorage.setItem(
+        "dingn.challenges.mine.v1",
+        JSON.stringify(["Xq3v9TzK1bWm"]),
+      );
+    history.replaceState({}, "", "/play/skyhop/?c=Xq3v9TzK1bWm");
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (url) =>
+        new Response(
+          JSON.stringify(
+            String(url).startsWith("/api/games/")
+              ? skyhopGame
+              : { ...saved, mine },
+          ),
+        ),
+    );
+    render(<GameHost />);
+    await screen.findByTitle("Sky Hop");
+    const own = screen.queryByText("Your score to beat: 42 points in Sky Hop.");
+    if (mine || local) {
+      expect(own).toBeTruthy();
+      expect(
+        screen.getByText("Play the same round again and beat your own score."),
+      ).toBeTruthy();
+    } else {
+      expect(own).toBeNull();
+      expect(
+        screen.getByText("Ada reached 42 points in Sky Hop. Can you beat it?"),
+      ).toBeTruthy();
+    }
+    cleanup();
+    vi.restoreAllMocks();
+  }
+  localStorage.clear();
+  history.replaceState({}, "", "/");
+});

@@ -80,10 +80,19 @@ export function scoreText(challenge, zh) {
 /**
  * What a challenge link says, for its link preview (title, description) and
  * the banner above the game (the same title). `name` is the nickname of the
- * player who made it, or null for "A friend".
+ * player who made it, or null for "A friend". A challenge with `mine` set
+ * (opened by the player who made it) is their own score to beat.
  */
 export function challengeText(challenge, gameTitle, zh, name = null) {
   const score = scoreText(challenge, zh);
+  // The player's own challenge, opened by them: their own score to beat.
+  if (challenge.mine === true)
+    return {
+      title: zh
+        ? `你要超越的成绩：「${gameTitle}」${score}`
+        : `Your score to beat: ${score} in ${gameTitle}.`,
+      description: "",
+    };
   return zh
     ? {
         title: `${name ?? "朋友"}在「${gameTitle}」中达到了 ${score}，你能超过吗？`,

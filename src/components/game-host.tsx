@@ -56,6 +56,7 @@ import {
   type Challenge,
 } from "@/data/challenge.mjs";
 import { api } from "@/lib/api";
+import { madeHere, rememberChallenge } from "@/lib/my-challenges";
 import { trackGame } from "@/lib/funnel";
 
 export type PublishedGame = {
@@ -277,7 +278,10 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           .then((found) => {
             const c = found?.game === id ? validChallenge(found) : null;
             const name = typeof found?.name === "string" ? found.name : null;
-            return c && { c, name };
+            // The player's own link (by their account, or made in this
+            // browser): their own score to beat.
+            const mine = found?.mine === true || madeHere(cid);
+            return c && { c: { ...c, mine }, name };
           })
           .catch(() => null)
       : Promise.resolve(null);
@@ -365,6 +369,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         game: game.id,
         ...c,
       });
+      rememberChallenge(id);
       trackGame("share", game.id);
       return challengeUrl(location.origin, game.id, id, locale === "zh-CN");
     },
@@ -601,7 +606,11 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
                 .title
             }
           </strong>{" "}
-          <span>{t("You play the same round. Beat that score to win.")}</span>
+          <span>
+            {challenge.mine
+              ? t("Play the same round again and beat your own score.")
+              : t("You play the same round. Beat that score to win.")}
+          </span>
         </p>
       )}
       {state.game.preview && (

@@ -71,6 +71,12 @@ export type Challenge = {
    * ones. dingn saves it with the challenge and gives it back unchanged.
    */
   rules?: string;
+  /**
+   * In `dingn.challenge` only: true when the player opening the link is the
+   * one who made it (signed in to the same account, or in the same browser).
+   * Then it is their own score to beat, not a friend's.
+   */
+  mine?: boolean;
 };
 export type DingnGame = {
   gameId: string;
