@@ -230,7 +230,16 @@ export async function handleApi(req, res) {
         `https://securetoken.googleapis.com/v1/token?key=${key}`,
         { grant_type: "refresh_token", refresh_token: body.refreshToken },
       );
-      data = await identity(result.id_token);
+      // Any Firebase token can arrive here, an email account's too, so
+      // activation is checked on this way in as well.
+      const user = await lookup(result.id_token);
+      if (needsActivation(user)) {
+        await sendActivation(result.id_token, req.headers.origin).catch(
+          () => {},
+        );
+        throw new ApiError(403, "email-not-verified");
+      }
+      data = await identity(result.id_token, user);
       cookie(res, result.refresh_token);
     } else if (route === "/api/auth/session") {
       data = readCookie(req) ? await identity(await refresh(req, res)) : null;

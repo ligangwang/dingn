@@ -185,3 +185,33 @@ test("past 10 friends in one day, more still count but aren't paid that day", ()
   assert.equal(next.paid, true);
   assert.equal(next.coins, 100);
 });
+
+test("a retried transaction decides afresh, so a friend is never paid twice", () => {
+  const now = "2026-11-20T12:00:00.000Z";
+  const writes = referrals.joinWrites(
+    "ChallengeAda",
+    { uid: "ada", game: "gemsurge" },
+    now,
+  );
+  // First attempt: nothing recorded yet, so all three are written together.
+  const first = writes([null, null, null]);
+  assert.equal(first[0].referrer, "ada");
+  assert.equal(first[1].coins, 100);
+  assert.equal(first[2].coins, 100);
+  // A retry after another request recorded the friend writes nothing.
+  assert.deepEqual(writes([first[0], first[1], first[2]]), [
+    undefined,
+    undefined,
+    undefined,
+  ]);
+  // The same for the return payment.
+  const later = referrals.returnWrites("2026-11-21T09:00:00.000Z");
+  const paid = later([first[0], first[2]]);
+  assert.equal(paid[1].coins, 200);
+  assert.deepEqual(later([paid[0], paid[1]]), [undefined, undefined]);
+  // Not on the day they joined.
+  assert.deepEqual(referrals.returnWrites(now)([first[0], first[2]]), [
+    undefined,
+    undefined,
+  ]);
+});

@@ -298,3 +298,30 @@ test("an account not yet activated can't sign in and gets a new link; older acco
     assert.match(ok.headers["Set-Cookie"], /private-refresh/);
   }
 });
+
+test("an email account not yet activated can't get a session through the Google sign-in route", async () => {
+  const { ACTIVATION_FROM } = await import("../scripts/api.mjs");
+  const calls = stub([
+    { data: { id_token: idToken, refresh_token: "private-refresh" } },
+    {
+      data: {
+        users: [
+          {
+            localId: "u4",
+            email: "new@example.com",
+            emailVerified: false,
+            createdAt: String(ACTIVATION_FROM + 1000),
+          },
+        ],
+      },
+    },
+    { data: {} },
+  ]);
+  const blocked = await request("/api/auth/google", {
+    refreshToken: "token-from-password-sign-in",
+  });
+  assert.equal(blocked.status, 403);
+  assert.equal(blocked.body.error, "email-not-verified");
+  assert.equal(blocked.headers["Set-Cookie"], undefined);
+  assert.match(calls[2].url, /accounts:sendOobCode/);
+});

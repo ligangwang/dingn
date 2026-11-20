@@ -30,7 +30,7 @@ import {
   throttle,
   validateOrigin,
 } from "./api.mjs";
-import { getDoc, updateDoc } from "./platform-store.mjs";
+import { getDoc, updateMany } from "./platform-store.mjs";
 import { CHALLENGE_ID } from "../src/data/challenge.mjs";
 
 export const referralRoutes = ["/api/referrals"];
@@ -162,6 +162,44 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+/**
+ * The writes for a friend joining, as one transaction over their referral
+ * record, their rewards and the inviter's: all three, or (`undefined`)
+ * nothing when the friend is already recorded. Pure, so a transaction that
+ * runs it again on a retry decides afresh.
+ */
+export const joinWrites =
+  (challengeId, challenge, now) =>
+  ([referral, friend, inviter]) => {
+    if (referral) return [undefined, undefined, undefined];
+    const joined = inviterJoined(inviter, now);
+    return [
+      {
+        referrer: challenge.uid,
+        challenge: challengeId,
+        game: challenge.game,
+        joinedAt: now,
+        joinDay: day(now),
+        returnedAt: null,
+        paidReferrer: joined.paid,
+      },
+      pay(friend, JOIN_COINS),
+      joined.doc,
+    ];
+  };
+
+/**
+ * The writes for a friend's round on a later day: the referral marked
+ * returned and the inviter's coins together, once; nothing (`undefined`)
+ * before then or after it is paid. Pure, like joinWrites.
+ */
+export const returnWrites =
+  (now) =>
+  ([referral, inviter]) =>
+    !referral || referral.returnedAt || day(now) === referral.joinDay
+      ? [undefined, undefined]
+      : [{ ...referral, returnedAt: now }, pay(inviter, RETURN_COINS)];
+
 /** A friend's first finished round: records them and pays both, or says why not. */
 async function join(uid, challengeId, account, now) {
   if (typeof challengeId !== "string" || !CHALLENGE_ID.test(challengeId))
@@ -179,31 +217,18 @@ async function join(uid, challengeId, account, now) {
     age > NEW_ACCOUNT_DAYS * 86_400_000
   )
     return { state: "none" };
-  // Recorded once per friend; a second claim finds it and stops.
-  let fresh = false;
-  await updateDoc("referrals", uid, (doc) => {
-    if (doc) return doc;
-    fresh = true;
-    return {
-      referrer: challenge.uid,
-      challenge: challengeId,
-      game: challenge.game,
-      joinedAt: now,
-      joinDay: day(now),
-      returnedAt: null,
-      paidReferrer: false,
-    };
-  });
-  if (!fresh) return { state: "waiting" };
-  await updateDoc("rewards", uid, (doc) => pay(doc, JOIN_COINS));
-  let paidReferrer = false;
-  await updateDoc("rewards", challenge.uid, (doc) => {
-    const next = inviterJoined(doc, now);
-    paidReferrer = next.paid;
-    return next.doc;
-  });
-  if (paidReferrer)
-    await updateDoc("referrals", uid, (doc) => ({ ...doc, paidReferrer }));
+  // The record and both payments are saved together, or not at all, and
+  // a friend already recorded (by another request, even at the same time)
+  // is never paid twice.
+  const [saved] = await updateMany(
+    [
+      ["referrals", uid],
+      ["rewards", uid],
+      ["rewards", challenge.uid],
+    ],
+    joinWrites(challengeId, challenge, now),
+  );
+  if (!saved) return { state: "waiting" };
   console.log("referral", challenge.uid, uid, challenge.game);
   return { state: "joined", coins: JOIN_COINS };
 }
@@ -212,16 +237,13 @@ async function join(uid, challengeId, account, now) {
 async function comeBack(uid, referral, now) {
   if (referral.returnedAt) return { state: "returned" };
   if (day(now) === referral.joinDay) return { state: "waiting" };
-  let first = false;
-  await updateDoc("referrals", uid, (doc) => {
-    if (doc.returnedAt) return doc;
-    first = true;
-    return { ...doc, returnedAt: now };
-  });
-  if (first)
-    await updateDoc("rewards", referral.referrer, (doc) =>
-      pay(doc, RETURN_COINS),
-    );
+  await updateMany(
+    [
+      ["referrals", uid],
+      ["rewards", referral.referrer],
+    ],
+    returnWrites(now),
+  );
   return { state: "returned" };
 }
 
