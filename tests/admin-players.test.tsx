@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdminPlayers } from "../src/components/admin-players";
 import type { Player } from "../src/lib/admin-games";
@@ -137,7 +137,10 @@ it("opens on the player a leaderboard link names, and marks their row", async ()
   expect(mocks.listPlayers).toHaveBeenCalledTimes(1);
   expect(cell.closest("tr")?.className).toBe("admin-player-wanted");
   expect(screen.getByText("bo@x.com").closest("tr")?.className).toBe("");
-  expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  // The scroll runs in an effect just after the row first shows.
+  await waitFor(() =>
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled(),
+  );
   history.replaceState({}, "", "/");
 });
 
