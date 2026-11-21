@@ -41,6 +41,8 @@ const PROBLEMS: Record<string, string> = {
   "missing-cover-file":
     "The zip does not have the cover picture named in game.json:",
   "cover-too-large": "The cover picture is over 1 MB. Make it smaller:",
+  "missing-clip-file": "The zip does not have the clip named in game.json:",
+  "clip-too-large": "The clip is over 2 MB. Make it shorter or smaller:",
   "not-your-game":
     "Another game already uses this id. Choose a different id in game.json.",
   "version-exists":

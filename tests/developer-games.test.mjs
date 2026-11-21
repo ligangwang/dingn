@@ -228,6 +228,18 @@ test("an upload needs a cover picture in its files, up to 1 MB", () => {
     }),
     "ok",
   );
+  // A clip is optional, but one that is named must be there, up to 2 MB.
+  const clip = { ...cover, clip: "play.mp4" };
+  const withClip = (bytes) =>
+    code({
+      "game.json": gameJson("skyhop", "1.0.0", clip),
+      "index.html": "x",
+      "cover.jpg": "jpg",
+      ...(bytes ? { "play.mp4": "x".repeat(bytes) } : {}),
+    });
+  assert.equal(withClip(0), "missing-clip-file play.mp4");
+  assert.equal(withClip(uploads.MAX_CLIP_BYTES + 1), "clip-too-large play.mp4");
+  assert.equal(withClip(1000), "ok");
 });
 
 test("a game belongs to the developer who first uploaded it", () => {

@@ -148,7 +148,7 @@ function FeaturedGame({ games }: { games: CatalogGame[] }) {
   return (
     <section className="home-featured" aria-label={t("FEATURED")}>
       <Link className="featured-game" href={href(playPath(game.id))}>
-        <GameCover game={game} title={title} size={200} />
+        <GameCover game={game} title={title} size={200} play="view" />
         <span className="featured-copy">
           <span className="eyebrow">{t("FEATURED")}</span>
           <strong>{title}</strong>

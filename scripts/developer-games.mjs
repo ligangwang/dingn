@@ -59,6 +59,8 @@ export const developerGameRoutes = [
 export const AGREEMENT_VERSION = "2026-11-09";
 /** The largest cover picture an upload may bring. */
 export const MAX_COVER_BYTES = 1024 * 1024;
+/** The largest clip an upload may bring. */
+export const MAX_CLIP_BYTES = 2 * 1024 * 1024;
 
 /** How many games one developer can own, and upload in a day. */
 export const LIMITS = { games: 10, uploadsPerDay: 20 };
@@ -125,6 +127,14 @@ export function prepareUpload(zipped) {
     throw new UploadError(400, "missing-cover-file", manifest.cover);
   if (files[manifest.cover].length > MAX_COVER_BYTES)
     throw new UploadError(400, "cover-too-large", manifest.cover);
+  // A clip is optional, but one that is named must be there, and small:
+  // the catalog plays it on the home page.
+  if (manifest.clip) {
+    if (!files[manifest.clip])
+      throw new UploadError(400, "missing-clip-file", manifest.clip);
+    if (files[manifest.clip].length > MAX_CLIP_BYTES)
+      throw new UploadError(400, "clip-too-large", manifest.clip);
+  }
   return { manifest, files };
 }
 

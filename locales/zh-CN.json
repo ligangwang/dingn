@@ -883,6 +883,9 @@
     "Feature on the home page": "设为首页推荐",
     "Take off the home page": "取消首页推荐",
     "{0} is featured on the home page.": "{0} 已设为首页推荐。",
-    "{0} is off the home page. The home page picks its game itself.": "{0} 已取消首页推荐。首页会自动挑选推荐游戏。"
+    "{0} is off the home page. The home page picks its game itself.": "{0} 已取消首页推荐。首页会自动挑选推荐游戏。",
+    "clip is optional: a short video of your game being played, which dingn plays silently over the cover in a banner and when a player points at your game's card. Make it a .mp4 (H.264) or .webm of 4 to 8 seconds that loops, 16:10 and framed like your cover, up to 2 MB, with no sound and no text.": "clip 是可选的：一段展示游戏玩法的短片，dingn 会在横幅里、以及玩家把鼠标移到你的游戏卡片上时，在封面上静音播放。请用 4 到 8 秒、可循环的 .mp4（H.264）或 .webm，比例 16:10，构图和封面一致，不超过 2 MB，不带声音和文字。",
+    "The zip does not have the clip named in game.json:": "压缩包里没有 game.json 指定的预览短片：",
+    "The clip is over 2 MB. Make it shorter or smaller:": "预览短片超过 2 MB。请缩短或压小："
   }
 }
