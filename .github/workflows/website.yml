@@ -24,7 +24,7 @@ on:
       migration:
         description: One-time data migration to run instead (dry-run only counts)
         type: choice
-        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game, counter-names-dry-run, counter-names]
+        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game]
         default: none
 
 permissions:
@@ -271,9 +271,3 @@ jobs:
           set -o pipefail
           if [ "${{ inputs.migration }}" = remove-crowd-game ]; then apply=--apply; else apply=; fi
           node scripts/remove-game.mjs crowd $apply | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Rename the counter's default nicknames to player numbers
-        if: startsWith(inputs.migration, 'counter-names')
-        run: |
-          set -o pipefail
-          if [ "${{ inputs.migration }}" = counter-names ]; then apply=--apply; else apply=; fi
-          node scripts/rename-counter-defaults.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
