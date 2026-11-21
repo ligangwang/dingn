@@ -910,7 +910,6 @@
     "High monarch": "Grande monarca",
     "LV": "NÍV",
     "Path of honor": "Caminho da honra",
-    "{0} at level {1}: {2} XP to go.": "{0} no nível {1}: faltam {2} XP.",
     "You hold the highest honor in dingn.": "Você tem a maior honra do dingn.",
     "Level {0}+": "Nível {0}+",
     "Nickname": "Apelido",
@@ -923,6 +922,7 @@
     "No badges yet.": "Ainda sem medalhas.",
     "Play games and rise too →": "Jogue e suba também →",
     "Player ID": "ID do jogador",
-    "See your public page": "Ver sua página pública"
+    "See your public page": "Ver sua página pública",
+    "{0} XP to go": "Faltam {0} XP"
   }
 }

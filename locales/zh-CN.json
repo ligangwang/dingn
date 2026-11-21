@@ -910,7 +910,6 @@
     "High monarch": "至尊君主",
     "LV": "等级",
     "Path of honor": "荣誉之路",
-    "{0} at level {1}: {2} XP to go.": "{1} 级成为{0}：还差 {2} 经验。",
     "You hold the highest honor in dingn.": "你已获得 dingn 的最高荣誉。",
     "Level {0}+": "{0} 级以上",
     "Nickname": "昵称",
@@ -923,6 +922,7 @@
     "No badges yet.": "还没有徽章。",
     "Play games and rise too →": "来玩游戏，一起晋升 →",
     "Player ID": "玩家编号",
-    "See your public page": "查看你的公开主页"
+    "See your public page": "查看你的公开主页",
+    "{0} XP to go": "还差 {0} 经验"
   }
 }

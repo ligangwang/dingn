@@ -92,9 +92,16 @@ it("shows who the player is and how far they have come, with their account detai
   expect(screen.getByText("kingdom card")).toBeTruthy();
   // The path of honor: reached ranks lit, the next one with the XP to go.
   const path = screen.getByRole("region", { name: "Path of honor" });
+  expect(within(path).getByText("3,500 XP to go")).toBeTruthy();
+  // The road from City governor (level 10, 4,500 XP) to Monarch (level 15,
+  // 10,500 XP) is filled as far as 7,000 XP.
   expect(
-    within(path).getByText("Monarch at level 15: 3,500 XP to go."),
-  ).toBeTruthy();
+    Number(
+      (path.querySelector("li.next") as HTMLElement).style.getPropertyValue(
+        "--fill",
+      ),
+    ),
+  ).toBeCloseTo(2500 / 6000);
   const steps = [...path.querySelectorAll("li")].map((li) => li.className);
   expect(steps).toEqual([
     "honor-step reached",

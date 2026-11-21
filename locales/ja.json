@@ -910,7 +910,6 @@
     "High monarch": "大君主",
     "LV": "LV",
     "Path of honor": "栄誉の道",
-    "{0} at level {1}: {2} XP to go.": "レベル {1} で{0}：あと {2} XP。",
     "You hold the highest honor in dingn.": "dingn の最高の栄誉を手にしています。",
     "Level {0}+": "レベル {0}+",
     "Nickname": "ニックネーム",
@@ -923,6 +922,7 @@
     "No badges yet.": "まだバッジはありません。",
     "Play games and rise too →": "ゲームで遊んで、あなたも昇格しよう →",
     "Player ID": "プレイヤーID",
-    "See your public page": "公開ページを見る"
+    "See your public page": "公開ページを見る",
+    "{0} XP to go": "あと {0} XP"
   }
 }

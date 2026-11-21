@@ -2,6 +2,7 @@
 // The honors a player rises through with their account level: the ring and
 // medal round their avatar, and their title, on their own profile page
 // (account.tsx) and on the page others see (player-page.tsx).
+import type React from "react";
 import { useLocale } from "./locale";
 import { BadgeMedal } from "./rewards-art";
 import { Avatar } from "./avatar";
@@ -46,17 +47,18 @@ export function HonorPath({
   const { t, locale } = useLocale();
   const level = stats?.level ?? 0;
   const next = HONORS.find((h) => h.level > level);
+  // How far along the road to the next rank: the line to it fills in.
+  const from = xpFor(HONORS.findLast((h) => h.level <= level)?.level ?? 1);
+  const toGo = stats && next ? Math.max(0, xpFor(next.level) - stats.xp) : 0;
+  const fill =
+    stats && next
+      ? Math.min(1, Math.max(0, (stats.xp - from) / (xpFor(next.level) - from)))
+      : 0;
   return (
     <section className="panel honor-path" aria-labelledby="honor-path-title">
       <h2 id="honor-path-title">{t("Path of honor")}</h2>
-      {stats && (
-        <p className="muted">
-          {next
-            ? t(
-                `${t(next.title)} at level ${next.level}: ${Math.max(0, xpFor(next.level) - stats.xp).toLocaleString(locale)} XP to go.`,
-              )
-            : t("You hold the highest honor in dingn.")}
-        </p>
+      {stats && !next && (
+        <p className="muted">{t("You hold the highest honor in dingn.")}</p>
       )}
       <ol>
         {HONORS.map((h) => {
@@ -69,7 +71,15 @@ export function HonorPath({
               ? "next"
               : "locked";
           return (
-            <li key={h.title} className={`honor-step ${state}`}>
+            <li
+              key={h.title}
+              className={`honor-step ${state}`}
+              style={
+                state === "next"
+                  ? ({ "--fill": fill } as React.CSSProperties)
+                  : undefined
+              }
+            >
               <BadgeMedal
                 tier={h.tier}
                 level={h.level}
@@ -80,6 +90,11 @@ export function HonorPath({
               />
               <strong>{t(h.title)}</strong>
               <small>{t(`Level ${h.level}+`)}</small>
+              {state === "next" && stats && (
+                <small className="honor-to-go">
+                  {t(`${toGo.toLocaleString(locale)} XP to go`)}
+                </small>
+              )}
             </li>
           );
         })}

@@ -1910,6 +1910,18 @@ a.profile-edit {
   outline: 1px dashed #5b6278;
   outline-offset: -1px;
 }
+/* The road to the next rank fills in as the player's XP grows. */
+.honor-step.next::before {
+  background: linear-gradient(
+    90deg,
+    #d5ff58 calc(var(--fill, 0) * 100%),
+    #34394b calc(var(--fill, 0) * 100%)
+  );
+}
+.honor-step .honor-to-go {
+  color: #d5ff58;
+  font-weight: 600;
+}
 
 /* The tabs down the side, and the open tab beside them. */
 .profile-body {

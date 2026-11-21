@@ -910,7 +910,6 @@
     "High monarch": "Penguasa agung",
     "LV": "LV",
     "Path of honor": "Jalan kehormatan",
-    "{0} at level {1}: {2} XP to go.": "{0} di level {1}: {2} XP lagi.",
     "You hold the highest honor in dingn.": "Kamu memegang kehormatan tertinggi di dingn.",
     "Level {0}+": "Level {0}+",
     "Nickname": "Nama panggilan",
@@ -923,6 +922,7 @@
     "No badges yet.": "Belum ada lencana.",
     "Play games and rise too →": "Main game dan naik juga →",
     "Player ID": "ID pemain",
-    "See your public page": "Lihat halaman publikmu"
+    "See your public page": "Lihat halaman publikmu",
+    "{0} XP to go": "{0} XP lagi"
   }
 }

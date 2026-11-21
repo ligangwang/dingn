@@ -910,7 +910,6 @@
     "High monarch": "대군주",
     "LV": "레벨",
     "Path of honor": "명예의 길",
-    "{0} at level {1}: {2} XP to go.": "레벨 {1}에 {0}: {2} XP 남음.",
     "You hold the highest honor in dingn.": "dingn 최고의 명예를 얻었어요.",
     "Level {0}+": "레벨 {0}+",
     "Nickname": "닉네임",
@@ -923,6 +922,7 @@
     "No badges yet.": "아직 배지가 없어요.",
     "Play games and rise too →": "게임을 하고 함께 올라가요 →",
     "Player ID": "플레이어 ID",
-    "See your public page": "공개 페이지 보기"
+    "See your public page": "공개 페이지 보기",
+    "{0} XP to go": "{0} XP 남음"
   }
 }

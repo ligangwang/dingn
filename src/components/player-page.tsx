@@ -152,6 +152,8 @@ function PlayerView({ player }: { player: PublicPlayer }) {
         </dl>
       </header>
       <div className="player-body">
+        {/* The ranks first: where they stand, and how far to the next. */}
+        <HonorPath stats={player} />
         <section
           className="panel player-badges"
           aria-labelledby="player-badges-title"
@@ -180,7 +182,6 @@ function PlayerView({ player }: { player: PublicPlayer }) {
             <p className="muted">{t("No badges yet.")}</p>
           )}
         </section>
-        <HonorPath stats={player} />
         {!mine && (
           <Link className="button" href={href("/#games")}>
             {t("Play games and rise too →")}
