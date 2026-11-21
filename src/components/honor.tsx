@@ -22,14 +22,51 @@ export const HONORS = [
   { level: 20, tier: "diamond", title: "High monarch" },
 ] as const;
 
-/** The honor a level earns: the ring and medal round the avatar, and a title. */
+/** I, II, III … for the steps within an honor. */
+export function roman(n: number): string {
+  let out = "";
+  for (const [value, mark] of [
+    [1000, "M"],
+    [900, "CM"],
+    [500, "D"],
+    [400, "CD"],
+    [100, "C"],
+    [90, "XC"],
+    [50, "L"],
+    [40, "XL"],
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"],
+  ] as const)
+    for (; n >= value; n -= value) out += mark;
+  return out;
+}
+
+/**
+ * The honor a level earns: the ring and medal round the avatar, its title,
+ * and its step within the honor (`rank`, from 1: Town lord at level 6 is
+ * Town lord I, at level 7 Town lord II).
+ */
 export function honorOf(level: number): {
   tier: (typeof HONORS)[number]["tier"];
   title: string;
+  rank: number;
 } {
   let honor: (typeof HONORS)[number] = HONORS[0];
   for (const h of HONORS) if (level >= h.level) honor = h;
-  return { tier: honor.tier, title: honor.title };
+  return {
+    tier: honor.tier,
+    title: honor.title,
+    rank: Math.max(1, level - honor.level + 1),
+  };
+}
+
+/** The honor's full name in the player's language: "Town lord II". */
+export function honorName(level: number, t: (text: string) => string): string {
+  const honor = honorOf(level);
+  return `${t(honor.title)} ${roman(honor.rank)}`;
 }
 
 /** XP to reach a level: 50 × level × (level − 1), as scripts/game-core.mjs. */
@@ -88,7 +125,9 @@ export function HonorPath({
                 size={52}
                 label={t(h.title)}
               />
-              <strong>{t(h.title)}</strong>
+              <strong>
+                {state === "current" ? honorName(level, t) : t(h.title)}
+              </strong>
               <small>{t(`Level ${h.level}+`)}</small>
               {state === "next" && stats && (
                 <small className="honor-to-go">

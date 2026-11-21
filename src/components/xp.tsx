@@ -4,7 +4,7 @@ import { aroundLink, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "./session";
-import { HonorAvatar, honorOf } from "./honor";
+import { HonorAvatar, honorName, honorOf } from "./honor";
 import {
   fetchLeaderboard,
   finishPlay,
@@ -250,7 +250,7 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
                 )}
               </span>
               <span className={`lv honor-${honorOf(e.level).tier}`}>
-                {t(honorOf(e.level).title)}
+                {honorName(e.level, t)}
               </span>
               <span className="pts">{t(`${e.xp} XP`)}</span>
               {e.uid && (

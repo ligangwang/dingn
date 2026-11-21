@@ -23,8 +23,8 @@ the land to a people living on many planets.
 
 **Status:** the 1–100 design below was agreed on 2026-11-21 and is not built
 yet. Until it is, the code uses `50·n·(n−1)` XP for level n and seven honors
-(Wanderer at 1 … High monarch at 20). When you build it, update this section
-to say so.
+(Wanderer at 1 … High monarch at 20), already with their numerals. When you
+build it, update this section to say so.
 
 ### Where it lives
 
@@ -96,6 +96,12 @@ Rules for changing the curve:
   from XP.
 
 ### Eras, honors and what a player owns
+
+A player's **honor** is the era's title with a Roman numeral for their step
+within it, counted from the era's first level: Wanderer I, II, III, IV for
+levels 1–4, then Camp leader I at level 5, and so on (`honorName` in
+`src/components/honor.tsx`). The Path of honor shows each era's plain title,
+with the numeral only on the player's current step.
 
 | Levels | Era             | Title         | Medal         | Kingdom stage   | Land  | What it opens                                     |
 | ------ | --------------- | ------------- | ------------- | --------------- | ----- | ------------------------------------------------- |

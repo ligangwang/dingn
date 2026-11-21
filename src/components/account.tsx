@@ -27,8 +27,8 @@ import {
   PersonIcon,
   WalletIcon,
 } from "./icons";
-import { HonorAvatar, HonorPath, honorOf } from "./honor";
-export { HONORS, honorOf } from "./honor";
+import { HonorAvatar, HonorPath, honorName, honorOf } from "./honor";
+export { HONORS, honorName, honorOf } from "./honor";
 
 type Tab = "overview" | "wallet" | "shop" | "settings";
 const TABS: {
@@ -78,7 +78,7 @@ function ProfileHead({ onEdit }: { onEdit: () => void }) {
           <h1>{name || t("Your player profile")}</h1>
           {honor && (
             <p className={`profile-honor honor-${honor.tier}`}>
-              {t(honor.title)}
+              {honorName(stats!.level, t)}
             </p>
           )}
         </div>
