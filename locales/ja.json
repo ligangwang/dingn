@@ -917,13 +917,12 @@
     "Other players see your nickname. No two players share one.": "ニックネームは他のプレイヤーに表示されます。同じニックネームは使えません。",
     "That nickname is taken. Try another.": "そのニックネームは使われています。別のものにしてください。",
     "Nicknames are 2 to 24 characters.": "ニックネームは 2〜24 文字です。",
-    "See your public page →": "公開ページを見る →",
     "Player not found": "プレイヤーが見つかりません",
     "No player has that number.": "その番号のプレイヤーはいません。",
     "This page couldn’t be loaded. Try again in a moment.": "このページを読み込めませんでした。少ししてからもう一度お試しください。",
-    "This is your public page. Edit your profile →": "これはあなたの公開ページです。プロフィールを編集 →",
     "No badges yet.": "まだバッジはありません。",
     "Play games and rise too →": "ゲームで遊んで、あなたも昇格しよう →",
-    "Player ID": "プレイヤーID"
+    "Player ID": "プレイヤーID",
+    "See your public page": "公開ページを見る"
   }
 }

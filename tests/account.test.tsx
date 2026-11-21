@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
       next: 7800,
       streak: 4,
       best: {},
+      number: "7302518846",
     },
     updateProfile: vi.fn(),
     logout: vi.fn(),
@@ -74,6 +75,12 @@ it("shows who the player is and how far they have come, with their account detai
   );
   expect(document.querySelector(".profile-avatar.honor-gold")).toBeTruthy();
   expect(screen.getByText("340")).toBeTruthy();
+  // Top right: the page other players see, and editing.
+  expect(
+    screen
+      .getByRole("link", { name: "See your public page" })
+      .getAttribute("href"),
+  ).toMatch(/^\/player\/7302518846\/?$/);
   // The email and the editing form are in Settings, not on show.
   expect(screen.queryByText(/ada@example\.com/)).toBeNull();
   expect(screen.queryByLabelText("Nickname")).toBeNull();

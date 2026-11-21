@@ -151,6 +151,16 @@ export function PencilIcon(props: IconProps) {
   );
 }
 
+/** A player's public page, as others see it: an eye. */
+export function EyeIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </Svg>
+  );
+}
+
 /** Kingdom: a castle with three towers. */
 export function CastleIcon(props: IconProps) {
   return (

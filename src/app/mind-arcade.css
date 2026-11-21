@@ -1181,6 +1181,10 @@ nav .coin-count.bump .coin {
   font-size: 12px;
   color: #8e95ab;
 }
+/* An admin's rows end with a link to the player on the Players page. */
+.leaderboard li:has(> .admin-link) {
+  grid-template-columns: 34px 1fr auto auto auto;
+}
 .leaderboard .lv {
   font-size: 12px;
   color: #bdaaff;
@@ -1196,6 +1200,9 @@ nav .coin-count.bump .coin {
   }
   .leaderboard li {
     grid-template-columns: 26px 1fr auto;
+  }
+  .leaderboard li:has(> .admin-link) {
+    grid-template-columns: 26px 1fr auto auto;
   }
   .leaderboard .lv {
     display: none;
@@ -1714,6 +1721,12 @@ nav a.account-link:has(.avatar-preset) {
   overflow-wrap: anywhere;
 }
 /* A small pencil in the corner: editing is in the Settings tab. */
+/* The round buttons at the card's top right: see the public page, edit. */
+.profile-actions {
+  align-self: flex-start;
+  display: flex;
+  gap: 8px;
+}
 .profile-edit {
   align-self: flex-start;
   display: grid;
@@ -1725,6 +1738,9 @@ nav a.account-link:has(.avatar-preset) {
   background: #1b2030;
   color: #c3c8d6;
   cursor: pointer;
+}
+a.profile-edit {
+  text-decoration: none;
 }
 .profile-edit:hover,
 .profile-edit:focus-visible {
@@ -2025,12 +2041,6 @@ nav a.account-link:has(.avatar-preset) {
 }
 
 /* ---- A player's public page (src/components/player-page.tsx) ---- */
-.profile-public {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 14px;
-  color: #bdaaff;
-}
 .player-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

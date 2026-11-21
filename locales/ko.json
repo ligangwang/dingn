@@ -917,13 +917,12 @@
     "Other players see your nickname. No two players share one.": "다른 플레이어에게 닉네임이 보여요. 같은 닉네임은 쓸 수 없어요.",
     "That nickname is taken. Try another.": "이미 사용 중인 닉네임이에요. 다른 닉네임을 써 보세요.",
     "Nicknames are 2 to 24 characters.": "닉네임은 2~24자예요.",
-    "See your public page →": "공개 페이지 보기 →",
     "Player not found": "플레이어를 찾을 수 없어요",
     "No player has that number.": "그 번호를 가진 플레이어가 없어요.",
     "This page couldn’t be loaded. Try again in a moment.": "페이지를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
-    "This is your public page. Edit your profile →": "내 공개 페이지예요. 프로필 수정 →",
     "No badges yet.": "아직 배지가 없어요.",
     "Play games and rise too →": "게임을 하고 함께 올라가요 →",
-    "Player ID": "플레이어 ID"
+    "Player ID": "플레이어 ID",
+    "See your public page": "공개 페이지 보기"
   }
 }

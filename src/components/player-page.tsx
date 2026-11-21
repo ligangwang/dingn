@@ -12,6 +12,7 @@ import { useOptionalSession } from "./session";
 import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
 import { HonorAvatar, HonorPath, honorOf } from "./honor";
+import { PencilIcon } from "./icons";
 import { pick } from "@/lib/i18n";
 import { STAGES } from "@/data/kingdom.mjs";
 import { fetchPlayer, XpError, type PublicPlayer } from "@/lib/xp";
@@ -94,15 +95,20 @@ function PlayerView({ player }: { player: PublicPlayer }) {
             <p className={`profile-honor honor-${honor.tier}`}>
               {t(honor.title)}
             </p>
-            {mine && (
-              <Link
-                className="profile-public"
-                href={href("/account/#settings")}
-              >
-                {t("This is your public page. Edit your profile →")}
-              </Link>
-            )}
           </div>
+          {mine && (
+            // The owner can edit what this page shows, from Settings.
+            <div className="profile-actions">
+              <Link
+                className="profile-edit"
+                href={href("/account/#settings")}
+                aria-label={t("Edit profile")}
+                title={t("Edit profile")}
+              >
+                <PencilIcon size={18} />
+              </Link>
+            </div>
+          )}
         </div>
         <dl className="profile-stats">
           <div className="profile-stat profile-level">

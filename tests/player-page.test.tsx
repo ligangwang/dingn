@@ -77,7 +77,7 @@ it("shows a player's honor, level, kingdom and badges to anyone", async () => {
   expect(screen.getByRole("region", { name: "Path of honor" })).toBeTruthy();
   // Nothing private, and no editing for a visitor.
   expect(screen.queryByText(/coins/i)).toBeNull();
-  expect(screen.queryByText(/This is your public page/)).toBeNull();
+  expect(screen.queryByRole("link", { name: "Edit profile" })).toBeNull();
   // The title is set by an effect after the page shows, so wait for it.
   await waitFor(() => expect(document.title).toBe("Star Gazer · dingn"));
 });
@@ -87,7 +87,7 @@ it("tells the player when the page is their own", async () => {
   mocks.fetchPlayer.mockResolvedValue(ada);
   render(<PlayerPage />);
   const link = await screen.findByRole("link", {
-    name: "This is your public page. Edit your profile →",
+    name: "Edit profile",
   });
   expect(link.getAttribute("href")).toMatch(/^\/account\/?#settings$/);
 });

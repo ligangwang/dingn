@@ -248,22 +248,23 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
                 ) : (
                   e.name
                 )}
-                {e.uid && (
-                  // Admins can also open them on the Players admin page.
-                  <a
-                    className="admin-link"
-                    href={href(
-                      `/admin/players/?uid=${encodeURIComponent(e.uid)}`,
-                    )}
-                  >
-                    {t("Admin")}
-                  </a>
-                )}
               </span>
               <span className={`lv honor-${honorOf(e.level).tier}`}>
                 {t(honorOf(e.level).title)}
               </span>
               <span className="pts">{t(`${e.xp} XP`)}</span>
+              {e.uid && (
+                // Admins can also open the player on the Players admin page,
+                // from the end of the row.
+                <a
+                  className="admin-link"
+                  href={href(
+                    `/admin/players/?uid=${encodeURIComponent(e.uid)}`,
+                  )}
+                >
+                  {t("Admin")}
+                </a>
+              )}
             </li>
           ))}
         </ol>
