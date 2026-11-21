@@ -4,6 +4,7 @@
 // (account.tsx) and on the page others see (player-page.tsx).
 import { useLocale } from "./locale";
 import { BadgeMedal } from "./rewards-art";
+import { Avatar } from "./avatar";
 
 /**
  * The ranks a player rises through, from a wanderer to the ruler of a
@@ -84,5 +85,45 @@ export function HonorPath({
         })}
       </ol>
     </section>
+  );
+}
+
+/**
+ * A player's avatar in the ring of their honor's metal, with their level on
+ * a medal at its foot: in the site header, on their profile page and on
+ * their public page. Without a level it is the plain avatar in a grey ring.
+ */
+export function HonorAvatar({
+  level,
+  size,
+  medal,
+  className = "",
+  ...avatar
+}: {
+  level: number | null | undefined;
+  size: number;
+  medal: number;
+  className?: string;
+} & Omit<Parameters<typeof Avatar>[0], "size" | "className">) {
+  const { t } = useLocale();
+  const honor = level ? honorOf(level) : null;
+  return (
+    <span
+      className={`profile-avatar honor-${honor?.tier ?? "none"} ${className}`}
+    >
+      <Avatar {...avatar} size={size} />
+      {level && honor ? (
+        <span className="profile-medal">
+          <BadgeMedal
+            tier={honor.tier}
+            level={level}
+            // An account level, not a game's: its own word on the medal.
+            levelText={t("LV")}
+            size={medal}
+            label={t(`Account level ${level}`)}
+          />
+        </span>
+      ) : null}
+    </span>
   );
 }

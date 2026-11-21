@@ -143,25 +143,6 @@ export function XpSummary({
   );
 }
 
-export function LevelBadge() {
-  const { t, locale, href } = useLocale();
-
-  const { stats } = useSession();
-  if (!stats) return null;
-  return (
-    <span
-      className="level-badge"
-      title={
-        stats.streak > 1
-          ? t(`${stats.xp} XP · ${stats.streak}-day streak`)
-          : t(`${stats.xp} XP`)
-      }
-    >
-      {t(`Lv ${stats.level}`)}
-    </span>
-  );
-}
-
 /**
  * The player's level on their profile page: the level, all the XP they have,
  * a bar to the next level and their daily streak.

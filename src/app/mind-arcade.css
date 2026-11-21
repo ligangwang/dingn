@@ -829,7 +829,9 @@ nav > a,
     padding: 6px 5px;
   }
 }
-@media (max-width: 350px) {
+/* Narrow phones (most Androids are 360px): icons only, so the account
+   tools and the avatar with its medal still fit on the row. */
+@media (max-width: 374px) {
   .nav-label {
     display: none;
   }
@@ -879,17 +881,6 @@ nav a.account-link:hover {
 }
 
 /* XP, levels and leaderboard */
-.level-badge {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #d5ff58;
-  border: 1px solid #d5ff5866;
-  border-radius: 20px;
-  padding: 4px 10px;
-  white-space: nowrap;
-}
 /* Coins and badges (src/components/rewards.tsx) */
 nav .wallet {
   position: relative;
@@ -2078,4 +2069,45 @@ nav a.account-link:has(.avatar-preset) {
 .player-badges li small {
   color: #8e95ab;
   font-size: 12px;
+}
+
+/* The avatar in the site header, in its honor's ring with a small level
+   medal (HonorAvatar in src/components/honor.tsx). */
+nav a.account-link:has(.header-avatar),
+nav a.account-link:has(.header-avatar):hover {
+  width: auto;
+  height: auto;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+}
+.header-avatar.profile-avatar {
+  padding: 2px;
+}
+.header-avatar.profile-avatar .avatar {
+  border-width: 2px;
+}
+.header-avatar .profile-medal {
+  right: -6px;
+  bottom: -9px;
+  filter: drop-shadow(0 2px 3px #000a);
+}
+nav a.account-link:hover .header-avatar {
+  box-shadow: 0 0 0 3px #d5ff5840;
+}
+@media (max-width: 480px) {
+  /* Room on one phone row for the menu, coins, language and the avatar
+     with its medal. After the rules above, which it narrows. */
+  .site-header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .account-controls {
+    gap: 6px;
+  }
+  .language-switch {
+    width: 36px;
+    height: 36px;
+  }
 }

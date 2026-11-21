@@ -102,6 +102,47 @@ async function isAdmin(req, res) {
 }
 
 /**
+ * The ten players with the most XP, each with their public number and
+ * avatar, and their account id (which only admins are sent).
+ */
+export async function topPlayers(db) {
+  const snap = await db
+    .collection("players")
+    .orderBy("xp", "desc")
+    .limit(10)
+    .get();
+  // Each player's public number links their name to their page.
+  const accounts = snap.empty
+    ? []
+    : await db.getAll(
+        ...snap.docs.map((d) => db.collection("accounts").doc(d.id)),
+      );
+  // A top player who hasn't visited since numbers began gets one now, so
+  // every name on the board opens a page.
+  const numbers = await Promise.all(
+    snap.docs.map((d, i) => {
+      const known = accounts[i]?.data()?.player_no;
+      return isPlayerNumber(known)
+        ? known
+        : ensurePlayerNumber(db, d.id).catch(() => null);
+    }),
+  );
+  const entries = snap.docs.map((d, i) => {
+    const p = d.data();
+    const account = accounts[i]?.data() ?? {};
+    return {
+      uid: d.id,
+      name: p.name || "Player",
+      xp: p.xp || 0,
+      level: p.level || 1,
+      ...(numbers[i] ? { number: numbers[i] } : {}),
+      avatar: typeof account.avatar === "string" ? account.avatar : "",
+    };
+  });
+  return entries;
+}
+
+/**
  * The top ten players, each with their public number for their page. An
  * admin also gets each one's account id, so the board can link to them on
  * the Players admin page; nobody else does.
@@ -117,31 +158,7 @@ async function leaderboard(req, res) {
   if (board.entries && Date.now() - board.at < 30_000)
     return { shown, entries: visible(board.entries) };
   const { db } = await admin();
-  const snap = await db
-    .collection("players")
-    .orderBy("xp", "desc")
-    .limit(10)
-    .get();
-  // Each player's public number links their name to their page.
-  const accounts = snap.empty
-    ? []
-    : await db.getAll(
-        ...snap.docs.map((d) => db.collection("accounts").doc(d.id)),
-      );
-  const entries = snap.docs.map((d, i) => {
-    const p = d.data();
-    const account = accounts[i]?.data() ?? {};
-    return {
-      uid: d.id,
-      name: p.name || "Player",
-      xp: p.xp || 0,
-      level: p.level || 1,
-      ...(isPlayerNumber(account.player_no)
-        ? { number: account.player_no }
-        : {}),
-      avatar: typeof account.avatar === "string" ? account.avatar : "",
-    };
-  });
+  const entries = await topPlayers(db);
   board = { at: Date.now(), entries };
   return { shown, entries: visible(entries) };
 }

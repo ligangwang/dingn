@@ -9,10 +9,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
-import { Avatar } from "./avatar";
 import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
-import { HonorPath, honorOf } from "./honor";
+import { HonorAvatar, HonorPath, honorOf } from "./honor";
 import { pick } from "@/lib/i18n";
 import { STAGES } from "@/data/kingdom.mjs";
 import { fetchPlayer, XpError, type PublicPlayer } from "@/lib/xp";
@@ -82,23 +81,14 @@ function PlayerView({ player }: { player: PublicPlayer }) {
     <>
       <header className="profile-head">
         <div className="profile-who">
-          <div className={`profile-avatar honor-${honor.tier}`}>
-            <Avatar
-              choice={player.avatar}
-              name={player.name}
-              user={null}
-              size={84}
-            />
-            <span className="profile-medal">
-              <BadgeMedal
-                tier={honor.tier}
-                level={player.level}
-                levelText={t("LV")}
-                size={40}
-                label={t(`Account level ${player.level}`)}
-              />
-            </span>
-          </div>
+          <HonorAvatar
+            level={player.level}
+            choice={player.avatar}
+            name={player.name}
+            user={null}
+            size={84}
+            medal={40}
+          />
           <div className="profile-name">
             <h1>{player.name}</h1>
             <p className={`profile-honor honor-${honor.tier}`}>
