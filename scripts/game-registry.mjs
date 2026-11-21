@@ -30,6 +30,12 @@ export const CATEGORIES = ["casual", "memory", "puzzle", "adventure"];
 const KNOWN_CATEGORY = { memory: "memory", rubikscube: "puzzle" };
 /** A cover picture in the game's files, shown on its catalog card. */
 export const COVER = /^[\w.-]+(\/[\w.-]+)*\.(png|jpe?g|webp|avif|gif|svg)$/i;
+/**
+ * A short silent clip of the game being played, in the game's files. The
+ * catalog plays it over the cover: in a banner, and on a card under the
+ * pointer.
+ */
+export const CLIP = /^[\w.-]+(\/[\w.-]+)*\.(mp4|webm)$/i;
 
 // Badges a game can award (scripts/rewards.mjs). dingn draws them, so a game
 // picks a tier and either a level number or one of these icons.
@@ -265,6 +271,11 @@ export function validateManifest(raw) {
     problems.push(
       "cover must be a relative path to a .png, .jpg, .webp, .avif, .gif or .svg picture",
     );
+  if (
+    m.clip != null &&
+    (typeof m.clip !== "string" || !CLIP.test(m.clip) || m.clip.includes(".."))
+  )
+    problems.push("clip must be a relative path to a .mp4 or .webm video");
   const badges = validateBadges(m.badges, problems);
   const shop = validateShop(m.shop, problems);
   if (problems.length)
@@ -282,6 +293,7 @@ export function validateManifest(raw) {
     entry,
     ...(m.category != null ? { category: m.category } : {}),
     ...(m.cover != null ? { cover: m.cover } : {}),
+    ...(m.clip != null ? { clip: m.clip } : {}),
     badges,
     shop,
   };
@@ -345,6 +357,10 @@ export function publicGame(record, requested) {
     category: categoryOf(record, resolved),
     cover: resolved.cover
       ? `/g/${record.id}/${resolved.version}/${resolved.cover}`
+      : null,
+    // A short clip of it being played, shown over the cover, if it has one.
+    clip: resolved.clip
+      ? `/g/${record.id}/${resolved.version}/${resolved.clip}`
       : null,
     addedAt: addedAt(record),
     // When an admin pinned it to its category page's banner, or null.
@@ -444,6 +460,7 @@ export function addVersion(
     entry: manifest.entry,
     ...(manifest.category ? { category: manifest.category } : {}),
     ...(manifest.cover ? { cover: manifest.cover } : {}),
+    ...(manifest.clip ? { clip: manifest.clip } : {}),
     ...(manifest.badges?.length ? { badges: manifest.badges } : {}),
     ...(manifest.shop?.length ? { shop: manifest.shop } : {}),
     // The languages it speaks, so it is only ever given one of them.
@@ -690,6 +707,9 @@ function fileHeaders(file) {
     "Access-Control-Allow-Origin": "*",
     "X-Content-Type-Options": "nosniff",
     "Cross-Origin-Resource-Policy": "cross-origin",
+    // A part of a file can be asked for (parseRange), which a phone's
+    // video player needs.
+    "Accept-Ranges": "bytes",
     // Every game file is sandboxed, whatever its type, so no file a game
     // ships can ever run with dingn's origin.
     "Content-Security-Policy": GAME_CSP,
@@ -703,6 +723,31 @@ function fileHeaders(file) {
     headers["X-Robots-Tag"] = "noindex";
   }
   return headers;
+}
+
+/** Whether a Range header asks for one run of bytes, the only kind served. */
+const wantsRange = (header) =>
+  typeof header === "string" && /^bytes=(\d+-\d*|-\d+)$/.test(header.trim());
+
+/**
+ * The bytes a Range header asks for in a file of `size` bytes: `{start, end}`
+ * (both counted in), null to send the whole file (no header, or one this
+ * server doesn't serve), or "unsatisfiable" when it starts past the end.
+ */
+export function parseRange(header, size) {
+  if (!wantsRange(header)) return null;
+  const [from, to] = header.trim().slice(6).split("-");
+  if (from === "") {
+    // The last `to` bytes.
+    const count = Number(to);
+    if (!count) return "unsatisfiable";
+    return { start: Math.max(0, size - count), end: size - 1 };
+  }
+  const start = Number(from);
+  if (start >= size) return "unsatisfiable";
+  const end = to === "" ? size - 1 : Math.min(Number(to), size - 1);
+  if (end < start) return null;
+  return { start, end };
 }
 
 async function serveGameFile(req, res, pathname) {
@@ -743,9 +788,23 @@ async function serveGameFile(req, res, pathname) {
       res.end("Not found");
       return;
     }
-    res.writeHead(200, fileHeaders(file));
+    const size = statSync(target).size;
+    const range = parseRange(req.headers.range, size);
+    if (range === "unsatisfiable") {
+      res.writeHead(416, {
+        "Content-Range": `bytes */${size}`,
+        "Cache-Control": "no-store",
+      });
+      return res.end();
+    }
+    const headers = fileHeaders(file);
+    if (range) {
+      headers["Content-Range"] = `bytes ${range.start}-${range.end}/${size}`;
+      headers["Content-Length"] = String(range.end - range.start + 1);
+    } else headers["Content-Length"] = String(size);
+    res.writeHead(range ? 206 : 200, headers);
     if (req.method === "HEAD") return res.end();
-    createReadStream(target).pipe(res);
+    createReadStream(target, range ?? {}).pipe(res);
     return;
   }
   // The bucket is publicly readable (published games are public anyway), so
@@ -759,10 +818,26 @@ async function serveGameFile(req, res, pathname) {
         hostname: "storage.googleapis.com",
         path: `/${bucket()}/${objectPath}`,
         method: req.method,
+        // One part of a file, when that is what was asked for. The bucket
+        // answers 206 with the part, or 416 if the file is shorter.
+        headers: wantsRange(req.headers.range)
+          ? { Range: req.headers.range }
+          : {},
       },
       (response) => {
         const status = response.statusCode || 502;
-        if (status !== 200) {
+        if (status === 416) {
+          response.resume();
+          res.writeHead(416, {
+            ...(response.headers["content-range"]
+              ? { "Content-Range": response.headers["content-range"] }
+              : {}),
+            "Cache-Control": "no-store",
+          });
+          res.end();
+          return resolve();
+        }
+        if (status !== 200 && status !== 206) {
           response.resume();
           res.writeHead(status === 403 || status === 404 ? 404 : 502, {
             "Content-Type": "text/plain",
@@ -778,7 +853,9 @@ async function serveGameFile(req, res, pathname) {
         const headers = fileHeaders(file);
         if (response.headers["content-length"])
           headers["Content-Length"] = response.headers["content-length"];
-        res.writeHead(200, headers);
+        if (status === 206 && response.headers["content-range"])
+          headers["Content-Range"] = response.headers["content-range"];
+        res.writeHead(status, headers);
         response.on("error", () => res.destroy());
         response.pipe(res).on("finish", resolve);
       },

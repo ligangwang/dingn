@@ -4,7 +4,13 @@
 // (src/lib/catalog.ts): whatever games are listed and approved.
 import { pick } from "@/lib/i18n";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { useWallet } from "./rewards";
@@ -95,7 +101,6 @@ export function usePlayerProgress(): Record<string, GameProgress> {
   );
 }
 
-
 /** A small whole number from a game id, to vary the drawn covers. */
 function hue(id: string) {
   let h = 0;
@@ -103,21 +108,97 @@ function hue(id: string) {
   return h;
 }
 
-/** The game's cover picture, or drawn art in the category's style. */
+/**
+ * A game's clip, played silently over its cover: in a banner while
+ * the banner is on screen ("view"), on a card while the pointer or the
+ * keyboard is on it ("hover"). It is not downloaded until it first plays,
+ * and never plays for someone who asked for less motion or less data.
+ */
+function CoverClip({ src, when }: { src: string; when: "view" | "hover" }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [showing, setShowing] = useState(false);
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const still =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
+      (navigator as { connection?: { saveData?: boolean } }).connection
+        ?.saveData;
+    if (still) return;
+    const play = () => {
+      try {
+        // A browser may refuse to play; the cover just stays.
+        video.play()?.catch(() => {});
+      } catch {}
+    };
+    const stop = () => {
+      video.pause();
+      setShowing(false);
+    };
+    if (when === "view") {
+      if (typeof IntersectionObserver === "undefined") return;
+      const seen = new IntersectionObserver(
+        ([entry]) => (entry.isIntersecting ? play() : stop()),
+        { threshold: 0.6 },
+      );
+      seen.observe(video);
+      return () => seen.disconnect();
+    }
+    // The whole card is the link, so the clip follows the card.
+    const card = video.closest("a") ?? video.parentElement;
+    if (!card) return;
+    const rewind = () => {
+      stop();
+      video.currentTime = 0;
+    };
+    card.addEventListener("pointerenter", play);
+    card.addEventListener("pointerleave", rewind);
+    card.addEventListener("focus", play);
+    card.addEventListener("blur", rewind);
+    return () => {
+      card.removeEventListener("pointerenter", play);
+      card.removeEventListener("pointerleave", rewind);
+      card.removeEventListener("focus", play);
+      card.removeEventListener("blur", rewind);
+    };
+  }, [when, src]);
+  return (
+    <video
+      ref={ref}
+      className={showing ? "cover-clip showing" : "cover-clip"}
+      src={src}
+      muted
+      loop
+      playsInline
+      preload="none"
+      aria-hidden
+      tabIndex={-1}
+      onPlaying={() => setShowing(true)}
+    />
+  );
+}
+
+/**
+ * The game's cover picture, or drawn art in the category's style. With
+ * `play`, a game that has a clip plays it over the cover.
+ */
 export function GameCover({
   game,
   title,
   size = 120,
+  play,
 }: {
   game: CatalogGame;
   title: string;
   size?: number;
+  play?: "view" | "hover";
 }) {
   const { Icon } = CATEGORY_INFO[game.category];
   if (game.cover)
     return (
       <span className="game-cover">
         <img src={game.cover} alt="" loading="lazy" />
+        {play && game.clip && <CoverClip src={game.clip} when={play} />}
       </span>
     );
   const h = hue(game.id);
@@ -164,7 +245,7 @@ export function GameCard({
   const title = pick(game.title, l);
   return (
     <Link className="game-card" href={href(playPath(game.id))}>
-      <GameCover game={game} title={title} />
+      <GameCover game={game} title={title} play="hover" />
       {tag && (
         <span className={`game-tag tag-${tag}`}>
           {tag === "new" ? t("New") : t("Hot")}
@@ -172,9 +253,7 @@ export function GameCard({
       )}
       <span className="game-card-body">
         <strong>{title}</strong>
-        <span className="game-pitch">
-          {pick(game.description, l)}
-        </span>
+        <span className="game-pitch">{pick(game.description, l)}</span>
         <ProgressLine progress={progress} />
       </span>
     </Link>
@@ -253,6 +332,7 @@ export function CategoryPage({ category }: { category: Category }) {
             game={featured}
             title={pick(featured.title, l)}
             size={200}
+            play="view"
           />
           <span className="featured-copy">
             <span className="eyebrow">
@@ -273,11 +353,7 @@ export function CategoryPage({ category }: { category: Category }) {
           <div className="continue-games">
             {started.map((g) => (
               <Link key={g.id} href={href(playPath(g.id))}>
-                <GameCover
-                  game={g}
-                  title={pick(g.title, l)}
-                  size={44}
-                />
+                <GameCover game={g} title={pick(g.title, l)} size={44} />
                 <span>
                   <strong>{pick(g.title, l)}</strong>
                   <ProgressLine progress={progress[g.id]} />

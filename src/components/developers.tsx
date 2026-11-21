@@ -196,6 +196,11 @@ export function Developers() {
           "category is casual, memory, puzzle or adventure: once approved, your game is listed on that category's page and in its menu. cover is required: a picture in your files that shows your game, used for its card and its category page's banner. Make it 16:10, about 1200×750, a .jpg, .png or .webp up to 1 MB, with no text on it, since dingn shows your title next to it.",
         )}
       </p>
+      <p>
+        {t(
+          "clip is optional: a short video of your game being played, which dingn plays silently over the cover in a banner and when a player points at your game's card. Make it a .mp4 (H.264) or .webm of 4 to 8 seconds that loops, 16:10 and framed like your cover, up to 2 MB, with no sound and no text.",
+        )}
+      </p>
 
       <h2>{t("Publishing on dingn")}</h2>
       <ol className="dev-steps">

@@ -20,11 +20,11 @@ const manifest = (version, extra = {}) => ({
   ...extra,
 });
 
-function call(pathname, method = "GET") {
+function call(pathname, method = "GET", headers = {}) {
   const req = Object.assign(new EventEmitter(), {
     method,
     url: pathname,
-    headers: {},
+    headers,
   });
   return new Promise((resolve) => {
     const chunks = [];
@@ -153,6 +153,67 @@ test("the API serves the live, beta or a pinned version, and the sandboxed files
   );
   assert.equal((await call("/g/hello/1.0.0/missing.js")).status, 404);
   assert.equal((await call("/g/hello/1.0.0/../../registry.json")).status, 404);
+});
+
+test("game.json can name a clip of the game, which the catalog carries", () => {
+  const m = registry.validateManifest(
+    manifest("1.0.0", { cover: "cover.jpg", clip: "clips/play.mp4" }),
+  );
+  assert.equal(m.clip, "clips/play.mp4");
+  for (const bad of ["../play.mp4", "play.gif", "play.mov", 3])
+    assert.throws(
+      () => registry.validateManifest(manifest("1.0.0", { clip: bad })),
+      /clip must be/,
+    );
+  const record = registry.addVersion(null, m, { listed: true });
+  assert.equal(
+    registry.publicGame(record).clip,
+    "/g/hello/1.0.0/clips/play.mp4",
+  );
+  // A game without one has none.
+  const plain = registry.addVersion(
+    null,
+    registry.validateManifest(manifest("1.0.0")),
+  );
+  assert.equal(registry.publicGame(plain).clip, null);
+});
+
+test("a part of a game file can be asked for, as a phone's video player does", async () => {
+  assert.deepEqual(registry.parseRange("bytes=0-3", 10), { start: 0, end: 3 });
+  assert.deepEqual(registry.parseRange("bytes=4-", 10), { start: 4, end: 9 });
+  assert.deepEqual(registry.parseRange("bytes=-3", 10), { start: 7, end: 9 });
+  assert.deepEqual(registry.parseRange("bytes=2-99", 10), { start: 2, end: 9 });
+  assert.equal(registry.parseRange("bytes=10-", 10), "unsatisfiable");
+  assert.equal(registry.parseRange("bytes=-0", 10), "unsatisfiable");
+  // No header, several ranges or anything else odd: the whole file.
+  for (const whole of [undefined, "bytes=0-1,4-5", "lines=1-2", "bytes=5-2"])
+    assert.equal(registry.parseRange(whole, 10), null);
+
+  const files = path.join(dir, "games", "clips", "1.0.0");
+  await mkdir(files, { recursive: true });
+  await writeFile(path.join(files, "play.mp4"), "0123456789");
+  const whole = await call("/g/clips/1.0.0/play.mp4");
+  assert.equal(whole.status, 200);
+  assert.equal(whole.body, "0123456789");
+  assert.equal(whole.headers["Accept-Ranges"], "bytes");
+  assert.equal(whole.headers["Content-Length"], "10");
+  assert.equal(whole.headers["Content-Type"], "video/mp4");
+  const part = await call("/g/clips/1.0.0/play.mp4", "GET", {
+    range: "bytes=2-5",
+  });
+  assert.equal(part.status, 206);
+  assert.equal(part.body, "2345");
+  assert.equal(part.headers["Content-Range"], "bytes 2-5/10");
+  assert.equal(part.headers["Content-Length"], "4");
+  const tail = await call("/g/clips/1.0.0/play.mp4", "GET", {
+    range: "bytes=-2",
+  });
+  assert.equal(tail.body, "89");
+  const past = await call("/g/clips/1.0.0/play.mp4", "GET", {
+    range: "bytes=50-",
+  });
+  assert.equal(past.status, 416);
+  assert.equal(past.headers["Content-Range"], "bytes */10");
 });
 
 test("game.json names a category and a cover for the catalog", () => {

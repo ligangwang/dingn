@@ -74,6 +74,20 @@
   height: 100%;
   object-fit: cover;
 }
+/* A game's clip lies over the cover and fades in once it is playing. */
+.game-cover .cover-clip {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.35s;
+  pointer-events: none;
+}
+.game-cover .cover-clip.showing {
+  opacity: 1;
+}
 .game-cover.drawn .cover-icon {
   position: absolute;
   right: -6%;
@@ -181,6 +195,7 @@
   border-radius: 18px;
 }
 .featured-game .game-cover img,
+.featured-game .game-cover .cover-clip,
 .featured-game .game-cover .cover-icon {
   animation: cover-drift 14s ease-in-out infinite alternate;
 }

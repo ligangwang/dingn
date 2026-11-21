@@ -153,3 +153,38 @@ it("the home page features the game an admin picked for it", async () => {
     /^\/play\/rubikscube\/?$/,
   );
 });
+
+it("a game's clip lies over its cover in a banner and on its card", async () => {
+  mocks.path = "/casual/";
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        games: [
+          game("crowdrush", "casual", {
+            cover: "/g/crowdrush/1.0.0/cover.jpg",
+            clip: "/g/crowdrush/1.0.0/play.mp4",
+            plays: { week: 40, month: 200 },
+          }),
+          game("pawpal", "casual", { cover: "/g/pawpal/1.0.0/cover.jpg" }),
+        ],
+      }),
+    })),
+  );
+  const { container } = render(<CategoryPage category="casual" />);
+  await screen.findAllByText("CROWDRUSH");
+  const clips = [...container.querySelectorAll("video.cover-clip")];
+  // The banner and the card of the game with a clip; none for the other.
+  expect(clips.map((v) => v.getAttribute("src"))).toEqual([
+    "/g/crowdrush/1.0.0/play.mp4",
+    "/g/crowdrush/1.0.0/play.mp4",
+  ]);
+  for (const clip of clips) {
+    // Silent, not downloaded until it plays, and hidden until it is playing.
+    expect((clip as HTMLVideoElement).muted).toBe(true);
+    expect(clip.getAttribute("preload")).toBe("none");
+    expect(clip.className).toBe("cover-clip");
+    expect(clip.closest(".game-cover")!.querySelector("img")).toBeTruthy();
+  }
+});

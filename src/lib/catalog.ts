@@ -19,6 +19,8 @@ export type CatalogGame = {
   cover: string | null;
   /** When the game joined the catalog (ISO time), or null. */
   addedAt: string | null;
+  /** A short silent clip of it being played, from the game's files, or null. */
+  clip?: string | null;
   /** When an admin pinned it to its category's banner, or null. */
   featuredAt?: string | null;
   /** When an admin made it the game the home page features, or null. */
