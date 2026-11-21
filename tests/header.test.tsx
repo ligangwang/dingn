@@ -66,3 +66,17 @@ it("wears the player's level on their avatar, in the ring of their honor", () =>
       .querySelector(".profile-medal"),
   ).toBeNull();
 });
+
+it("shows the Leaderboard in the menu to admins only", () => {
+  mocks.session.user = null;
+  mocks.session.stats = null;
+  mocks.session.isAdmin = false;
+  render(<Header />);
+  expect(screen.queryByRole("link", { name: "Leaderboard" })).toBeNull();
+  cleanup();
+  mocks.session.isAdmin = true;
+  render(<Header />);
+  expect(
+    screen.getByRole("link", { name: "Leaderboard" }).getAttribute("href"),
+  ).toMatch(/^\/leaderboard\/?$/);
+});

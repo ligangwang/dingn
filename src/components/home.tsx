@@ -2,7 +2,6 @@
 import { pick } from "@/lib/i18n";
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
-import { Leaderboard } from "@/components/xp";
 import {
   CATEGORY_INFO,
   GameCover,
@@ -110,7 +109,6 @@ export function Home() {
           })}
         </div>
       </section>
-      <Leaderboard />
       <section className="memory-library">
         <p className="eyebrow">{t("PRACTICE, NO SCORE")}</p>
         <h2>{t("Build connections that stick.")}</h2>

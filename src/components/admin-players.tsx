@@ -204,7 +204,7 @@ function PlayerList() {
   );
 }
 
-/** Makes the home page leaderboard public, or admins-only again. */
+/** Opens the Leaderboard page (/leaderboard/) to everyone, or admins only again. */
 function LeaderboardSwitch() {
   const { t } = useLocale();
   const [open, setOpen] = useState<boolean | null>(null);
@@ -237,8 +237,8 @@ function LeaderboardSwitch() {
           ? t(error ? "The setting could not be loaded." : "Loading…")
           : t(
               open
-                ? "Public: everyone sees Top players on the home page."
-                : "Admins only: players don’t see Top players on the home page yet.",
+                ? "Public: anyone can open the Leaderboard page. Only admins see it in the menu."
+                : "Admins only: only admins can open the Leaderboard page, from the menu.",
             )}
       </p>
       {open !== null && (

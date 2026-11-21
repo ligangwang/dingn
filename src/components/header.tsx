@@ -5,7 +5,7 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import { CastleIcon, ShieldIcon } from "./icons";
+import { CastleIcon, ShieldIcon, TrophyIcon } from "./icons";
 import { CATEGORY_INFO, playPath, useCatalog } from "./catalog";
 import {
   CATEGORIES,
@@ -46,6 +46,17 @@ export function Header() {
           <CastleIcon className="nav-icon" size={18} />
           <span className="nav-label">{t("Kingdom")}</span>
         </Link>
+        {ready && isAdmin && (
+          // Only admins see the leaderboard in the menu.
+          <Link
+            href={to("/leaderboard/")}
+            aria-label={t("Leaderboard")}
+            aria-current={here("/leaderboard/") ? "page" : undefined}
+          >
+            <TrophyIcon className="nav-icon" size={18} />
+            <span className="nav-label">{t("Leaderboard")}</span>
+          </Link>
+        )}
         {ready && isAdmin && <AdminMenu key={path} path={path} />}
         <div className="account-controls">
           <LanguageSwitcher />

@@ -68,6 +68,11 @@ export const pages = {
     index: false,
     en: { title: "Sign in" },
   },
+  "/leaderboard/": {
+    // Admins only for now (Players admin page makes it public).
+    index: false,
+    en: { title: "Leaderboard" },
+  },
   "/account/": {
     index: false,
     en: { title: "Your account" },

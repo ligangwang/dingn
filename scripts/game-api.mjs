@@ -236,8 +236,6 @@ async function finish(req, res) {
   return result;
 }
 
-/** The first number a default nickname gets: Player10001, Player10002… */
-export const FIRST_PLAYER_NUMBER = 10001;
 /** The shortest and longest nickname, in characters. */
 export const NICKNAME_MIN = 2;
 export const NICKNAME_MAX = 24;
@@ -277,10 +275,10 @@ export function nicknameKey(name) {
 const nicknames = (db) => db.collection("nicknames");
 
 /**
- * The player's nickname, giving one first to a player who has none: the
- * next free "Player<number>", from one counter. A player who chose a name
- * before names were unique has it registered on their next visit, if no one
- * holds it yet.
+ * The player's nickname, giving one first to a player who has none:
+ * "Player<their public number>", unique because the number is. A player who
+ * chose a name before names were unique has it registered on their next
+ * visit, if no one holds it yet.
  */
 export async function ensureNickname(db, uid) {
   const accountRef = db.collection("accounts").doc(uid);
@@ -288,12 +286,13 @@ export async function ensureNickname(db, uid) {
   const current = cleanNickname(account.user_name);
   // Most players are named and registered already: no transaction.
   if (current && account.name_key !== undefined) return current;
-  const counterRef = db.collection("counters").doc("playerNames");
+  // A default nickname is the player's own public number: one number for
+  // their name and their page.
+  const number = await ensurePlayerNumber(db, uid);
   const playerRef = db.collection("players").doc(uid);
   return db.runTransaction(async (tx) => {
-    const [now, counter, player] = await Promise.all([
+    const [now, player] = await Promise.all([
       tx.get(accountRef),
-      tx.get(counterRef),
       tx.get(playerRef),
     ]);
     const data = now.data() ?? {};
@@ -309,16 +308,13 @@ export async function ensureNickname(db, uid) {
       tx.set(accountRef, { name_key: mine ? key : "" }, { merge: true });
       return had;
     }
-    // The next "Player<number>" no one holds, skipping any a player chose.
-    let number = counter.data()?.next ?? FIRST_PLAYER_NUMBER;
-    let name, key;
-    for (let tries = 0; ; tries++, number++) {
-      name = `Player${number}`;
-      key = nicknameKey(name);
-      if (!(await tx.get(nicknames(db).doc(key))).exists) break;
-      if (tries > 50) throw new Error("No free default nickname");
-    }
-    tx.set(counterRef, { next: number + 1 }, { merge: true });
+    // None yet: "Player<public number>". Nobody else can hold it, as names
+    // shaped like a default are reserved (claimNickname).
+    const name = defaultNickname(number);
+    const key = nicknameKey(name);
+    const held = await tx.get(nicknames(db).doc(key));
+    if (held.exists && held.data()?.uid !== uid)
+      throw new Error("Default nickname taken");
     tx.set(nicknames(db).doc(key), { uid, name });
     tx.set(accountRef, { user_name: name, name_key: key }, { merge: true });
     // The leaderboard shows the name kept with the player's XP.
@@ -326,6 +322,9 @@ export async function ensureNickname(db, uid) {
     return name;
   });
 }
+
+/** A player's default nickname: "Player" and their public number. */
+export const defaultNickname = (number) => `Player${number}`;
 
 /**
  * Changes a player's nickname to `wanted`, if no other player holds it, and
@@ -350,6 +349,13 @@ export async function claimNickname(db, uid, wanted) {
       tx.get(playerRef),
     ]);
     if (held.exists && held.data()?.uid !== uid)
+      throw new GameError(409, "nickname_taken", "That nickname is taken.");
+    // "Player" and a number is how default nicknames look: only a player's
+    // own default (Player<their public number>) may be chosen.
+    if (
+      /^player\d+$/i.test(name) &&
+      name.toLowerCase() !== `player${account.data()?.player_no}`
+    )
       throw new GameError(409, "nickname_taken", "That nickname is taken.");
     const old = account.data()?.name_key;
     const oldRef = old && old !== key ? nicknames(db).doc(old) : null;
