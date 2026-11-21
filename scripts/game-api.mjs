@@ -118,14 +118,20 @@ export async function topPlayers(db) {
     : await db.getAll(
         ...snap.docs.map((d) => db.collection("accounts").doc(d.id)),
       );
-  // A top player who hasn't visited since numbers began gets one now, so
-  // every name on the board opens a page.
-  const numbers = await Promise.all(
-    snap.docs.map((d, i) => {
-      const known = accounts[i]?.data()?.player_no;
-      return isPlayerNumber(known)
-        ? known
-        : ensurePlayerNumber(db, d.id).catch(() => null);
+  // Every name on the board is the player's own nickname and opens their
+  // page: a top player who hasn't visited since nicknames and numbers began
+  // gets their default nickname ("Player<number>") and public number now.
+  // One after the other, as both write the same account.
+  const who = await Promise.all(
+    snap.docs.map(async (d, i) => {
+      const account = accounts[i]?.data() ?? {};
+      const name = await ensureNickname(db, d.id).catch(
+        () => cleanNickname(account.user_name) ?? d.data().name ?? null,
+      );
+      const number = isPlayerNumber(account.player_no)
+        ? account.player_no
+        : await ensurePlayerNumber(db, d.id).catch(() => null);
+      return { name, number };
     }),
   );
   const entries = snap.docs.map((d, i) => {
@@ -133,10 +139,10 @@ export async function topPlayers(db) {
     const account = accounts[i]?.data() ?? {};
     return {
       uid: d.id,
-      name: p.name || "Player",
+      name: who[i].name || p.name || "Player",
       xp: p.xp || 0,
       level: p.level || 1,
-      ...(numbers[i] ? { number: numbers[i] } : {}),
+      ...(who[i].number ? { number: who[i].number } : {}),
       avatar: typeof account.avatar === "string" ? account.avatar : "",
     };
   });
@@ -429,7 +435,10 @@ export async function publicPlayer(db, number) {
   const kingdom = kingdomOf(rewards);
   return {
     number,
-    name: cleanNickname(account.user_name) ?? "Player",
+    // Their nickname; one who has none yet gets their default now.
+    name: await ensureNickname(db, uid).catch(
+      () => cleanNickname(account.user_name) ?? "Player",
+    ),
     avatar: typeof account.avatar === "string" ? account.avatar : "",
     ...progress,
     streak: player.streak || 0,

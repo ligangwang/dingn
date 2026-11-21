@@ -55,23 +55,36 @@ function fakeDb(seed) {
   return { db, store };
 }
 
-test("the leaderboard gives a top player with no public number one, so every name links", async () => {
+test("the leaderboard shows each player's own nickname and links every one, giving defaults to those with none", async () => {
   const { db, store } = fakeDb({
     "players/ada": { xp: 900, level: 6, name: "Ada" },
+    // Bo's XP record still has his Google first name, but he never chose a
+    // nickname or came back since nicknames began.
     "players/bo": { xp: 300, level: 3, name: "Bo" },
-    "accounts/ada": { avatar: "fox", player_no: "7302518846" },
+    "accounts/ada": {
+      avatar: "fox",
+      player_no: "7302518846",
+      user_name: "Star Gazer",
+      name_key: "star%20gazer",
+    },
   });
   const entries = await topPlayers(db);
   assert.deepEqual(
     entries.map(({ name, number, avatar }) => [name, number, avatar]),
     [
-      ["Ada", "7302518846", "fox"],
-      ["Bo", store.get("accounts/bo").player_no, ""],
+      ["Star Gazer", "7302518846", "fox"],
+      ["Player10001", store.get("accounts/bo").player_no, ""],
     ],
   );
   const bo = entries[1].number;
   assert.ok(isPlayerNumber(bo));
   assert.deepEqual(store.get(`playerNumbers/${bo}`), { uid: "bo" });
+  // Bo's default nickname is his, registered, and on his XP record too.
+  assert.deepEqual(store.get("nicknames/player10001"), {
+    uid: "bo",
+    name: "Player10001",
+  });
+  assert.equal(store.get("players/bo").name, "Player10001");
   // Ada kept hers.
   assert.equal(store.get("accounts/ada").player_no, "7302518846");
 });

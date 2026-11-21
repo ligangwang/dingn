@@ -275,7 +275,10 @@ test("a player's public page shows what anyone may see, and nothing private", as
   });
   // Below level 2 there is no kingdom yet.
   store.set("playerNumbers/1111111111", { uid: "new" });
-  assert.equal((await publicPlayer(db, "1111111111"))?.kingdom, null);
+  const newcomer = await publicPlayer(db, "1111111111");
+  assert.equal(newcomer?.kingdom, null);
+  // One who never chose a nickname shows their default, never just "Player".
+  assert.equal(newcomer?.name, "Player10001");
   // A number no player has, or that isn't one.
   assert.equal(await publicPlayer(db, "1000000000"), null);
   assert.equal(await publicPlayer(db, "ada"), null);
