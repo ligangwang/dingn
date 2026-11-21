@@ -878,6 +878,11 @@
     "Challenge score: {0} coin": "{0}コイン",
     "Challenge score: {0} coins": "{0}コイン",
     "{0} to earn XP and join the leaderboard.": "{0}すると、XPを獲得してランキングに参加できます。",
-    "I accept the {0}": "{0}に同意します"
+    "I accept the {0}": "{0}に同意します",
+    "Featured on the home page": "ホームでおすすめ中",
+    "Feature on the home page": "ホームでおすすめする",
+    "Take off the home page": "ホームのおすすめをやめる",
+    "{0} is featured on the home page.": "{0} をホームでおすすめしています。",
+    "{0} is off the home page. The home page picks its game itself.": "{0} をホームのおすすめから外しました。ホームはおすすめを自動で選びます。"
   }
 }

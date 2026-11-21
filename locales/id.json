@@ -878,6 +878,11 @@
     "Challenge score: {0} coin": "{0} koin",
     "Challenge score: {0} coins": "{0} koin",
     "{0} to earn XP and join the leaderboard.": "{0} untuk mendapat XP dan masuk papan peringkat.",
-    "I accept the {0}": "Saya menyetujui {0}"
+    "I accept the {0}": "Saya menyetujui {0}",
+    "Featured on the home page": "Ditampilkan di beranda",
+    "Feature on the home page": "Tampilkan di beranda",
+    "Take off the home page": "Hapus dari beranda",
+    "{0} is featured on the home page.": "{0} ditampilkan di beranda.",
+    "{0} is off the home page. The home page picks its game itself.": "{0} tidak lagi di beranda. Beranda memilih gimnya sendiri."
   }
 }

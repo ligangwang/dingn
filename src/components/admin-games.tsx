@@ -118,7 +118,10 @@ function GameList() {
               : // Featuring a game unpins the others in its category.
                 change.action === "feature" && g.category === updated.category
                 ? { ...g, featuredAt: null }
-                : g,
+                : // The home page features one game.
+                  change.action === "feature-home"
+                  ? { ...g, homeAt: null }
+                  : g,
           ) ?? null,
       );
       setNotice(done);
@@ -197,9 +200,7 @@ function ReviewKeys() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function run(
-    work: () => Promise<{ keys: ReviewKey[]; key?: string }>,
-  ) {
+  async function run(work: () => Promise<{ keys: ReviewKey[]; key?: string }>) {
     setBusy(true);
     setProblem("");
     try {
@@ -282,7 +283,9 @@ function ReviewKeys() {
                 onClick={() => {
                   if (
                     window.confirm(
-                      t(`Revoke ${key.name}? Anything using it will stop working.`),
+                      t(
+                        `Revoke ${key.name}? Anything using it will stop working.`,
+                      ),
                     )
                   )
                     void run(() => revokeReviewKey(key.id));
@@ -455,9 +458,7 @@ function Reports({
                   <br />
                   <small>
                     {report.reporter} ·{" "}
-                    {new Date(report.createdAt).toLocaleString(
-                      locale,
-                    )}
+                    {new Date(report.createdAt).toLocaleString(locale)}
                   </small>
                 </span>
                 <span className="admin-version-actions">
@@ -528,13 +529,9 @@ function GameCard({
     memory: "Memory",
     puzzle: "Puzzle",
     adventure: "Adventure",
-  }[
-    game.category ?? "casual"
-  ];
+  }[game.category ?? "casual"];
   const date = (iso: string | null) =>
-    iso
-      ? new Date(iso).toLocaleString(locale)
-      : "";
+    iso ? new Date(iso).toLocaleString(locale) : "";
 
   return (
     <section className="panel admin-game" aria-labelledby={`game-${game.id}`}>
@@ -552,6 +549,7 @@ function GameCard({
             {listed && game.featuredAt && (
               <> · {t(`Featured on the ${page} page`)}</>
             )}
+            {listed && game.homeAt && <> · {t("Featured on the home page")}</>}
             {game.owner && <> · {t(`Uploaded by ${game.owner}`)}</>}
             {game.plays && (
               <>
@@ -621,6 +619,29 @@ function GameCard({
                 {game.featuredAt
                   ? t("Stop featuring")
                   : t(`Feature on the ${page} page`)}
+              </button>
+            )}
+            {listed && game.live && (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                aria-pressed={!!game.homeAt}
+                onClick={() =>
+                  apply(
+                    game,
+                    { action: game.homeAt ? "unfeature-home" : "feature-home" },
+                    game.homeAt
+                      ? t(
+                          `${title} is off the home page. The home page picks its game itself.`,
+                        )
+                      : t(`${title} is featured on the home page.`),
+                  )
+                }
+              >
+                {game.homeAt
+                  ? t("Take off the home page")
+                  : t("Feature on the home page")}
               </button>
             )}
             {game.beta && (

@@ -20,7 +20,10 @@ vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
   useOptionalSession: () => mocks.session,
 }));
-vi.mock("../src/components/xp", () => ({ LevelBadge: () => null }));
+vi.mock("../src/components/xp", () => ({
+  LevelBadge: () => null,
+  Leaderboard: () => null,
+}));
 vi.mock("../src/lib/database", () => ({
   database: {},
   doc: () => ({}),
@@ -123,4 +126,30 @@ it("a category page shows a banner, sorting, tags and the player's progress", as
 it("a category with no games says new ones appear once approved", async () => {
   render(<CategoryPage category="memory" />);
   expect(await screen.findByText(/No games here yet/)).toBeTruthy();
+});
+
+it("the home page features the game an admin picked for it", async () => {
+  mocks.path = "/";
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        games: [
+          game("crowdrush", "casual", { plays: { week: 40, month: 200 } }),
+          game("rubikscube", "puzzle", { homeAt: "2026-11-20T00:00:00Z" }),
+        ],
+      }),
+    })),
+  );
+  const { Home } = await import("../src/components/home");
+  render(<Home />);
+  const banner = await screen.findByRole("region", { name: "FEATURED" });
+  expect(
+    within(banner).getByText("RUBIKSCUBE", { selector: "strong" }),
+  ).toBeTruthy();
+  expect(within(banner).getByText("About rubikscube")).toBeTruthy();
+  expect(within(banner).getByRole("link").getAttribute("href")).toMatch(
+    /^\/play\/rubikscube\/?$/,
+  );
 });

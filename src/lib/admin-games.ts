@@ -18,6 +18,8 @@ export type AdminGame = {
   category: "casual" | "memory" | "puzzle" | "adventure";
   /** When it was pinned to its category page's banner, or null. */
   featuredAt: string | null;
+  /** When it was made the game the home page features, or null. */
+  homeAt: string | null;
   /** Why the game was taken down, if it was. */
   removedReason: string | null;
   plays: Plays | null;
@@ -32,7 +34,14 @@ export type GameChange =
   | { action: "set-live" | "set-beta"; version: string }
   | {
       action:
-        "clear-beta" | "list" | "unlist" | "restore" | "feature" | "unfeature";
+        | "clear-beta"
+        | "list"
+        | "unlist"
+        | "restore"
+        | "feature"
+        | "unfeature"
+        | "feature-home"
+        | "unfeature-home";
     }
   | { action: "reject"; version: string; reason: string }
   | { action: "take-down"; reason: string }

@@ -3,8 +3,14 @@ import { pick } from "@/lib/i18n";
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
 import { Leaderboard } from "@/components/xp";
-import { CATEGORY_INFO, TopGames, useCatalog } from "@/components/catalog";
-import type { Category } from "@/lib/catalog";
+import {
+  CATEGORY_INFO,
+  GameCover,
+  TopGames,
+  playPath,
+  useCatalog,
+} from "@/components/catalog";
+import { homeGame, type CatalogGame, type Category } from "@/lib/catalog";
 import { useEffect, useState } from "react";
 import { useOptionalSession } from "@/components/session";
 import { STAGES } from "@/data/kingdom.mjs";
@@ -78,6 +84,7 @@ export function Home() {
         </div>
         <HeroKingdom />
       </section>
+      {catalog && <FeaturedGame games={catalog} />}
       <section id="games">
         <div className="mind-heading">
           <div>
@@ -130,6 +137,30 @@ export function Home() {
 }
 
 /**
+ * The game the home page features, in a banner under the hero: the one an
+ * admin picked for the home page, otherwise the newest or most played.
+ */
+function FeaturedGame({ games }: { games: CatalogGame[] }) {
+  const { t, locale, href } = useLocale();
+  const game = homeGame(games);
+  if (!game) return null;
+  const title = pick(game.title, locale);
+  return (
+    <section className="home-featured" aria-label={t("FEATURED")}>
+      <Link className="featured-game" href={href(playPath(game.id))}>
+        <GameCover game={game} title={title} size={200} />
+        <span className="featured-copy">
+          <span className="eyebrow">{t("FEATURED")}</span>
+          <strong>{title}</strong>
+          <span>{pick(game.description, locale)}</span>
+          <span className="button">{t("Play")}</span>
+        </span>
+      </Link>
+    </section>
+  );
+}
+
+/**
  * The hero's picture: a grown kingdom, with the player's own progress on it.
  * Signed out, it shows the road from camp to capital instead.
  */
@@ -148,8 +179,7 @@ function HeroKingdom() {
       current = false;
     };
   }, [signedIn]);
-  const name = (title: { en: string; zh: string }) =>
-    pick(title, locale, true);
+  const name = (title: { en: string; zh: string }) => pick(title, locale, true);
   const stage = STAGES.find((s) => s.id === view?.stage);
   const next = STAGES.find((s) => s.level > (view?.level ?? 0));
   // XP needed for a level, as src/components/kingdom-card.tsx.

@@ -878,6 +878,11 @@
     "Challenge score: {0} coin": "{0} 枚金币",
     "Challenge score: {0} coins": "{0} 枚金币",
     "{0} to earn XP and join the leaderboard.": "{0}即可获得经验并加入排行榜。",
-    "I accept the {0}": "我接受{0}"
+    "I accept the {0}": "我接受{0}",
+    "Featured on the home page": "首页推荐中",
+    "Feature on the home page": "设为首页推荐",
+    "Take off the home page": "取消首页推荐",
+    "{0} is featured on the home page.": "{0} 已设为首页推荐。",
+    "{0} is off the home page. The home page picks its game itself.": "{0} 已取消首页推荐。首页会自动挑选推荐游戏。"
   }
 }

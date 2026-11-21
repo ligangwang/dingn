@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   featuredGame,
+  homeGame,
   gamesIn,
   playerProgress,
   sortGames,
@@ -68,6 +69,17 @@ test("the banner shows the newest game, otherwise the most played", () => {
   // A game an admin pinned wins over both.
   const pinned = { ...gems, featuredAt: "2026-11-14T00:00:00Z" };
   assert.equal(featuredGame([crowd, pet, pinned], NOW)?.id, "gemsurge");
+});
+
+test("the home page features the game an admin picked, from any category", () => {
+  // With no pick, it chooses as a banner does, over every game.
+  assert.equal(homeGame(all, NOW)?.id, featuredGame(all, NOW)?.id);
+  assert.equal(homeGame([], NOW), null);
+  const picked = { ...cube, homeAt: "2026-11-14T00:00:00Z" };
+  assert.equal(homeGame([crowd, pet, picked], NOW)?.id, "rubikscube");
+  // A category banner's pin does not decide the home page.
+  const banner = { ...gems, featuredAt: "2026-11-15T00:00:00Z" };
+  assert.equal(homeGame([crowd, banner, picked], NOW)?.id, "rubikscube");
 });
 
 test("a player's progress comes from their badges and saved games", () => {
