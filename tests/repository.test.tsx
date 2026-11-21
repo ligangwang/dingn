@@ -29,7 +29,8 @@ it("updates legacy account and favorite documents with merge semantics", async (
   });
   expect(sdk.setDoc).toHaveBeenCalledWith(
     "accounts/u1",
-    { user_name: "Lee", card_side: "TwoSides", avatar: "owl" },
+    // Never the nickname: the server sets it, keeping nicknames unique.
+    { card_side: "TwoSides", avatar: "owl" },
     { merge: true },
   );
   await saveFavorite("u1", "02", "sun");

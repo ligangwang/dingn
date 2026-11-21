@@ -1,10 +1,48 @@
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Billing and ownership are server-only. Legacy Stripe extension records
-    // remain excluded so old billing data cannot become writable.
-    match /{collection}/{document=**} {
-      allow read, write: if request.auth != null
-        && !(collection in ['feedback', 'players', 'plays', 'customers', 'products', 'shopOrders', 'shopInventory', 'coinOrders', 'games', 'developers', 'gameReports', 'gameStats', 'funnelStats', 'mail', 'rewards', 'challenges', 'referrals']);
+    // Nothing is open unless a rule below opens it: a collection with no rule
+    // (billing records, the old Stripe extension's customers and products, or
+    // anything new) is server-only. The dingn server uses the Admin SDK, which
+    // these rules do not limit; browsers reach the database only through
+    // /api/data (scripts/api.mjs) with their own token, or with the token a
+    // Google sign-in leaves in the browser.
+
+    // A player's account: name, avatar and saved game progress. Any signed-in
+    // player may read one player's account, as another player's page shows it;
+    // only its owner may write it, and never its nickname: nicknames are
+    // unique, so only the server sets them, after checking the name is free
+    // (claimNickname and ensureNickname in scripts/game-api.mjs). Listing
+    // every account is for admins only.
+    match /accounts/{uid} {
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && !request.resource.data.keys().hasAny(['user_name', 'name_key']);
+      allow update: if request.auth != null && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['user_name', 'name_key']);
+      allow delete: if false;
+    }
+    // A player's favourite word for each number (src/lib/repository.ts),
+    // kept as "<uid>-<number>" with the owner's uid in it: theirs alone.
+    match /number_favorites/{id} {
+      allow read: if request.auth != null
+        && (resource == null || resource.data.uid == request.auth.uid);
+      allow create, update: if request.auth != null
+        && (resource == null || resource.data.uid == request.auth.uid)
+        && request.resource.data.uid == request.auth.uid
+        && id == request.auth.uid + '-' + request.resource.data.number;
+      allow delete: if false;
+    }
+    // The Major System dictionary: read by every signed-in player, written
+    // only by dingn's own scripts.
+    match /numbers/{id} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /words/{id} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
     // The game registry is written only by the game publisher (Admin SDK) and
     // read by the dingn server, which serves it at /api/games.

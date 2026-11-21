@@ -200,15 +200,157 @@ async function finish(req, res) {
   return result;
 }
 
+/** The first number a default nickname gets: Player10001, Player10002… */
+export const FIRST_PLAYER_NUMBER = 10001;
+/** The shortest and longest nickname, in characters. */
+export const NICKNAME_MIN = 2;
+export const NICKNAME_MAX = 24;
+
+/**
+ * A nickname as it is kept: control and direction-changing characters
+ * removed, spaces collapsed, NICKNAME_MIN to NICKNAME_MAX characters. Null
+ * when it can't be one.
+ */
+export function cleanNickname(text) {
+  if (typeof text !== "string") return null;
+  const name = text
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁩﻿]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const length = [...name].length;
+  return length >= NICKNAME_MIN && length <= NICKNAME_MAX ? name : null;
+}
+
+/**
+ * The register's key for a nickname: names that differ only in capitals,
+ * spacing or look-alike forms (NFKC) are the same name.
+ */
+export function nicknameKey(name) {
+  return encodeURIComponent(
+    name.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim(),
+  );
+}
+
+/**
+ * Nicknames are unique: `nicknames/{key}` holds the uid of the one player
+ * each name belongs to, and a name is only ever taken in a transaction that
+ * checks it is free. Players can't write it (firestore.rules); only these
+ * functions do.
+ */
+const nicknames = (db) => db.collection("nicknames");
+
+/**
+ * The player's nickname, giving one first to a player who has none: the
+ * next free "Player<number>", from one counter. A player who chose a name
+ * before names were unique has it registered on their next visit, if no one
+ * holds it yet.
+ */
+export async function ensureNickname(db, uid) {
+  const accountRef = db.collection("accounts").doc(uid);
+  const account = (await accountRef.get()).data() ?? {};
+  const current = cleanNickname(account.user_name);
+  // Most players are named and registered already: no transaction.
+  if (current && account.name_key !== undefined) return current;
+  const counterRef = db.collection("counters").doc("playerNames");
+  const playerRef = db.collection("players").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const [now, counter, player] = await Promise.all([
+      tx.get(accountRef),
+      tx.get(counterRef),
+      tx.get(playerRef),
+    ]);
+    const data = now.data() ?? {};
+    const had = cleanNickname(data.user_name);
+    if (had) {
+      if (data.name_key !== undefined) return had;
+      // Register a name chosen before names were unique, if it is free.
+      const key = nicknameKey(had);
+      const held = await tx.get(nicknames(db).doc(key));
+      const mine = !held.exists || held.data()?.uid === uid;
+      if (mine) tx.set(nicknames(db).doc(key), { uid, name: had });
+      // "" marks a name kept but not registered: another player had it first.
+      tx.set(accountRef, { name_key: mine ? key : "" }, { merge: true });
+      return had;
+    }
+    // The next "Player<number>" no one holds, skipping any a player chose.
+    let number = counter.data()?.next ?? FIRST_PLAYER_NUMBER;
+    let name, key;
+    for (let tries = 0; ; tries++, number++) {
+      name = `Player${number}`;
+      key = nicknameKey(name);
+      if (!(await tx.get(nicknames(db).doc(key))).exists) break;
+      if (tries > 50) throw new Error("No free default nickname");
+    }
+    tx.set(counterRef, { next: number + 1 }, { merge: true });
+    tx.set(nicknames(db).doc(key), { uid, name });
+    tx.set(accountRef, { user_name: name, name_key: key }, { merge: true });
+    // The leaderboard shows the name kept with the player's XP.
+    if (player.exists) tx.set(playerRef, { name }, { merge: true });
+    return name;
+  });
+}
+
+/**
+ * Changes a player's nickname to `wanted`, if no other player holds it, and
+ * frees their old one. Throws GameError 400 for a name that can't be one and
+ * 409 for one that is taken.
+ */
+export async function claimNickname(db, uid, wanted) {
+  const name = cleanNickname(wanted);
+  if (!name)
+    throw new GameError(
+      400,
+      "bad_nickname",
+      `Nicknames are ${NICKNAME_MIN} to ${NICKNAME_MAX} characters.`,
+    );
+  const key = nicknameKey(name);
+  const accountRef = db.collection("accounts").doc(uid);
+  const playerRef = db.collection("players").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const [held, account, player] = await Promise.all([
+      tx.get(nicknames(db).doc(key)),
+      tx.get(accountRef),
+      tx.get(playerRef),
+    ]);
+    if (held.exists && held.data()?.uid !== uid)
+      throw new GameError(409, "nickname_taken", "That nickname is taken.");
+    const old = account.data()?.name_key;
+    const oldRef = old && old !== key ? nicknames(db).doc(old) : null;
+    const oldHeld = oldRef ? await tx.get(oldRef) : null;
+    if (oldRef && oldHeld?.data()?.uid === uid) tx.delete(oldRef);
+    tx.set(nicknames(db).doc(key), { uid, name });
+    tx.set(accountRef, { user_name: name, name_key: key }, { merge: true });
+    if (player.exists) tx.set(playerRef, { name }, { merge: true });
+    return { name };
+  });
+}
+
+async function nickname(req, res) {
+  const token = await verify(req, res);
+  const { name } = await readJson(req);
+  const { db } = await admin();
+  return claimNickname(db, token.uid, name);
+}
+
 async function me(req, res) {
   const token = await verify(req, res);
   const { db } = await admin();
-  const p = (await db.collection("players").doc(token.uid).get()).data() || {};
+  const [p, name] = await Promise.all([
+    db
+      .collection("players")
+      .doc(token.uid)
+      .get()
+      .then((snap) => snap.data() || {}),
+    // A new player gets their default nickname here, on their first visit.
+    ensureNickname(db, token.uid).catch(() => null),
+  ]);
   return {
     ...levelProgress(p.xp || 0),
     streak: p.streak || 0,
     lastPlayed: p.lastPlayed || null,
     best: p.best || {},
+    name,
   };
 }
 
@@ -218,6 +360,7 @@ const routes = {
   "/api/play/start": start,
   "/api/play/finish": finish,
   "/api/me": me,
+  "/api/me/nickname": nickname,
   "/api/leaderboard": leaderboard,
 };
 export const gameRoutes = Object.keys(routes);

@@ -7,6 +7,8 @@ export type PlayerStats = {
   next: number;
   streak: number;
   best: Partial<Record<GameId, number>>;
+  /** The player's nickname: a new player's default one, "Player<number>". */
+  name?: string | null;
 };
 export type PlayResult = {
   score: number;
@@ -65,6 +67,12 @@ export const startPlay = <C>(game: GameId) =>
 export const finishPlay = (playId: string, answers: unknown) =>
   call<PlayResult>("/api/play/finish", { playId, answers });
 export const fetchStats = () => call<PlayerStats>("/api/me");
+/**
+ * Changes the player's nickname. Nicknames are unique: the server refuses
+ * one another player holds (code "nickname_taken").
+ */
+export const saveNickname = (name: string) =>
+  call<{ name: string }>("/api/me/nickname", { name });
 /** The top players; `shown` is false while too few players have XP. */
 export const fetchLeaderboard = () =>
   call<{ shown: boolean; entries: LeaderboardEntry[] }>("/api/leaderboard");

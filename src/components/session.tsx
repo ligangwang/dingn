@@ -53,7 +53,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (user)
       fetchStats()
         .then((value) => {
-          if (active) setStats(value);
+          if (!active) return;
+          setStats(value);
+          // A new player's default nickname is given by the server on this
+          // first call, after their profile was read without one.
+          if (value.name)
+            setProfile((p) =>
+              p.userName ? p : { ...p, userName: value.name! },
+            );
         })
         .catch(() => {});
     return () => {

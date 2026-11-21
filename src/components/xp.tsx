@@ -161,6 +161,51 @@ export function LevelBadge() {
   );
 }
 
+/**
+ * The player's level on their profile page: the level, all the XP they have,
+ * a bar to the next level and their daily streak.
+ */
+export function LevelCard() {
+  const { t, locale } = useLocale();
+  const { stats } = useSession();
+  const span = stats ? Math.max(1, stats.next - stats.floor) : 1;
+  const into = stats ? Math.min(span, Math.max(0, stats.xp - stats.floor)) : 0;
+  return (
+    <section className="panel level-card" aria-labelledby="level-card-title">
+      <h2 id="level-card-title">{t("Your level")}</h2>
+      {!stats ? (
+        <p className="muted">{t("Loading…")}</p>
+      ) : (
+        <>
+          <p className="level-card-top">
+            <strong>{t(`Account level ${stats.level}`)}</strong>
+            <span>{t(`${stats.xp.toLocaleString(locale)} XP in all`)}</span>
+          </p>
+          <span
+            className="xp-bar"
+            role="progressbar"
+            aria-label={t(`Progress to level ${stats.level + 1}`)}
+            aria-valuemin={0}
+            aria-valuemax={span}
+            aria-valuenow={into}
+          >
+            <span style={{ width: `${(into / span) * 100}%` }} />
+          </span>
+          <p className="muted">
+            {t(
+              `${(stats.next - stats.xp).toLocaleString(locale)} XP to level ${stats.level + 1}`,
+            )}
+            {stats.streak > 1 && <> · {t(`🔥 ${stats.streak}-day streak`)}</>}
+          </p>
+          <p className="muted">
+            {t("Earn XP by playing games and winning badges.")}
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function Leaderboard({ title = "Top players" }: { title?: string }) {
   const { t, locale, href } = useLocale();
 
