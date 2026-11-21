@@ -18,6 +18,7 @@ import { BadgeShelf, useWallet } from "./rewards";
 import { BadgeMedal, Coin } from "./rewards-art";
 import { KingdomCard } from "./kingdom-card";
 import { LevelCard } from "./xp";
+import { saveNickname, XpError } from "@/lib/xp";
 import { BagIcon, GearIcon, PencilIcon, PersonIcon, WalletIcon } from "./icons";
 
 type Tab = "overview" | "wallet" | "shop" | "settings";
@@ -244,10 +245,22 @@ function Settings() {
     setError("");
     setMessage("");
     try {
-      await updateProfile({ ...profile, userName: name, avatar });
+      // Nicknames are unique, so the server checks and saves a new one.
+      let userName = profile.userName;
+      if (name.trim() !== profile.userName.trim())
+        userName = (await saveNickname(name)).name;
+      await updateProfile({ ...profile, userName, avatar });
+      setName(userName);
       setMessage("Your profile is saved.");
     } catch (e) {
-      setError(friendlyError(e));
+      const code = e instanceof XpError ? e.code : "";
+      setError(
+        code === "nickname_taken"
+          ? "That nickname is taken. Try another."
+          : code === "bad_nickname"
+            ? "Nicknames are 2 to 24 characters."
+            : friendlyError(e),
+      );
     } finally {
       setBusy(false);
     }
@@ -275,14 +288,19 @@ function Settings() {
       <form className="panel" onSubmit={save}>
         <h2>{t("Your profile")}</h2>
         <p className="muted">{t(`Signed in as ${user?.email ?? ""}.`)}</p>
-        <label htmlFor="display-name">{t("Display name")}</label>
+        <label htmlFor="display-name">{t("Nickname")}</label>
         <input
           id="display-name"
           value={name}
-          maxLength={80}
+          minLength={2}
+          maxLength={24}
+          aria-describedby="nickname-hint"
           onChange={(e) => setName(e.target.value)}
           disabled={busy || !!profileError}
         />
+        <p id="nickname-hint" className="muted">
+          {t("Other players see your nickname. No two players share one.")}
+        </p>
         <fieldset className="avatar-picker" disabled={busy || !!profileError}>
           <legend>{t("Avatar")}</legend>
           <div className="avatar-options">

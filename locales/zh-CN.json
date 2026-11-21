@@ -912,6 +912,10 @@
     "Path of honor": "荣誉之路",
     "{0} at level {1}: {2} XP to go.": "{1} 级成为{0}：还差 {2} 经验。",
     "You hold the highest honor in dingn.": "你已获得 dingn 的最高荣誉。",
-    "Level {0}+": "{0} 级以上"
+    "Level {0}+": "{0} 级以上",
+    "Nickname": "昵称",
+    "Other players see your nickname. No two players share one.": "其他玩家会看到你的昵称。每个昵称都是独一无二的。",
+    "That nickname is taken. Try another.": "这个昵称已被使用，换一个试试。",
+    "Nicknames are 2 to 24 characters.": "昵称需为 2 到 24 个字符。"
   }
 }

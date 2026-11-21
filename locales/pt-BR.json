@@ -912,6 +912,10 @@
     "Path of honor": "Caminho da honra",
     "{0} at level {1}: {2} XP to go.": "{0} no nível {1}: faltam {2} XP.",
     "You hold the highest honor in dingn.": "Você tem a maior honra do dingn.",
-    "Level {0}+": "Nível {0}+"
+    "Level {0}+": "Nível {0}+",
+    "Nickname": "Apelido",
+    "Other players see your nickname. No two players share one.": "Outros jogadores veem seu apelido. Não há dois jogadores com o mesmo.",
+    "That nickname is taken. Try another.": "Esse apelido já está em uso. Tente outro.",
+    "Nicknames are 2 to 24 characters.": "Apelidos têm de 2 a 24 caracteres."
   }
 }

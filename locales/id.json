@@ -912,6 +912,10 @@
     "Path of honor": "Jalan kehormatan",
     "{0} at level {1}: {2} XP to go.": "{0} di level {1}: {2} XP lagi.",
     "You hold the highest honor in dingn.": "Kamu memegang kehormatan tertinggi di dingn.",
-    "Level {0}+": "Level {0}+"
+    "Level {0}+": "Level {0}+",
+    "Nickname": "Nama panggilan",
+    "Other players see your nickname. No two players share one.": "Pemain lain melihat nama panggilanmu. Tidak ada dua pemain yang sama.",
+    "That nickname is taken. Try another.": "Nama panggilan itu sudah dipakai. Coba yang lain.",
+    "Nicknames are 2 to 24 characters.": "Nama panggilan terdiri dari 2 sampai 24 karakter."
   }
 }

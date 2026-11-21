@@ -110,7 +110,7 @@ it("lets anyone signed in read a player's account, and only its owner change it"
   const bob = env.authenticatedContext("bob").firestore();
   const guest = env.unauthenticatedContext().firestore();
   await assertSucceeds(
-    setDoc(doc(alice, "accounts", "alice"), { user_name: "Alice" }),
+    setDoc(doc(alice, "accounts", "alice"), { avatar: "owl" }),
   );
   await assertSucceeds(
     setDoc(doc(alice, "accounts", "alice"), { avatar: "fox" }, { merge: true }),
@@ -118,15 +118,11 @@ it("lets anyone signed in read a player's account, and only its owner change it"
   // Another player can read it, as another player's page shows it...
   await assertSucceeds(getDoc(doc(bob, "accounts", "alice")));
   // ...but never create, change or delete it.
-  await assertFails(
-    setDoc(doc(bob, "accounts", "alice"), { user_name: "Mallory" }),
-  );
+  await assertFails(setDoc(doc(bob, "accounts", "alice"), { avatar: "robot" }));
   await assertFails(
     updateDoc(doc(bob, "accounts", "alice"), { avatar: "robot" }),
   );
-  await assertFails(
-    setDoc(doc(bob, "accounts", "carol"), { user_name: "Carol?" }),
-  );
+  await assertFails(setDoc(doc(bob, "accounts", "carol"), { avatar: "frog" }));
   await assertFails(deleteDoc(doc(bob, "accounts", "alice")));
   await assertFails(deleteDoc(doc(alice, "accounts", "alice")));
   // Guests can do neither, and only admins can list every account.
@@ -140,6 +136,43 @@ it("lets anyone signed in read a player's account, and only its owner change it"
       ),
     ),
   );
+});
+it("leaves nicknames to the server, which keeps them unique", async () => {
+  const alice = env.authenticatedContext("alice").firestore();
+  // The server gives Alice her nickname (the Admin SDK skips these rules).
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "accounts", "alice"), {
+      user_name: "Player10001",
+      name_key: "player10001",
+    });
+  });
+  // She can save everything else, even sending her nickname back unchanged.
+  await assertSucceeds(
+    setDoc(doc(alice, "accounts", "alice"), { avatar: "fox" }, { merge: true }),
+  );
+  await assertSucceeds(
+    setDoc(
+      doc(alice, "accounts", "alice"),
+      { user_name: "Player10001", avatar: "owl" },
+      { merge: true },
+    ),
+  );
+  // But not change it, or its register key, herself.
+  await assertFails(
+    updateDoc(doc(alice, "accounts", "alice"), { user_name: "Ada" }),
+  );
+  await assertFails(
+    updateDoc(doc(alice, "accounts", "alice"), { name_key: "ada" }),
+  );
+  // A new account can't start with one either.
+  const bob = env.authenticatedContext("bob").firestore();
+  await assertFails(setDoc(doc(bob, "accounts", "bob"), { user_name: "Bob" }));
+  await assertSucceeds(setDoc(doc(bob, "accounts", "bob"), { avatar: "fox" }));
+  // The register and the counter are the server's alone.
+  for (const path of ["nicknames/ada", "counters/playerNames"]) {
+    await assertFails(getDoc(doc(bob, path)));
+    await assertFails(setDoc(doc(bob, path), { uid: "bob" }));
+  }
 });
 it("keeps a player's favourite words theirs alone", async () => {
   const alice = env.authenticatedContext("alice").firestore();

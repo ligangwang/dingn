@@ -912,6 +912,10 @@
     "Path of honor": "栄誉の道",
     "{0} at level {1}: {2} XP to go.": "レベル {1} で{0}：あと {2} XP。",
     "You hold the highest honor in dingn.": "dingn の最高の栄誉を手にしています。",
-    "Level {0}+": "レベル {0}+"
+    "Level {0}+": "レベル {0}+",
+    "Nickname": "ニックネーム",
+    "Other players see your nickname. No two players share one.": "ニックネームは他のプレイヤーに表示されます。同じニックネームは使えません。",
+    "That nickname is taken. Try another.": "そのニックネームは使われています。別のものにしてください。",
+    "Nicknames are 2 to 24 characters.": "ニックネームは 2〜24 文字です。"
   }
 }

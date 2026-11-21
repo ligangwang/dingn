@@ -10,6 +10,7 @@ import {
 import { Account, honorOf } from "../src/components/account";
 
 const mocks = vi.hoisted(() => ({
+  saveNickname: vi.fn(),
   session: {
     user: { uid: "u1", email: "ada@example.com", photoURL: null },
     ready: true,
@@ -26,6 +27,10 @@ const mocks = vi.hoisted(() => ({
     updateProfile: vi.fn(),
     logout: vi.fn(),
   },
+}));
+vi.mock("../src/lib/xp", async (real) => ({
+  ...(await real<typeof import("../src/lib/xp")>()),
+  saveNickname: mocks.saveNickname,
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -71,7 +76,7 @@ it("shows who the player is and how far they have come, with their account detai
   expect(screen.getByText("340")).toBeTruthy();
   // The email and the editing form are in Settings, not on show.
   expect(screen.queryByText(/ada@example\.com/)).toBeNull();
-  expect(screen.queryByLabelText("Display name")).toBeNull();
+  expect(screen.queryByLabelText("Nickname")).toBeNull();
   // Overview first: the level, then the kingdom.
   expect(
     screen.getByRole("tab", { name: "Overview" }).getAttribute("aria-selected"),
@@ -110,7 +115,7 @@ it("opens each tab, by click, by keys and from the address", () => {
   // The pencil opens Settings, with the email and the form.
   fireEvent.click(screen.getByRole("button", { name: "Edit profile" }));
   const panel = screen.getByRole("tabpanel");
-  expect(within(panel).getByLabelText("Display name")).toBeTruthy();
+  expect(within(panel).getByLabelText("Nickname")).toBeTruthy();
   expect(within(panel).getByText("Signed in as ada@example.com.")).toBeTruthy();
   cleanup();
 
@@ -122,4 +127,30 @@ it("opens each tab, by click, by keys and from the address", () => {
   window.history.replaceState(null, "", "/account/?purchase=pending");
   render(<Account />);
   expect(screen.getByText("item shop")).toBeTruthy();
+});
+
+it("saves a new nickname through dingn, and says when another player has it", async () => {
+  const { XpError } = await import("../src/lib/xp");
+  mocks.session.updateProfile.mockResolvedValue(undefined);
+  mocks.saveNickname.mockRejectedValueOnce(
+    new XpError("That nickname is taken.", "nickname_taken"),
+  );
+  window.history.replaceState(null, "", "/account/#settings");
+  render(<Account />);
+  const field = screen.getByLabelText("Nickname");
+  fireEvent.change(field, { target: { value: "Star Gazer" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+  expect(
+    await screen.findByText("That nickname is taken. Try another."),
+  ).toBeTruthy();
+  expect(mocks.session.updateProfile).not.toHaveBeenCalled();
+  // A free one is saved, with the name as dingn keeps it.
+  mocks.saveNickname.mockResolvedValueOnce({ name: "Star Gazer" });
+  fireEvent.change(field, { target: { value: "  Star Gazer " } });
+  fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+  expect(await screen.findByText("Your profile is saved.")).toBeTruthy();
+  expect(mocks.saveNickname).toHaveBeenLastCalledWith("  Star Gazer ");
+  expect(mocks.session.updateProfile).toHaveBeenLastCalledWith(
+    expect.objectContaining({ userName: "Star Gazer" }),
+  );
 });

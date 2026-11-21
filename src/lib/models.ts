@@ -86,9 +86,12 @@ export function favoriteRecord(uid: string, number: string, word: string) {
     throw new Error("Invalid favorite");
   return { id: `${uid}-${number}`, data: { uid, number, favoriteWord: word } };
 }
+/**
+ * The profile fields a player saves themselves. The nickname is not one:
+ * nicknames are unique, so the server sets it (saveNickname in src/lib/xp.ts).
+ */
 export function profileRecord(profile: Profile) {
   return {
-    user_name: profile.userName.trim().slice(0, 80),
     card_side: profile.cardSide,
     avatar: avatarFromData(profile.avatar),
   };

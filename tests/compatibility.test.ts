@@ -49,7 +49,7 @@ test("existing account preferences survive migration", () => {
   });
   assert.deepEqual(
     profileRecord({ userName: " Lee ", cardSide: "TwoSides", avatar: "fox" }),
-    { user_name: "Lee", card_side: "TwoSides", avatar: "fox" },
+    { card_side: "TwoSides", avatar: "fox" },
   );
   assert.equal(profileFromData({ avatar: "<script>" }).avatar, "");
   assert.equal(
