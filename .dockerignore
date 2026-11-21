@@ -22,3 +22,5 @@
 !packages/
 !packages/game-sdk/
 !packages/game-sdk/**
+!locales/
+!locales/**
