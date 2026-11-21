@@ -101,6 +101,56 @@ export function AdventureIcon(props: IconProps) {
   );
 }
 
+/** Profile overview: a person. */
+export function PersonIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </Svg>
+  );
+}
+
+/** Wallet: a wallet with its clasp. */
+export function WalletIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11" />
+      <path d="M20 11h-4a2 2 0 0 0 0 4h4" />
+    </Svg>
+  );
+}
+
+/** Shop: a shopping bag. */
+export function BagIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 8h14l-1 13H6z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    </Svg>
+  );
+}
+
+/** Settings: a gear. */
+export function GearIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1" />
+    </Svg>
+  );
+}
+
+/** Edit: a pencil. */
+export function PencilIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 20h4L19 9l-4-4L4 16z" />
+      <path d="M13.5 6.5l4 4" />
+    </Svg>
+  );
+}
+
 /** Kingdom: a castle with three towers. */
 export function CastleIcon(props: IconProps) {
   return (

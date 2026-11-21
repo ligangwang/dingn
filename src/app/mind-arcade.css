@@ -1095,6 +1095,27 @@ nav .coin-count.bump .coin {
   border-radius: 8px;
   transition: width 0.8s ease-out;
 }
+/* The level on the profile page (LevelCard). */
+.level-card .level-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0 0 10px;
+}
+.level-card .level-card-top strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: #d5ff58;
+}
+.level-card .xp-bar {
+  display: block;
+}
+.level-card .muted {
+  margin: 10px 0 0;
+  color: #9aa1b5;
+}
 .xp-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1646,4 +1667,344 @@ nav a.account-link:has(.avatar-preset) {
   margin: 4px 0 12px;
   font-size: 0.9rem;
   color: var(--muted, #5b6270);
+}
+
+/* ---- The profile page (src/components/account.tsx) ---- */
+.profile-page {
+  max-width: 1120px;
+  padding-top: 40px;
+  padding-bottom: 64px;
+}
+.profile-head {
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 12% 0%, #d5ff5814, transparent 45%),
+    linear-gradient(150deg, #1d2333, #141824);
+}
+.profile-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 22px;
+}
+.profile-name {
+  flex: 1;
+  min-width: 0;
+}
+.profile-name h1 {
+  margin: 0;
+  font: 700 clamp(28px, 3.4vw, 40px) / 1.1 var(--font-display);
+  overflow-wrap: anywhere;
+}
+/* A small pencil in the corner: editing is in the Settings tab. */
+.profile-edit {
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #1b2030;
+  color: #c3c8d6;
+  cursor: pointer;
+}
+.profile-edit:hover,
+.profile-edit:focus-visible {
+  color: #d5ff58;
+  border-color: #d5ff58;
+}
+/* The avatar in a ring of its level's metal, with the level's medal. */
+.profile-avatar {
+  position: relative;
+  flex: none;
+  padding: 5px;
+  border-radius: 50%;
+  background: #34394b;
+}
+.profile-avatar .avatar {
+  display: grid;
+  border: 3px solid #141824;
+}
+.profile-avatar.honor-bronze {
+  background: conic-gradient(#f4c49a, #a5612f, #f4c49a, #a5612f, #f4c49a);
+  box-shadow: 0 0 22px #e0905040;
+}
+.profile-avatar.honor-silver {
+  background: conic-gradient(#ffffff, #97a2ad, #ffffff, #97a2ad, #ffffff);
+  box-shadow: 0 0 24px #dfe5ea40;
+}
+.profile-avatar.honor-gold {
+  background: conic-gradient(#ffe88a, #c88912, #ffe88a, #c88912, #ffe88a);
+  box-shadow: 0 0 28px #ffd04a55;
+}
+.profile-avatar.honor-diamond {
+  background: conic-gradient(#d4f6ff, #76aef2, #7a63ea, #76aef2, #d4f6ff);
+  box-shadow: 0 0 32px #76aef266;
+}
+.profile-medal {
+  position: absolute;
+  right: -12px;
+  bottom: -10px;
+  filter: drop-shadow(0 3px 6px #0009);
+}
+.profile-honor {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 3px 12px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font: 700 12px/1.6 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.profile-honor.honor-bronze {
+  color: #f0c49f;
+}
+.profile-honor.honor-silver {
+  color: #dfe5ea;
+}
+.profile-honor.honor-gold {
+  color: #f5d27a;
+}
+.profile-honor.honor-diamond {
+  color: #a9d8ff;
+}
+/* Level, coins, badges and streak in a row. */
+.profile-stats {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin: 24px 0 0;
+}
+.profile-stat {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #141824;
+}
+.profile-stat dt {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9aa1b5;
+}
+.profile-stat dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 8px 0 0;
+}
+.profile-stat strong {
+  font: 700 26px/1 var(--font-display);
+  color: #f3f4f8;
+}
+.profile-stat small {
+  color: #9aa1b5;
+  font-size: 13px;
+}
+.profile-level strong {
+  color: #d5ff58;
+}
+.profile-level .xp-bar {
+  flex: 1;
+  min-width: 90px;
+}
+/* Path of honor: every rank on one road. */
+.honor-path ol {
+  display: flex;
+  gap: 4px;
+  margin: 18px 0 0;
+  padding: 0 0 6px;
+  list-style: none;
+  overflow-x: auto;
+}
+.honor-step {
+  position: relative;
+  display: flex;
+  flex: 1 0 96px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: 14px;
+  text-align: center;
+}
+/* The road between the medals. */
+.honor-step::before {
+  content: "";
+  position: absolute;
+  top: 38px;
+  right: 50%;
+  left: -50%;
+  z-index: 0;
+  height: 3px;
+  background: #34394b;
+}
+.honor-step:first-child::before {
+  display: none;
+}
+.honor-step.reached::before,
+.honor-step.current::before {
+  background: linear-gradient(90deg, #bdaaff, #d5ff58);
+}
+.honor-step > * {
+  position: relative;
+  z-index: 1;
+}
+.honor-step strong {
+  font: 700 13px/1.2 var(--font-display);
+  color: #f3f4f8;
+}
+.honor-step small {
+  font-size: 12px;
+  color: #9aa1b5;
+}
+.honor-step.locked strong,
+.honor-step.next strong {
+  color: #9aa1b5;
+}
+.honor-step.current {
+  background: linear-gradient(180deg, #d5ff5822, transparent);
+  box-shadow: inset 0 0 0 1px #d5ff5866;
+}
+.honor-step.current strong {
+  color: #d5ff58;
+}
+.honor-step.next {
+  box-shadow: inset 0 0 0 1px dashed #9aa1b5;
+  outline: 1px dashed #5b6278;
+  outline-offset: -1px;
+}
+
+/* The tabs down the side, and the open tab beside them. */
+.profile-body {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-top: 24px;
+}
+.profile-tabs {
+  position: sticky;
+  top: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #141824;
+}
+.profile-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #c3c8d6;
+  font: 600 15px/1.2 var(--font-display);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.profile-tabs button:hover {
+  background: #1f2536;
+  color: #f3f4f8;
+}
+.profile-tabs button[aria-selected="true"] {
+  background: linear-gradient(90deg, #d5ff5826, #d5ff5808);
+  color: #d5ff58;
+  box-shadow: inset 3px 0 0 #d5ff58;
+}
+.profile-tabs button:focus-visible {
+  outline: 2px solid #d5ff58;
+  outline-offset: 2px;
+}
+.profile-panel {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.profile-panel > .panel,
+.profile-panel > form.panel {
+  margin: 0;
+}
+.profile-panel > .button {
+  justify-self: start;
+}
+.profile-panel h2 {
+  margin-top: 0;
+}
+.profile-panel label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.profile-panel input {
+  width: 100%;
+}
+.profile-panel form .button {
+  margin-top: 8px;
+}
+/* On a phone the tabs run across the top and scroll sideways. */
+@media (max-width: 760px) {
+  .profile-page {
+    padding-top: 20px;
+  }
+  .profile-head {
+    padding: 18px;
+    border-radius: 20px;
+  }
+  .profile-who {
+    gap: 16px;
+  }
+  .profile-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .profile-stat {
+    padding: 12px;
+  }
+  .profile-level {
+    grid-column: 1 / -1;
+  }
+  .profile-stat strong {
+    font-size: 22px;
+  }
+  .profile-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .profile-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 6px;
+    border-radius: 14px;
+  }
+  .profile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .profile-tabs button {
+    flex: 1 0 auto;
+    justify-content: center;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .profile-tabs button[aria-selected="true"] {
+    box-shadow: inset 0 -3px 0 #d5ff58;
+  }
 }
