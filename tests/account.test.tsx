@@ -127,6 +127,16 @@ it("opens each tab, by click, by keys and from the address", () => {
   window.history.replaceState(null, "", "/account/?purchase=pending");
   render(<Account />);
   expect(screen.getByText("item shop")).toBeTruthy();
+  // Choosing another tab after a checkout keeps that choice on a reload.
+  fireEvent.click(screen.getByRole("tab", { name: "Wallet" }));
+  expect(window.location.search).toBe("");
+  expect(window.location.hash).toBe("#wallet");
+  cleanup();
+  window.history.replaceState(null, "", "/account/?purchase=pending#settings");
+  render(<Account />);
+  expect(
+    within(screen.getByRole("tabpanel")).getByLabelText("Nickname"),
+  ).toBeTruthy();
 });
 
 it("saves a new nickname through dingn, and says when another player has it", async () => {

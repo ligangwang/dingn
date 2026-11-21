@@ -36,11 +36,13 @@ const TABS: {
 /** The tab the address asks for. */
 function tabFromLocation(): Tab {
   if (typeof window === "undefined") return "overview";
-  if (new URLSearchParams(window.location.search).has("purchase"))
-    return "shop";
   const hash = window.location.hash.slice(1);
   if (hash === "badges") return "wallet";
-  return TABS.some((t) => t.id === hash) ? (hash as Tab) : "overview";
+  if (TABS.some((t) => t.id === hash)) return hash as Tab;
+  // Back from a checkout with no tab named: the shop, to show how it went.
+  if (new URLSearchParams(window.location.search).has("purchase"))
+    return "shop";
+  return "overview";
 }
 
 /**
@@ -366,6 +368,9 @@ function Profile() {
     // The address names the tab, without a new history entry each time.
     const url = new URL(window.location.href);
     url.hash = next === "overview" ? "" : next;
+    // Leaving the shop drops the checkout's ?purchase, so a reload or a shared
+    // link opens the tab the player chose.
+    if (next !== "shop") url.searchParams.delete("purchase");
     window.history.replaceState(null, "", url);
     if (focus) tabs.current[TABS.findIndex((x) => x.id === next)]?.focus();
   };
