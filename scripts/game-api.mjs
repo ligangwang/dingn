@@ -285,8 +285,7 @@ export async function ensureNickname(db, uid) {
   const account = (await accountRef.get()).data() ?? {};
   const current = cleanNickname(account.user_name);
   // Most players are named and registered already: no transaction.
-  if (current && account.name_key !== undefined && !counterDefault(current))
-    return current;
+  if (current && account.name_key !== undefined) return current;
   // A default nickname is the player's own public number: one number for
   // their name and their page.
   const number = await ensurePlayerNumber(db, uid);
@@ -298,7 +297,7 @@ export async function ensureNickname(db, uid) {
     ]);
     const data = now.data() ?? {};
     const had = cleanNickname(data.user_name);
-    if (had && !counterDefault(had)) {
+    if (had) {
       if (data.name_key !== undefined) return had;
       // Register a name chosen before names were unique, if it is free.
       const key = nicknameKey(had);
@@ -309,21 +308,13 @@ export async function ensureNickname(db, uid) {
       tx.set(accountRef, { name_key: mine ? key : "" }, { merge: true });
       return had;
     }
-    // "Player<public number>", in place of none or of an older counted
-    // default (Player10001…), whose name is freed.
-    const name = `Player${number}`;
+    // None yet: "Player<public number>". Nobody else can hold it, as names
+    // shaped like a default are reserved (claimNickname).
+    const name = defaultNickname(number);
     const key = nicknameKey(name);
     const held = await tx.get(nicknames(db).doc(key));
-    if (held.exists && held.data()?.uid !== uid) {
-      // Someone chose exactly this name: keep what they had.
-      if (had) return had;
+    if (held.exists && held.data()?.uid !== uid)
       throw new Error("Default nickname taken");
-    }
-    const old = data.name_key;
-    if (old && old !== key) {
-      const oldRef = nicknames(db).doc(old);
-      if ((await tx.get(oldRef)).data()?.uid === uid) tx.delete(oldRef);
-    }
     tx.set(nicknames(db).doc(key), { uid, name });
     tx.set(accountRef, { user_name: name, name_key: key }, { merge: true });
     // The leaderboard shows the name kept with the player's XP.
@@ -332,12 +323,8 @@ export async function ensureNickname(db, uid) {
   });
 }
 
-/**
- * A default nickname from before defaults used the public number: "Player"
- * and a counted 5 to 9 digit number (Player10001…). It is replaced by
- * "Player<public number>" the next time the player is seen.
- */
-const counterDefault = (name) => /^Player\d{5,9}$/.test(name);
+/** A player's default nickname: "Player" and their public number. */
+export const defaultNickname = (number) => `Player${number}`;
 
 /**
  * Changes a player's nickname to `wanted`, if no other player holds it, and

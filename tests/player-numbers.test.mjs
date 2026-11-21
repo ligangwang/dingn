@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isPlayerNumber, topPlayers } from "../scripts/game-api.mjs";
+import { rename } from "../scripts/rename-counter-defaults.mjs";
 
 /**
  * A small stand-in for Firestore: documents by path, paged queries in id
@@ -13,7 +14,11 @@ function fakeDb(seed) {
     exists: store.has(path),
     data: () => store.get(path),
   });
-  const ref = (path) => ({ path, get: async () => snap(path) });
+  const ref = (path) => ({
+    path,
+    get: async () => snap(path),
+    delete: async () => store.delete(path),
+  });
   const query = (name, { order, limit = Infinity, after = null } = {}) => ({
     orderBy: (field, dir) => query(name, { order: [field, dir], limit, after }),
     limit: (n) => query(name, { order, limit: n, after }),
@@ -43,6 +48,7 @@ function fakeDb(seed) {
           get: async (r) => snap(r.path),
           set: (r, data) =>
             store.set(r.path, { ...store.get(r.path), ...data }),
+          delete: (r) => store.delete(r.path),
         }),
       );
       queue = run.then(
@@ -91,4 +97,54 @@ test("the leaderboard shows each player's own nickname and links every one, givi
   assert.equal(store.get("players/bo").name, `Player${bo}`);
   // Ada kept hers.
   assert.equal(store.get("accounts/ada").player_no, "7302518846");
+});
+
+test("the counter's default nicknames become each player's number, and the counter goes", async () => {
+  const seed = {
+    "counters/playerNames": { next: 10004 },
+    // Still the counter's name: renamed to Player<their number>.
+    "accounts/a": {
+      user_name: "Player10001",
+      name_key: "player10001",
+      player_no: "7302518846",
+    },
+    "nicknames/player10001": { uid: "a", name: "Player10001" },
+    "players/a": { xp: 40, name: "Player10001" },
+    // Chose another name since: left alone.
+    "accounts/b": { user_name: "Kate", name_key: "kate" },
+    "nicknames/kate": { uid: "b", name: "Kate" },
+    // Still the counter's name, with no public number yet: given one.
+    "accounts/c": { user_name: "Player10003", name_key: "player10003" },
+    "nicknames/player10003": { uid: "c", name: "Player10003" },
+  };
+  const dry = fakeDb(seed);
+  const lines = [];
+  assert.deepEqual(await rename(dry.db, { log: (l) => lines.push(l) }), {
+    handedOut: 3,
+    renamed: 2,
+    kept: 1,
+  });
+  assert.equal(
+    lines[0],
+    "Would rename 2 of 3 counted default nicknames (1 since changed)",
+  );
+  assert.equal(dry.store.get("accounts/a").user_name, "Player10001");
+
+  const { db, store } = fakeDb(seed);
+  await rename(db, { apply: true, log: () => {} });
+  assert.equal(store.get("accounts/a").user_name, "Player7302518846");
+  assert.equal(store.get("accounts/a").name_key, "player7302518846");
+  assert.deepEqual(store.get("nicknames/player7302518846"), {
+    uid: "a",
+    name: "Player7302518846",
+  });
+  assert.equal(store.has("nicknames/player10001"), false);
+  assert.equal(store.get("players/a").name, "Player7302518846");
+  assert.equal(store.get("accounts/b").user_name, "Kate");
+  const c = store.get("accounts/c");
+  assert.ok(isPlayerNumber(c.player_no));
+  assert.equal(c.user_name, `Player${c.player_no}`);
+  assert.equal(store.has("nicknames/player10003"), false);
+  // The counter is gone.
+  assert.equal(store.has("counters/playerNames"), false);
 });

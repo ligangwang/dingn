@@ -99,7 +99,7 @@ function fakeDb() {
   return { db, store };
 }
 
-test("a new player's default nickname is their public number, and an older counted default becomes it", async () => {
+test("a new player's default nickname is their public number", async () => {
   const { ensureNickname } = await import("../scripts/game-api.mjs");
   const { db, store } = fakeDb();
   store.set("players/b", { xp: 50 });
@@ -122,16 +122,7 @@ test("a new player's default nickname is their public number, and an older count
   // Asking again changes nothing.
   assert.equal(await ensureNickname(db, "a"), names[0]);
 
-  // A default from the old counter (Player10002) becomes the player's
-  // number, and the old name is freed. A name the player chose stays.
-  store.set("accounts/c", {
-    user_name: "Player10002",
-    name_key: "player10002",
-    player_no: "7302518846",
-  });
-  store.set("nicknames/player10002", { uid: "c", name: "Player10002" });
-  assert.equal(await ensureNickname(db, "c"), "Player7302518846");
-  assert.equal(store.has("nicknames/player10002"), false);
+  // A name the player chose stays.
   store.set("accounts/d", { user_name: "Kate", name_key: "kate" });
   assert.equal(await ensureNickname(db, "d"), "Kate");
 });
