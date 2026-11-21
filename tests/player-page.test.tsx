@@ -1,6 +1,12 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { numberFromPath, PlayerPage } from "../src/components/player-page";
 
 const mocks = vi.hoisted(() => ({
@@ -72,7 +78,8 @@ it("shows a player's honor, level, kingdom and badges to anyone", async () => {
   // Nothing private, and no editing for a visitor.
   expect(screen.queryByText(/coins/i)).toBeNull();
   expect(screen.queryByText(/This is your public page/)).toBeNull();
-  expect(document.title).toBe("Star Gazer · dingn");
+  // The title is set by an effect after the page shows, so wait for it.
+  await waitFor(() => expect(document.title).toBe("Star Gazer · dingn"));
 });
 
 it("tells the player when the page is their own", async () => {
