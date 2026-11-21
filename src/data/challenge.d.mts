@@ -9,10 +9,7 @@ export type Challenge = {
   /** Opened by the player who made it: their own score to beat. */
   mine?: boolean;
 };
-export const UNITS: Record<
-  ChallengeUnit,
-  { one: string; many: string; zh: string }
->;
+export const UNITS: Record<ChallengeUnit, { one: string; many: string }>;
 export const MODE: RegExp;
 export const SEED: RegExp;
 export const MAX_SCORE: number;
@@ -24,12 +21,17 @@ export function challengeUrl(
   origin: string,
   gameId: string,
   id: string,
-  zh: boolean,
+  locale: string,
 ): string;
-export function scoreText(challenge: Challenge, zh: boolean): string;
+export function scoreText(
+  challenge: Challenge,
+  locale?: string,
+  translate?: (text: string) => string,
+): string;
 export function challengeText(
   challenge: Challenge,
   gameTitle: string,
-  zh: boolean,
+  locale?: string,
   name?: string | null,
+  translate?: (text: string) => string,
 ): { title: string; description: string };

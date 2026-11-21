@@ -2,6 +2,7 @@
 // Plays a game published on the dingn game platform. The page is the same for
 // every game: it asks the registry which version is live, runs that version in
 // a sandboxed frame, and answers the game's SDK requests (src/lib/game-bridge).
+import { pick, stripLocale } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "./locale";
@@ -38,6 +39,7 @@ import {
   type SpendAsk,
 } from "./rewards";
 import {
+  gameLocale,
   accountProgress,
   BridgeError,
   gameHash,
@@ -63,8 +65,8 @@ import { trackGame } from "@/lib/funnel";
 export type PublishedGame = {
   id: string;
   version: string;
-  title: { en: string; zh: string };
-  description: { en: string; zh: string };
+  title: { en: string; zh: string } & Record<string, string | undefined>;
+  description: { en: string; zh: string } & Record<string, string | undefined>;
   entry: string;
   url: string;
   /** An outside developer's upload that dingn has not reviewed yet. */
@@ -75,6 +77,8 @@ export type PublishedGame = {
   shop?: ShopDef[];
   /** Where the catalog lists it. */
   category?: Category;
+  /** The languages the game speaks (game.json); English and Chinese if unlisted. */
+  languages?: string[];
 };
 
 /** The bridge error for a failed purchase (codes from scripts/rewards.mjs). */
@@ -124,10 +128,10 @@ function rewardError(error: unknown) {
   return new BridgeError("unavailable", "Badges are unavailable right now.");
 }
 
-/** The game id in /play/<id>/ or /zh/play/<id>/. */
+/** The game id in /play/<id>/, or the same under a language's prefix (/es/play/<id>/). */
 export function gameIdFromPath(pathname: string) {
   return (
-    /^\/(?:zh\/)?play\/([a-z][a-z0-9]{1,30})\/?$/.exec(pathname)?.[1] ?? ""
+    /^\/play\/([a-z][a-z0-9]{1,30})\/?$/.exec(stripLocale(pathname))?.[1] ?? ""
   );
 }
 
@@ -321,11 +325,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   }, []);
 
   const game = state.status === "ready" ? state.game : null;
-  const title = game
-    ? locale === "zh-CN"
-      ? game.title.zh
-      : game.title.en
-    : "";
+  const title = game ? pick(game.title, locale) : "";
   useEffect(() => {
     // As the server titles the page (gameTitle in scripts/game-seo.mjs).
     if (title) document.title = `${t(`${title} – Play free online`)} · dingn`;
@@ -343,7 +343,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   context.current = game && {
     gameId: game.id,
     version: game.version,
-    locale,
+    locale: gameLocale(locale, game.languages),
     player,
     storage: (() => {
       try {
@@ -383,7 +383,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       });
       rememberChallenge(id);
       trackGame("share", game.id);
-      return challengeUrl(location.origin, game.id, id, locale === "zh-CN");
+      return challengeUrl(location.origin, game.id, id, locale);
     },
     roundEnded: () => {
       // A few seconds apart at most, so a game calling it in a loop can't
@@ -521,7 +521,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           id: i.id,
           price: i.price,
           ...(i.requires ? { requires: i.requires } : {}),
-          title: locale === "zh-CN" ? i.title.zh : i.title.en,
+          title: pick(i.title, locale),
           owned:
             tried.current.has(i.id) ||
             !!wallet?.items.some((o) => o.game === game.id && o.id === i.id),
@@ -537,7 +537,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           tier: b.tier,
           ...(b.level != null ? { level: b.level } : { icon: b.icon }),
           coins: b.coins,
-          title: locale === "zh-CN" ? b.title.zh : b.title.en,
+          title: pick(b.title, locale),
           earned: earned.has(b.id),
         }));
       },
@@ -567,6 +567,21 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     countPlay(game.id, game.version);
     trackGame("start", game.id);
   }, [game?.id, game?.version]);
+
+  // Tell the game when the player switches language, in the language it
+  // shows (a game that doesn't speak the new one stays in English).
+  const shown = game ? gameLocale(locale, game.languages) : "en";
+  const firstLanguage = useRef(true);
+  useEffect(() => {
+    if (firstLanguage.current) {
+      firstLanguage.current = false;
+      return;
+    }
+    frame.current?.contentWindow?.postMessage(
+      { dingn: "host", v: PROTOCOL, event: "language", data: shown },
+      "*",
+    );
+  }, [shown]);
 
   // Tell the game when the player signs in or out.
   const playerKey = JSON.stringify(player);
@@ -631,7 +646,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         <p className="play-challenge" role="note">
           <strong>
             {
-              challengeText(challenge, title, locale === "zh-CN", challenger)
+              challengeText(challenge, title, locale, challenger, t)
                 .title
             }
           </strong>{" "}

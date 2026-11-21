@@ -1,5 +1,19 @@
 export declare const PROTOCOL: 1;
-export type Locale = "en" | "zh-CN";
+/**
+ * A language: "en", "zh-CN", "es", "pt-BR", "id", "ja", "ko", or another
+ * dingn adds later. A game gets only languages its game.json `languages`
+ * lists (English and Chinese for games that list none), so it can show any
+ * code it receives.
+ */
+export type Locale =
+  | "en"
+  | "zh-CN"
+  | "es"
+  | "pt-BR"
+  | "id"
+  | "ja"
+  | "ko"
+  | (string & {});
 export type Player = { signedIn: boolean; name: string; avatar: string };
 export type Json =
   null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -86,6 +100,12 @@ export type DingnGame = {
   /** False when the game was opened on its own, outside dingn. */
   embedded: boolean;
   onPlayer(listener: (player: Player) => void): () => void;
+  /**
+   * Called when the player switches language while playing, with the new
+   * language (one the game lists). Show your text and pictures in it and
+   * keep the player's game going. Returns a function that stops listening.
+   */
+  onLanguage(listener: (locale: Locale) => void): () => void;
   /** Saved on this device only. Keys: letters, digits, `._-`, up to 64. Values up to 16 KB as JSON. */
   storage: {
     get(key: string): Promise<Json>;

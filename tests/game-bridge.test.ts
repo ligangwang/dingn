@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  gameLocale,
   gameHash,
   accountProgress,
   BridgeError,
@@ -404,4 +405,13 @@ test("only a short plain hash is passed on to a game", () => {
     "#" + "a".repeat(40),
   ])
     assert.equal(gameHash(bad), "");
+});
+
+test("a game gets the player's language when it speaks it, English otherwise", () => {
+  // Games that list no languages speak English and Chinese, as before.
+  assert.equal(gameLocale("zh-CN"), "zh-CN");
+  assert.equal(gameLocale("es"), "en");
+  assert.equal(gameLocale("es", ["en", "es"]), "es");
+  assert.equal(gameLocale("zh-CN", ["en", "es"]), "en");
+  assert.equal(gameLocale("ja", ["en", "zh-CN", "ja"]), "ja");
 });

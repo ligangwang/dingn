@@ -1,3 +1,4 @@
+import { pick, type Locale } from "@/lib/i18n";
 // The game catalog: every listed game with an approved live version, from
 // GET /api/games (scripts/game-registry.mjs). Each game names its category in
 // its game.json, so a newly approved game shows up on its category's page,
@@ -10,8 +11,9 @@ export type Category = (typeof CATEGORIES)[number];
 export type CatalogGame = {
   id: string;
   version: string;
-  title: { en: string; zh: string };
-  description: { en: string; zh: string };
+  /** In English and Chinese, and in any other language the game has. */
+  title: { en: string; zh: string } & Record<string, string | undefined>;
+  description: { en: string; zh: string } & Record<string, string | undefined>;
   category: Category;
   /** The cover picture from the game's files, or null for drawn art. */
   cover: string | null;
@@ -61,13 +63,10 @@ const time = (g: CatalogGame) => (g.addedAt ? Date.parse(g.addedAt) : 0);
 export function sortGames(
   games: CatalogGame[],
   sort: Sort,
-  lang: "en" | "zh",
+  locale: Locale = "en",
 ): CatalogGame[] {
   const byTitle = (a: CatalogGame, b: CatalogGame) =>
-    (a.title[lang] || a.title.en).localeCompare(
-      b.title[lang] || b.title.en,
-      lang === "zh" ? "zh-CN" : "en",
-    );
+    pick(a.title, locale).localeCompare(pick(b.title, locale), locale);
   const order = {
     popular: (a: CatalogGame, b: CatalogGame) =>
       b.plays.month - a.plays.month ||
@@ -83,12 +82,12 @@ export function sortGames(
 export const gamesIn = (
   games: CatalogGame[],
   category: Category,
-  lang: "en" | "zh" = "en",
+  locale: Locale = "en",
 ) =>
   sortGames(
     games.filter((g) => g.category === category),
     "popular",
-    lang,
+    locale,
   );
 
 /**

@@ -3,7 +3,8 @@ import { afterEach, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { Privacy, Terms } from "../src/components/legal";
 import { LocaleProvider } from "../src/components/locale";
-import zh from "../src/data/zh-CN.json";
+import zhPack from "../locales/zh-CN.json";
+const zh = zhPack.strings;
 
 afterEach(() => {
   cleanup();

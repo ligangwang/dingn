@@ -195,6 +195,9 @@ const text = (value, max) =>
  * Checks a game's `game.json`. Returns the cleaned manifest or throws with a
  * message that says what to fix.
  */
+/** A language code: "en", "es", "pt-BR", … ("zh" is Chinese's text field). */
+const LANG = /^[a-z]{2,3}(-[A-Z]{2})?$/;
+
 export function validateManifest(raw) {
   const problems = [];
   const m = raw && typeof raw === "object" ? raw : {};
@@ -216,6 +219,35 @@ export function validateManifest(raw) {
       problems.push(
         `description.${lang} must be up to ${MAX_DESCRIPTION} characters`,
       );
+  }
+  // The languages the game speaks, as dingn's codes ("en", "zh-CN", "es",
+  // …); dingn gives it the player's language when it is one of them. Games
+  // that don't say get English or Chinese, as before.
+  const languages = m.languages;
+  if (
+    languages != null &&
+    (!Array.isArray(languages) ||
+      languages.length > 40 ||
+      !languages.every((l) => typeof l === "string" && LANG.test(l)) ||
+      new Set(languages).size !== languages.length ||
+      !languages.includes("en"))
+  )
+    problems.push(
+      'languages must list language codes such as "en", "zh-CN" or "es", once each, including "en"',
+    );
+  // A title or description in any other language it speaks.
+  const extra = {};
+  for (const field of ["title", "description"]) {
+    extra[field] = {};
+    for (const [key, value] of Object.entries(m[field] ?? {})) {
+      if (key === "en" || key === "zh") continue;
+      const max = field === "title" ? MAX_TITLE : MAX_DESCRIPTION;
+      if (!LANG.test(key) || !text(value, max))
+        problems.push(
+          `${field}.${key} must be a language code with up to ${max} characters of text`,
+        );
+      else extra[field][key] = value.trim();
+    }
   }
   const entry = m.entry ?? "index.html";
   if (
@@ -242,11 +274,13 @@ export function validateManifest(raw) {
   return {
     id: m.id,
     version: m.version,
-    title: { en: m.title.en.trim(), zh: m.title.zh.trim() },
+    title: { en: m.title.en.trim(), zh: m.title.zh.trim(), ...extra.title },
     description: {
       en: m.description?.en?.trim() ?? "",
       zh: m.description?.zh?.trim() ?? "",
+      ...extra.description,
     },
+    ...(languages != null ? { languages } : {}),
     entry,
     ...(m.category != null ? { category: m.category } : {}),
     ...(m.cover != null ? { cover: m.cover } : {}),
@@ -306,6 +340,8 @@ export function publicGame(record, requested) {
     title: resolved.title,
     description: resolved.description,
     entry: resolved.entry,
+    // The languages it speaks; English and Chinese for games that don't say.
+    languages: resolved.languages ?? ["en", "zh-CN"],
     url: `/g/${record.id}/${resolved.version}/${resolved.entry}`,
     // Where the catalog lists it, and its card's picture.
     category: categoryOf(record, resolved),
@@ -410,6 +446,8 @@ export function addVersion(
     ...(manifest.cover ? { cover: manifest.cover } : {}),
     ...(manifest.badges?.length ? { badges: manifest.badges } : {}),
     ...(manifest.shop?.length ? { shop: manifest.shop } : {}),
+    // The languages it speaks, so it is only ever given one of them.
+    ...(manifest.languages ? { languages: manifest.languages } : {}),
     publishedAt: now,
   };
   return {

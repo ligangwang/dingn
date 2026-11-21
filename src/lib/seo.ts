@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
-import { localePath, type Locale } from "./i18n";
+import { LOCALES, localeInfo, localePath, type Locale } from "./i18n";
+import { translateServer } from "./packs.server";
 
 export const siteUrl = "https://dingn.com";
-export const locales: Locale[] = ["en", "zh-CN"];
+/** Every language, English first (one per pack in locales/). */
+export const locales: Locale[] = LOCALES.map((l) => l.lang);
 
 type Copy = { title: string; description?: string };
 type Page = {
+  /** In English; other languages translate it with their pack. */
   en: Copy;
-  zh: Copy;
   /** Listed in the sitemap and open to search engines. */
   index: boolean;
 };
 
-/** Every page, by its language-neutral path. Chinese copies live under /zh/. */
+/** Every page, by its language-neutral path. Other languages live under their prefix. */
 export const pages = {
   "/": {
     index: true,
@@ -20,11 +22,6 @@ export const pages = {
       title: "dingn — Free online games & adventures",
       description:
         "Play free games in your browser on dingn: the 3D Crowd Rush runner, Gem Surge match-3, Pawpal, a 3D Rubik's Cube and memory challenges. No download.",
-    },
-    zh: {
-      title: "dingn — 免费在线游戏与冒险",
-      description:
-        "在 dingn 打开浏览器就能免费玩：3D 跑酷人潮突击、宝石狂潮三消、萌宠伙伴、3D 魔方和记忆挑战，无需下载。",
     },
   },
   "/casual/": {
@@ -34,11 +31,6 @@ export const pages = {
       description:
         "Quick, bright games to pick up any time: play Crowd Rush, Gem Surge, Pawpal and more free casual games in your browser on dingn.",
     },
-    zh: {
-      title: "免费在线休闲游戏",
-      description:
-        "随时上手的轻松小游戏：在 dingn 打开浏览器免费畅玩人潮突击、宝石狂潮、萌宠伙伴等休闲游戏。",
-    },
   },
   "/memory/": {
     index: true,
@@ -46,11 +38,6 @@ export const pages = {
       title: "Free memory games online",
       description:
         "Train your memory for free in your browser: Number Ladder, Card Ladder and Major System practice on dingn.",
-    },
-    zh: {
-      title: "免费在线记忆游戏",
-      description:
-        "在 dingn 免费在线训练记忆力：数字阶梯、扑克牌阶梯和主要记忆法练习。",
     },
   },
   "/puzzle/": {
@@ -60,11 +47,6 @@ export const pages = {
       description:
         "Twist, turn and think your way through free puzzle games in your browser on dingn, like the 3D Rubik's Cube with a step-by-step solver.",
     },
-    zh: {
-      title: "免费在线益智游戏",
-      description:
-        "在 dingn 打开浏览器免费玩 3D 魔方等益智游戏，转一转、想一想，还有分步解法。",
-    },
   },
   "/adventure/": {
     index: true,
@@ -73,11 +55,6 @@ export const pages = {
       description:
         "Explore new worlds for free in your browser on dingn: adventure games like Mythbound, where you bind mythical spirits and fill your codex.",
     },
-    zh: {
-      title: "免费在线冒险游戏",
-      description:
-        "在 dingn 打开浏览器免费玩《灵契藏鉴》等冒险游戏：探索秘境，与灵兽结契，填满你的藏鉴。",
-    },
   },
   "/feedback/": {
     index: true,
@@ -85,31 +62,21 @@ export const pages = {
       title: "Share feedback",
       description: "Have a game idea? Help shape dingn.",
     },
-    zh: {
-      title: "分享反馈",
-      description: "有游戏点子？一起打造 dingn。",
-    },
   },
   "/signin/": {
     // Nothing for a search engine to show: kept out of results.
     index: false,
     en: { title: "Sign in" },
-    zh: { title: "登录" },
   },
   "/account/": {
     index: false,
     en: { title: "Your account" },
-    zh: { title: "我的账号" },
   },
   "/coins/": {
     index: true,
     en: {
       title: "Coin shop",
       description: "Get coin packs to spend on upgrades in dingn games.",
-    },
-    zh: {
-      title: "金币商店",
-      description: "购买金币包，用于 dingn 游戏中的升级。",
     },
   },
   "/kingdom/": {
@@ -119,10 +86,6 @@ export const pages = {
       description:
         "Grow a 3D kingdom with the XP and coins you earn in dingn games.",
     },
-    zh: {
-      title: "我的王国",
-      description: "用在 dingn 游戏中赢得的经验和金币，建造一座 3D 王国。",
-    },
   },
   "/terms/": {
     index: true,
@@ -131,10 +94,6 @@ export const pages = {
       description:
         "The rules for using dingn, including coin purchases and refunds.",
     },
-    zh: {
-      title: "使用条款",
-      description: "使用 dingn 的规则，包括购买金币和退款。",
-    },
   },
   "/privacy/": {
     index: true,
@@ -142,21 +101,15 @@ export const pages = {
       title: "Privacy policy",
       description: "What dingn keeps about you, why, and your choices.",
     },
-    zh: {
-      title: "隐私政策",
-      description: "dingn 保存哪些关于你的信息、原因，以及你的选择。",
-    },
   },
   "/opt-out/": {
     index: true,
     en: { title: "Analytics opt-out" },
-    zh: { title: "关闭访问统计" },
   },
   "/play/": {
     // Every published game plays here, at /play/<id>/.
     index: false,
     en: { title: "Play" },
-    zh: { title: "开始游戏" },
   },
   "/developers/": {
     index: true,
@@ -164,11 +117,6 @@ export const pages = {
       title: "Make a game for dingn",
       description:
         "Build a web game for dingn with the dingn game SDK: the starter game, the SDK reference and a playground to test your game.",
-    },
-    zh: {
-      title: "为 dingn 制作游戏",
-      description:
-        "用 dingn 游戏 SDK 为 dingn 制作网页游戏：入门游戏、SDK 参考和测试游戏的试玩场。",
     },
   },
   "/developers/agreement/": {
@@ -178,46 +126,34 @@ export const pages = {
       description:
         "The terms for publishing a game on dingn: your rights, what games must not do, review and removal.",
     },
-    zh: {
-      title: "开发者协议",
-      description:
-        "在 dingn 发布游戏的条款：你的权利、游戏不得做的事、审核与下架。",
-    },
   },
   "/developers/games/": {
     index: false,
     en: { title: "My games" },
-    zh: { title: "我的游戏" },
   },
   "/developers/playground/": {
     index: false,
     en: { title: "Game playground" },
-    zh: { title: "游戏试玩场" },
   },
   "/admin/games/": {
     index: false,
     en: { title: "Games admin" },
-    zh: { title: "游戏管理" },
   },
   "/admin/users/": {
     index: false,
     en: { title: "Users admin" },
-    zh: { title: "用户管理" },
   },
   "/admin/players/": {
     index: false,
     en: { title: "Players admin" },
-    zh: { title: "玩家管理" },
   },
   "/admin/funnel/": {
     index: false,
     en: { title: "Funnel admin" },
-    zh: { title: "增长漏斗" },
   },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },
-    zh: { title: "反馈收件箱" },
   },
 } satisfies Record<string, Page>;
 
@@ -237,11 +173,23 @@ export const sitemapPaths: PagePath[] = [
 ];
 
 /** Absolute URLs of one page in every language, for hreflang alternates. */
-export function alternates(path: PagePath) {
+export function alternates(path: PagePath): Record<string, string> {
   return {
-    en: siteUrl + localePath(path, "en"),
-    "zh-CN": siteUrl + localePath(path, "zh-CN"),
+    ...Object.fromEntries(
+      locales.map((locale) => [locale, siteUrl + localePath(path, locale)]),
+    ),
     "x-default": siteUrl + localePath(path, "en"),
+  };
+}
+
+/** A page's title and description in a language. */
+function copyOf(path: PagePath, locale: Locale): Copy {
+  const { title, description } = (pages[path] as Page).en;
+  return {
+    title: translateServer(title, locale),
+    ...(description
+      ? { description: translateServer(description, locale) }
+      : {}),
   };
 }
 
@@ -250,19 +198,17 @@ export function alternates(path: PagePath) {
  * swaps in the game's own cover (scripts/game-seo.mjs).
  */
 export const shareImage = (locale: Locale) => ({
+  // The picture has words on it: Chinese has its own, others use English's.
   url: siteUrl + (locale === "zh-CN" ? "/og-zh.jpg" : "/og.jpg"),
   width: 1200,
   height: 630,
-  alt:
-    locale === "zh-CN"
-      ? "dingn：打开浏览器就能玩的免费游戏"
-      : "dingn: free games to play in your browser",
+  alt: translateServer("dingn: free games to play in your browser", locale),
 });
 
 /** Title, description, canonical URL, hreflang and share card for a page. */
 export function pageMetadata(path: PagePath, locale: Locale): Metadata {
   const page: Page = pages[path];
-  const copy = locale === "zh-CN" ? page.zh : page.en;
+  const copy = copyOf(path, locale);
   const url = siteUrl + localePath(path, locale);
   const image = shareImage(locale);
   const description = copy.description ? { description: copy.description } : {};
@@ -275,8 +221,10 @@ export function pageMetadata(path: PagePath, locale: Locale): Metadata {
       title: copy.title,
       ...description,
       siteName: "dingn",
-      locale: locale === "zh-CN" ? "zh_CN" : "en_US",
-      alternateLocale: locale === "zh-CN" ? "en_US" : "zh_CN",
+      locale: localeInfo(locale).og,
+      alternateLocale: LOCALES.filter((l) => l.lang !== locale).map(
+        (l) => l.og,
+      ),
       type: "website",
       images: [image],
     },
@@ -309,8 +257,7 @@ export function siteJsonLd(locale: Locale) {
         name: "dingn",
         url: home,
         inLanguage: locale,
-        description: (locale === "zh-CN" ? pages["/"].zh : pages["/"].en)
-          .description,
+        description: copyOf("/", locale).description,
         publisher: { "@id": siteUrl + "/#organization" },
       },
     ],

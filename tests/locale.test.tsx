@@ -15,7 +15,8 @@ import {
   localizedRedirect,
   retiredRedirect,
 } from "../scripts/locale-redirect.mjs";
-import catalog from "../src/data/zh-CN.json";
+import zhPack from "../locales/zh-CN.json";
+const catalog = zhPack.strings as Record<string, string>;
 afterEach(() => {
   cleanup();
   localStorage.clear();
@@ -87,8 +88,14 @@ test("the server redirects legacy language URLs permanently", () => {
 test("every Chinese page declares its own canonical URL and hreflang alternates", () => {
   const meta = pageMetadata("/feedback/", "zh-CN");
   expect(meta.alternates?.canonical).toBe("https://dingn.com/zh/feedback/");
+  // Every language's address, from the packs in locales/.
   expect(meta.alternates?.languages).toEqual({
     en: "https://dingn.com/feedback/",
+    es: "https://dingn.com/es/feedback/",
+    id: "https://dingn.com/id/feedback/",
+    ja: "https://dingn.com/ja/feedback/",
+    ko: "https://dingn.com/ko/feedback/",
+    "pt-BR": "https://dingn.com/pt/feedback/",
     "zh-CN": "https://dingn.com/zh/feedback/",
     "x-default": "https://dingn.com/feedback/",
   });

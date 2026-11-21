@@ -87,7 +87,7 @@ function PlayerList() {
 
   const date = (iso: string | null) =>
     iso
-      ? new Date(iso).toLocaleString(locale === "zh-CN" ? "zh-CN" : "en", {
+      ? new Date(iso).toLocaleString(locale, {
           dateStyle: "medium",
           timeStyle: "short",
         })

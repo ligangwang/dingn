@@ -3,9 +3,10 @@
 // agreement) and upload their games. An upload becomes the game's beta, a
 // preview that goes live once an admin makes it live on /admin/games/
 // (scripts/developer-games.mjs).
+import { pick } from "@/lib/i18n";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useLocale } from "./locale";
+import { aroundLink, useLocale } from "./locale";
 import { useSession } from "./session";
 import {
   createUploadKey,
@@ -142,16 +143,12 @@ function MyGames() {
   const titleOf = (game: DeveloperGame) => {
     const latest = game.versions[0];
     if (!latest) return game.id;
-    return locale === "zh-CN" ? latest.title.zh : latest.title.en;
+    return pick(latest.title, locale);
   };
   const doneTitle = done
     ? (() => {
         const v = done.game.versions.find((x) => x.version === done.version);
-        return v
-          ? locale === "zh-CN"
-            ? v.title.zh
-            : v.title.en
-          : done.game.id;
+        return v ? pick(v.title, locale) : done.game.id;
       })()
     : "";
 
@@ -461,10 +458,12 @@ function Join({
           checked={agreed}
           onChange={(event) => setAgreed(event.target.checked)}
         />{" "}
-        {t("I accept the")}{" "}
-        <Link href={href("/developers/agreement/")} target="_blank">
-          {t("developer agreement")}
-        </Link>
+        {aroundLink(
+          t("I accept the {0}"),
+          <Link href={href("/developers/agreement/")} target="_blank">
+            {t("developer agreement")}
+          </Link>,
+        )}
       </label>
       {problem && (
         <p role="alert" className="dev-problem">

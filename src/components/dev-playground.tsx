@@ -3,6 +3,7 @@
 // developer's own computer) the way /play/<id>/ does, with a test player
 // instead of the real account. Every SDK call is answered by the same
 // bridge as real games (src/lib/game-bridge) and shown in a log.
+import { LOCALES } from "@/lib/i18n";
 import { challengeUrl } from "@/data/challenge.mjs";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -148,7 +149,7 @@ export function DevPlayground() {
         location.origin,
         "playground",
         "playground-1",
-        locale === "zh-CN",
+        locale,
       ),
     // The playground has no game.json, so any badge id unlocks once and any
     // item can be bought, as tests that pay, charge and save nothing.
@@ -270,8 +271,11 @@ export function DevPlayground() {
               if (url) reload();
             }}
           >
-            <option value="en">English</option>
-            <option value="zh-CN">简体中文</option>
+            {LOCALES.map((l) => (
+              <option key={l.lang} value={l.lang} lang={l.lang}>
+                {l.name}
+              </option>
+            ))}
           </select>
         </label>
         <label>

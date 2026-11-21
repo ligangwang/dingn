@@ -35,6 +35,7 @@ import {
   isChallengePath,
 } from "./challenges.mjs";
 import { challengeIdFromQuery } from "../src/data/challenge.mjs";
+import { PREFIXES, localeOfPrefix } from "./i18n.mjs";
 import { handleReferrals, referralRoutes } from "./referrals.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
@@ -218,7 +219,9 @@ http
     }
     let target;
     // Every published game shares the one exported player page.
-    const play = /^\/(zh\/)?play\/[a-z][a-z0-9]{1,30}\/?$/.exec(pathname);
+    const play = new RegExp(
+      `^\\/(?:(${PREFIXES})\\/)?play\\/[a-z][a-z0-9]{1,30}\\/?$`,
+    ).exec(pathname);
     if (play) {
       if (!pathname.endsWith("/")) {
         const url = new URL(req.url, "http://localhost");
@@ -229,7 +232,7 @@ http
       const id = pathname.split("/").filter(Boolean).at(-1);
       void sendFilled(
         res,
-        path.join(root, play[1] ? "zh" : "", "play", "index.html"),
+        path.join(root, play[1] ?? "", "play", "index.html"),
         types[".html"],
         async (html) => {
           const cid = challengeIdFromQuery(new URL(req.url, "http://x").search);
@@ -239,7 +242,13 @@ http
             // A friend's challenge link: its preview shows the score to beat.
             cid ? findChallenge(cid).catch(() => null) : null,
           ]);
-          return gamePageHtml(html, record, !!play[1], games, challenge);
+          return gamePageHtml(
+            html,
+            record,
+            localeOfPrefix(play[1]),
+            games,
+            challenge,
+          );
         },
       ).catch(() => {
         res.writeHead(500);
@@ -248,19 +257,20 @@ http
       return;
     }
     // The home and category pages, with their games filled in as links.
-    const listing = /^\/(zh\/)?(?:(casual|memory|puzzle|adventure)\/)?$/.exec(
-      pathname,
-    );
+    const listing = new RegExp(
+      `^\\/(?:(${PREFIXES})\\/)?(?:(casual|memory|puzzle|adventure)\\/)?$`,
+    ).exec(pathname);
     if (listing) {
-      const [, zh, category] = listing;
+      const [, prefix, category] = listing;
+      const locale = localeOfPrefix(prefix);
       void sendFilled(
         res,
-        path.join(root, zh ? "zh" : "", category ?? "", "index.html"),
+        path.join(root, prefix ?? "", category ?? "", "index.html"),
         types[".html"],
         async (html) =>
           category
-            ? categoryPageHtml(html, await liveCatalog(), category, !!zh)
-            : homePageHtml(html, await liveCatalog(), !!zh),
+            ? categoryPageHtml(html, await liveCatalog(), category, locale)
+            : homePageHtml(html, await liveCatalog(), locale),
       ).catch(() => {
         res.writeHead(500);
         res.end();

@@ -1,4 +1,5 @@
 "use client";
+import { pick } from "@/lib/i18n";
 import { useLocale } from "@/components/locale";
 import Link from "next/link";
 import { Leaderboard } from "@/components/xp";
@@ -148,7 +149,7 @@ function HeroKingdom() {
     };
   }, [signedIn]);
   const name = (title: { en: string; zh: string }) =>
-    locale === "zh-CN" ? title.zh : title.en;
+    pick(title, locale, true);
   const stage = STAGES.find((s) => s.id === view?.stage);
   const next = STAGES.find((s) => s.level > (view?.level ?? 0));
   // XP needed for a level, as src/components/kingdom-card.tsx.

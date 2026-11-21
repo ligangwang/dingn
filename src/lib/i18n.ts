@@ -1,52 +1,70 @@
-import zh from "@/data/zh-CN.json";
-export type Locale = "en" | "zh-CN";
-const catalog: Record<string, string> = zh;
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const patterns = Object.entries(catalog)
-  .filter(([key]) => /\{\d+\}/.test(key))
-  .sort(
-    ([a], [b]) =>
-      b.replace(/\{\d+\}/g, "").length - a.replace(/\{\d+\}/g, "").length,
-  )
-  .map(([key, value]) => ({
-    re: new RegExp(
-      "^" +
-        key
-          .split(/\{\d+\}/)
-          .map(escape)
-          .join("(.*?)") +
-        "$",
-    ),
-    value,
-  }));
+// The website's side of dingn's languages (src/data/i18n-core.mjs). A page
+// in another language arrives with its language pack (src/app/[lang]/
+// layout.tsx registers it); switching language in place fetches the other
+// pack from /locales/<lang>.json first (scripts/build-locales.mjs).
+import {
+  LOCALES,
+  compilePack,
+  isLocale,
+  localeFromPath,
+  localeInfo,
+  localePath,
+  matchLocale,
+  pickText,
+  stripLocale,
+  translateWith,
+  type CompiledPack,
+  type Locale,
+} from "@/data/i18n-core.mjs";
+
+export type { Locale };
+export {
+  LOCALES,
+  isLocale,
+  localeFromPath,
+  localeInfo,
+  localePath,
+  matchLocale,
+  stripLocale,
+};
+
+const packs = new Map<string, CompiledPack>();
+
+/** Makes a language's text available (idempotent). */
+export function registerPack(
+  locale: Locale,
+  strings: Record<string, string> | null | undefined,
+) {
+  if (locale !== "en" && strings && !packs.has(locale))
+    packs.set(locale, compilePack(strings));
+}
+
+/** Whether a language's text is here: English always is. */
+export const hasPack = (locale: Locale) =>
+  locale === "en" || packs.has(locale);
+
+/** Fetches a language's pack, unless it is already here. */
+export async function loadPack(locale: Locale) {
+  if (hasPack(locale) || !isLocale(locale)) return;
+  const response = await fetch(`/locales/${locale}.json`);
+  if (!response.ok) throw new Error(`No ${locale} language pack`);
+  registerPack(locale, await response.json());
+}
+
+/** English text in a language (English as it is until its pack is here). */
 export function translate(text: string, locale: Locale): string {
   if (locale === "en" || !text) return text;
-  const key = text.replace(/\s+/g, " ").trim();
-  if (catalog[key]) return catalog[key];
-  for (const { re, value } of patterns) {
-    const match = key.match(re);
-    if (match)
-      return value.replace(/\{(\d+)\}/g, (_, n) => match[Number(n) + 1] ?? "");
-  }
-  return text;
+  return translateWith(packs.get(locale), text);
 }
-/** Chinese pages live under /zh/; English keeps the original, unprefixed URLs. */
-export const zhPrefix = "/zh";
-export function localeFromPath(pathname: string | null | undefined): Locale {
-  return pathname === zhPrefix || pathname?.startsWith(zhPrefix + "/")
-    ? "zh-CN"
-    : "en";
-}
-/** The language-neutral path, e.g. "/zh/word/" → "/word/". */
-export function stripLocale(pathname: string): string {
-  if (pathname === zhPrefix || pathname === zhPrefix + "/") return "/";
-  return pathname.startsWith(zhPrefix + "/")
-    ? pathname.slice(zhPrefix.length)
-    : pathname;
-}
-/** The URL of a site path in a language, e.g. ("/word/", "zh-CN") → "/zh/word/". */
-export function localePath(path: string, locale: Locale): string {
-  if (!path.startsWith("/") || path.startsWith("//")) return path;
-  const bare = stripLocale(path);
-  return locale === "zh-CN" ? zhPrefix + bare : bare;
-}
+
+/** The text of a { en, zh, … } object in a language (see pickText). */
+export const pick = (
+  obj: ({ en: string } & Record<string, string | undefined>) | null | undefined,
+  locale: Locale,
+  translated = false,
+) =>
+  pickText(
+    obj,
+    locale,
+    translated ? (text) => translate(text, locale) : undefined,
+  );

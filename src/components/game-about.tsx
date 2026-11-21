@@ -2,6 +2,7 @@
 // Below a game: where it sits on dingn (breadcrumbs), what it is, and more
 // games from its category. The server fills the same in while the game
 // loads (gamePageHtml in scripts/game-seo.mjs), for crawlers.
+import { pick } from "@/lib/i18n";
 import Link from "next/link";
 import { useLocale } from "./locale";
 import { CATEGORY_INFO, GameCard, playPath, useCatalog } from "./catalog";
@@ -12,18 +13,18 @@ export function GameAbout({
 }: {
   game: {
     id: string;
-    title: { en: string; zh: string };
-    description: { en: string; zh: string };
+    title: { en: string } & Record<string, string | undefined>;
+    description: { en: string } & Record<string, string | undefined>;
     category?: Category;
   };
 }) {
   const { t, locale, href } = useLocale();
   const catalog = useCatalog();
-  const l = locale === "zh-CN" ? "zh" : "en";
+  const l = locale;
   const category = game.category ?? "casual";
   const info = CATEGORY_INFO[category];
-  const title = game.title[l] || game.title.en;
-  const description = game.description[l] || game.description.en;
+  const title = pick(game.title, l);
+  const description = pick(game.description, l);
   const others = catalog
     ? gamesIn(catalog, category, l)
         .filter((g) => g.id !== game.id)
