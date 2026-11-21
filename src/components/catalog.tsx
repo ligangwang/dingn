@@ -194,13 +194,16 @@ export function GameCover({
   play?: "view" | "hover";
 }) {
   const { Icon } = CATEGORY_INFO[game.category];
-  if (game.cover)
+  if (game.cover) {
+    const clip = play && game.clip;
     return (
-      <span className="game-cover">
+      // With a clip, the cover holds still (catalog.css): the clip moves.
+      <span className={clip ? "game-cover has-clip" : "game-cover"}>
         <img src={game.cover} alt="" loading="lazy" />
-        {play && game.clip && <CoverClip src={game.clip} when={play} />}
+        {play && clip && <CoverClip src={clip} when={play} />}
       </span>
     );
+  }
   const h = hue(game.id);
   return (
     <span

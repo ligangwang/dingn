@@ -186,5 +186,13 @@ it("a game's clip lies over its cover in a banner and on its card", async () => 
     expect(clip.getAttribute("preload")).toBe("none");
     expect(clip.className).toBe("cover-clip");
     expect(clip.closest(".game-cover")!.querySelector("img")).toBeTruthy();
+    // A cover that plays a clip is marked, so a banner's slow zoom stays off.
+    expect(clip.closest(".game-cover")!.className).toBe("game-cover has-clip");
   }
+  // A cover with no clip keeps the plain class, and with it the zoom.
+  const plain = [...container.querySelectorAll(".game-cover")].filter(
+    (c) => !c.querySelector("video"),
+  );
+  expect(plain.length).toBeGreaterThan(0);
+  for (const cover of plain) expect(cover.className).toBe("game-cover");
 });

@@ -199,6 +199,12 @@
 .featured-game .game-cover .cover-icon {
   animation: cover-drift 14s ease-in-out infinite alternate;
 }
+/* A banner that plays a clip holds still: the clip is the movement, and its
+   board is easier to follow when the picture is not also zooming. */
+.featured-game .game-cover.has-clip img,
+.featured-game .game-cover.has-clip .cover-clip {
+  animation: none;
+}
 .featured-game .cover-title {
   font-size: clamp(26px, 3.4vw, 44px);
 }
