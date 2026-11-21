@@ -40,3 +40,35 @@ test("the runtime image copies every script the server imports", () => {
     `Add to the Dockerfile's runtime COPY: ${missing.join(" ")}`,
   );
 });
+
+test("the build context lets in everything the Dockerfile copies", () => {
+  // .dockerignore leaves out everything ("**") and lets back in what is
+  // listed, so a folder the Dockerfile copies must be listed there too.
+  const allowed = readFileSync(".dockerignore", "utf8")
+    .split("\n")
+    .filter((line) => line.startsWith("!"))
+    .map((line) => line.slice(1).replace(/\/\*\*$|\/$/, ""));
+  const copied = readFileSync("Dockerfile", "utf8")
+    .split("\n")
+    .filter((line) => line.startsWith("COPY ") && !line.includes("--from="))
+    .flatMap((line) =>
+      line
+        .replace(/--chown=\S+\s/, "")
+        .split(/\s+/)
+        .slice(1, -1),
+    );
+  const missing = copied.filter(
+    (source) =>
+      !allowed.some(
+        (a) =>
+          source === a ||
+          source.startsWith(a + "/") ||
+          a.startsWith(source + "/"),
+      ),
+  );
+  assert.deepEqual(
+    missing,
+    [],
+    `Add to .dockerignore: ${missing.map((m) => "!" + m).join(" ")}`,
+  );
+});
