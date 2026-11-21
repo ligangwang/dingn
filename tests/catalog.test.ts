@@ -72,14 +72,18 @@ test("the banner shows the newest game, otherwise the most played", () => {
 });
 
 test("the home page features the game an admin picked, from any category", () => {
-  // With no pick, it chooses as a banner does, over every game.
-  assert.equal(homeGame(all, NOW)?.id, featuredGame(all, NOW)?.id);
+  // With no pick, it is the newest game, otherwise the most played.
+  assert.equal(homeGame(all, NOW)?.id, "pawpal");
+  assert.equal(homeGame([crowd, gems, cube], NOW)?.id, "rubikscube");
   assert.equal(homeGame([], NOW), null);
   const picked = { ...cube, homeAt: "2026-11-14T00:00:00Z" };
   assert.equal(homeGame([crowd, pet, picked], NOW)?.id, "rubikscube");
-  // A category banner's pin does not decide the home page.
+  // A category banner's pin does not decide the home page, with a home
+  // pick or without one.
   const banner = { ...gems, featuredAt: "2026-11-15T00:00:00Z" };
   assert.equal(homeGame([crowd, banner, picked], NOW)?.id, "rubikscube");
+  assert.equal(featuredGame([crowd, banner], NOW)?.id, "gemsurge");
+  assert.equal(homeGame([crowd, banner], NOW)?.id, "crowdrush");
 });
 
 test("a player's progress comes from their badges and saved games", () => {
