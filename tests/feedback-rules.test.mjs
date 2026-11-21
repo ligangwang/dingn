@@ -105,17 +105,98 @@ it("rejects anonymous, forged, oversized, whitespace and extra-field submissions
   }
   await assertFails(setDoc(doc(db, "feedback", "missing"), { uid: "alice" }));
 });
-it("preserves legacy collection access and excludes nested feedback paths", async () => {
-  const db = env.authenticatedContext("alice").firestore();
-  for (const name of ["accounts", "numbers", "words", "number_favorites"]) {
-    await assertSucceeds(setDoc(doc(db, name, "fixture"), { legacy: true }));
-    await assertSucceeds(getDoc(doc(db, name, "fixture")));
+it("lets anyone signed in read a player's account, and only its owner change it", async () => {
+  const alice = env.authenticatedContext("alice").firestore();
+  const bob = env.authenticatedContext("bob").firestore();
+  const guest = env.unauthenticatedContext().firestore();
+  await assertSucceeds(
+    setDoc(doc(alice, "accounts", "alice"), { user_name: "Alice" }),
+  );
+  await assertSucceeds(
+    setDoc(doc(alice, "accounts", "alice"), { avatar: "fox" }, { merge: true }),
+  );
+  // Another player can read it, as another player's page shows it...
+  await assertSucceeds(getDoc(doc(bob, "accounts", "alice")));
+  // ...but never create, change or delete it.
+  await assertFails(
+    setDoc(doc(bob, "accounts", "alice"), { user_name: "Mallory" }),
+  );
+  await assertFails(
+    updateDoc(doc(bob, "accounts", "alice"), { avatar: "robot" }),
+  );
+  await assertFails(
+    setDoc(doc(bob, "accounts", "carol"), { user_name: "Carol?" }),
+  );
+  await assertFails(deleteDoc(doc(bob, "accounts", "alice")));
+  await assertFails(deleteDoc(doc(alice, "accounts", "alice")));
+  // Guests can do neither, and only admins can list every account.
+  await assertFails(getDoc(doc(guest, "accounts", "alice")));
+  await assertFails(getDocs(collection(bob, "accounts")));
+  await assertSucceeds(
+    getDocs(
+      collection(
+        env.authenticatedContext("boss", { admin: true }).firestore(),
+        "accounts",
+      ),
+    ),
+  );
+});
+it("keeps a player's favourite words theirs alone", async () => {
+  const alice = env.authenticatedContext("alice").firestore();
+  const bob = env.authenticatedContext("bob").firestore();
+  const fav = { uid: "alice", number: "07", favoriteWord: "sock" };
+  await assertSucceeds(setDoc(doc(alice, "number_favorites", "alice-07"), fav));
+  await assertSucceeds(getDoc(doc(alice, "number_favorites", "alice-07")));
+  // A favourite not saved yet reads as missing, not as an error.
+  await assertSucceeds(getDoc(doc(alice, "number_favorites", "alice-08")));
+  await assertFails(getDoc(doc(bob, "number_favorites", "alice-07")));
+  await assertFails(
+    setDoc(doc(bob, "number_favorites", "alice-07"), { ...fav, uid: "bob" }),
+  );
+  // Nobody can file a favourite under someone else's name or number.
+  await assertFails(
+    setDoc(doc(bob, "number_favorites", "alice-09"), {
+      ...fav,
+      uid: "alice",
+      number: "09",
+    }),
+  );
+  await assertFails(
+    setDoc(doc(bob, "number_favorites", "bob-09"), {
+      ...fav,
+      uid: "bob",
+      number: "10",
+    }),
+  );
+  await assertFails(deleteDoc(doc(alice, "number_favorites", "alice-07")));
+});
+it("lets players read the word lists but never change them, and opens nothing else", async () => {
+  const alice = env.authenticatedContext("alice").firestore();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "numbers", "07"), { number: "07" });
+    await setDoc(doc(ctx.firestore(), "words", "sock"), { word: "sock" });
+  });
+  for (const [name, id] of [
+    ["numbers", "07"],
+    ["words", "sock"],
+  ]) {
+    await assertSucceeds(getDoc(doc(alice, name, id)));
+    await assertFails(setDoc(doc(alice, name, id), { vandal: true }));
     await assertFails(
-      getDoc(doc(env.unauthenticatedContext().firestore(), name, "fixture")),
+      getDoc(doc(env.unauthenticatedContext().firestore(), name, id)),
     );
   }
+  // A collection with no rule of its own is closed, even to its "owner".
+  for (const path of [
+    "anything/alice",
+    "customers/alice",
+    "accounts/alice/private/x",
+  ]) {
+    await assertFails(setDoc(doc(alice, path), { x: 1 }));
+    await assertFails(getDoc(doc(alice, path)));
+  }
   await assertFails(
-    setDoc(doc(db, "feedback/valid/private/nested"), { leak: true }),
+    setDoc(doc(alice, "feedback/valid/private/nested"), { leak: true }),
   );
 });
 it("keeps XP and plays server-only, even for their owner", async () => {
