@@ -24,7 +24,7 @@ on:
       migration:
         description: One-time data migration to run instead (dry-run only counts)
         type: choice
-        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game, player-numbers-dry-run, player-numbers]
+        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game]
         default: none
 
 permissions:
@@ -271,9 +271,3 @@ jobs:
           set -o pipefail
           if [ "${{ inputs.migration }}" = remove-crowd-game ]; then apply=--apply; else apply=; fi
           node scripts/remove-game.mjs crowd $apply | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Give every existing player a public number
-        if: startsWith(inputs.migration, 'player-numbers')
-        run: |
-          set -o pipefail
-          if [ "${{ inputs.migration }}" = player-numbers ]; then apply=--apply; else apply=; fi
-          node scripts/migrate-player-numbers.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
