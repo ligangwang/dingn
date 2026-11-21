@@ -161,6 +161,17 @@ export function EyeIcon(props: IconProps) {
   );
 }
 
+/** Leaderboard: a trophy cup. */
+export function TrophyIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
+      <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4" />
+      <path d="M12 13v4M9 20h6M10 17h4" />
+    </Svg>
+  );
+}
+
 /** Kingdom: a castle with three towers. */
 export function CastleIcon(props: IconProps) {
   return (

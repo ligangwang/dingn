@@ -661,8 +661,6 @@
     "02 / MEMORY": "02 / MEMORI",
     "Only admins see this. Make it public on the Players admin page.": "Hanya admin yang melihat ini. Jadikan publik di halaman admin Pemain.",
     "The setting could not be loaded.": "Pengaturan tidak bisa dimuat.",
-    "Public: everyone sees Top players on the home page.": "Publik: semua orang melihat Pemain teratas di beranda.",
-    "Admins only: players don’t see Top players on the home page yet.": "Hanya admin: pemain belum melihat Pemain teratas di beranda.",
     "Hide it again": "Sembunyikan lagi",
     "Make it public": "Jadikan publik",
     "That didn’t save. Try again.": "Gagal menyimpan. Coba lagi.",
@@ -928,6 +926,9 @@
     "{0}’s kingdom in 3D": "Kerajaan {0} dalam 3D",
     "{0} hasn’t founded a kingdom yet.": "{0} belum mendirikan kerajaan.",
     "Look around": "Lihat sekeliling",
-    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "Pilih Lihat sekeliling, lalu seret untuk memutar dan cubit atau gulir untuk memperbesar."
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "Pilih Lihat sekeliling, lalu seret untuk memutar dan cubit atau gulir untuk memperbesar.",
+    "Public: anyone can open the Leaderboard page. Only admins see it in the menu.": "Publik: siapa pun bisa membuka halaman Papan peringkat. Hanya admin yang melihatnya di menu.",
+    "Admins only: only admins can open the Leaderboard page, from the menu.": "Hanya admin: hanya admin yang bisa membuka halaman Papan peringkat, dari menu.",
+    "The leaderboard isn’t open yet.": "Papan peringkat belum dibuka."
   }
 }

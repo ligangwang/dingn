@@ -661,8 +661,6 @@
     "02 / MEMORY": "02 / 记忆",
     "Only admins see this. Make it public on the Players admin page.": "目前只有管理员能看到。可在“玩家”管理页面将其公开。",
     "The setting could not be loaded.": "无法加载此设置。",
-    "Public: everyone sees Top players on the home page.": "已公开：所有人都能在首页看到排行榜。",
-    "Admins only: players don’t see Top players on the home page yet.": "仅管理员可见：玩家暂时看不到首页的排行榜。",
     "Hide it again": "重新隐藏",
     "Make it public": "公开",
     "That didn’t save. Try again.": "保存失败，请重试。",
@@ -928,6 +926,9 @@
     "{0}’s kingdom in 3D": "{0} 的 3D 王国",
     "{0} hasn’t founded a kingdom yet.": "{0} 还没有建立王国。",
     "Look around": "四处看看",
-    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "点「四处看看」，然后拖动旋转，双指捏合或滚动缩放。"
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "点「四处看看」，然后拖动旋转，双指捏合或滚动缩放。",
+    "Public: anyone can open the Leaderboard page. Only admins see it in the menu.": "已公开：任何人都能打开排行榜页面，但只有管理员会在菜单中看到它。",
+    "Admins only: only admins can open the Leaderboard page, from the menu.": "仅管理员可见：只有管理员能从菜单打开排行榜页面。",
+    "The leaderboard isn’t open yet.": "排行榜尚未开放。"
   }
 }

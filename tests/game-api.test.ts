@@ -99,31 +99,41 @@ function fakeDb() {
   return { db, store };
 }
 
-test("a new player gets the next free default nickname, and nobody gets the same one", async () => {
-  const { ensureNickname, FIRST_PLAYER_NUMBER: n } =
-    await import("../scripts/game-api.mjs");
+test("a new player's default nickname is their public number, and an older counted default becomes it", async () => {
+  const { ensureNickname } = await import("../scripts/game-api.mjs");
   const { db, store } = fakeDb();
   store.set("players/b", { xp: 50 });
-  // Someone already chose the second number for themselves: it is skipped.
-  store.set(`nicknames/player${n + 1}`, { uid: "z", name: `Player${n + 1}` });
   const names = await Promise.all(
-    ["a", "b", "c"].map((uid) => ensureNickname(db, uid)),
+    ["a", "b"].map((uid) => ensureNickname(db, uid)),
   );
-  assert.deepEqual(names, [`Player${n}`, `Player${n + 2}`, `Player${n + 3}`]);
-  assert.deepEqual(store.get("accounts/b"), {
-    user_name: `Player${n + 2}`,
-    name_key: `player${n + 2}`,
-  });
-  assert.deepEqual(store.get(`nicknames/player${n + 2}`), {
-    uid: "b",
-    name: `Player${n + 2}`,
-  });
+  // "Player" and the same ten digits as their page, /player/<number>/.
+  for (const [i, uid] of ["a", "b"].entries()) {
+    const number = store.get(`accounts/${uid}`)?.player_no as string;
+    assert.match(number, /^[1-9]\d{9}$/);
+    assert.equal(names[i], `Player${number}`);
+    assert.deepEqual(store.get(`nicknames/player${number}`), {
+      uid,
+      name: `Player${number}`,
+    });
+  }
   // The leaderboard's copy follows, for a player who has XP.
-  assert.equal(store.get("players/b")?.name, `Player${n + 2}`);
+  assert.equal(store.get("players/b")?.name, names[1]);
   assert.equal(store.has("players/a"), false);
   // Asking again changes nothing.
-  assert.equal(await ensureNickname(db, "a"), `Player${n}`);
-  assert.equal(store.get("counters/playerNames")?.next, n + 4);
+  assert.equal(await ensureNickname(db, "a"), names[0]);
+
+  // A default from the old counter (Player10002) becomes the player's
+  // number, and the old name is freed. A name the player chose stays.
+  store.set("accounts/c", {
+    user_name: "Player10002",
+    name_key: "player10002",
+    player_no: "7302518846",
+  });
+  store.set("nicknames/player10002", { uid: "c", name: "Player10002" });
+  assert.equal(await ensureNickname(db, "c"), "Player7302518846");
+  assert.equal(store.has("nicknames/player10002"), false);
+  store.set("accounts/d", { user_name: "Kate", name_key: "kate" });
+  assert.equal(await ensureNickname(db, "d"), "Kate");
 });
 
 test("a name chosen before names were unique is registered on the next visit, first come first served", async () => {
@@ -158,11 +168,29 @@ test("a player can take any free nickname, never one another player holds", asyn
       status: 409,
       code: "nickname_taken",
     });
-  // But he can have Ada's old default, and Ada can keep re-saving hers.
-  assert.equal((await claimNickname(db, "bob", first)).name, first);
+  // Ada's old default stays hers alone: it is "Player" and her number.
+  await assert.rejects(claimNickname(db, "bob", first), {
+    status: 409,
+    code: "nickname_taken",
+  });
+  // Ada can keep re-saving her name in any case.
   assert.equal(
     (await claimNickname(db, "ada", "star gazer")).name,
     "star gazer",
+  );
+  // Names shaped like a default are reserved, except a player's own.
+  store.set("accounts/bob", {
+    ...store.get("accounts/bob"),
+    player_no: "4821937065",
+  });
+  for (const looksDefault of ["Player12345", "player7302518846"])
+    await assert.rejects(claimNickname(db, "bob", looksDefault), {
+      status: 409,
+      code: "nickname_taken",
+    });
+  assert.equal(
+    (await claimNickname(db, "bob", "Player4821937065")).name,
+    "Player4821937065",
   );
   // Names that can't be one.
   for (const bad of ["", " a ", "x".repeat(25), "‮", 7])
@@ -275,10 +303,11 @@ test("a player's public page shows what anyone may see, and nothing private", as
   });
   // Below level 2 there is no kingdom yet.
   store.set("playerNumbers/1111111111", { uid: "new" });
+  store.set("accounts/new", { player_no: "1111111111" });
   const newcomer = await publicPlayer(db, "1111111111");
   assert.equal(newcomer?.kingdom, null);
   // One who never chose a nickname shows their default, never just "Player".
-  assert.equal(newcomer?.name, "Player10001");
+  assert.equal(newcomer?.name, "Player1111111111");
   // A number no player has, or that isn't one.
   assert.equal(await publicPlayer(db, "1000000000"), null);
   assert.equal(await publicPlayer(db, "ada"), null);

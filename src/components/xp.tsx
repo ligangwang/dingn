@@ -2,6 +2,7 @@
 import { aroundLink, useLocale } from "@/components/locale";
 
 import Link from "next/link";
+import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "./session";
 import { HonorAvatar, honorName, honorOf } from "./honor";
@@ -188,7 +189,14 @@ export function LevelCard() {
   );
 }
 
-export function Leaderboard({ title = "Top players" }: { title?: string }) {
+export function Leaderboard({
+  title = "Top players",
+  hidden = null,
+}: {
+  title?: string;
+  /** Shown instead when the board isn't open to this player. */
+  hidden?: React.ReactNode;
+}) {
   const { t, locale, href } = useLocale();
 
   // Refetch whenever this player's XP changes so fresh scores show up.
@@ -214,7 +222,8 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
   }, [xp]);
   // Until an admin makes it public (Players admin page), only admins see the
   // board. Nobody sees an empty or broken board while it loads.
-  if (failed || !entries || (!shown && !isAdmin)) return null;
+  if (failed || !entries) return null;
+  if (!shown && !isAdmin) return <>{hidden}</>;
   return (
     <section className="leaderboard" id="leaderboard" aria-label={t(title)}>
       <p className="eyebrow">{t("Leaderboard")}</p>

@@ -661,8 +661,6 @@
     "02 / MEMORY": "02 / 기억력",
     "Only admins see this. Make it public on the Players admin page.": "관리자만 볼 수 있어요. 플레이어 관리 페이지에서 공개로 바꿀 수 있어요.",
     "The setting could not be loaded.": "설정을 불러오지 못했어요.",
-    "Public: everyone sees Top players on the home page.": "공개: 모든 사람이 홈 페이지에서 상위 플레이어를 볼 수 있어요.",
-    "Admins only: players don’t see Top players on the home page yet.": "관리자만: 플레이어는 아직 홈 페이지에서 상위 플레이어를 볼 수 없어요.",
     "Hide it again": "다시 숨기기",
     "Make it public": "공개하기",
     "That didn’t save. Try again.": "저장하지 못했어요. 다시 시도해 주세요.",
@@ -928,6 +926,9 @@
     "{0}’s kingdom in 3D": "{0}의 3D 왕국",
     "{0} hasn’t founded a kingdom yet.": "{0}님은 아직 왕국을 세우지 않았어요.",
     "Look around": "둘러보기",
-    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "'둘러보기'를 누른 뒤 드래그해 돌리고, 손가락을 모으거나 스크롤해 확대하세요."
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "'둘러보기'를 누른 뒤 드래그해 돌리고, 손가락을 모으거나 스크롤해 확대하세요.",
+    "Public: anyone can open the Leaderboard page. Only admins see it in the menu.": "공개: 누구나 리더보드 페이지를 열 수 있어요. 메뉴에는 관리자에게만 보여요.",
+    "Admins only: only admins can open the Leaderboard page, from the menu.": "관리자 전용: 관리자만 메뉴에서 리더보드 페이지를 열 수 있어요.",
+    "The leaderboard isn’t open yet.": "리더보드는 아직 열리지 않았어요."
   }
 }

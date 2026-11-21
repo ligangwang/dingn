@@ -661,8 +661,6 @@
     "02 / MEMORY": "02 / MEMORIA",
     "Only admins see this. Make it public on the Players admin page.": "Solo lo ven los administradores. Hazlo público en la página de administración de jugadores.",
     "The setting could not be loaded.": "No se pudo cargar el ajuste.",
-    "Public: everyone sees Top players on the home page.": "Público: todos ven Mejores jugadores en la página de inicio.",
-    "Admins only: players don’t see Top players on the home page yet.": "Solo administradores: los jugadores aún no ven Mejores jugadores en la página de inicio.",
     "Hide it again": "Volver a ocultar",
     "Make it public": "Hacer público",
     "That didn’t save. Try again.": "No se guardó. Inténtalo de nuevo.",
@@ -928,6 +926,9 @@
     "{0}’s kingdom in 3D": "El reino de {0} en 3D",
     "{0} hasn’t founded a kingdom yet.": "{0} aún no ha fundado un reino.",
     "Look around": "Mirar alrededor",
-    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "Elige «Mirar alrededor» y arrastra para girar; pellizca o desplaza para acercar."
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "Elige «Mirar alrededor» y arrastra para girar; pellizca o desplaza para acercar.",
+    "Public: anyone can open the Leaderboard page. Only admins see it in the menu.": "Público: cualquiera puede abrir la página de clasificación. Solo los administradores la ven en el menú.",
+    "Admins only: only admins can open the Leaderboard page, from the menu.": "Solo administradores: solo ellos pueden abrir la página de clasificación, desde el menú.",
+    "The leaderboard isn’t open yet.": "La clasificación aún no está abierta."
   }
 }

@@ -125,7 +125,7 @@ it("makes the leaderboard public and hides it again", async () => {
   expect(mocks.updateSettings).toHaveBeenLastCalledWith({
     leaderboardPublic: true,
   });
-  expect(await screen.findByText(/Public: everyone/)).toBeTruthy();
+  expect(await screen.findByText(/Public: anyone can open/)).toBeTruthy();
   await userEvent.click(screen.getByRole("button", { name: "Hide it again" }));
   expect(mocks.updateSettings).toHaveBeenLastCalledWith({
     leaderboardPublic: false,

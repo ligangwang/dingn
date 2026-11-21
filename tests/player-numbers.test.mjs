@@ -73,18 +73,22 @@ test("the leaderboard shows each player's own nickname and links every one, givi
     entries.map(({ name, number, avatar }) => [name, number, avatar]),
     [
       ["Star Gazer", "7302518846", "fox"],
-      ["Player10001", store.get("accounts/bo").player_no, ""],
+      [
+        `Player${store.get("accounts/bo").player_no}`,
+        store.get("accounts/bo").player_no,
+        "",
+      ],
     ],
   );
   const bo = entries[1].number;
   assert.ok(isPlayerNumber(bo));
   assert.deepEqual(store.get(`playerNumbers/${bo}`), { uid: "bo" });
   // Bo's default nickname is his, registered, and on his XP record too.
-  assert.deepEqual(store.get("nicknames/player10001"), {
+  assert.deepEqual(store.get(`nicknames/player${bo}`), {
     uid: "bo",
-    name: "Player10001",
+    name: `Player${bo}`,
   });
-  assert.equal(store.get("players/bo").name, "Player10001");
+  assert.equal(store.get("players/bo").name, `Player${bo}`);
   // Ada kept hers.
   assert.equal(store.get("accounts/ada").player_no, "7302518846");
 });

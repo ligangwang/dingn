@@ -661,8 +661,6 @@
     "02 / MEMORY": "02 / 記憶",
     "Only admins see this. Make it public on the Players admin page.": "これは管理者だけに表示されています。管理ページの「プレイヤー」で公開できます。",
     "The setting could not be loaded.": "設定を読み込めませんでした。",
-    "Public: everyone sees Top players on the home page.": "公開中：ホームページのトッププレイヤーが全員に表示されます。",
-    "Admins only: players don’t see Top players on the home page yet.": "管理者のみ：ホームページのトッププレイヤーはまだプレイヤーに表示されていません。",
     "Hide it again": "再び非表示にする",
     "Make it public": "公開する",
     "That didn’t save. Try again.": "保存できませんでした。もう一度お試しください。",
@@ -928,6 +926,9 @@
     "{0}’s kingdom in 3D": "{0} の王国（3D）",
     "{0} hasn’t founded a kingdom yet.": "{0} はまだ王国を築いていません。",
     "Look around": "見て回る",
-    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "「見て回る」を押してから、ドラッグで回転、ピンチやスクロールでズームできます。"
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "「見て回る」を押してから、ドラッグで回転、ピンチやスクロールでズームできます。",
+    "Public: anyone can open the Leaderboard page. Only admins see it in the menu.": "公開中：誰でもランキングページを開けます。メニューに表示されるのは管理者だけです。",
+    "Admins only: only admins can open the Leaderboard page, from the menu.": "管理者のみ：ランキングページはメニューから管理者だけが開けます。",
+    "The leaderboard isn’t open yet.": "ランキングはまだ公開されていません。"
   }
 }
