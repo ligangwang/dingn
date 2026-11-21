@@ -12,6 +12,7 @@
 // links to the games, and adds schema.org data (JSON-LD) to the <head>.
 import { categoryOf, isPreview, resolveVersion } from "./game-registry.mjs";
 import { challengeText, challengeUrl } from "../src/data/challenge.mjs";
+import { LOCALES, localeInfo, pick, translate } from "./i18n.mjs";
 
 const SITE = "https://dingn.com";
 
@@ -30,10 +31,11 @@ export function indexableGame(record) {
   return live;
 }
 
-const pageUrl = (id, zh) => `${SITE}${zh ? "/zh" : ""}/play/${id}/`;
-const sitePath = (path, zh) => (zh ? "/zh" : "") + path;
+const pageUrl = (id, locale) =>
+  `${SITE}${localeInfo(locale).path}/play/${id}/`;
+const sitePath = (path, locale) => localeInfo(locale).path + path;
 
-/** Each category's page and name, in both languages. */
+/** Each category's name: English, Chinese, and the packs for other languages. */
 const CATEGORY_NAMES = {
   casual: { en: "Casual games", zh: "休闲游戏" },
   memory: { en: "Memory games", zh: "记忆游戏" },
@@ -48,8 +50,8 @@ const MORE = {
 };
 
 /** A game's page title (keep in step with src/components/game-host.tsx). */
-export const gameTitle = (title, zh) =>
-  zh ? `${title} - 免费在线玩` : `${title} – Play free online`;
+export const gameTitle = (title, locale) =>
+  translate(`${title} – Play free online`, locale);
 
 /** JSON-LD for the <head>: `<` is escaped so no text can end the script. */
 const jsonLd = (data) =>
@@ -88,33 +90,30 @@ const breadcrumbHtml = (crumbs) =>
     .join("")}</ol></nav>`;
 
 /** A catalog game's text in one language. */
-const textOf = (game, zh) => ({
-  title: (zh && game.title?.zh) || game.title?.en || game.id,
-  description: (zh && game.description?.zh) || game.description?.en || "",
+const textOf = (game, locale) => ({
+  title: (game.title && pick(game.title, locale)) || game.id,
+  description: (game.description && pick(game.description, locale)) || "",
 });
 
 /** The games of a category, most played first (as src/lib/catalog.ts). */
-export function gamesOf(games, category, zh) {
+export function gamesOf(games, category, locale) {
   return games
     .filter((g) => g.category === category)
     .sort(
       (a, b) =>
         (b.plays?.month ?? 0) - (a.plays?.month ?? 0) ||
         (b.plays?.week ?? 0) - (a.plays?.week ?? 0) ||
-        textOf(a, zh).title.localeCompare(
-          textOf(b, zh).title,
-          zh ? "zh-CN" : "en",
-        ),
+        textOf(a, locale).title.localeCompare(textOf(b, locale).title, locale),
     );
 }
 
 /** A game card, like GameCard in src/components/catalog.tsx. */
-function cardHtml(game, zh) {
-  const { title, description } = textOf(game, zh);
+function cardHtml(game, locale) {
+  const { title, description } = textOf(game, locale);
   const cover = game.cover
     ? `<span class="game-cover"><img src="${escape(game.cover)}" alt="" loading="lazy" decoding="async"/></span>`
     : `<span class="game-cover drawn"><span class="cover-title">${escape(title)}</span></span>`;
-  return `<a class="game-card" href="${sitePath(`/play/${game.id}/`, zh)}">${cover}<span class="game-card-body"><strong>${escape(title)}</strong><span class="game-pitch">${escape(description)}</span></span></a>`;
+  return `<a class="game-card" href="${sitePath(`/play/${game.id}/`, locale)}">${cover}<span class="game-card-body"><strong>${escape(title)}</strong><span class="game-pitch">${escape(description)}</span></span></a>`;
 }
 
 /**
@@ -126,14 +125,19 @@ function cardHtml(game, zh) {
  * (findChallenge in scripts/challenges.mjs) and the link preview shows the
  * score to beat (src/data/challenge.mjs).
  */
-export function gamePageHtml(html, record, zh, games = [], challenge = null) {
+export function gamePageHtml(
+  html,
+  record,
+  locale,
+  games = [],
+  challenge = null,
+) {
   const live = indexableGame(record);
   if (!live) return html;
   const id = record.id;
-  const lang = zh ? "zh" : "en";
-  const name = live.title?.[lang] || live.title?.en || id;
+  const name = (live.title && pick(live.title, locale)) || id;
   const title = escape(name);
-  const description = live.description?.[lang] || live.description?.en;
+  const description = live.description && pick(live.description, locale);
   const category = categoryOf(record, live);
   const cover = live.cover
     ? `${SITE}/g/${id}/${live.version}/${live.cover}`
@@ -141,7 +145,7 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
   const swaps = [
     [
       /<title>[^<]*<\/title>/,
-      `<title>${escape(gameTitle(name, zh))} · dingn</title>`,
+      `<title>${escape(gameTitle(name, locale))} · dingn</title>`,
     ],
     [
       /<meta name="twitter:title" content="[^"]*"\/>/,
@@ -153,23 +157,17 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
     ],
     [
       /<link rel="canonical" href="[^"]*"\/>/,
-      `<link rel="canonical" href="${pageUrl(id, zh)}"/>`,
+      `<link rel="canonical" href="${pageUrl(id, locale)}"/>`,
     ],
+    // Every language's address of this game (x-default is English).
     [
-      /<link rel="alternate" hrefLang="en" href="[^"]*"\/>/,
-      `<link rel="alternate" hrefLang="en" href="${pageUrl(id, false)}"/>`,
-    ],
-    [
-      /<link rel="alternate" hrefLang="zh-CN" href="[^"]*"\/>/,
-      `<link rel="alternate" hrefLang="zh-CN" href="${pageUrl(id, true)}"/>`,
-    ],
-    [
-      /<link rel="alternate" hrefLang="x-default" href="[^"]*"\/>/,
-      `<link rel="alternate" hrefLang="x-default" href="${pageUrl(id, false)}"/>`,
+      /<link rel="alternate" hrefLang="([^"]+)" href="[^"]*"\/>/g,
+      (_, lang) =>
+        `<link rel="alternate" hrefLang="${lang}" href="${pageUrl(id, lang === "x-default" ? "en" : lang)}"/>`,
     ],
     [
       /<meta property="og:url" content="[^"]*"\/>/,
-      `<meta property="og:url" content="${pageUrl(id, zh)}"/>`,
+      `<meta property="og:url" content="${pageUrl(id, locale)}"/>`,
     ],
     [
       /<meta property="og:title" content="[^"]*"\/>/,
@@ -211,11 +209,17 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
     );
   // Only this game's challenges: an id from another game's link is ignored.
   if (challenge?.game === id) {
-    const said = challengeText(challenge, name, zh, challenge.name ?? null);
+    const said = challengeText(
+      challenge,
+      name,
+      locale,
+      challenge.name ?? null,
+      (text) => translate(text, locale),
+    );
     swaps.push(
       [
         /<meta property="og:url" content="[^"]*"\/>/,
-        `<meta property="og:url" content="${escape(challengeUrl(SITE, id, challenge.id, zh))}"/>`,
+        `<meta property="og:url" content="${escape(challengeUrl(SITE, id, challenge.id, locale))}"/>`,
       ],
       [
         /<meta property="og:title" content="[^"]*"\/>/,
@@ -236,15 +240,16 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
     );
   }
   let page = swaps.reduce(
-    (out, [from, to]) => out.replace(from, () => to),
+    (out, [from, to]) =>
+      out.replace(from, typeof to === "function" ? to : () => to),
     html,
   );
 
-  const url = pageUrl(id, zh);
+  const url = pageUrl(id, locale);
   const names = CATEGORY_NAMES[category];
   const crumbs = [
-    ["dingn", SITE + sitePath("/", zh)],
-    [names[lang], SITE + sitePath(`/${category}/`, zh)],
+    ["dingn", SITE + sitePath("/", locale)],
+    [pick(names, locale, true), SITE + sitePath(`/${category}/`, locale)],
     [name, url],
   ];
   page = addToHead(
@@ -259,7 +264,7 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
           url,
           ...(description ? { description } : {}),
           ...(cover ? { image: cover } : {}),
-          inLanguage: zh ? "zh-CN" : "en",
+          inLanguage: locale,
           genre: names.en.replace(/ games$/, ""),
           gamePlatform: "Web browser",
           applicationCategory: "Game",
@@ -276,7 +281,7 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
       ],
     }),
   );
-  const others = gamesOf(games, category, zh)
+  const others = gamesOf(games, category, locale)
     .filter((g) => g.id !== id)
     .slice(0, 4);
   return fillSlot(
@@ -286,8 +291,8 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
       `<h1>${title}</h1>` +
       (description ? `<p class="lede">${escape(description)}</p>` : "") +
       (others.length
-        ? `<h2>${MORE[category][lang]}</h2><div class="game-grid">${others
-            .map((g) => cardHtml(g, zh))
+        ? `<h2>${pick(MORE[category], locale, true)}</h2><div class="game-grid">${others
+            .map((g) => cardHtml(g, locale))
             .join("")}</div>`
         : ""),
   );
@@ -297,11 +302,10 @@ export function gamePageHtml(html, record, zh, games = [], challenge = null) {
  * A category page (/casual/, /zh/puzzle/, …) with its games as links in the
  * page and as a schema.org ItemList.
  */
-export function categoryPageHtml(html, games, category, zh) {
-  const lang = zh ? "zh" : "en";
-  const list = gamesOf(games, category, zh);
-  const url = SITE + sitePath(`/${category}/`, zh);
-  const name = CATEGORY_NAMES[category][lang];
+export function categoryPageHtml(html, games, category, locale) {
+  const list = gamesOf(games, category, locale);
+  const url = SITE + sitePath(`/${category}/`, locale);
+  const name = pick(CATEGORY_NAMES[category], locale, true);
   const page = addToHead(
     html,
     jsonLd({
@@ -312,50 +316,54 @@ export function categoryPageHtml(html, games, category, zh) {
           "@id": url,
           url,
           name,
-          inLanguage: zh ? "zh-CN" : "en",
-          isPartOf: { "@id": SITE + sitePath("/", zh) + "#website" },
+          inLanguage: locale,
+          isPartOf: { "@id": SITE + sitePath("/", locale) + "#website" },
           mainEntity: {
             "@type": "ItemList",
             numberOfItems: list.length,
             itemListElement: list.map((g, i) => ({
               "@type": "ListItem",
               position: i + 1,
-              url: pageUrl(g.id, zh),
-              name: textOf(g, zh).title,
+              url: pageUrl(g.id, locale),
+              name: textOf(g, locale).title,
             })),
           },
         },
         breadcrumbJsonLd([
-          ["dingn", SITE + sitePath("/", zh)],
+          ["dingn", SITE + sitePath("/", locale)],
           [name, url],
         ]),
       ],
     }),
   );
-  return fillSlot(page, "games", list.map((g) => cardHtml(g, zh)).join(""));
+  return fillSlot(
+    page,
+    "games",
+    list.map((g) => cardHtml(g, locale)).join(""),
+  );
 }
 
 /** The home page with each category card's top three games as links. */
-export function homePageHtml(html, games, zh) {
+export function homePageHtml(html, games, locale) {
   return Object.keys(CATEGORY_NAMES).reduce((page, category) => {
-    const top = gamesOf(games, category, zh).slice(0, 3);
+    const top = gamesOf(games, category, locale).slice(0, 3);
     return fillSlot(
       page,
       `top-${category}`,
       top
         .map((g) => {
-          const { title } = textOf(g, zh);
+          const { title } = textOf(g, locale);
           const cover = g.cover
             ? `<span class="game-cover"><img src="${escape(g.cover)}" alt="" loading="lazy" decoding="async"/></span>`
             : `<span class="game-cover drawn"></span>`;
-          return `<li><a href="${sitePath(`/play/${g.id}/`, zh)}" title="${escape(title)}">${cover}<span>${escape(title)}</span></a></li>`;
+          return `<li><a href="${sitePath(`/play/${g.id}/`, locale)}" title="${escape(title)}">${cover}<span>${escape(title)}</span></a></li>`;
         })
         .join(""),
     );
   }, html);
 }
 
-/** The exported sitemap with every indexable game added, in both languages. */
+/** The exported sitemap with every indexable game added, in every language. */
 export function sitemapWithGames(xml, records) {
   const live = new Map(
     records
@@ -373,9 +381,8 @@ export function sitemapWithGames(xml, records) {
   };
   const links = (id) =>
     [
-      ["en", pageUrl(id, false)],
-      ["zh-CN", pageUrl(id, true)],
-      ["x-default", pageUrl(id, false)],
+      ...LOCALES.map((l) => [l.lang, pageUrl(id, l.lang)]),
+      ["x-default", pageUrl(id, "en")],
     ]
       .map(
         ([lang, href]) =>
@@ -384,9 +391,9 @@ export function sitemapWithGames(xml, records) {
       .join("\n");
   const entries = ids
     .flatMap((id) =>
-      [false, true].map(
-        (zh) =>
-          `<url>\n<loc>${pageUrl(id, zh)}</loc>${lastmod(id)}\n${links(id)}\n</url>`,
+      LOCALES.map(
+        (l) =>
+          `<url>\n<loc>${pageUrl(id, l.lang)}</loc>${lastmod(id)}\n${links(id)}\n</url>`,
       ),
     )
     .join("\n");

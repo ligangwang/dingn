@@ -1,4 +1,5 @@
 "use client";
+import { pick } from "@/lib/i18n";
 import { LanguageSwitcher, useLocale } from "@/components/locale";
 
 import Link from "next/link";
@@ -89,8 +90,7 @@ function CategoryMenu({
 }) {
   const { t, locale, href: to } = useLocale();
   const { label, path: page, Icon } = CATEGORY_INFO[category];
-  const lang = locale === "zh-CN" ? "zh" : "en";
-  const list = games ? gamesIn(games, category, lang) : [];
+  const list = games ? gamesIn(games, category, locale) : [];
   const same = (href: string) =>
     path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
   // A game's page counts as being inside its category.
@@ -113,7 +113,7 @@ function CategoryMenu({
                 href={to(playPath(g.id))}
                 aria-current={same(playPath(g.id)) ? "page" : undefined}
               >
-                {g.title[lang] || g.title.en}
+                {pick(g.title, locale)}
               </Link>
             </li>
           ))}

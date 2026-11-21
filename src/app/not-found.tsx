@@ -1,7 +1,16 @@
 "use client";
 import { useLocale } from "@/components/locale";
+import { SiteChrome } from "@/components/site-chrome";
 import Link from "next/link";
+/** The page for an unknown address, in the frame English pages have. */
 export default function NotFound() {
+  return (
+    <SiteChrome>
+      <Lost />
+    </SiteChrome>
+  );
+}
+function Lost() {
   const { t, locale, href } = useLocale();
 
   return (

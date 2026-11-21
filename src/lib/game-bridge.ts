@@ -31,9 +31,22 @@ export type HostReply =
       error: { code: string; message: string; balance?: number };
     };
 
+/**
+ * The language a game shows: the page's when the game speaks it (its
+ * game.json `languages`), otherwise English. Games that list no languages
+ * speak English and Chinese, as every game did before languages could be
+ * listed.
+ */
+export function gameLocale(page: Locale, languages?: readonly string[]) {
+  const speaks = languages?.length ? languages : ["en", "zh-CN"];
+  if (speaks.includes(page)) return page;
+  return "en";
+}
+
 export type BridgeContext = {
   gameId: string;
   version: string;
+  /** The language the game shows (gameLocale). */
   locale: Locale;
   player: Player;
   /** The website's localStorage, or null when the browser blocks it. */

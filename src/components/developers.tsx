@@ -12,8 +12,9 @@ const dingn = await connect();`;
 const MANIFEST = `{
   "id": "mygame",
   "version": "1.0.0",
-  "title": { "en": "My Game", "zh": "我的游戏" },
-  "description": { "en": "…", "zh": "…" },
+  "title": { "en": "My Game", "zh": "我的游戏", "es": "Mi juego" },
+  "description": { "en": "…", "zh": "…", "es": "…" },
+  "languages": ["en", "zh-CN", "es"],
   "entry": "index.html",
   "category": "casual",
   "cover": "cover.jpg"
@@ -22,7 +23,11 @@ const MANIFEST = `{
 const REFERENCE: [string, string][] = [
   [
     "dingn.locale",
-    'The player\'s language, "en" or "zh-CN". Show your game in it.',
+    'The player\'s language, one your game.json "languages" lists (English if the player\'s isn\'t one of them; "en" and "zh-CN" when the game lists none). Show your game in it.',
+  ],
+  [
+    "dingn.onLanguage(fn)",
+    "Called with the new language when the player switches language while playing. Show your text and pictures in it and keep their game going. Returns a function that stops listening.",
   ],
   [
     "dingn.player",

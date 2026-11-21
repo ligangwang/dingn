@@ -1,5 +1,6 @@
 "use client";
 // The kingdom on the account page: the stage, and what the next level opens.
+import { pick } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "./locale";
@@ -15,7 +16,7 @@ export function KingdomCard() {
       .catch(() => {});
   }, []);
   const name = (title: { en: string; zh: string }) =>
-    locale === "zh-CN" ? title.zh : title.en;
+    pick(title, locale, true);
   const stage = STAGES.find((s) => s.id === view?.stage);
   const next = STAGES.find((s) => s.level > (view?.level ?? 0));
   const toGo = view && next ? 50 * next.level * (next.level - 1) - view.xp : 0;

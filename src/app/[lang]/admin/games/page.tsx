@@ -1,0 +1,10 @@
+import { pageMetadata } from "@/lib/seo";
+import { localeOfPrefix } from "@/lib/packs.server";
+export { default } from "@/app/(en)/admin/games/page";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  return pageMetadata("/admin/games/", localeOfPrefix((await params).lang));
+}

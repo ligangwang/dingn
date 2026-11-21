@@ -2,6 +2,7 @@
 // The category pages (/casual/, /memory/, /puzzle/, /adventure/), the menu's game lists
 // and the home page's thumbnails, all filled from the catalog
 // (src/lib/catalog.ts): whatever games are listed and approved.
+import { pick } from "@/lib/i18n";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useLocale } from "./locale";
@@ -94,7 +95,6 @@ export function usePlayerProgress(): Record<string, GameProgress> {
   );
 }
 
-const lang = (locale: string) => (locale === "zh-CN" ? "zh" : "en");
 
 /** A small whole number from a game id, to vary the drawn covers. */
 function hue(id: string) {
@@ -160,8 +160,8 @@ export function GameCard({
   progress?: GameProgress;
 }) {
   const { t, locale, href } = useLocale();
-  const l = lang(locale);
-  const title = game.title[l] || game.title.en;
+  const l = locale;
+  const title = pick(game.title, l);
   return (
     <Link className="game-card" href={href(playPath(game.id))}>
       <GameCover game={game} title={title} />
@@ -173,7 +173,7 @@ export function GameCard({
       <span className="game-card-body">
         <strong>{title}</strong>
         <span className="game-pitch">
-          {game.description[l] || game.description.en}
+          {pick(game.description, l)}
         </span>
         <ProgressLine progress={progress} />
       </span>
@@ -190,7 +190,7 @@ const SORTS: [Sort, string][] = [
 /** A category's page: banner, games in progress, and every game in a grid. */
 export function CategoryPage({ category }: { category: Category }) {
   const { t, locale, href } = useLocale();
-  const l = lang(locale);
+  const l = locale;
   const info = CATEGORY_INFO[category];
   const catalog = useCatalog();
   const progress = usePlayerProgress();
@@ -251,7 +251,7 @@ export function CategoryPage({ category }: { category: Category }) {
         <Link className="featured-game" href={href(playPath(featured.id))}>
           <GameCover
             game={featured}
-            title={featured.title[l] || featured.title.en}
+            title={pick(featured.title, l)}
             size={200}
           />
           <span className="featured-copy">
@@ -260,8 +260,8 @@ export function CategoryPage({ category }: { category: Category }) {
                 ? t("NEW GAME")
                 : t("FEATURED")}
             </span>
-            <strong>{featured.title[l] || featured.title.en}</strong>
-            <span>{featured.description[l] || featured.description.en}</span>
+            <strong>{pick(featured.title, l)}</strong>
+            <span>{pick(featured.description, l)}</span>
             <span className="button">{t("Play")}</span>
           </span>
         </Link>
@@ -275,11 +275,11 @@ export function CategoryPage({ category }: { category: Category }) {
               <Link key={g.id} href={href(playPath(g.id))}>
                 <GameCover
                   game={g}
-                  title={g.title[l] || g.title.en}
+                  title={pick(g.title, l)}
                   size={44}
                 />
                 <span>
-                  <strong>{g.title[l] || g.title.en}</strong>
+                  <strong>{pick(g.title, l)}</strong>
                   <ProgressLine progress={progress[g.id]} />
                 </span>
               </Link>
@@ -338,7 +338,7 @@ export function TopGames({
   category: Category;
 }) {
   const { locale, href } = useLocale();
-  const l = lang(locale);
+  const l = locale;
   // Until the catalog loads, the server's list of the top games.
   if (!games)
     return (
@@ -349,7 +349,7 @@ export function TopGames({
   return (
     <ul className="arena-games">
       {top.map((g) => {
-        const title = g.title[l] || g.title.en;
+        const title = pick(g.title, l);
         return (
           <li key={g.id}>
             <Link href={href(playPath(g.id))} title={title}>

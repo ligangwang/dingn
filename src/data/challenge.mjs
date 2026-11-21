@@ -10,17 +10,27 @@
 // never from text in the link, so a link cannot make dingn say anything else.
 // The player page (game-host.tsx), the server's link previews
 // (scripts/game-seo.mjs) and the challenge store all read this file.
+//
+// The words are English templates such as "{0} reached {1} in {2}. Can you
+// beat it?", translated by the caller's language pack (`translate`), with
+// the score, name and title put in afterwards.
+import { localeInfo } from "./i18n-core.mjs";
 
-/** What a score can be counted in, with its words in both languages. */
+/** What a score can be counted in: "{0} point" / "{0} points". */
 export const UNITS = {
-  points: { one: "point", many: "points", zh: "分" },
-  digits: { one: "digit", many: "digits", zh: "位数字" },
-  cards: { one: "card", many: "cards", zh: "张牌" },
-  levels: { one: "level", many: "levels", zh: "关" },
-  stars: { one: "star", many: "stars", zh: "颗星" },
-  words: { one: "word", many: "words", zh: "个单词" },
-  coins: { one: "coin", many: "coins", zh: "枚金币" },
+  points: { one: "point", many: "points" },
+  digits: { one: "digit", many: "digits" },
+  cards: { one: "card", many: "cards" },
+  levels: { one: "level", many: "levels" },
+  stars: { one: "star", many: "stars" },
+  words: { one: "word", many: "words" },
+  coins: { one: "coin", many: "coins" },
 };
+
+/** A template's "{0}", "{1}", … filled in with `values`. */
+const fill = (template, ...values) =>
+  template.replace(/\{(\d+)\}/g, (all, n) => values[Number(n)] ?? all);
+const same = (text) => text;
 export const MODE = /^[a-z][a-z0-9-]{0,23}$/;
 export const SEED = /^[A-Za-z0-9-]{1,32}$/;
 export const MAX_SCORE = 1_000_000_000;
@@ -65,16 +75,24 @@ export function challengeIdFromQuery(search) {
   return id && CHALLENGE_ID.test(id) ? id : null;
 }
 
-/** The address of a game's page that opens the saved challenge `id`. */
-export function challengeUrl(origin, gameId, id, zh) {
-  return `${origin}${zh ? "/zh" : ""}/play/${gameId}/?c=${encodeURIComponent(id)}`;
+/** The address of a game's page, in a language, that opens the saved challenge `id`. */
+export function challengeUrl(origin, gameId, id, locale) {
+  return `${origin}${localeInfo(locale).path}/play/${gameId}/?c=${encodeURIComponent(id)}`;
 }
 
-/** "10 digits" or "10 位数字". */
-export function scoreText(challenge, zh) {
+/** "10 digits", "10 位数字", "10 dígitos": translated by `translate`. */
+export function scoreText(challenge, locale = "en", translate = same) {
   const words = UNITS[challenge.unit];
-  if (zh) return `${challenge.score} ${words.zh}`;
-  return `${challenge.score.toLocaleString("en-US")} ${challenge.score === 1 ? words.one : words.many}`;
+  const number = challenge.score.toLocaleString(
+    locale === "en" ? "en-US" : locale,
+  );
+  const word = challenge.score === 1 ? words.one : words.many;
+  const english = `${number} ${word}`;
+  // Its own key ("Challenge score: {0} points"), so the template can't be
+  // mistaken for other text ending in "points"; English needs no pack.
+  const key = `Challenge score: {0} ${word}`;
+  const said = locale === "en" ? key : translate(key);
+  return said === key ? english : fill(said, number);
 }
 
 /**
@@ -83,25 +101,35 @@ export function scoreText(challenge, zh) {
  * player who made it, or null for "A friend". A challenge with `mine` set
  * (opened by the player who made it) is their own score to beat.
  */
-export function challengeText(challenge, gameTitle, zh, name = null) {
-  const score = scoreText(challenge, zh);
+export function challengeText(
+  challenge,
+  gameTitle,
+  locale = "en",
+  name = null,
+  translate = same,
+) {
+  const score = scoreText(challenge, locale, translate);
   // The player's own challenge, opened by them: their own score to beat.
   if (challenge.mine === true)
     return {
-      title: zh
-        ? `你要超越的成绩：「${gameTitle}」${score}`
-        : `Your score to beat: ${score} in ${gameTitle}.`,
+      title: fill(translate("Your score to beat: {0} in {1}."), score, gameTitle),
       description: "",
     };
-  return zh
-    ? {
-        title: `${name ?? "朋友"}在「${gameTitle}」中达到了 ${score}，你能超过吗？`,
-        description:
-          "在 dingn 免费玩同一个挑战：打开就能玩，无需登录。赢金币，建造你的王国。",
-      }
-    : {
-        title: `${name ?? "A friend"} reached ${score} in ${gameTitle}. Can you beat it?`,
-        description:
-          "Play the same challenge free on dingn. It starts right away, no sign-in needed. Earn coins and build your kingdom.",
-      };
+  return {
+    title: name
+      ? fill(
+          translate("{0} reached {1} in {2}. Can you beat it?"),
+          name,
+          score,
+          gameTitle,
+        )
+      : fill(
+          translate("A friend reached {0} in {1}. Can you beat it?"),
+          score,
+          gameTitle,
+        ),
+    description: translate(
+      "Play the same challenge free on dingn. It starts right away, no sign-in needed. Earn coins and build your kingdom.",
+    ),
+  };
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useLocale } from "@/components/locale";
+import { aroundLink, useLocale } from "@/components/locale";
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -98,12 +98,15 @@ export function XpSummary({
   if (!signedIn)
     return (
       <p className="xp-note">
-        <Link
-          href={`${href("/signin/")}?next=${encodeURIComponent(href(returnTo))}`}
-        >
-          {t("Sign in")}
-        </Link>{" "}
-        {t("to earn XP and join the leaderboard.")}
+        {/* One sentence, so each language can put the link where it belongs. */}
+        {aroundLink(
+          t("{0} to earn XP and join the leaderboard."),
+          <Link
+            href={`${href("/signin/")}?next=${encodeURIComponent(href(returnTo))}`}
+          >
+            {t("Sign in")}
+          </Link>,
+        )}
       </p>
     );
   if (outcome.kind === "saving")
@@ -147,9 +150,11 @@ export function LevelBadge() {
   return (
     <span
       className="level-badge"
-      title={t(
-        `${stats.xp} XP${stats.streak > 1 ? ` · ${stats.streak}-day streak` : ""}`,
-      )}
+      title={
+        stats.streak > 1
+          ? t(`${stats.xp} XP · ${stats.streak}-day streak`)
+          : t(`${stats.xp} XP`)
+      }
     >
       {t(`Lv ${stats.level}`)}
     </span>

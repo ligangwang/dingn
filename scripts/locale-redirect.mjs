@@ -1,6 +1,9 @@
+import { localePath, matchLocale, localeFromPath, stripLocale } from "./i18n.mjs";
+
 /**
- * Each language has its own URL: English at the original paths, Chinese under
- * /zh/. Old ?lang= links and /en/ paths move permanently to those URLs.
+ * Each language has its own URL: English at the original paths, every other
+ * language under its pack's prefix (/zh/, /es/, …). Old ?lang= links and
+ * /en/ paths move permanently to those URLs.
  */
 export function localizedRedirect(requestUrl) {
   const url = new URL(requestUrl, "http://localhost");
@@ -11,10 +14,7 @@ export function localizedRedirect(requestUrl) {
   if (isEn) pathname = pathname.slice(3) || "/";
   if (lang) {
     url.searchParams.delete("lang");
-    const bare = pathname === "/zh" ? "/" : pathname.replace(/^\/zh(?=\/)/, "");
-    pathname = lang.toLowerCase().startsWith("zh")
-      ? "/zh" + (bare === "/" ? "/" : bare)
-      : bare;
+    pathname = localePath(stripLocale(pathname), matchLocale(lang));
   }
   return pathname + url.search;
 }
@@ -37,12 +37,12 @@ export function developerRedirect(headers, requestUrl) {
     .replace(/:\d+$/, "");
   if (!DEVELOPER_HOSTS.includes(host)) return null;
   const url = new URL(requestUrl, "http://localhost");
-  const zh = url.pathname === "/zh" || url.pathname.startsWith("/zh/");
-  let rest = zh ? url.pathname.slice(3) || "/" : url.pathname;
+  const locale = localeFromPath(url.pathname);
+  let rest = stripLocale(url.pathname);
   // Links that already name a dingn.com page keep it.
   if (!/^\/(developers|sdk|play|g)(\/|$)/.test(rest))
     rest = "/developers" + (rest === "/" ? "/" : rest);
-  return `https://dingn.com${zh ? "/zh" : ""}${rest}${url.search}`;
+  return `https://dingn.com${localePath(rest, locale)}${url.search}`;
 }
 
 /**
@@ -68,11 +68,19 @@ const MOVED = {
  */
 export function retiredRedirect(requestUrl) {
   const url = new URL(requestUrl, "http://localhost");
-  const match = /^(\/zh|\/en)?\/([a-z-]+|play\/crowd)\/?$/.exec(url.pathname);
-  const target = match && Object.hasOwn(MOVED, match[2]) && MOVED[match[2]];
+  const english = url.pathname === "/en" || url.pathname.startsWith("/en/");
+  const bare = english
+    ? url.pathname.slice(3) || "/"
+    : stripLocale(url.pathname);
+  const match = /^\/([a-z-]+|play\/crowd)\/?$/.exec(bare);
+  const target = match && Object.hasOwn(MOVED, match[1]) && MOVED[match[1]];
   if (!target) return null;
   // An old ?lang= link picks the language, as localizedRedirect does.
   const lang = url.searchParams.get("lang");
-  const zh = lang ? lang.toLowerCase().startsWith("zh") : match[1] === "/zh";
-  return zh ? "/zh" + target : target;
+  const locale = lang
+    ? matchLocale(lang)
+    : english
+      ? "en"
+      : localeFromPath(url.pathname);
+  return localePath(target, locale);
 }

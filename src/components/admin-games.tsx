@@ -4,6 +4,7 @@
 // (a release, an approval or a rollback), send an upload back, set or clear
 // the beta, show or hide a game in the catalog, and take a game down.
 // Who may upload or administer is on the Users page (admin-users.tsx).
+import { pick, type Locale } from "@/lib/i18n";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocale } from "./locale";
@@ -30,10 +31,10 @@ const REASON_LABELS: Record<Report["reason"], string> = {
   other: "Something else",
 };
 
-const titleIn = (game: AdminGame, version: string, zh: boolean) => {
+const titleIn = (game: AdminGame, version: string, locale: Locale) => {
   const v =
     game.versions.find((x) => x.version === version) ?? game.versions[0];
-  return v ? (zh ? v.title.zh : v.title.en) : game.id;
+  return v ? pick(v.title, locale) : game.id;
 };
 
 export function AdminGames() {
@@ -320,7 +321,6 @@ function ReviewQueue({
   apply: Apply;
 }) {
   const { t, locale, href } = useLocale();
-  const zh = locale === "zh-CN";
   const waiting = games.flatMap((game) =>
     game.owner && game.status !== "removed"
       ? game.versions
@@ -338,7 +338,7 @@ function ReviewQueue({
       ) : (
         <ul className="admin-queue">
           {waiting.map(({ game, version: v }) => {
-            const title = titleIn(game, v.version, zh);
+            const title = titleIn(game, v.version, locale);
             return (
               <li key={`${game.id}@${v.version}`}>
                 <span>
@@ -444,7 +444,7 @@ function Reports({
           {reports.map((report) => {
             const game = games.find((g) => g.id === report.game);
             const title = game
-              ? titleIn(game, report.version, locale === "zh-CN")
+              ? titleIn(game, report.version, locale)
               : report.game;
             return (
               <li key={report.id}>
@@ -456,7 +456,7 @@ function Reports({
                   <small>
                     {report.reporter} ·{" "}
                     {new Date(report.createdAt).toLocaleString(
-                      locale === "zh-CN" ? "zh-CN" : "en",
+                      locale,
                     )}
                   </small>
                 </span>
@@ -519,11 +519,7 @@ function GameCard({
 }) {
   const { t, locale, href } = useLocale();
   const latest = game.versions[0];
-  const title = latest
-    ? locale === "zh-CN"
-      ? latest.title.zh
-      : latest.title.en
-    : game.id;
+  const title = latest ? pick(latest.title, locale) : game.id;
   const listed = game.status === "listed";
   const removed = game.status === "removed";
   // The category page's name, as the menu shows it.
@@ -537,7 +533,7 @@ function GameCard({
   ];
   const date = (iso: string | null) =>
     iso
-      ? new Date(iso).toLocaleString(locale === "zh-CN" ? "zh-CN" : "en")
+      ? new Date(iso).toLocaleString(locale)
       : "";
 
   return (

@@ -2,6 +2,7 @@
 // Where players see their coins and badges: the coin count in the header, the
 // "Badge earned" popup on the player page, the badges a game offers, and the
 // badges section of the account page.
+import { pick } from "@/lib/i18n";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useLocale } from "./locale";
@@ -32,8 +33,14 @@ export function useWallet() {
   return wallet;
 }
 
-const titleOf = (title: { en: string; zh: string }, locale: string) =>
-  locale === "zh-CN" ? title.zh : title.en;
+/**
+ * A badge's or upgrade's title in a language: its own text in it, otherwise
+ * the English, translated where it is dingn's own (a pack has the words).
+ */
+const titleOf = (
+  title: { en: string } & Record<string, string | undefined>,
+  locale: string,
+) => pick(title, locale, true);
 
 const reducedMotion = () =>
   typeof matchMedia === "function" &&
@@ -186,7 +193,7 @@ function useGameTitles(ids: string[]) {
         if (active && title)
           setTitles((all) => ({
             ...all,
-            [id]: locale === "zh-CN" ? title.zh : title.en,
+            [id]: pick(title, locale),
           }));
       });
     return () => {

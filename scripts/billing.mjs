@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isLocale, localePath } from "./i18n.mjs";
 import { readFile } from "node:fs/promises";
 import Stripe from "stripe";
 import {
@@ -43,6 +44,17 @@ async function productionServices() {
   return services;
 }
 // Only release-ready, non-consumable items explicitly enabled in source can sell.
+/**
+ * Stripe Checkout's language for a dingn language: Stripe says "zh" for
+ * Simplified Chinese and knows the rest by the same codes; anything else
+ * gets English. Prices stay in US dollars in every language.
+ */
+export const stripeLocale = (locale) =>
+  locale === "zh-CN"
+    ? "zh"
+    : ["es", "pt-BR", "id", "ja", "ko"].includes(locale)
+      ? locale
+      : "en";
 export function releasedItems(items) {
   return items.filter(
     (i) =>
@@ -108,14 +120,14 @@ export async function checkout(deps, uid, itemId, locale) {
       status: "pending",
       createdAt: now,
       expiresAt: now + 35 * 60 * 1000,
-      locale: locale === "zh-CN" ? "zh-CN" : "en",
+      locale: isLocale(locale) ? locale : "en",
     };
     tx.set(db.doc(`shopOrders/${proposedId}`), record);
     tx.set(inventory, { status: "pending", orderId: proposedId });
     return record;
   });
   const metadata = { orderId: order.id, uid, itemId: order.itemId };
-  const accountPath = order.locale === "zh-CN" ? "/zh/account/" : "/account/";
+  const accountPath = localePath("/account/", order.locale);
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",
@@ -124,7 +136,7 @@ export async function checkout(deps, uid, itemId, locale) {
       metadata,
       payment_intent_data: { metadata },
       expires_at: Math.floor(order.expiresAt / 1000),
-      locale: order.locale === "zh-CN" ? "zh" : "en",
+      locale: stripeLocale(order.locale),
       success_url: `https://dingn.com${accountPath}?purchase=pending`,
       cancel_url: `https://dingn.com${accountPath}?purchase=cancelled`,
     },
@@ -185,14 +197,14 @@ export async function buyCoins(deps, uid, packId, locale, waiver) {
     status: "pending",
     createdAt: now,
     expiresAt: now + 35 * 60 * 1000,
-    locale: locale === "zh-CN" ? "zh-CN" : "en",
+    locale: isLocale(locale) ? locale : "en",
     waiver: { version: WAIVER_VERSION, acceptedAt: now },
   };
   await db.runTransaction(async (tx) =>
     tx.set(db.doc(`coinOrders/${order.id}`), order),
   );
   const metadata = { kind: "coins", orderId: order.id, uid, packId: pack.id };
-  const page = order.locale === "zh-CN" ? "/zh/coins/" : "/coins/";
+  const page = localePath("/coins/", order.locale);
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",
@@ -218,7 +230,7 @@ export async function buyCoins(deps, uid, packId, locale, waiver) {
       },
       custom_text: { submit: { message: WAIVER_TEXT } },
       expires_at: Math.floor(order.expiresAt / 1000),
-      locale: order.locale === "zh-CN" ? "zh" : "en",
+      locale: stripeLocale(order.locale),
       success_url: `https://dingn.com${page}?purchase=pending`,
       cancel_url: `https://dingn.com${page}?purchase=cancelled`,
     },

@@ -2,6 +2,7 @@
 // The kingdom page: the 3D island (kingdom-scene.ts, loaded only here), the
 // stage and level over it, and the build panel. Signed-out visitors and
 // players below level 2 see a sample kingdom.
+import { pick as textIn } from "@/lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "./locale";
@@ -112,7 +113,8 @@ export function Kingdom() {
   const { t, locale, href } = useLocale();
   const { user, ready } = useSession();
   const uid = user?.uid ?? "";
-  const name = (title: Title) => (locale === "zh-CN" ? title.zh : title.en);
+  // dingn's own names: Chinese in the data, other languages from the packs.
+  const name = (title: Title) => textIn(title, locale, true);
 
   const host = useRef<HTMLDivElement>(null);
   const scene = useRef<KingdomScene | null>(null);

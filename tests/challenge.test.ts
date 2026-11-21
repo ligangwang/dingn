@@ -8,19 +8,22 @@ import {
   validChallenge,
 } from "../src/data/challenge.mjs";
 import { cleanSource, landingSource, visitFor } from "../src/lib/funnel";
+import { translate } from "../scripts/i18n.mjs";
+
+/** A language's pack, as the player page and the server use it. */
+const tr = (locale: string) => (text: string) => translate(text, locale);
 
 test("a challenge link carries only the saved challenge's id", () => {
-  const url = challengeUrl(
-    "https://dingn.com",
-    "memory",
-    "Xq3v9TzK1bWm",
-    false,
-  );
+  const url = challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", "en");
   assert.equal(url, "https://dingn.com/play/memory/?c=Xq3v9TzK1bWm");
   assert.equal(challengeIdFromQuery(new URL(url).search), "Xq3v9TzK1bWm");
   assert.equal(
-    challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", true),
+    challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", "zh-CN"),
     "https://dingn.com/zh/play/memory/?c=Xq3v9TzK1bWm",
+  );
+  assert.equal(
+    challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", "pt-BR"),
+    "https://dingn.com/pt/play/memory/?c=Xq3v9TzK1bWm",
   );
   for (const query of [
     "",
@@ -75,34 +78,62 @@ test("malformed challenges are refused", () => {
 test("the words come from dingn, not from the link", () => {
   const c = { mode: "ladder", score: 1, unit: "digits" as const };
   assert.equal(
-    challengeText(c, "Memory", false).title,
+    challengeText(c, "Memory", "en").title,
     "A friend reached 1 digit in Memory. Can you beat it?",
   );
   assert.equal(
-    challengeText({ ...c, score: 12000 }, "Memory", false).title,
+    challengeText({ ...c, score: 12000 }, "Memory", "en").title,
     "A friend reached 12,000 digits in Memory. Can you beat it?",
   );
   assert.equal(
-    challengeText({ ...c, score: 10 }, "记忆", true).title,
+    challengeText({ ...c, score: 10 }, "记忆", "zh-CN", null, tr("zh-CN"))
+      .title,
     "朋友在「记忆」中达到了 10 位数字，你能超过吗？",
   );
   // Opened by the player who made it: their own score to beat.
   assert.equal(
-    challengeText({ ...c, mine: true }, "Memory", false, "Ada").title,
+    challengeText({ ...c, mine: true }, "Memory", "en", "Ada").title,
     "Your score to beat: 1 digit in Memory.",
   );
   assert.equal(
-    challengeText({ ...c, score: 10, mine: true }, "记忆", true).title,
+    challengeText(
+      { ...c, score: 10, mine: true },
+      "记忆",
+      "zh-CN",
+      null,
+      tr("zh-CN"),
+    ).title,
     "你要超越的成绩：「记忆」10 位数字",
   );
   // The nickname of the player who made it, when they were signed in.
   assert.equal(
-    challengeText(c, "Memory", false, "Ada").title,
+    challengeText(c, "Memory", "en", "Ada").title,
     "Ada reached 1 digit in Memory. Can you beat it?",
   );
   assert.equal(
-    challengeText({ ...c, score: 10 }, "记忆", true, "Ada").title,
+    challengeText({ ...c, score: 10 }, "记忆", "zh-CN", "Ada", tr("zh-CN"))
+      .title,
     "Ada在「记忆」中达到了 10 位数字，你能超过吗？",
+  );
+  // Other languages come from their packs, the name put in afterwards.
+  assert.equal(
+    challengeText({ ...c, score: 4210 }, "Gem Surge", "es", "Ada", tr("es"))
+      .title,
+    "Ada consiguió 4210 dígitos en Gem Surge. ¿Puedes superarlo?",
+  );
+  assert.equal(
+    challengeText({ ...c, score: 3 }, "Gem Surge", "ja", null, tr("ja")).title,
+    "友だちがGem Surgeで3桁を達成しました。超えられるかな？",
+  );
+  // A name that looks like the sentence can't change its words.
+  assert.equal(
+    challengeText(c, "Memory", "es", "{1} reached", tr("es")).title,
+    "{1} reached consiguió 1 dígito en Memory. ¿Puedes superarlo?",
+  );
+  // A language without the words falls back to English.
+  assert.equal(
+    challengeText(c, "Memory", "xx", null, tr("xx")).title,
+    "A friend reached 1 digit in Memory. Can you beat it?",
   );
 });
 

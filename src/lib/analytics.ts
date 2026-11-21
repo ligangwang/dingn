@@ -1,3 +1,4 @@
+import { localeFromPath, localeInfo, stripLocale } from "@/lib/i18n";
 export const measurementId = "G-QDV6QLR932";
 export const consentKey = "dingn.analytics-consent.v1";
 export type AnalyticsConsent = "granted" | "denied" | null;
@@ -22,19 +23,22 @@ const titles: Record<string, string> = {
 };
 const SEGMENT = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 /**
- * Every page is tracked except the admin pages (/admin/ and /zh/admin/).
+ * Every page is tracked except the admin pages (/admin/, /zh/admin/, …).
  * Paths are reduced to plain lowercase segments, so no query, hash or odd
  * text reaches Google; a path that doesn't fit is reported as "/other/".
  */
 export function analyticsPage(path: string) {
   const clean = path.split(/[?#]/)[0];
   const normalized = clean.endsWith("/") ? clean : clean + "/";
-  const zh = normalized === "/zh/" || normalized.startsWith("/zh/");
-  const rest = zh ? normalized.slice(3) || "/" : normalized;
+  // Pages in another language are reported as "Title (es)", at their own path.
+  const locale = localeFromPath(normalized);
+  const prefix = localeInfo(locale).path;
+  const rest = stripLocale(normalized);
+  const tag = prefix ? prefix.slice(1) : "";
   const segments = rest.split("/").filter(Boolean);
   if (segments[0] === "admin") return null;
   if (!segments.every((part) => SEGMENT.test(part)))
-    return { path: zh ? "/zh/other/" : "/other/", title: "Other" };
+    return { path: `${prefix}/other/`, title: "Other" };
   const title =
     titles[rest] ??
     (segments[0] === "play" && segments.length === 2
@@ -42,7 +46,7 @@ export function analyticsPage(path: string) {
       : segments.join(" / "));
   return {
     path: normalized,
-    title: zh ? `${title} (zh)` : title,
+    title: tag ? `${title} (${tag})` : title,
   };
 }
 type AnalyticsWindow = Window & {

@@ -67,7 +67,7 @@ cannot upload new versions: those always come from the repository through CI.
 
 ## Search engines
 
-Every game plays on the one exported page, `/play/index.html`, which says noindex. When the server sends `/play/<id>/` for a game that is **listed** and whose live version is reviewed (or belongs to dingn), it fills in that game's title and description from `game.json`, plus its own canonical, hreflang and Open Graph addresses, and switches it to `index, follow` (`scripts/game-seo.mjs`). `/sitemap.xml` gets the same games added in both languages. Hidden, previewed and taken-down games stay noindex. If the registry can't be read within two seconds, the page goes out as exported.
+Every game plays on the one exported page, `/play/index.html`, which says noindex. When the server sends `/play/<id>/` for a game that is **listed** and whose live version is reviewed (or belongs to dingn), it fills in that game's title and description from `game.json`, plus its own canonical, hreflang and Open Graph addresses, and switches it to `index, follow` (`scripts/game-seo.mjs`). `/sitemap.xml` gets the same games added in every language. Hidden, previewed and taken-down games stay noindex. If the registry can't be read within two seconds, the page goes out as exported.
 
 ## Trying it locally
 
@@ -243,7 +243,8 @@ A built game imports `packages/game-sdk/dingn-sdk.js` and bundles it.
 ```js
 import { connect } from "./dingn-sdk.js";
 const dingn = await connect();
-dingn.locale; // "en" | "zh-CN"
+dingn.locale; // the player's language, one your game.json lists
+dingn.onLanguage((locale) => {}); // the player switched language
 dingn.player; // { signedIn, name, avatar }
 await dingn.storage.set("best", 12); // this device
 await dingn.progress.save({ level: 3 }); // the player's account (signed in only)
@@ -252,6 +253,29 @@ dingn.requestSignIn();
 dingn.ready(); // hides the loading screen
 dingn.roundEnded(); // a round was played to the end (play statistics)
 ```
+
+### Languages
+
+dingn speaks English (its own language, at the original URLs) and every
+language that has a pack in `locales/` (see "Language packs" below). A game
+lists the languages it speaks in `game.json`, and may give its title and
+description in each:
+
+```json
+"title": { "en": "Sky Hop", "zh": "跳跳云", "es": "Salto al cielo" },
+"languages": ["en", "zh-CN", "es"]
+```
+
+`languages` must include `"en"`. A game that lists none speaks English and
+Chinese, as every game did before. dingn gives the game the player's language
+as `dingn.locale` when the game lists it, and English otherwise, so a game
+only ever receives a language it has. When the player switches language while
+playing, the page changes in place and calls `dingn.onLanguage(fn)` with the
+new one: the game shows its text and pictures in it and keeps the player's
+game going. A game that doesn't listen shows the new language on the next
+load. A game's own text, pictures and sounds are the game's: keep one file
+of text per language (the same shape dingn uses works well) and pick by
+`dingn.locale`.
 
 ### Challenge links
 
@@ -330,6 +354,27 @@ its pages. It cannot read the website's cookies, storage or page. Use
 game sends is checked by `src/lib/game-bridge.ts`. Keys and sizes are
 limited, and a game can reach only its own storage
 (`dingn.game.<id>.<key>`) and progress (`accounts/{uid}.game_progress_<id>`).
+
+## Language packs
+
+The website's text in every language but English is a pack in `locales/`,
+one file per language:
+
+```json
+{ "name": "Español", "lang": "es", "path": "/es",
+  "strings": { "Play": "Jugar", "Level {0}": "Nivel {0}" } }
+```
+
+Keys are the English text; `{0}`-style placeholders carry numbers and
+names. Adding a language is adding a pack: `scripts/build-locales.mjs` (run
+before every build and dev server) checks it, lists it in
+`src/data/locales.gen.mjs` and copies its text to `/locales/<lang>.json`.
+Its pages are built under its `path` (`src/app/[lang]/`), each page carrying
+only its own language's text; the language picker, the server's game and
+category pages, redirects and `sitemap.xml` (with hreflang for every
+language) follow the list. Text a pack lacks shows in English. Page titles
+and descriptions (`src/lib/seo.ts`) are translated by the packs too. Coin
+prices stay in US dollars in every language.
 
 ## Badges and coins
 

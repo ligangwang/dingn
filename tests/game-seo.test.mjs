@@ -49,7 +49,7 @@ const game = (extra = {}) => ({
 });
 
 test("a listed, reviewed game gets its own title, description and addresses", () => {
-  const en = gamePageHtml(page, game(), false);
+  const en = gamePageHtml(page, game(), "en");
   assert.match(en, /<title>Crowd Rush – Play free online · dingn<\/title>/);
   assert.match(en, /content="index, follow"/);
   assert.match(
@@ -65,13 +65,26 @@ test("a listed, reviewed game gets its own title, description and addresses", ()
     /name="description" content="Grow your &quot;squad&quot; &lt;fast&gt;"/,
   );
   assert.match(en, /og:title" content="Crowd Rush"/);
-  const zh = gamePageHtml(page, game(), true);
+  const zh = gamePageHtml(page, game(), "zh-CN");
   assert.match(zh, /<title>人潮突击 - 免费在线玩 · dingn<\/title>/);
   assert.match(
     zh,
     /rel="canonical" href="https:\/\/dingn.com\/zh\/play\/crowdrush\/"/,
   );
   assert.match(zh, /og:description" content="壮大队伍"/);
+  // Other languages: the pack's words, the game's own English title (it has
+  // no Spanish one), and every language's address.
+  const es = gamePageHtml(page, game(), "es");
+  assert.match(es, /<title>Crowd Rush[^<]*· dingn<\/title>/);
+  assert.doesNotMatch(es, /Play free online/);
+  assert.match(
+    es,
+    /rel="canonical" href="https:\/\/dingn.com\/es\/play\/crowdrush\/"/,
+  );
+  assert.match(
+    es,
+    /hrefLang="zh-CN" href="https:\/\/dingn.com\/zh\/play\/crowdrush\/"/,
+  );
 });
 
 test("hidden, unreviewed, taken-down and missing games stay noindex", () => {
@@ -82,7 +95,7 @@ test("hidden, unreviewed, taken-down and missing games stay noindex", () => {
     game({ live: null }),
     game({ versions: { "1.0.0": { ...version, reviewedAt: undefined } } }),
   ]) {
-    assert.equal(gamePageHtml(page, record, false), page);
+    assert.equal(gamePageHtml(page, record, "en"), page);
     assert.equal(indexableGame(record), null);
   }
   // dingn's own games (no owner) need no review
@@ -96,7 +109,7 @@ test("hidden, unreviewed, taken-down and missing games stay noindex", () => {
   );
 });
 
-test("the sitemap lists every indexable game in both languages", () => {
+test("the sitemap lists every indexable game in every language", () => {
   const xml =
     '<?xml version="1.0"?><urlset><url><loc>https://dingn.com/</loc></url></urlset>';
   const out = sitemapWithGames(xml, [
@@ -105,6 +118,17 @@ test("the sitemap lists every indexable game in both languages", () => {
   ]);
   assert.match(out, /<loc>https:\/\/dingn.com\/play\/crowdrush\/<\/loc>/);
   assert.match(out, /<loc>https:\/\/dingn.com\/zh\/play\/crowdrush\/<\/loc>/);
+  // One entry per language pack, each listing all of them.
+  for (const prefix of ["es", "pt", "id", "ja", "ko"])
+    assert.match(
+      out,
+      new RegExp(`<loc>https://dingn.com/${prefix}/play/crowdrush/</loc>`),
+    );
+  assert.equal(out.match(/<loc>[^<]*crowdrush/g).length, 7);
+  assert.match(
+    out,
+    /hreflang="pt-BR" href="https:\/\/dingn.com\/pt\/play\/crowdrush\/"/,
+  );
   assert.match(out, /<lastmod>2026-11-09T00:00:00.000Z<\/lastmod>/);
   assert.doesNotMatch(out, /hidden/);
   assert.ok(out.endsWith("</urlset>"));
@@ -131,7 +155,7 @@ const ldOf = (html) =>
     .flatMap((d) => d["@graph"]);
 
 test("a game page shares its cover and describes itself to search engines", () => {
-  const en = gamePageHtml(page, game(), false, games);
+  const en = gamePageHtml(page, game(), "en", games);
   assert.match(
     en,
     /og:image" content="https:\/\/dingn.com\/g\/crowdrush\/1.0.0\/cover.jpg"/,
@@ -155,7 +179,7 @@ test("a game page shares its cover and describes itself to search engines", () =
   assert.match(en, /<h1>Crowd Rush<\/h1>/);
   assert.match(en, /href="\/play\/gemsurge\/"/);
   assert.doesNotMatch(en, /href="\/play\/rubikscube\/"/);
-  const zh = gamePageHtml(page, game(), true, games);
+  const zh = gamePageHtml(page, game(), "zh-CN", games);
   assert.match(zh, /href="\/zh\/casual\/">休闲游戏/);
   assert.match(zh, /href="\/zh\/play\/gemsurge\/"/);
 });
@@ -169,7 +193,7 @@ test("text from a game can't break out of the page or its JSON-LD", () => {
       },
     },
   });
-  const html = gamePageHtml(page, evil, false, games);
+  const html = gamePageHtml(page, evil, "en", games);
   assert.doesNotMatch(html, /<script>alert/);
   assert.equal(ldOf(html)[0].name, "</script><script>alert(1)</script>");
   // `$` patterns in a title are text, not replacement tokens.
@@ -178,7 +202,7 @@ test("text from a game can't break out of the page or its JSON-LD", () => {
       "1.0.0": { ...version, title: { en: "Dollar $' $` $& Game", zh: "x" } },
     },
   });
-  const out = gamePageHtml(page, dollar, false, games);
+  const out = gamePageHtml(page, dollar, "en", games);
   assert.match(out, /<title>Dollar \$' \$` \$&amp; Game – Play/);
   assert.equal(ldOf(out)[0].name, "Dollar $' $` $& Game");
 });
@@ -188,7 +212,7 @@ test("category pages list their games, most played first", () => {
     '<head></head><div class="game-grid" data-fill="games"></div>',
     games,
     "casual",
-    true,
+    "zh-CN",
   );
   const links = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(links, ["/zh/play/gemsurge/", "/zh/play/crowdrush/"]);
@@ -205,7 +229,7 @@ test("the home page fills each category's top games", () => {
   const html = homePageHtml(
     '<ul data-fill="top-casual"></ul><ul data-fill="top-memory"></ul><ul class="arena-games" data-fill="top-puzzle"></ul>',
     games,
-    false,
+    "en",
   );
   assert.match(html, /data-fill="top-casual"><li><a href="\/play\/gemsurge\/"/);
   assert.match(html, /data-fill="top-memory"><\/ul>/);
@@ -223,7 +247,7 @@ test("a challenge link's preview shows the saved score to beat", () => {
     score: 42,
     unit: "points",
   };
-  const en = gamePageHtml(page, game(), false, [], saved);
+  const en = gamePageHtml(page, game(), "en", [], saved);
   assert.match(
     en,
     /og:title" content="A friend reached 42 points in Crowd Rush. Can you beat it\?"/,
@@ -242,20 +266,20 @@ test("a challenge link's preview shows the saved score to beat", () => {
     en,
     /rel="canonical" href="https:\/\/dingn.com\/play\/crowdrush\/"/,
   );
-  const zh = gamePageHtml(page, game(), true, [], saved);
+  const zh = gamePageHtml(page, game(), "zh-CN", [], saved);
   assert.match(
     zh,
     /og:title" content="朋友在「人潮突击」中达到了 42 分，你能超过吗？"/,
   );
   // With the maker's nickname when they were signed in.
   assert.match(
-    gamePageHtml(page, game(), false, [], { ...saved, name: "Ada" }),
+    gamePageHtml(page, game(), "en", [], { ...saved, name: "Ada" }),
     /og:title" content="Ada reached 42 points in Crowd Rush/,
   );
   // Another game's challenge, or none, leaves the normal preview.
   for (const other of [{ ...saved, game: "memory" }, null])
     assert.match(
-      gamePageHtml(page, game(), false, [], other),
+      gamePageHtml(page, game(), "en", [], other),
       /og:title" content="Crowd Rush"/,
     );
 });
