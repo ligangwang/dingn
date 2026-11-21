@@ -923,6 +923,11 @@
     "Play games and rise too →": "Jogue e suba também →",
     "Player ID": "ID do jogador",
     "See your public page": "Ver sua página pública",
-    "{0} XP to go": "Faltam {0} XP"
+    "{0} XP to go": "Faltam {0} XP",
+    "Build and decorate your kingdom →": "Construa e decore seu reino →",
+    "{0}’s kingdom in 3D": "O reino de {0} em 3D",
+    "{0} hasn’t founded a kingdom yet.": "{0} ainda não fundou um reino.",
+    "Look around": "Olhar em volta",
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "Toque em «Olhar em volta» e arraste para girar; use pinça ou role para aproximar."
   }
 }

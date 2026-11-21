@@ -118,6 +118,15 @@ Rules for changing the curve:
 - **The medal and title** go everywhere the player is shown: the site
   header, the profile page, their public page (`/player/<number>/`) and the
   leaderboard.
+- **Visiting:** a player's public page (`/player/<number>/`) shows their
+  kingdom in 3D, as they built it, for anyone to look around
+  (`src/components/kingdom-visit.tsx`). The direction is for visitors to
+  walk in, explore and make friends there; not built yet.
+- **More to own:** each era should grant more than a title. Future assets
+  (more land, equipment, knowledge or skills) are things a player owns and
+  can buy, and they show in their kingdom and on their page. More models and
+  art will come; add them to `BUILDINGS` or a new owned-asset list beside it,
+  keyed by era, rather than hard-coding them in pages.
 - **Later eras** (Empire to Multi-planetary) need new kingdom stages,
   buildings and the stellar medal's art. Keep the art original, and list any
   third-party models in `public/models/kingdom/CREDITS.md`.

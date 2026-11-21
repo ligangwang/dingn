@@ -13,6 +13,7 @@ import {
   settle,
 } from "./game-core.mjs";
 import { readSettings } from "./site-settings.mjs";
+import { kingdomOf, stageFor } from "../src/data/kingdom.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 let adminPromise;
@@ -394,8 +395,8 @@ export async function ensurePlayerNumber(db, uid, draw = drawPlayerNumber) {
 
 /**
  * What anyone may see of a player, found by their public number: nickname,
- * avatar, level and XP, streak and badges. Never their account id, email,
- * coins, purchases or saved games. Null for a number no player has.
+ * avatar, level and XP, streak, badges and their kingdom. Never their account
+ * id, email, coins, purchases or saved games. Null for a number no player has.
  */
 export async function publicPlayer(db, number) {
   if (!isPlayerNumber(number)) return null;
@@ -420,13 +421,27 @@ export async function publicPlayer(db, number) {
       ...(level != null ? { level } : { icon }),
       title,
     }));
+  const progress = levelProgress(player.xp || 0);
+  // Their kingdom as they built it, for visitors to look around: the land
+  // their level opens, the hall and what stands on each tile. Never their
+  // coins.
+  const stage = stageFor(progress.level);
+  const kingdom = kingdomOf(rewards);
   return {
     number,
     name: cleanNickname(account.user_name) ?? "Player",
     avatar: typeof account.avatar === "string" ? account.avatar : "",
-    ...levelProgress(player.xp || 0),
+    ...progress,
     streak: player.streak || 0,
     badges,
+    kingdom: stage
+      ? {
+          stage: stage.id,
+          size: stage.size,
+          hall: kingdom.hall,
+          tiles: kingdom.tiles,
+        }
+      : null,
   };
 }
 

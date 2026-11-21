@@ -13,6 +13,7 @@ import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
 import { HonorAvatar, HonorPath, honorOf } from "./honor";
 import { PencilIcon } from "./icons";
+import { KingdomVisit } from "./kingdom-visit";
 import { pick } from "@/lib/i18n";
 import { STAGES } from "@/data/kingdom.mjs";
 import { fetchPlayer, XpError, type PublicPlayer } from "@/lib/xp";
@@ -152,7 +153,41 @@ function PlayerView({ player }: { player: PublicPlayer }) {
         </dl>
       </header>
       <div className="player-body">
-        {/* The ranks first: where they stand, and how far to the next. */}
+        {/* Their kingdom, as they built it, to look around. */}
+        <section
+          className="panel player-kingdom-panel"
+          aria-labelledby="player-kingdom-title"
+        >
+          <h2 id="player-kingdom-title">
+            {stage
+              ? `${t("Kingdom")} · ${pick(stage.title, locale, true)}`
+              : t("Kingdom")}
+          </h2>
+          {player.kingdom ? (
+            <>
+              <KingdomVisit
+                kingdom={player.kingdom}
+                label={t(`${player.name}’s kingdom in 3D`)}
+              />
+              <p className="muted">
+                {mine ? (
+                  <Link href={href("/kingdom/")}>
+                    {t("Build and decorate your kingdom →")}
+                  </Link>
+                ) : (
+                  t(
+                    "Choose Look around, then drag to turn and pinch or scroll to zoom.",
+                  )
+                )}
+              </p>
+            </>
+          ) : (
+            <p className="muted">
+              {t(`${player.name} hasn’t founded a kingdom yet.`)}
+            </p>
+          )}
+        </section>
+        {/* The ranks: where they stand, and how far to the next. */}
         <HonorPath stats={player} />
         <section
           className="panel player-badges"

@@ -923,6 +923,11 @@
     "Play games and rise too →": "来玩游戏，一起晋升 →",
     "Player ID": "玩家编号",
     "See your public page": "查看你的公开主页",
-    "{0} XP to go": "还差 {0} 经验"
+    "{0} XP to go": "还差 {0} 经验",
+    "Build and decorate your kingdom →": "建造和装点你的王国 →",
+    "{0}’s kingdom in 3D": "{0} 的 3D 王国",
+    "{0} hasn’t founded a kingdom yet.": "{0} 还没有建立王国。",
+    "Look around": "四处看看",
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "点「四处看看」，然后拖动旋转，双指捏合或滚动缩放。"
   }
 }

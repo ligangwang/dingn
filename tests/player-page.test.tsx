@@ -21,6 +21,11 @@ vi.mock("../src/components/session", () => ({
   useOptionalSession: () => mocks.session,
   useSession: () => mocks.session,
 }));
+// No WebGL in tests: the kingdom shows as a list of its buildings.
+vi.mock("../src/components/kingdom-scene", () => ({
+  KingdomScene: class {},
+  webglAvailable: () => false,
+}));
 vi.mock("../src/components/rewards", () => ({
   titleOf: (title: { en: string }) => title.en,
   useGameTitles: () => (id: string) => ({ gemsurge: "Gem Surge" })[id] ?? id,
@@ -44,6 +49,12 @@ const ada = {
       title: { en: "First light", zh: "" },
     },
   ],
+  kingdom: {
+    stage: "city",
+    size: 8,
+    hall: "village",
+    tiles: { "2,0": "well", "-2,0": "windmill" },
+  },
 };
 
 beforeEach(() => {
@@ -75,6 +86,15 @@ it("shows a player's honor, level, kingdom and badges to anyone", async () => {
   expect(within(badges).getByText("First light")).toBeTruthy();
   expect(within(badges).getByText("Gem Surge")).toBeTruthy();
   expect(screen.getByRole("region", { name: "Path of honor" })).toBeTruthy();
+  // Their kingdom as they built it, to look around.
+  const kingdom = screen.getByRole("region", { name: "Kingdom · City" });
+  expect(await within(kingdom).findByText("Windmill")).toBeTruthy();
+  expect(within(kingdom).getByText("Well")).toBeTruthy();
+  expect(
+    within(kingdom).getByText(
+      "Choose Look around, then drag to turn and pinch or scroll to zoom.",
+    ),
+  ).toBeTruthy();
   // Nothing private, and no editing for a visitor.
   expect(screen.queryByText(/coins/i)).toBeNull();
   expect(screen.queryByRole("link", { name: "Edit profile" })).toBeNull();
@@ -100,4 +120,12 @@ it("says so when no player has the number", async () => {
   render(<PlayerPage />);
   expect(await screen.findByText("Player not found")).toBeTruthy();
   expect(screen.getByText("No player has that number.")).toBeTruthy();
+});
+
+it("says when a player has no kingdom yet", async () => {
+  mocks.fetchPlayer.mockResolvedValue({ ...ada, level: 1, kingdom: null });
+  render(<PlayerPage />);
+  expect(
+    await screen.findByText("Star Gazer hasn’t founded a kingdom yet."),
+  ).toBeTruthy();
 });

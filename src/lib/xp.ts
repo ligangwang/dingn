@@ -1,5 +1,6 @@
 import type { GameId } from "./xp-config";
 import type { EarnedBadge } from "./rewards";
+import type { StageId } from "@/data/kingdom.mjs";
 export { MIN_PLAY_MS, type GameId } from "./xp-config";
 export type PlayerStats = {
   level: number;
@@ -48,6 +49,13 @@ export type PublicPlayer = {
   streak: number;
   /** Newest first. */
   badges: Omit<EarnedBadge, "at" | "coins">[];
+  /** Their kingdom as built, or null below the level that founds one. */
+  kingdom: {
+    stage: StageId;
+    size: number;
+    hall: StageId;
+    tiles: Record<string, string>;
+  } | null;
 };
 
 export class XpError extends Error {

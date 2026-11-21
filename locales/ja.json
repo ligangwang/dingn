@@ -923,6 +923,11 @@
     "Play games and rise too →": "ゲームで遊んで、あなたも昇格しよう →",
     "Player ID": "プレイヤーID",
     "See your public page": "公開ページを見る",
-    "{0} XP to go": "あと {0} XP"
+    "{0} XP to go": "あと {0} XP",
+    "Build and decorate your kingdom →": "王国を建てて飾ろう →",
+    "{0}’s kingdom in 3D": "{0} の王国（3D）",
+    "{0} hasn’t founded a kingdom yet.": "{0} はまだ王国を築いていません。",
+    "Look around": "見て回る",
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "「見て回る」を押してから、ドラッグで回転、ピンチやスクロールでズームできます。"
   }
 }
