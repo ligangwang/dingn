@@ -15,6 +15,7 @@ import {
   categoryOf,
   clearRegistryCache,
   compareVersions,
+  firestore,
   isPreview,
   listRecords,
   pointChannel,
@@ -225,7 +226,7 @@ const seen = (p) => p.lastActive ?? p.lastSignIn ?? p.createdAt ?? "";
  * last seen. Firebase lists accounts only by uid, so this reads them all and
  * sorts; that is fine for thousands of accounts.
  */
-async function players(body, users) {
+async function players(body, users, db) {
   let page = body.page ?? 1;
   if (!Number.isInteger(page) || page < 1)
     throw new ApiError(400, "invalid-request");
@@ -244,8 +245,28 @@ async function players(body, users) {
   const found = uid ? all.findIndex((p) => p.uid === uid) : -1;
   if (found >= 0) page = Math.floor(found / PLAYERS_PER_PAGE) + 1;
   const start = (page - 1) * PLAYERS_PER_PAGE;
+  const shown = all.slice(start, start + PLAYERS_PER_PAGE);
+  // Each one's dingn nickname and public number, from their account. A
+  // failed read leaves them blank rather than failing the page.
+  let accounts = [];
+  if (shown.length)
+    try {
+      const store = db ?? (await firestore());
+      accounts = await store.getAll(
+        ...shown.map((p) => store.collection("accounts").doc(p.uid)),
+      );
+    } catch (e) {
+      console.error("admin players: accounts", e);
+    }
+  shown.forEach((p, i) => {
+    const account = accounts[i]?.data?.() ?? {};
+    p.nickname = typeof account.user_name === "string" ? account.user_name : "";
+    p.number = /^[1-9]\d{9}$/.test(account.player_no ?? "")
+      ? account.player_no
+      : "";
+  });
   return {
-    players: all.slice(start, start + PLAYERS_PER_PAGE),
+    players: shown,
     total: all.length,
     pages: Math.max(1, Math.ceil(all.length / PLAYERS_PER_PAGE)),
     page,
@@ -508,7 +529,7 @@ export async function handleAdminGames(
   req,
   res,
   pathname,
-  { verify, exchange = refresh, users } = {},
+  { verify, exchange = refresh, users, db } = {},
 ) {
   try {
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
@@ -539,7 +560,7 @@ export async function handleAdminGames(
       return send(
         res,
         200,
-        await players(body, users ?? (await firebaseAuth())),
+        await players(body, users ?? (await firebaseAuth()), db),
       );
     if (pathname.startsWith("/api/admin/admins"))
       return send(

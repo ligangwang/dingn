@@ -216,6 +216,7 @@ test("a player's public page shows what anyone may see, and nothing private", as
   store.set("players/ada", { xp: 7000, streak: 4, best: { memory: 9 } });
   store.set("rewards/ada", {
     coins: 340,
+    kingdom: { hall: "village", tiles: { "2,0": "well", "-2,0": "tree" } },
     items: { "gemsurge/x": {} },
     badges: {
       "gemsurge/l1": {
@@ -264,7 +265,17 @@ test("a player's public page shows what anyone may see, and nothing private", as
         title: { en: "One" },
       },
     ],
+    // Their kingdom as built, on the land level 12 opens (a city).
+    kingdom: {
+      stage: "city",
+      size: 8,
+      hall: "village",
+      tiles: { "2,0": "well", "-2,0": "tree" },
+    },
   });
+  // Below level 2 there is no kingdom yet.
+  store.set("playerNumbers/1111111111", { uid: "new" });
+  assert.equal((await publicPlayer(db, "1111111111"))?.kingdom, null);
   // A number no player has, or that isn't one.
   assert.equal(await publicPlayer(db, "1000000000"), null);
   assert.equal(await publicPlayer(db, "ada"), null);

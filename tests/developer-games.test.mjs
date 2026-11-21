@@ -418,6 +418,11 @@ test("admins grant and remove developer access by email", async () => {
           verify: async () => ({ uid: "u1", admin: true }),
           exchange: async () => "t",
           users,
+          // No accounts in Firestore: the Players page leaves nicknames blank.
+          db: {
+            collection: () => ({ doc: (id) => id }),
+            getAll: async () => [],
+          },
         },
       );
     });
@@ -532,14 +537,30 @@ test("the admin Players page sorts by last active and pages through everyone", a
           verify: async () => ({ uid: "a", admin: true }),
           exchange: async () => "t",
           users,
+          db,
         },
       );
     });
+  // Accounts in Firestore: one player's nickname and public number.
+  const db = {
+    collection: () => ({ doc: (id) => id }),
+    getAll: async (...ids) =>
+      ids.map((id) => ({
+        data: () =>
+          id === "p7"
+            ? { user_name: "Star Gazer", player_no: "7302518846" }
+            : undefined,
+      })),
+  };
   const first = await call({ page: 1 });
   assert.equal(first.status, 200, JSON.stringify(first.body));
   assert.deepEqual([first.body.total, first.body.pages], [120, 3]);
   assert.equal(first.body.players.length, 50);
   assert.equal(first.body.players[0].uid, "p7");
+  assert.equal(first.body.players[0].nickname, "Star Gazer");
+  assert.equal(first.body.players[0].number, "7302518846");
+  assert.equal(first.body.players[1].nickname, "");
+  assert.equal(first.body.players[1].number, "");
   const last = await call({ page: 3 });
   assert.equal(last.body.players.length, 20);
   // Never active sorts after everyone who was.

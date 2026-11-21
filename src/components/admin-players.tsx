@@ -29,7 +29,7 @@ export function AdminPlayers() {
 }
 
 function PlayerList() {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
   // Opened from a name on the leaderboard: show that player.
   const [wanted] = useState(() =>
     typeof window === "undefined"
@@ -135,6 +135,7 @@ function PlayerList() {
             <thead>
               <tr>
                 <th scope="col">{t("Player")}</th>
+                <th scope="col">{t("Player ID")}</th>
                 <th scope="col">{t("Role")}</th>
                 <th scope="col">{t("Signs in with")}</th>
                 <th scope="col">{t("Joined")}</th>
@@ -152,10 +153,20 @@ function PlayerList() {
                   }
                 >
                   <th scope="row">
-                    {p.name && <strong>{p.name}</strong>}
-                    {p.name && <br />}
-                    <small>{p.email || p.uid}</small>
+                    {/* The nickname other players see, then who signed in. */}
+                    {p.nickname && <strong>{p.nickname}</strong>}
+                    {p.nickname && <br />}
+                    <small>
+                      {[p.name, p.email || p.uid].filter(Boolean).join(" · ")}
+                    </small>
                   </th>
+                  <td className="admin-player-id">
+                    {p.number ? (
+                      <a href={href(`/player/${p.number}/`)}>{p.number}</a>
+                    ) : (
+                      "–"
+                    )}
+                  </td>
                   <td>{roles(p)}</td>
                   <td>
                     {p.providers.map((id) => PROVIDERS[id] ?? id).join(", ") ||

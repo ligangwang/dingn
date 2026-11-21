@@ -910,19 +910,24 @@
     "High monarch": "대군주",
     "LV": "레벨",
     "Path of honor": "명예의 길",
-    "{0} at level {1}: {2} XP to go.": "레벨 {1}에 {0}: {2} XP 남음.",
     "You hold the highest honor in dingn.": "dingn 최고의 명예를 얻었어요.",
     "Level {0}+": "레벨 {0}+",
     "Nickname": "닉네임",
     "Other players see your nickname. No two players share one.": "다른 플레이어에게 닉네임이 보여요. 같은 닉네임은 쓸 수 없어요.",
     "That nickname is taken. Try another.": "이미 사용 중인 닉네임이에요. 다른 닉네임을 써 보세요.",
     "Nicknames are 2 to 24 characters.": "닉네임은 2~24자예요.",
-    "See your public page →": "공개 페이지 보기 →",
     "Player not found": "플레이어를 찾을 수 없어요",
     "No player has that number.": "그 번호를 가진 플레이어가 없어요.",
     "This page couldn’t be loaded. Try again in a moment.": "페이지를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
-    "This is your public page. Edit your profile →": "내 공개 페이지예요. 프로필 수정 →",
     "No badges yet.": "아직 배지가 없어요.",
-    "Play games and rise too →": "게임을 하고 함께 올라가요 →"
+    "Play games and rise too →": "게임을 하고 함께 올라가요 →",
+    "Player ID": "플레이어 ID",
+    "See your public page": "공개 페이지 보기",
+    "{0} XP to go": "{0} XP 남음",
+    "Build and decorate your kingdom →": "왕국을 짓고 꾸미기 →",
+    "{0}’s kingdom in 3D": "{0}의 3D 왕국",
+    "{0} hasn’t founded a kingdom yet.": "{0}님은 아직 왕국을 세우지 않았어요.",
+    "Look around": "둘러보기",
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "'둘러보기'를 누른 뒤 드래그해 돌리고, 손가락을 모으거나 스크롤해 확대하세요."
   }
 }

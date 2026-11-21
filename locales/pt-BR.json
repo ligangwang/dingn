@@ -910,19 +910,24 @@
     "High monarch": "Grande monarca",
     "LV": "NÍV",
     "Path of honor": "Caminho da honra",
-    "{0} at level {1}: {2} XP to go.": "{0} no nível {1}: faltam {2} XP.",
     "You hold the highest honor in dingn.": "Você tem a maior honra do dingn.",
     "Level {0}+": "Nível {0}+",
     "Nickname": "Apelido",
     "Other players see your nickname. No two players share one.": "Outros jogadores veem seu apelido. Não há dois jogadores com o mesmo.",
     "That nickname is taken. Try another.": "Esse apelido já está em uso. Tente outro.",
     "Nicknames are 2 to 24 characters.": "Apelidos têm de 2 a 24 caracteres.",
-    "See your public page →": "Ver sua página pública →",
     "Player not found": "Jogador não encontrado",
     "No player has that number.": "Nenhum jogador tem esse número.",
     "This page couldn’t be loaded. Try again in a moment.": "Não foi possível carregar esta página. Tente de novo em instantes.",
-    "This is your public page. Edit your profile →": "Esta é a sua página pública. Edite seu perfil →",
     "No badges yet.": "Ainda sem medalhas.",
-    "Play games and rise too →": "Jogue e suba também →"
+    "Play games and rise too →": "Jogue e suba também →",
+    "Player ID": "ID do jogador",
+    "See your public page": "Ver sua página pública",
+    "{0} XP to go": "Faltam {0} XP",
+    "Build and decorate your kingdom →": "Construa e decore seu reino →",
+    "{0}’s kingdom in 3D": "O reino de {0} em 3D",
+    "{0} hasn’t founded a kingdom yet.": "{0} ainda não fundou um reino.",
+    "Look around": "Olhar em volta",
+    "Choose Look around, then drag to turn and pinch or scroll to zoom.": "Toque em «Olhar em volta» e arraste para girar; use pinça ou role para aproximar."
   }
 }

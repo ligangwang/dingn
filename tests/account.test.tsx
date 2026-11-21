@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
       next: 7800,
       streak: 4,
       best: {},
+      number: "7302518846",
     },
     updateProfile: vi.fn(),
     logout: vi.fn(),
@@ -74,6 +75,12 @@ it("shows who the player is and how far they have come, with their account detai
   );
   expect(document.querySelector(".profile-avatar.honor-gold")).toBeTruthy();
   expect(screen.getByText("340")).toBeTruthy();
+  // Top right: the page other players see, and editing.
+  expect(
+    screen
+      .getByRole("link", { name: "See your public page" })
+      .getAttribute("href"),
+  ).toMatch(/^\/player\/7302518846\/?$/);
   // The email and the editing form are in Settings, not on show.
   expect(screen.queryByText(/ada@example\.com/)).toBeNull();
   expect(screen.queryByLabelText("Nickname")).toBeNull();
@@ -85,9 +92,16 @@ it("shows who the player is and how far they have come, with their account detai
   expect(screen.getByText("kingdom card")).toBeTruthy();
   // The path of honor: reached ranks lit, the next one with the XP to go.
   const path = screen.getByRole("region", { name: "Path of honor" });
+  expect(within(path).getByText("3,500 XP to go")).toBeTruthy();
+  // The road from City governor (level 10, 4,500 XP) to Monarch (level 15,
+  // 10,500 XP) is filled as far as 7,000 XP.
   expect(
-    within(path).getByText("Monarch at level 15: 3,500 XP to go."),
-  ).toBeTruthy();
+    Number(
+      (path.querySelector("li.next") as HTMLElement).style.getPropertyValue(
+        "--fill",
+      ),
+    ),
+  ).toBeCloseTo(2500 / 6000);
   const steps = [...path.querySelectorAll("li")].map((li) => li.className);
   expect(steps).toEqual([
     "honor-step reached",

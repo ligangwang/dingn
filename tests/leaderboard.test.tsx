@@ -59,6 +59,12 @@ it("links each name to the player's public page, and admins also to the Players 
   expect(screen.getByRole("link", { name: "Admin" }).getAttribute("href")).toBe(
     "/admin/players/?uid=u1",
   );
+  // Each avatar wears the player's level, with their honor's title beside it.
+  const row = link.closest("li")!;
+  expect(
+    row.querySelector(".profile-avatar.honor-bronze .profile-medal"),
+  ).toBeTruthy();
+  expect(row.querySelector(".lv")!.textContent).toBe("Camp leader");
   // A player with no public number yet is plain text.
   expect(screen.queryByRole("link", { name: "Bo" })).toBeNull();
   expect(screen.getByText("Bo")).toBeTruthy();

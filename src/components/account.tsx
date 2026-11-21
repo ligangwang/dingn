@@ -19,7 +19,14 @@ import { Coin } from "./rewards-art";
 import { KingdomCard } from "./kingdom-card";
 import { LevelCard } from "./xp";
 import { saveNickname, XpError } from "@/lib/xp";
-import { BagIcon, GearIcon, PencilIcon, PersonIcon, WalletIcon } from "./icons";
+import {
+  BagIcon,
+  EyeIcon,
+  GearIcon,
+  PencilIcon,
+  PersonIcon,
+  WalletIcon,
+} from "./icons";
 import { HonorAvatar, HonorPath, honorOf } from "./honor";
 export { HONORS, honorOf } from "./honor";
 
@@ -74,25 +81,30 @@ function ProfileHead({ onEdit }: { onEdit: () => void }) {
               {t(honor.title)}
             </p>
           )}
+        </div>
+        <div className="profile-actions">
           {stats?.number && (
+            // The page other players see.
             <Link
-              className="profile-public"
+              className="profile-edit"
               href={href(`/player/${stats.number}/`)}
+              aria-label={t("See your public page")}
+              title={t("See your public page")}
             >
-              {t("See your public page →")}
+              <EyeIcon size={18} />
             </Link>
           )}
+          {/* Editing is in the Settings tab; this only opens it. */}
+          <button
+            type="button"
+            className="profile-edit"
+            onClick={onEdit}
+            aria-label={t("Edit profile")}
+            title={t("Edit profile")}
+          >
+            <PencilIcon size={18} />
+          </button>
         </div>
-        {/* Editing is in the Settings tab; this only opens it. */}
-        <button
-          type="button"
-          className="profile-edit"
-          onClick={onEdit}
-          aria-label={t("Edit profile")}
-          title={t("Edit profile")}
-        >
-          <PencilIcon size={18} />
-        </button>
       </div>
       <dl className="profile-stats">
         <div className="profile-stat profile-level">

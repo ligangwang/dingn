@@ -1159,13 +1159,14 @@ nav .coin-count.bump .coin {
   min-width: 0;
   white-space: nowrap;
 }
-.leaderboard .name > a:not(.admin-link),
-.leaderboard .name > :not(.avatar, .admin-link) {
+/* A long name ends in "…"; the avatar's medal is never clipped. */
+.leaderboard .name > a:not(.admin-link) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leaderboard .name .avatar {
+.leaderboard .name .board-avatar {
   flex: none;
+  margin-right: 6px;
 }
 .leaderboard .name a:not(.admin-link) {
   color: inherit;
@@ -1179,6 +1180,10 @@ nav .coin-count.bump .coin {
 .leaderboard .admin-link {
   font-size: 12px;
   color: #8e95ab;
+}
+/* An admin's rows end with a link to the player on the Players page. */
+.leaderboard li:has(> .admin-link) {
+  grid-template-columns: 34px 1fr auto auto auto;
 }
 .leaderboard .lv {
   font-size: 12px;
@@ -1195,6 +1200,9 @@ nav .coin-count.bump .coin {
   }
   .leaderboard li {
     grid-template-columns: 26px 1fr auto;
+  }
+  .leaderboard li:has(> .admin-link) {
+    grid-template-columns: 26px 1fr auto auto;
   }
   .leaderboard .lv {
     display: none;
@@ -1713,6 +1721,12 @@ nav a.account-link:has(.avatar-preset) {
   overflow-wrap: anywhere;
 }
 /* A small pencil in the corner: editing is in the Settings tab. */
+/* The round buttons at the card's top right: see the public page, edit. */
+.profile-actions {
+  align-self: flex-start;
+  display: flex;
+  gap: 8px;
+}
 .profile-edit {
   align-self: flex-start;
   display: grid;
@@ -1724,6 +1738,9 @@ nav a.account-link:has(.avatar-preset) {
   background: #1b2030;
   color: #c3c8d6;
   cursor: pointer;
+}
+a.profile-edit {
+  text-decoration: none;
 }
 .profile-edit:hover,
 .profile-edit:focus-visible {
@@ -1893,6 +1910,18 @@ nav a.account-link:has(.avatar-preset) {
   outline: 1px dashed #5b6278;
   outline-offset: -1px;
 }
+/* The road to the next rank fills in as the player's XP grows. */
+.honor-step.next::before {
+  background: linear-gradient(
+    90deg,
+    #d5ff58 calc(var(--fill, 0) * 100%),
+    #34394b calc(var(--fill, 0) * 100%)
+  );
+}
+.honor-step .honor-to-go {
+  color: #d5ff58;
+  font-weight: 600;
+}
 
 /* The tabs down the side, and the open tab beside them. */
 .profile-body {
@@ -2024,12 +2053,6 @@ nav a.account-link:has(.avatar-preset) {
 }
 
 /* ---- A player's public page (src/components/player-page.tsx) ---- */
-.profile-public {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 14px;
-  color: #bdaaff;
-}
 .player-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2109,5 +2132,132 @@ nav a.account-link:hover .header-avatar {
   .language-switch {
     width: 36px;
     height: 36px;
+  }
+}
+/* The leaderboard's avatars, in their honor's ring with a level medal, and
+   the honor's title in its metal. */
+.board-avatar.profile-avatar {
+  padding: 2px;
+}
+.board-avatar.profile-avatar .avatar {
+  border-width: 2px;
+}
+.board-avatar .profile-medal {
+  right: -9px;
+  bottom: -8px;
+  filter: drop-shadow(0 2px 3px #000a);
+}
+.leaderboard .lv.honor-bronze {
+  color: #f0b98a;
+}
+.leaderboard .lv.honor-silver {
+  color: #dfe5ea;
+}
+.leaderboard .lv.honor-gold {
+  color: #ffd85c;
+}
+.leaderboard .lv.honor-diamond {
+  color: #9cc6ff;
+}
+/* The public player number on the Players admin page. */
+.admin-player-id {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* A player's kingdom on their public page (kingdom-visit.tsx): the 3D
+   island in a framed window over the kingdom's sky. */
+.player-kingdom {
+  position: relative;
+  height: clamp(300px, 56vw, 520px);
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(#3d6fb6, #9cc3e6 55%, #ffd9a8);
+  color: #fff;
+}
+.player-kingdom-canvas {
+  position: absolute;
+  inset: 0;
+  /* Still until "Look around", so the page scrolls over it. */
+  pointer-events: none;
+}
+.player-kingdom.is-exploring .player-kingdom-canvas {
+  pointer-events: auto;
+  touch-action: none;
+}
+.player-kingdom-explore {
+  position: absolute;
+  z-index: 2;
+  right: 14px;
+  bottom: 14px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #10131ccc;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.player-kingdom-explore:hover,
+.player-kingdom-explore:focus-visible {
+  background: #d5ff58;
+  color: #10131c;
+}
+.player-kingdom.is-exploring .player-kingdom-explore {
+  background: #d5ff58;
+  color: #10131c;
+}
+.player-kingdom-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+.player-kingdom-canvas.is-ready canvas {
+  opacity: 1;
+}
+.player-kingdom .kingdom-loading {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: min(260px, 70%);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-weight: 600;
+  text-shadow: 0 1px 6px #1c3a66aa;
+}
+.player-kingdom .kingdom-loading p {
+  margin: 0 0 10px;
+}
+.player-kingdom .kingdom-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #ffffff55;
+}
+.player-kingdom .kingdom-progress span {
+  display: block;
+  height: 100%;
+  background: #fff;
+  transition: width 0.3s ease;
+}
+.player-kingdom-list {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 18px 18px 18px 36px;
+  overflow: auto;
+  background: #1c2420cc;
+}
+.player-kingdom-panel > .muted {
+  margin: 10px 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .player-kingdom-canvas canvas,
+  .player-kingdom .kingdom-progress span {
+    transition: none;
   }
 }

@@ -12,6 +12,8 @@ import { useOptionalSession } from "./session";
 import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
 import { HonorAvatar, HonorPath, honorOf } from "./honor";
+import { PencilIcon } from "./icons";
+import { KingdomVisit } from "./kingdom-visit";
 import { pick } from "@/lib/i18n";
 import { STAGES } from "@/data/kingdom.mjs";
 import { fetchPlayer, XpError, type PublicPlayer } from "@/lib/xp";
@@ -94,15 +96,20 @@ function PlayerView({ player }: { player: PublicPlayer }) {
             <p className={`profile-honor honor-${honor.tier}`}>
               {t(honor.title)}
             </p>
-            {mine && (
-              <Link
-                className="profile-public"
-                href={href("/account/#settings")}
-              >
-                {t("This is your public page. Edit your profile →")}
-              </Link>
-            )}
           </div>
+          {mine && (
+            // The owner can edit what this page shows, from Settings.
+            <div className="profile-actions">
+              <Link
+                className="profile-edit"
+                href={href("/account/#settings")}
+                aria-label={t("Edit profile")}
+                title={t("Edit profile")}
+              >
+                <PencilIcon size={18} />
+              </Link>
+            </div>
+          )}
         </div>
         <dl className="profile-stats">
           <div className="profile-stat profile-level">
@@ -146,6 +153,42 @@ function PlayerView({ player }: { player: PublicPlayer }) {
         </dl>
       </header>
       <div className="player-body">
+        {/* Their kingdom, as they built it, to look around. */}
+        <section
+          className="panel player-kingdom-panel"
+          aria-labelledby="player-kingdom-title"
+        >
+          <h2 id="player-kingdom-title">
+            {stage
+              ? `${t("Kingdom")} · ${pick(stage.title, locale, true)}`
+              : t("Kingdom")}
+          </h2>
+          {player.kingdom ? (
+            <>
+              <KingdomVisit
+                kingdom={player.kingdom}
+                label={t(`${player.name}’s kingdom in 3D`)}
+              />
+              <p className="muted">
+                {mine ? (
+                  <Link href={href("/kingdom/")}>
+                    {t("Build and decorate your kingdom →")}
+                  </Link>
+                ) : (
+                  t(
+                    "Choose Look around, then drag to turn and pinch or scroll to zoom.",
+                  )
+                )}
+              </p>
+            </>
+          ) : (
+            <p className="muted">
+              {t(`${player.name} hasn’t founded a kingdom yet.`)}
+            </p>
+          )}
+        </section>
+        {/* The ranks: where they stand, and how far to the next. */}
+        <HonorPath stats={player} />
         <section
           className="panel player-badges"
           aria-labelledby="player-badges-title"
@@ -174,7 +217,6 @@ function PlayerView({ player }: { player: PublicPlayer }) {
             <p className="muted">{t("No badges yet.")}</p>
           )}
         </section>
-        <HonorPath stats={player} />
         {!mine && (
           <Link className="button" href={href("/#games")}>
             {t("Play games and rise too →")}
