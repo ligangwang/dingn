@@ -878,6 +878,11 @@
     "Challenge score: {0} coin": "{0}코인",
     "Challenge score: {0} coins": "{0}코인",
     "{0} to earn XP and join the leaderboard.": "{0}하면 XP를 얻고 리더보드에 참여할 수 있어요.",
-    "I accept the {0}": "{0}에 동의해요"
+    "I accept the {0}": "{0}에 동의해요",
+    "Featured on the home page": "홈에 추천 중",
+    "Feature on the home page": "홈에 추천하기",
+    "Take off the home page": "홈 추천 해제",
+    "{0} is featured on the home page.": "{0}을(를) 홈에 추천했어요.",
+    "{0} is off the home page. The home page picks its game itself.": "{0}을(를) 홈 추천에서 뺐어요. 홈이 추천 게임을 알아서 골라요."
   }
 }

@@ -44,6 +44,10 @@ select {
 .mind-home {
   max-width: 1260px;
 }
+/* The game the home page features, under the hero. */
+.home-featured .featured-game {
+  margin-bottom: 64px;
+}
 .mind-hero {
   display: grid;
   grid-template-columns: 1.3fr 1fr;

@@ -90,6 +90,8 @@ export function adminGame(record, plays = null) {
     // Its category page, and when an admin pinned it to that page's banner.
     category: categoryOf(record, record.versions?.[record.live]),
     featuredAt: record.featuredAt ?? null,
+    // When an admin made it the game the home page features.
+    homeAt: record.homeAt ?? null,
     removedReason: record.removedReason ?? null,
     plays,
     live: record.live ?? null,
@@ -289,6 +291,16 @@ async function unpinOthers(game) {
       });
 }
 
+/** Takes every other game off the home page: it features one game. */
+async function unpinOthersFromHome(game) {
+  for (const other of await listRecords())
+    if (other.id !== game.id && other.homeAt)
+      await updateRecord(other.id, (record) => {
+        const { homeAt: _h, ...kept } = record;
+        return kept;
+      });
+}
+
 /** Applies one admin change to a record. Throws ApiError for a bad request. */
 export function applyChange(
   record,
@@ -370,10 +382,20 @@ export function applyChange(
       const { featuredAt: _f, ...kept } = record;
       return { ...kept, updatedAt: now };
     }
+    case "feature-home":
+      // Makes it the game the home page features.
+      if (record.status !== "listed" || !record.live)
+        throw new ApiError(400, "not-listed");
+      return { ...record, homeAt: now, updatedAt: now };
+    case "unfeature-home": {
+      const { homeAt: _h, ...kept } = record;
+      return { ...kept, updatedAt: now };
+    }
     case "take-down":
       // Stops the game everywhere: the player, its files and the catalog.
-      // A taken-down game also leaves its category page's banner.
-      const { featuredAt: _f, ...rest } = record;
+      // A taken-down game also leaves its category page's banner and the
+      // home page.
+      const { featuredAt: _f, homeAt: _h, ...rest } = record;
       return {
         ...rest,
         status: "removed",
@@ -572,6 +594,8 @@ export async function handleAdminGames(
     });
     // One pinned game per category: featuring a game unpins the others.
     if (body.action === "feature") await unpinOthers(updated);
+    // And one on the home page.
+    if (body.action === "feature-home") await unpinOthersFromHome(updated);
     clearRegistryCache();
     console.log(
       "games admin",

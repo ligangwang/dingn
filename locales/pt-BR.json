@@ -878,6 +878,11 @@
     "Challenge score: {0} coin": "{0} moeda",
     "Challenge score: {0} coins": "{0} moedas",
     "{0} to earn XP and join the leaderboard.": "{0} para ganhar XP e entrar no ranking.",
-    "I accept the {0}": "Eu aceito o {0}"
+    "I accept the {0}": "Eu aceito o {0}",
+    "Featured on the home page": "Em destaque na página inicial",
+    "Feature on the home page": "Destacar na página inicial",
+    "Take off the home page": "Tirar da página inicial",
+    "{0} is featured on the home page.": "{0} está em destaque na página inicial.",
+    "{0} is off the home page. The home page picks its game itself.": "{0} saiu da página inicial. A página inicial escolhe o jogo sozinha."
   }
 }

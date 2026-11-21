@@ -226,6 +226,31 @@ test("an admin pins one game per category to its page's banner", async () => {
     [(await featured()).gems, (await featured()).pets],
     [false, true],
   );
+
+  // The home page features one game, from any category.
+  const onHome = async () =>
+    (await registry.listRecords()).filter((r) => r.homeAt).map((r) => r.id);
+  assert.equal((await feature("hidden", "feature-home")).status, 400);
+  const pets = await feature("pets", "feature-home");
+  assert.equal(pets.status, 200);
+  assert.ok(pets.body.game.homeAt);
+  assert.deepEqual(await onHome(), ["pets"]);
+  await feature("cube", "feature-home");
+  assert.deepEqual(await onHome(), ["cube"]);
+  registry.clearRegistryCache();
+  const listed = registry.catalog(await registry.listRecords());
+  assert.ok(listed.find((g) => g.id === "cube").homeAt);
+  assert.equal(listed.find((g) => g.id === "pets").homeAt, null);
+  await feature("cube", "unfeature-home");
+  assert.deepEqual(await onHome(), []);
+  // Taking the home page's game down takes it off the home page.
+  await feature("pets", "feature-home");
+  await call("/api/admin/games/update", {
+    id: "pets",
+    action: "take-down",
+    reason: "Broken",
+  });
+  assert.deepEqual(await onHome(), []);
 });
 
 test("a review key can list games and approve or reject, and nothing else", async () => {

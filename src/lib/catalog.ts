@@ -21,6 +21,8 @@ export type CatalogGame = {
   addedAt: string | null;
   /** When an admin pinned it to its category's banner, or null. */
   featuredAt?: string | null;
+  /** When an admin made it the game the home page features, or null. */
+  homeAt?: string | null;
   plays: { week: number; month: number };
   badges: BadgeDef[];
 };
@@ -121,13 +123,34 @@ export function featuredGame(
   games: CatalogGame[],
   now = Date.now(),
 ): CatalogGame | null {
+  return pinnedGame(games) ?? autoGame(games, now);
+}
+
+/**
+ * The game a banner shows when no admin has picked one: the newest game of
+ * the last NEW_DAYS days, otherwise the most played.
+ */
+function autoGame(games: CatalogGame[], now: number): CatalogGame | null {
   if (!games.length) return null;
-  const pinned = pinnedGame(games);
-  if (pinned) return pinned;
   const newest = sortGames(games, "new", "en")[0];
   if (newest.addedAt && now - time(newest) < NEW_DAYS * 86_400_000)
     return newest;
   return sortGames(games, "popular", "en")[0];
+}
+
+/**
+ * The game the home page features: the one an admin picked for it,
+ * otherwise the newest or most played of every game. A category banner's
+ * pin has no say here.
+ */
+export function homeGame(
+  games: CatalogGame[],
+  now = Date.now(),
+): CatalogGame | null {
+  const picked = games
+    .filter((g) => g.homeAt)
+    .sort((a, b) => b.homeAt!.localeCompare(a.homeAt!))[0];
+  return picked ?? autoGame(games, now);
 }
 
 /** What a signed-in player has done in one game. */

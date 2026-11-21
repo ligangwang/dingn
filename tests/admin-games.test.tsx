@@ -42,6 +42,7 @@ const crowd: AdminGame = {
   status: "unlisted",
   category: "casual",
   featuredAt: null,
+  homeAt: null,
   live: "1.0.0",
   beta: "1.1.0",
   updatedAt: null,
@@ -151,6 +152,41 @@ it("pins a listed game to its category page's banner", async () => {
   });
 });
 
+it("makes a listed game the one the home page features", async () => {
+  mocks.listGames.mockResolvedValue([
+    { ...crowd, status: "listed" },
+    { ...crowd, id: "gems", status: "listed", homeAt: "2026-11-01T00:00:00Z" },
+  ]);
+  mocks.changeGame.mockImplementation(async (_id, change) => ({
+    ...crowd,
+    status: "listed",
+    homeAt: change.action === "feature-home" ? "2026-11-15T20:00:00Z" : null,
+  }));
+  render(<AdminGames />);
+  const [card, other] = await screen.findAllByRole("region", {
+    name: "Crowd Rush",
+  });
+  expect(within(other).getByText(/Featured on the home page/)).toBeTruthy();
+  await userEvent.click(
+    within(card).getByRole("button", { name: "Feature on the home page" }),
+  );
+  expect(mocks.changeGame).toHaveBeenLastCalledWith("crowd", {
+    action: "feature-home",
+  });
+  expect(
+    await screen.findByText("Crowd Rush is featured on the home page."),
+  ).toBeTruthy();
+  expect(within(card).getByText(/Featured on the home page/)).toBeTruthy();
+  // The home page features one game: the other comes off it.
+  expect(within(other).queryByText(/Featured on the home page/)).toBeNull();
+  await userEvent.click(
+    within(card).getByRole("button", { name: "Take off the home page" }),
+  );
+  expect(mocks.changeGame).toHaveBeenLastCalledWith("crowd", {
+    action: "unfeature-home",
+  });
+});
+
 it("does nothing when the release is not confirmed", async () => {
   vi.spyOn(window, "confirm").mockReturnValue(false);
   render(<AdminGames />);
@@ -167,6 +203,7 @@ const skyhop: AdminGame = {
   status: "unlisted",
   category: "casual",
   featuredAt: null,
+  homeAt: null,
   live: null,
   beta: "1.0.0",
   updatedAt: null,

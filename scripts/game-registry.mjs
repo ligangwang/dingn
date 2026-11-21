@@ -148,13 +148,11 @@ export function validateShop(raw, problems) {
       );
     else if (seen.has(item.id))
       problems.push(`${at}.id "${item.id}" is used twice`);
-    if (
-      !(
-        Number.isInteger(item.price) &&
-        item.price >= 1 &&
-        item.price <= MAX_PRICE
-      )
-    )
+    if (!(
+      Number.isInteger(item.price) &&
+      item.price >= 1 &&
+      item.price <= MAX_PRICE
+    ))
       problems.push(
         `${at}.price must be a whole number from 1 to ${MAX_PRICE}`,
       );
@@ -351,6 +349,8 @@ export function publicGame(record, requested) {
     addedAt: addedAt(record),
     // When an admin pinned it to its category page's banner, or null.
     featuredAt: record.featuredAt ?? null,
+    // When an admin made it the game the home page features, or null.
+    homeAt: record.homeAt ?? null,
     // The badges this version can award, for the player page.
     badges: resolved.badges ?? [],
     // The upgrades this version sells for coins.
