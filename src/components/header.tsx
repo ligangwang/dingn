@@ -47,9 +47,10 @@ export function Header() {
           <span className="nav-label">{t("Kingdom")}</span>
         </Link>
         {ready && isAdmin && <AdminMenu key={path} path={path} />}
-        {ready && user && <CoinCount />}
         <div className="account-controls">
           <LanguageSwitcher />
+          {/* The wallet sits by the account it belongs to. */}
+          {ready && user && <CoinCount />}
           {ready && user ? (
             <Link
               className="account-link"
