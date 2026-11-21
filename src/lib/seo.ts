@@ -72,6 +72,11 @@ export const pages = {
     index: false,
     en: { title: "Your account" },
   },
+  "/player/": {
+    // Every player's public page, at /player/<number>/: kept out of results.
+    index: false,
+    en: { title: "Player" },
+  },
   "/coins/": {
     index: true,
     en: {

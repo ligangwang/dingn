@@ -137,13 +137,14 @@ it("lets anyone signed in read a player's account, and only its owner change it"
     ),
   );
 });
-it("leaves nicknames to the server, which keeps them unique", async () => {
+it("leaves nicknames and public numbers to the server, which keeps them unique", async () => {
   const alice = env.authenticatedContext("alice").firestore();
   // The server gives Alice her nickname (the Admin SDK skips these rules).
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "accounts", "alice"), {
       user_name: "Player10001",
       name_key: "player10001",
+      player_no: "4821937065",
     });
   });
   // She can save everything else, even sending her nickname back unchanged.
@@ -164,12 +165,23 @@ it("leaves nicknames to the server, which keeps them unique", async () => {
   await assertFails(
     updateDoc(doc(alice, "accounts", "alice"), { name_key: "ada" }),
   );
+  // Nor take another public number, which would take over another page.
+  await assertFails(
+    updateDoc(doc(alice, "accounts", "alice"), { player_no: "1000000001" }),
+  );
   // A new account can't start with one either.
   const bob = env.authenticatedContext("bob").firestore();
   await assertFails(setDoc(doc(bob, "accounts", "bob"), { user_name: "Bob" }));
+  await assertFails(
+    setDoc(doc(bob, "accounts", "bob"), { player_no: "4821937065" }),
+  );
   await assertSucceeds(setDoc(doc(bob, "accounts", "bob"), { avatar: "fox" }));
-  // The register and the counter are the server's alone.
-  for (const path of ["nicknames/ada", "counters/playerNames"]) {
+  // The registers and the counter are the server's alone.
+  for (const path of [
+    "nicknames/ada",
+    "counters/playerNames",
+    "playerNumbers/4821937065",
+  ]) {
     await assertFails(getDoc(doc(bob, path)));
     await assertFails(setDoc(doc(bob, path), { uid: "bob" }));
   }

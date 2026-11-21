@@ -2,10 +2,14 @@ import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { Leaderboard } from "../src/components/xp";
+import type { LeaderboardEntry } from "../src/lib/xp";
 
 const mocks = vi.hoisted(() => ({
   session: { isAdmin: false, stats: null },
-  board: { shown: false, entries: [{ name: "Ada", xp: 120, level: 3 }] },
+  board: {
+    shown: false,
+    entries: [{ name: "Ada", xp: 120, level: 3 }] as LeaderboardEntry[],
+  },
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
@@ -36,16 +40,39 @@ it("hides the leaderboard from players until an admin makes it public", async ()
   expect(screen.queryByText(/Only admins see this/)).toBeNull();
 });
 
-it("links each name to the player's row on the Players page for admins", async () => {
+it("links each name to the player's public page, and admins also to the Players page", async () => {
   mocks.session.isAdmin = true;
   mocks.board.entries = [
-    { name: "Ada", xp: 120, level: 3, uid: "u1" },
+    {
+      name: "Ada",
+      xp: 120,
+      level: 3,
+      uid: "u1",
+      number: "7302518846",
+      avatar: "fox",
+    },
     { name: "Bo", xp: 80, level: 2 },
-  ] as typeof mocks.board.entries;
+  ];
   render(<Leaderboard />);
   const link = await screen.findByRole("link", { name: "Ada" });
-  expect(link.getAttribute("href")).toBe("/admin/players/?uid=u1");
-  // Without an id (everyone but admins), a name is plain text.
+  expect(link.getAttribute("href")).toMatch(/^\/player\/7302518846\/?$/);
+  expect(screen.getByRole("link", { name: "Admin" }).getAttribute("href")).toBe(
+    "/admin/players/?uid=u1",
+  );
+  // A player with no public number yet is plain text.
   expect(screen.queryByRole("link", { name: "Bo" })).toBeNull();
   expect(screen.getByText("Bo")).toBeTruthy();
+  cleanup();
+
+  // Everyone else gets the public page only, never an account id.
+  mocks.session.isAdmin = false;
+  mocks.board.shown = true;
+  mocks.board.entries = [
+    { name: "Ada", xp: 120, level: 3, number: "7302518846" },
+  ];
+  render(<Leaderboard />);
+  expect(
+    (await screen.findByRole("link", { name: "Ada" })).getAttribute("href"),
+  ).toMatch(/^\/player\/7302518846\/?$/);
+  expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
 });

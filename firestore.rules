@@ -9,18 +9,18 @@ service cloud.firestore {
 
     // A player's account: name, avatar and saved game progress. Any signed-in
     // player may read one player's account, as another player's page shows it;
-    // only its owner may write it, and never its nickname: nicknames are
-    // unique, so only the server sets them, after checking the name is free
-    // (claimNickname and ensureNickname in scripts/game-api.mjs). Listing
-    // every account is for admins only.
+    // only its owner may write it, and never its nickname or public number:
+    // both are unique, so only the server sets them, after checking they are
+    // free (claimNickname, ensureNickname and ensurePlayerNumber in
+    // scripts/game-api.mjs). Listing every account is for admins only.
     match /accounts/{uid} {
       allow get: if request.auth != null;
       allow list: if request.auth != null && request.auth.token.admin == true;
       allow create: if request.auth != null && request.auth.uid == uid
-        && !request.resource.data.keys().hasAny(['user_name', 'name_key']);
+        && !request.resource.data.keys().hasAny(['user_name', 'name_key', 'player_no']);
       allow update: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['user_name', 'name_key']);
+          .hasAny(['user_name', 'name_key', 'player_no']);
       allow delete: if false;
     }
     // A player's favourite word for each number (src/lib/repository.ts),

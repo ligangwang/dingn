@@ -4,6 +4,7 @@ import { aroundLink, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "./session";
+import { Avatar } from "./avatar";
 import {
   fetchLeaderboard,
   finishPlay,
@@ -250,17 +251,28 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
             <li key={i}>
               <span className="rank">{i + 1}</span>
               <span className="name">
-                {e.uid ? (
-                  // Admins can open the player on the Players admin page.
+                <Avatar
+                  choice={e.avatar ?? ""}
+                  name={e.name}
+                  user={null}
+                  size={28}
+                />
+                {e.number ? (
+                  // Anyone can open the player's public page.
+                  <Link href={href(`/player/${e.number}/`)}>{e.name}</Link>
+                ) : (
+                  e.name
+                )}
+                {e.uid && (
+                  // Admins can also open them on the Players admin page.
                   <a
+                    className="admin-link"
                     href={href(
                       `/admin/players/?uid=${encodeURIComponent(e.uid)}`,
                     )}
                   >
-                    {e.name}
+                    {t("Admin")}
                   </a>
-                ) : (
-                  e.name
                 )}
               </span>
               <span className="lv">{t(`Lv ${e.level}`)}</span>

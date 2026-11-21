@@ -916,6 +916,13 @@
     "Nickname": "Apelido",
     "Other players see your nickname. No two players share one.": "Outros jogadores veem seu apelido. Não há dois jogadores com o mesmo.",
     "That nickname is taken. Try another.": "Esse apelido já está em uso. Tente outro.",
-    "Nicknames are 2 to 24 characters.": "Apelidos têm de 2 a 24 caracteres."
+    "Nicknames are 2 to 24 characters.": "Apelidos têm de 2 a 24 caracteres.",
+    "See your public page →": "Ver sua página pública →",
+    "Player not found": "Jogador não encontrado",
+    "No player has that number.": "Nenhum jogador tem esse número.",
+    "This page couldn’t be loaded. Try again in a moment.": "Não foi possível carregar esta página. Tente de novo em instantes.",
+    "This is your public page. Edit your profile →": "Esta é a sua página pública. Edite seu perfil →",
+    "No badges yet.": "Ainda sem medalhas.",
+    "Play games and rise too →": "Jogue e suba também →"
   }
 }

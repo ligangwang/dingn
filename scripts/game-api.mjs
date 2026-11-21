@@ -102,8 +102,9 @@ async function isAdmin(req, res) {
 }
 
 /**
- * The top ten players. An admin also gets each one's account id, so the
- * board can link to them on the Players admin page; nobody else does.
+ * The top ten players, each with their public number for their page. An
+ * admin also gets each one's account id, so the board can link to them on
+ * the Players admin page; nobody else does.
  */
 async function leaderboard(req, res) {
   // (Not named `admin`: that is the Admin SDK's initializer below.)
@@ -121,13 +122,24 @@ async function leaderboard(req, res) {
     .orderBy("xp", "desc")
     .limit(10)
     .get();
-  const entries = snap.docs.map((d) => {
+  // Each player's public number links their name to their page.
+  const accounts = snap.empty
+    ? []
+    : await db.getAll(
+        ...snap.docs.map((d) => db.collection("accounts").doc(d.id)),
+      );
+  const entries = snap.docs.map((d, i) => {
     const p = d.data();
+    const account = accounts[i]?.data() ?? {};
     return {
       uid: d.id,
       name: p.name || "Player",
       xp: p.xp || 0,
       level: p.level || 1,
+      ...(isPlayerNumber(account.player_no)
+        ? { number: account.player_no }
+        : {}),
+      avatar: typeof account.avatar === "string" ? account.avatar : "",
     };
   });
   board = { at: Date.now(), entries };
@@ -326,6 +338,90 @@ export async function claimNickname(db, uid, wanted) {
   });
 }
 
+/**
+ * A player's public number: ten random digits, never starting with 0, that
+ * names their public page (/player/<number>/). It is not their account id,
+ * which stays private: anyone signed in may read an account by its id
+ * (firestore.rules). Random rather than counted, so nobody can walk through
+ * the numbers to list every player.
+ */
+export const isPlayerNumber = (value) =>
+  typeof value === "string" && /^[1-9]\d{9}$/.test(value);
+const drawPlayerNumber = () => String(randomInt(1_000_000_000, 10_000_000_000));
+
+/**
+ * The player's public number, giving them one first if they have none.
+ * Numbers are unique: `playerNumbers/{number}` holds the uid of the one
+ * player each belongs to, and a number is only taken in a transaction that
+ * checks it is free, drawing again when it isn't. Only the server writes
+ * either (firestore.rules), and a number never changes.
+ */
+export async function ensurePlayerNumber(db, uid, draw = drawPlayerNumber) {
+  const accountRef = db.collection("accounts").doc(uid);
+  const known = (await accountRef.get()).data()?.player_no;
+  if (isPlayerNumber(known)) return known;
+  return db.runTransaction(async (tx) => {
+    const had = (await tx.get(accountRef)).data()?.player_no;
+    if (isPlayerNumber(had)) return had;
+    for (let tries = 0; tries < 10; tries++) {
+      const number = draw();
+      const ref = db.collection("playerNumbers").doc(number);
+      if ((await tx.get(ref)).exists) continue;
+      tx.set(ref, { uid });
+      tx.set(accountRef, { player_no: number }, { merge: true });
+      return number;
+    }
+    throw new Error("No free player number");
+  });
+}
+
+/**
+ * What anyone may see of a player, found by their public number: nickname,
+ * avatar, level and XP, streak and badges. Never their account id, email,
+ * coins, purchases or saved games. Null for a number no player has.
+ */
+export async function publicPlayer(db, number) {
+  if (!isPlayerNumber(number)) return null;
+  const owner = await db.collection("playerNumbers").doc(number).get();
+  const uid = owner.data()?.uid;
+  if (!uid) return null;
+  const [account, player, rewards] = await Promise.all(
+    ["accounts", "players", "rewards"].map((name) =>
+      db
+        .collection(name)
+        .doc(uid)
+        .get()
+        .then((snap) => snap.data() ?? {}),
+    ),
+  );
+  const badges = Object.values(rewards.badges ?? {})
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+    .map(({ game, id, tier, level, icon, title }) => ({
+      game,
+      id,
+      tier,
+      ...(level != null ? { level } : { icon }),
+      title,
+    }));
+  return {
+    number,
+    name: cleanNickname(account.user_name) ?? "Player",
+    avatar: typeof account.avatar === "string" ? account.avatar : "",
+    ...levelProgress(player.xp || 0),
+    streak: player.streak || 0,
+    badges,
+  };
+}
+
+async function playerPage(req) {
+  const { number } = await readJson(req);
+  const { db } = await admin();
+  const player = await publicPlayer(db, String(number ?? ""));
+  if (!player)
+    throw new GameError(404, "no_player", "No player has that number.");
+  return player;
+}
+
 async function nickname(req, res) {
   const token = await verify(req, res);
   const { name } = await readJson(req);
@@ -336,21 +432,28 @@ async function nickname(req, res) {
 async function me(req, res) {
   const token = await verify(req, res);
   const { db } = await admin();
-  const [p, name] = await Promise.all([
+  const [p, who] = await Promise.all([
     db
       .collection("players")
       .doc(token.uid)
       .get()
       .then((snap) => snap.data() || {}),
     // A new player gets their default nickname here, on their first visit.
-    ensureNickname(db, token.uid).catch(() => null),
+    // Then their public number, for their page (one transaction at a time
+    // on the account).
+    ensureNickname(db, token.uid)
+      .catch(() => null)
+      .then(async (name) => ({
+        name,
+        number: await ensurePlayerNumber(db, token.uid).catch(() => null),
+      })),
   ]);
   return {
     ...levelProgress(p.xp || 0),
     streak: p.streak || 0,
     lastPlayed: p.lastPlayed || null,
     best: p.best || {},
-    name,
+    ...who,
   };
 }
 
@@ -362,6 +465,8 @@ const routes = {
   "/api/me": me,
   "/api/me/nickname": nickname,
   "/api/leaderboard": leaderboard,
+  // A player's public page: anyone may open it, signed in or not.
+  "/api/player": playerPage,
 };
 export const gameRoutes = Object.keys(routes);
 
