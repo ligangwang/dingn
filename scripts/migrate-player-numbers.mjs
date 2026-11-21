@@ -1,10 +1,12 @@
 // One-time backfill of public player numbers (/player/<number>/). New
 // players get theirs on their first visit (ensurePlayerNumber in
 // scripts/game-api.mjs); this gives one to every existing player now, so
-// links to them work before they come back. It walks every account and every
-// player with XP (a player may have XP before they saved a profile), and
-// gives a number to each that has none. A player who already has one keeps
-// it, so running it twice changes nothing the second time.
+// links to them work before they come back. It walks every account, every
+// player with XP (a player may have XP before they saved a profile) and every
+// Firebase sign-in account (someone who signed in once but never played or
+// saved anything has neither), and gives a number to each that has none. A
+// player who already has one keeps it, so running it twice changes nothing
+// the second time.
 //
 //   node scripts/migrate-player-numbers.mjs          # dry run: counts only
 //   node scripts/migrate-player-numbers.mjs --apply  # writes
@@ -13,6 +15,7 @@
 import { pathToFileURL } from "node:url";
 import { firestore } from "./game-registry.mjs";
 import { ensurePlayerNumber, isPlayerNumber } from "./game-api.mjs";
+import { firebaseAuth } from "./games-admin.mjs";
 
 const PAGE = 300;
 
@@ -31,7 +34,12 @@ async function* idsIn(db, collection) {
 
 export async function migrate(
   db,
-  { apply = false, log = console.log, ensure = ensurePlayerNumber } = {},
+  {
+    apply = false,
+    log = console.log,
+    ensure = ensurePlayerNumber,
+    users = null,
+  } = {},
 ) {
   const counts = { players: 0, had: 0, given: 0 };
   const seen = new Set();
@@ -55,6 +63,20 @@ export async function migrate(
     const account = await db.collection("accounts").doc(snap.id).get();
     await visit(snap.id, account.data()?.player_no);
   }
+  // Everyone who has signed in, page by page: those with no Firestore
+  // record at all.
+  if (users) {
+    let pageToken;
+    do {
+      const page = await users.listUsers(1000, pageToken);
+      for (const user of page.users) {
+        if (seen.has(user.uid)) continue;
+        const account = await db.collection("accounts").doc(user.uid).get();
+        await visit(user.uid, account.data()?.player_no);
+      }
+      pageToken = page.pageToken;
+    } while (pageToken);
+  }
   log(
     `${apply ? "Gave" : "Would give"} ${counts.given} of ${counts.players} players a public number` +
       ` (${counts.had} had one)`,
@@ -65,6 +87,7 @@ export async function migrate(
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   await migrate(await firestore(), {
     apply: process.argv.includes("--apply"),
+    users: await firebaseAuth(),
   });
   // The Admin SDK keeps its connection open; the work is done.
   process.exit(0);

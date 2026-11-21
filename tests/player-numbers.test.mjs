@@ -116,4 +116,24 @@ test("the backfill gives every existing player a number once, and only counts on
     had: 4,
     given: 0,
   });
+
+  // People who signed in but have no Firestore record at all are found
+  // through Firebase sign-in accounts, two pages here.
+  const pages = [["a", "e"], ["f"]];
+  const users = {
+    async listUsers(_max, token) {
+      const i = token ? Number(token) : 0;
+      return {
+        users: pages[i].map((uid) => ({ uid })),
+        pageToken: i + 1 < pages.length ? String(i + 1) : undefined,
+      };
+    },
+  };
+  assert.deepEqual(await migrate(db, { apply: true, log: () => {}, users }), {
+    players: 6,
+    had: 4,
+    given: 2,
+  });
+  assert.ok(isPlayerNumber(store.get("accounts/e").player_no));
+  assert.ok(isPlayerNumber(store.get("accounts/f").player_no));
 });
