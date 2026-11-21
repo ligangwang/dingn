@@ -19,7 +19,11 @@ import {
   localizedRedirect,
   retiredRedirect,
 } from "../scripts/locale-redirect.mjs";
-import { publicGame, validateManifest } from "../scripts/game-registry.mjs";
+import {
+  addVersion,
+  publicGame,
+  validateManifest,
+} from "../scripts/game-registry.mjs";
 
 const packs = readPacks("locales");
 
@@ -151,4 +155,16 @@ test("a game lists its languages and may title itself in each", () => {
     },
   };
   assert.deepEqual(publicGame(record, "").languages, ["en", "zh-CN"]);
+});
+
+test("a published version keeps the languages its game.json lists", () => {
+  const manifest = validateManifest({
+    id: "skyhop",
+    version: "1.0.0",
+    title: { en: "Sky Hop", zh: "跳跳云" },
+    languages: ["en", "es"],
+  });
+  const record = addVersion(null, manifest, { listed: true });
+  record.versions["1.0.0"].reviewedAt = "2026-11-01T00:00:00Z";
+  assert.deepEqual(publicGame(record, "1.0.0").languages, ["en", "es"]);
 });

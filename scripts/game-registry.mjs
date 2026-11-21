@@ -446,6 +446,8 @@ export function addVersion(
     ...(manifest.cover ? { cover: manifest.cover } : {}),
     ...(manifest.badges?.length ? { badges: manifest.badges } : {}),
     ...(manifest.shop?.length ? { shop: manifest.shop } : {}),
+    // The languages it speaks, so it is only ever given one of them.
+    ...(manifest.languages ? { languages: manifest.languages } : {}),
     publishedAt: now,
   };
   return {

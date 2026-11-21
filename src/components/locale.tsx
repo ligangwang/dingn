@@ -52,12 +52,12 @@ export function LocaleProvider({
   // Set while switching in place, until the router reports the new URL.
   const [switched, setSwitched] = useState<Locale | null>(null);
   useEffect(() => setSwitched(null), [pathname]);
-  const locale =
-    switched ??
-    fixed ??
-    localeFromPath(
-      pathname ?? (typeof window === "undefined" ? "/" : location.pathname),
-    );
+  // The page's address decides, so a switch (which changes the address)
+  // holds after the router catches up; `fixed` only seeds the first render
+  // where no address is known yet.
+  const path =
+    pathname ?? (typeof window === "undefined" ? null : location.pathname);
+  const locale = switched ?? (path ? localeFromPath(path) : (fixed ?? "en"));
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
@@ -128,7 +128,10 @@ export function useLocale() {
     t: (text: string) => translate(text, value.locale),
     /** The text of a { en, zh, … } object in this language (see pick). */
     pick: (
-      obj: ({ en: string } & Record<string, string | undefined>) | null | undefined,
+      obj:
+        | ({ en: string } & Record<string, string | undefined>)
+        | null
+        | undefined,
       translated = false,
     ) => pick(obj, value.locale, translated),
     /** A site path in the current language, e.g. "/casual/" → "/es/casual/". */
