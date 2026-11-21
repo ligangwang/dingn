@@ -916,6 +916,13 @@
     "Nickname": "Nama panggilan",
     "Other players see your nickname. No two players share one.": "Pemain lain melihat nama panggilanmu. Tidak ada dua pemain yang sama.",
     "That nickname is taken. Try another.": "Nama panggilan itu sudah dipakai. Coba yang lain.",
-    "Nicknames are 2 to 24 characters.": "Nama panggilan terdiri dari 2 sampai 24 karakter."
+    "Nicknames are 2 to 24 characters.": "Nama panggilan terdiri dari 2 sampai 24 karakter.",
+    "See your public page →": "Lihat halaman publikmu →",
+    "Player not found": "Pemain tidak ditemukan",
+    "No player has that number.": "Tidak ada pemain dengan nomor itu.",
+    "This page couldn’t be loaded. Try again in a moment.": "Halaman ini gagal dimuat. Coba lagi sebentar lagi.",
+    "This is your public page. Edit your profile →": "Ini halaman publikmu. Ubah profilmu →",
+    "No badges yet.": "Belum ada lencana.",
+    "Play games and rise too →": "Main game dan naik juga →"
   }
 }

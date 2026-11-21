@@ -20,6 +20,8 @@ import { KingdomCard } from "./kingdom-card";
 import { LevelCard } from "./xp";
 import { saveNickname, XpError } from "@/lib/xp";
 import { BagIcon, GearIcon, PencilIcon, PersonIcon, WalletIcon } from "./icons";
+import { HonorPath, honorOf } from "./honor";
+export { HONORS, honorOf } from "./honor";
 
 type Tab = "overview" | "wallet" | "shop" | "settings";
 const TABS: {
@@ -45,93 +47,9 @@ function tabFromLocation(): Tab {
   return "overview";
 }
 
-/**
- * The honor a level earns: the ring and medal round the player's avatar, in
- * the badge tiers' metals, and a title that follows the kingdom's stages
- * (src/data/kingdom.mjs), from a wanderer to the ruler of a capital.
- */
-/**
- * The ranks a player rises through, from a wanderer to the ruler of a
- * capital. Each opens at a level, in the badge tiers' metals; the titles
- * follow the kingdom's stages (src/data/kingdom.mjs).
- */
-export const HONORS = [
-  { level: 1, tier: "bronze", title: "Wanderer" },
-  { level: 2, tier: "bronze", title: "Camp leader" },
-  { level: 4, tier: "bronze", title: "Village elder" },
-  { level: 6, tier: "silver", title: "Town lord" },
-  { level: 10, tier: "gold", title: "City governor" },
-  { level: 15, tier: "gold", title: "Monarch" },
-  { level: 20, tier: "diamond", title: "High monarch" },
-] as const;
-
-/** The honor a level earns: the ring and medal round the avatar, and a title. */
-export function honorOf(level: number): {
-  tier: (typeof HONORS)[number]["tier"];
-  title: string;
-} {
-  let honor: (typeof HONORS)[number] = HONORS[0];
-  for (const h of HONORS) if (level >= h.level) honor = h;
-  return { tier: honor.tier, title: honor.title };
-}
-
-/** XP to reach a level: 50 × level × (level − 1), as scripts/game-core.mjs. */
-const xpFor = (level: number) => 50 * level * (level - 1);
-
-/**
- * Every rank on one road: the ones reached lit, the next one marked with the
- * XP still to go, the rest waiting with the level that opens them.
- */
-function HonorPath() {
-  const { t, locale } = useLocale();
-  const { stats } = useSession();
-  const level = stats?.level ?? 0;
-  const next = HONORS.find((h) => h.level > level);
-  return (
-    <section className="panel honor-path" aria-labelledby="honor-path-title">
-      <h2 id="honor-path-title">{t("Path of honor")}</h2>
-      {stats && (
-        <p className="muted">
-          {next
-            ? t(
-                `${t(next.title)} at level ${next.level}: ${Math.max(0, xpFor(next.level) - stats.xp).toLocaleString(locale)} XP to go.`,
-              )
-            : t("You hold the highest honor in dingn.")}
-        </p>
-      )}
-      <ol>
-        {HONORS.map((h) => {
-          const reached = level >= h.level;
-          const state = reached
-            ? honorOf(level).title === h.title
-              ? "current"
-              : "reached"
-            : next === h
-              ? "next"
-              : "locked";
-          return (
-            <li key={h.title} className={`honor-step ${state}`}>
-              <BadgeMedal
-                tier={h.tier}
-                level={h.level}
-                locked={!reached}
-                levelText={t("LV")}
-                size={52}
-                label={t(h.title)}
-              />
-              <strong>{t(h.title)}</strong>
-              <small>{t(`Level ${h.level}+`)}</small>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}
-
 /** Who the player is, and their level, coins, badges and streak at a glance. */
 function ProfileHead({ onEdit }: { onEdit: () => void }) {
-  const { t, locale } = useLocale();
+  const { t, locale, href } = useLocale();
   const { user, profile, stats } = useSession();
   const wallet = useWallet();
   const name = profile.userName || user?.email?.split("@")[0] || "";
@@ -162,6 +80,14 @@ function ProfileHead({ onEdit }: { onEdit: () => void }) {
             <p className={`profile-honor honor-${honor.tier}`}>
               {t(honor.title)}
             </p>
+          )}
+          {stats?.number && (
+            <Link
+              className="profile-public"
+              href={href(`/player/${stats.number}/`)}
+            >
+              {t("See your public page →")}
+            </Link>
           )}
         </div>
         {/* Editing is in the Settings tab; this only opens it. */}
@@ -355,6 +281,7 @@ function Settings() {
 
 function Profile() {
   const { t, href } = useLocale();
+  const { stats } = useSession();
   const [tab, setTab] = useState<Tab>("overview");
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   useEffect(() => {
@@ -429,7 +356,7 @@ function Profile() {
           {tab === "overview" && (
             <>
               <LevelCard />
-              <HonorPath />
+              <HonorPath stats={stats} />
               <KingdomCard />
               <Link className="button" href={href("/#games")}>
                 {t("Play games →")}

@@ -1162,9 +1162,32 @@ nav .coin-count.bump .coin {
   color: #d5ff58;
 }
 .leaderboard .name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.leaderboard .name > a:not(.admin-link),
+.leaderboard .name > :not(.avatar, .admin-link) {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.leaderboard .name .avatar {
+  flex: none;
+}
+.leaderboard .name a:not(.admin-link) {
+  color: inherit;
+  text-decoration: none;
+}
+.leaderboard .name a:not(.admin-link):hover,
+.leaderboard .name a:not(.admin-link):focus-visible {
+  color: #d5ff58;
+  text-decoration: underline;
+}
+.leaderboard .admin-link {
+  font-size: 12px;
+  color: #8e95ab;
 }
 .leaderboard .lv {
   font-size: 12px;
@@ -2007,4 +2030,52 @@ nav a.account-link:has(.avatar-preset) {
   .profile-tabs button[aria-selected="true"] {
     box-shadow: inset 0 -3px 0 #d5ff58;
   }
+}
+
+/* ---- A player's public page (src/components/player-page.tsx) ---- */
+.profile-public {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #bdaaff;
+}
+.player-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 22px;
+}
+.player-body > .button {
+  justify-self: start;
+}
+.player-badges h2 small {
+  color: #8e95ab;
+  font-size: 0.7em;
+}
+.player-badges ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.player-badges li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff06;
+  text-align: center;
+}
+.player-badges li strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+.player-badges li small {
+  color: #8e95ab;
+  font-size: 12px;
 }

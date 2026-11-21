@@ -256,6 +256,19 @@ http
       });
       return;
     }
+    // Every player's public page shares the one exported page, which reads
+    // the number from the address (src/components/player-page.tsx).
+    const player = new RegExp(
+      `^\\/(?:(${PREFIXES})\\/)?player\\/[1-9]\\d{9}\\/?$`,
+    ).exec(pathname);
+    if (player) {
+      if (!pathname.endsWith("/")) {
+        res.writeHead(308, { Location: pathname + "/" });
+        res.end();
+        return;
+      }
+      target = path.join(root, player[1] ?? "", "player", "index.html");
+    }
     // The home and category pages, with their games filled in as links.
     const listing = new RegExp(
       `^\\/(?:(${PREFIXES})\\/)?(?:(casual|memory|puzzle|adventure)\\/)?$`,

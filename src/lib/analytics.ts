@@ -37,6 +37,12 @@ export function analyticsPage(path: string) {
   const tag = prefix ? prefix.slice(1) : "";
   const segments = rest.split("/").filter(Boolean);
   if (segments[0] === "admin") return null;
+  // A player's page is reported without their number.
+  if (segments[0] === "player")
+    return {
+      path: `${prefix}/player/`,
+      title: tag ? `Player (${tag})` : "Player",
+    };
   if (!segments.every((part) => SEGMENT.test(part)))
     return { path: `${prefix}/other/`, title: "Other" };
   const title =

@@ -74,6 +74,15 @@ test("clears Analytics cookies while preserving other cookies", () => {
 });
 test("tracks every page except admin, in both languages", () => {
   expect(analyticsPage("/")).toEqual({ path: "/", title: "Home" });
+  // A player's page is reported without their public number.
+  expect(analyticsPage("/player/7302518846/")).toEqual({
+    path: "/player/",
+    title: "Player",
+  });
+  expect(analyticsPage("/zh/player/7302518846/")).toEqual({
+    path: "/zh/player/",
+    title: "Player (zh)",
+  });
   expect(analyticsPage("/zh")).toEqual({ path: "/zh/", title: "Home (zh)" });
   expect(analyticsPage("/casual/")).toEqual({
     path: "/casual/",

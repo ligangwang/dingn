@@ -37,7 +37,7 @@ export function useWallet() {
  * A badge's or upgrade's title in a language: its own text in it, otherwise
  * the English, translated where it is dingn's own (a pack has the words).
  */
-const titleOf = (
+export const titleOf = (
   title: { en: string } & Record<string, string | undefined>,
   locale: string,
 ) => pick(title, locale, true);
@@ -182,7 +182,7 @@ function gameTitleOf(id: string) {
   return titleCache.get(id)!;
 }
 /** Each game's title in the current language, or its id until it loads. */
-function useGameTitles(ids: string[]) {
+export function useGameTitles(ids: string[]) {
   const { locale } = useLocale();
   const key = [...new Set(ids)].sort().join(",");
   const [titles, setTitles] = useState<Record<string, string>>({});

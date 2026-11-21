@@ -1,4 +1,5 @@
 import type { GameId } from "./xp-config";
+import type { EarnedBadge } from "./rewards";
 export { MIN_PLAY_MS, type GameId } from "./xp-config";
 export type PlayerStats = {
   level: number;
@@ -9,6 +10,8 @@ export type PlayerStats = {
   best: Partial<Record<GameId, number>>;
   /** The player's nickname: a new player's default one, "Player<number>". */
   name?: string | null;
+  /** The ten digits naming the player's public page, /player/<number>/. */
+  number?: string | null;
 };
 export type PlayResult = {
   score: number;
@@ -28,6 +31,23 @@ export type LeaderboardEntry = {
   level: number;
   /** The player's account id, sent only to admins. */
   uid?: string;
+  /** Their public number, for their page; missing until they next visit. */
+  number?: string;
+  /** Their avatar choice (src/lib/models.ts avatarPresets). */
+  avatar?: string;
+};
+/** What anyone may see of a player, on their page /player/<number>/. */
+export type PublicPlayer = {
+  number: string;
+  name: string;
+  avatar: string;
+  level: number;
+  xp: number;
+  floor: number;
+  next: number;
+  streak: number;
+  /** Newest first. */
+  badges: Omit<EarnedBadge, "at" | "coins">[];
 };
 
 export class XpError extends Error {
@@ -76,3 +96,6 @@ export const saveNickname = (name: string) =>
 /** The top players; `shown` is false while too few players have XP. */
 export const fetchLeaderboard = () =>
   call<{ shown: boolean; entries: LeaderboardEntry[] }>("/api/leaderboard");
+/** A player's public page (code "no_player" when no player has the number). */
+export const fetchPlayer = (number: string) =>
+  call<PublicPlayer>("/api/player", { number });

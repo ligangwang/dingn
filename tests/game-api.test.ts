@@ -36,6 +36,7 @@ test("XP routes are POST-only, CSRF-checked and need a session", async () => {
     "/api/me/nickname",
     "/api/play/finish",
     "/api/play/start",
+    "/api/player",
   ]);
   assert.equal((await call("GET", "/memory-ladder/")).handled, false);
   assert.equal((await call("POST", "/api/auth/login", json)).handled, false);
@@ -170,4 +171,102 @@ test("a player can take any free nickname, never one another player holds", asyn
       code: "bad_nickname",
     });
   assert.equal(cleanNickname("Ｌｅｅ​"), "Lee");
+});
+
+test("every player gets a public number of ten random digits that no one else has", async () => {
+  const { ensurePlayerNumber, isPlayerNumber } =
+    await import("../scripts/game-api.mjs");
+  const { db, store } = fakeDb();
+  // Someone already has the first number drawn: it is drawn again.
+  store.set("playerNumbers/4821937065", { uid: "z" });
+  const draws = ["4821937065", "4821937065", "7302518846", "1000000000"];
+  const draw = () => draws.shift()!;
+  assert.equal(await ensurePlayerNumber(db, "ada", draw), "7302518846");
+  assert.deepEqual(store.get("playerNumbers/7302518846"), { uid: "ada" });
+  assert.equal(store.get("accounts/ada")?.player_no, "7302518846");
+  // It never changes.
+  assert.equal(await ensurePlayerNumber(db, "ada", draw), "7302518846");
+  assert.equal(await ensurePlayerNumber(db, "bob", draw), "1000000000");
+  // The real draw: always ten digits, never starting with 0.
+  for (let i = 0; i < 200; i++) {
+    const number = await ensurePlayerNumber(db, `p${i}`);
+    assert.ok(isPlayerNumber(number), number);
+  }
+  for (const bad of [
+    "0123456789",
+    "123456789",
+    "12345678901",
+    "12345abcde",
+    1234567890,
+  ])
+    assert.equal(isPlayerNumber(bad), false);
+});
+
+test("a player's public page shows what anyone may see, and nothing private", async () => {
+  const { publicPlayer } = await import("../scripts/game-api.mjs");
+  const { db, store } = fakeDb();
+  store.set("playerNumbers/7302518846", { uid: "ada" });
+  store.set("accounts/ada", {
+    user_name: "Star Gazer",
+    avatar: "fox",
+    player_no: "7302518846",
+    card_side: "TwoSides",
+    progress: { secret: true },
+  });
+  store.set("players/ada", { xp: 7000, streak: 4, best: { memory: 9 } });
+  store.set("rewards/ada", {
+    coins: 340,
+    items: { "gemsurge/x": {} },
+    badges: {
+      "gemsurge/l1": {
+        game: "gemsurge",
+        id: "l1",
+        tier: "bronze",
+        level: 1,
+        title: { en: "One" },
+        coins: 10,
+        at: "2026-01-01",
+      },
+      "memory/ace": {
+        game: "memory",
+        id: "ace",
+        tier: "gold",
+        icon: "star",
+        title: { en: "Ace" },
+        coins: 50,
+        at: "2026-02-01",
+      },
+    },
+  });
+  assert.deepEqual(await publicPlayer(db, "7302518846"), {
+    number: "7302518846",
+    name: "Star Gazer",
+    avatar: "fox",
+    level: 12,
+    xp: 7000,
+    floor: 6600,
+    next: 7800,
+    streak: 4,
+    // Newest first, without the coins they paid.
+    badges: [
+      {
+        game: "memory",
+        id: "ace",
+        tier: "gold",
+        icon: "star",
+        title: { en: "Ace" },
+      },
+      {
+        game: "gemsurge",
+        id: "l1",
+        tier: "bronze",
+        level: 1,
+        title: { en: "One" },
+      },
+    ],
+  });
+  // A number no player has, or that isn't one.
+  assert.equal(await publicPlayer(db, "1000000000"), null);
+  assert.equal(await publicPlayer(db, "ada"), null);
+  assert.equal(await publicPlayer(db, "../accounts/ada"), null);
 });
