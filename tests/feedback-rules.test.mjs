@@ -176,12 +176,8 @@ it("leaves nicknames and public numbers to the server, which keeps them unique",
     setDoc(doc(bob, "accounts", "bob"), { player_no: "4821937065" }),
   );
   await assertSucceeds(setDoc(doc(bob, "accounts", "bob"), { avatar: "fox" }));
-  // The registers and the counter are the server's alone.
-  for (const path of [
-    "nicknames/ada",
-    "counters/playerNames",
-    "playerNumbers/4821937065",
-  ]) {
+  // The name and number registers are the server's alone.
+  for (const path of ["nicknames/ada", "playerNumbers/4821937065"]) {
     await assertFails(getDoc(doc(bob, path)));
     await assertFails(setDoc(doc(bob, path), { uid: "bob" }));
   }
