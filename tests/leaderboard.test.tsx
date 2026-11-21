@@ -64,7 +64,7 @@ it("links each name to the player's public page, and admins also to the Players 
   expect(
     row.querySelector(".profile-avatar.honor-bronze .profile-medal"),
   ).toBeTruthy();
-  expect(row.querySelector(".lv")!.textContent).toBe("Camp leader");
+  expect(row.querySelector(".lv")!.textContent).toBe("Camp leader II");
   // A player with no public number yet is plain text.
   expect(screen.queryByRole("link", { name: "Bo" })).toBeNull();
   expect(screen.getByText("Bo")).toBeTruthy();

@@ -11,7 +11,7 @@ import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
-import { HonorAvatar, HonorPath, honorOf } from "./honor";
+import { HonorAvatar, HonorPath, honorName, honorOf } from "./honor";
 import { PencilIcon } from "./icons";
 import { KingdomVisit } from "./kingdom-visit";
 import { pick } from "@/lib/i18n";
@@ -94,7 +94,7 @@ function PlayerView({ player }: { player: PublicPlayer }) {
           <div className="profile-name">
             <h1>{player.name}</h1>
             <p className={`profile-honor honor-${honor.tier}`}>
-              {t(honor.title)}
+              {honorName(player.level, t)}
             </p>
           </div>
           {mine && (

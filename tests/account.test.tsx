@@ -7,7 +7,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { Account, honorOf } from "../src/components/account";
+import { Account, honorName, honorOf } from "../src/components/account";
 
 const mocks = vi.hoisted(() => ({
   saveNickname: vi.fn(),
@@ -59,19 +59,42 @@ beforeEach(() => window.history.replaceState(null, "", "/account/"));
 afterEach(cleanup);
 
 it("a level earns a metal and a title, rising with the kingdom's stages", () => {
-  expect(honorOf(1)).toEqual({ tier: "bronze", title: "Wanderer" });
-  expect(honorOf(4)).toEqual({ tier: "bronze", title: "Village elder" });
-  expect(honorOf(6)).toEqual({ tier: "silver", title: "Town lord" });
-  expect(honorOf(12)).toEqual({ tier: "gold", title: "City governor" });
+  expect(honorOf(1)).toEqual({ tier: "bronze", title: "Wanderer", rank: 1 });
+  expect(honorOf(4)).toEqual({
+    tier: "bronze",
+    title: "Village elder",
+    rank: 1,
+  });
+  expect(honorOf(6)).toEqual({ tier: "silver", title: "Town lord", rank: 1 });
+  expect(honorOf(12)).toEqual({
+    tier: "gold",
+    title: "City governor",
+    rank: 3,
+  });
   expect(honorOf(15).title).toBe("Monarch");
-  expect(honorOf(25)).toEqual({ tier: "diamond", title: "High monarch" });
+  expect(honorOf(25)).toEqual({
+    tier: "diamond",
+    title: "High monarch",
+    rank: 6,
+  });
+  // Each level within an honor is a step: Town lord I, II, III, IV.
+  const name = (level: number) => honorName(level, (text) => text);
+  expect([6, 7, 8, 9, 10].map(name)).toEqual([
+    "Town lord I",
+    "Town lord II",
+    "Town lord III",
+    "Town lord IV",
+    "City governor I",
+  ]);
+  expect(name(29)).toBe("High monarch X");
+  expect(name(23)).toBe("High monarch IV");
 });
 
 it("shows who the player is and how far they have come, with their account details tucked away", () => {
   render(<Account />);
   expect(screen.getByRole("heading", { level: 1, name: "Ada" })).toBeTruthy();
   expect(document.querySelector(".profile-honor")!.textContent).toBe(
-    "City governor",
+    "City governor III",
   );
   expect(document.querySelector(".profile-avatar.honor-gold")).toBeTruthy();
   expect(screen.getByText("340")).toBeTruthy();

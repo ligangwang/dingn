@@ -78,7 +78,7 @@ it("shows a player's honor, level, kingdom and badges to anyone", async () => {
   ).toBeTruthy();
   expect(mocks.fetchPlayer).toHaveBeenCalledWith("7302518846");
   expect(document.querySelector(".profile-honor")!.textContent).toBe(
-    "City governor",
+    "City governor III",
   );
   expect(document.querySelector(".profile-avatar.honor-gold")).toBeTruthy();
   expect(screen.getByText("City")).toBeTruthy();
