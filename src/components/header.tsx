@@ -63,7 +63,7 @@ export function Header() {
               title={
                 stats
                   ? t(`Account level ${stats.level}`) +
-                    ` · ${t(`${stats.xp.toLocaleString(locale)} XP in all`)}`
+                    ` · ${t(`${(stats.xp ?? 0).toLocaleString(locale)} XP in all`)}`
                   : undefined
               }
             >

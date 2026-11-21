@@ -4,7 +4,7 @@ import { aroundLink, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "./session";
-import { Avatar } from "./avatar";
+import { HonorAvatar, honorOf } from "./honor";
 import {
   fetchLeaderboard,
   finishPlay,
@@ -232,11 +232,15 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
             <li key={i}>
               <span className="rank">{i + 1}</span>
               <span className="name">
-                <Avatar
+                {/* The level on the avatar, as in the header. */}
+                <HonorAvatar
+                  className="board-avatar"
+                  level={e.level}
                   choice={e.avatar ?? ""}
                   name={e.name}
                   user={null}
-                  size={28}
+                  size={30}
+                  medal={22}
                 />
                 {e.number ? (
                   // Anyone can open the player's public page.
@@ -256,7 +260,9 @@ export function Leaderboard({ title = "Top players" }: { title?: string }) {
                   </a>
                 )}
               </span>
-              <span className="lv">{t(`Lv ${e.level}`)}</span>
+              <span className={`lv honor-${honorOf(e.level).tier}`}>
+                {t(honorOf(e.level).title)}
+              </span>
               <span className="pts">{t(`${e.xp} XP`)}</span>
             </li>
           ))}

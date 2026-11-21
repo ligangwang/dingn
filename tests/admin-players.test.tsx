@@ -55,7 +55,13 @@ it("lists players with their roles and pages forward and back", async () => {
       ? { players: [player("cy")], total: 51, pages: 2 }
       : {
           players: [
-            player("ada", { admin: true, developer: true, name: "Ada" }),
+            player("ada", {
+              admin: true,
+              developer: true,
+              name: "Ada Lovelace",
+              nickname: "Star Gazer",
+              number: "7302518846",
+            }),
             player("bo"),
           ],
           total: 51,
@@ -63,7 +69,12 @@ it("lists players with their roles and pages forward and back", async () => {
         },
   );
   render(<AdminPlayers />);
-  expect(await screen.findByText("ada@x.com")).toBeTruthy();
+  // The nickname players see, who signed in, and the public player number.
+  expect(await screen.findByText("Star Gazer")).toBeTruthy();
+  expect(screen.getByText("Ada Lovelace · ada@x.com")).toBeTruthy();
+  expect(
+    screen.getByRole("link", { name: "7302518846" }).getAttribute("href"),
+  ).toMatch(/^\/player\/7302518846\/?$/);
   expect(screen.getByText("Admin, Developer")).toBeTruthy();
   expect(screen.getAllByText("Google")).toHaveLength(2);
   expect(screen.getAllByText("Never")).toHaveLength(2);

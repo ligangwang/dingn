@@ -1159,13 +1159,14 @@ nav .coin-count.bump .coin {
   min-width: 0;
   white-space: nowrap;
 }
-.leaderboard .name > a:not(.admin-link),
-.leaderboard .name > :not(.avatar, .admin-link) {
+/* A long name ends in "…"; the avatar's medal is never clipped. */
+.leaderboard .name > a:not(.admin-link) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leaderboard .name .avatar {
+.leaderboard .name .board-avatar {
   flex: none;
+  margin-right: 6px;
 }
 .leaderboard .name a:not(.admin-link) {
   color: inherit;
@@ -2110,4 +2111,34 @@ nav a.account-link:hover .header-avatar {
     width: 36px;
     height: 36px;
   }
+}
+/* The leaderboard's avatars, in their honor's ring with a level medal, and
+   the honor's title in its metal. */
+.board-avatar.profile-avatar {
+  padding: 2px;
+}
+.board-avatar.profile-avatar .avatar {
+  border-width: 2px;
+}
+.board-avatar .profile-medal {
+  right: -9px;
+  bottom: -8px;
+  filter: drop-shadow(0 2px 3px #000a);
+}
+.leaderboard .lv.honor-bronze {
+  color: #f0b98a;
+}
+.leaderboard .lv.honor-silver {
+  color: #dfe5ea;
+}
+.leaderboard .lv.honor-gold {
+  color: #ffd85c;
+}
+.leaderboard .lv.honor-diamond {
+  color: #9cc6ff;
+}
+/* The public player number on the Players admin page. */
+.admin-player-id {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

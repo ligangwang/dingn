@@ -117,6 +117,10 @@ export type Player = {
   createdAt: string | null;
   lastSignIn: string | null;
   lastActive: string | null;
+  /** Their dingn nickname, which other players see ("" if none yet). */
+  nickname?: string;
+  /** Their public number, naming their page /player/<number>/ ("" if none). */
+  number?: string;
 };
 
 /** One page (from 1) of players, most recently active first. */
