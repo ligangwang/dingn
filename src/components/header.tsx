@@ -13,14 +13,13 @@ import {
   type CatalogGame,
   type Category,
 } from "@/lib/catalog";
-import { LevelBadge } from "./xp";
-import { Avatar } from "./avatar";
+import { HonorAvatar } from "./honor";
 import { CoinCount } from "./rewards";
 export function Header() {
-  const { t, href: to } = useLocale();
+  const { t, locale, href: to } = useLocale();
 
   const path = usePathname();
-  const { user, ready, profile, isAdmin } = useSession();
+  const { user, ready, profile, isAdmin, stats } = useSession();
   const catalog = useCatalog();
   const here = (href: string) =>
     path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
@@ -48,7 +47,6 @@ export function Header() {
           <span className="nav-label">{t("Kingdom")}</span>
         </Link>
         {ready && isAdmin && <AdminMenu key={path} path={path} />}
-        {ready && user && <LevelBadge />}
         {ready && user && <CoinCount />}
         <div className="account-controls">
           <LanguageSwitcher />
@@ -56,12 +54,27 @@ export function Header() {
             <Link
               className="account-link"
               href={to("/account/")}
-              aria-label={t("Your account")}
+              aria-label={
+                stats
+                  ? `${t("Your account")} · ${t(`Account level ${stats.level}`)}`
+                  : t("Your account")
+              }
+              title={
+                stats
+                  ? t(`Account level ${stats.level}`) +
+                    ` · ${t(`${stats.xp.toLocaleString(locale)} XP in all`)}`
+                  : undefined
+              }
             >
-              <Avatar
+              {/* The level rides on the avatar, as on the profile page. */}
+              <HonorAvatar
+                className="header-avatar"
+                level={stats?.level}
                 choice={profile.avatar}
                 name={profile.userName}
                 user={user}
+                size={34}
+                medal={26}
               />
             </Link>
           ) : (

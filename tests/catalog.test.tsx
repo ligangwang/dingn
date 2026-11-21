@@ -21,7 +21,6 @@ vi.mock("../src/components/session", () => ({
   useOptionalSession: () => mocks.session,
 }));
 vi.mock("../src/components/xp", () => ({
-  LevelBadge: () => null,
   Leaderboard: () => null,
 }));
 vi.mock("../src/lib/database", () => ({

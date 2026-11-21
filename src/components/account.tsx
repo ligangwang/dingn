@@ -15,12 +15,12 @@ import { ItemShop } from "./item-shop";
 import { avatarPresets, friendlyError } from "@/lib/models";
 import { Avatar } from "./avatar";
 import { BadgeShelf, useWallet } from "./rewards";
-import { BadgeMedal, Coin } from "./rewards-art";
+import { Coin } from "./rewards-art";
 import { KingdomCard } from "./kingdom-card";
 import { LevelCard } from "./xp";
 import { saveNickname, XpError } from "@/lib/xp";
 import { BagIcon, GearIcon, PencilIcon, PersonIcon, WalletIcon } from "./icons";
-import { HonorPath, honorOf } from "./honor";
+import { HonorAvatar, HonorPath, honorOf } from "./honor";
 export { HONORS, honorOf } from "./honor";
 
 type Tab = "overview" | "wallet" | "shop" | "settings";
@@ -59,21 +59,14 @@ function ProfileHead({ onEdit }: { onEdit: () => void }) {
   return (
     <header className="profile-head">
       <div className="profile-who">
-        <div className={`profile-avatar honor-${honor?.tier ?? "none"}`}>
-          <Avatar choice={profile.avatar} name={name} user={user} size={84} />
-          {stats && honor && (
-            <span className="profile-medal">
-              <BadgeMedal
-                tier={honor.tier}
-                level={stats.level}
-                // An account level, not a game's: its own word on the medal.
-                levelText={t("LV")}
-                size={40}
-                label={t(`Account level ${stats.level}`)}
-              />
-            </span>
-          )}
-        </div>
+        <HonorAvatar
+          level={stats?.level}
+          choice={profile.avatar}
+          name={name}
+          user={user}
+          size={84}
+          medal={40}
+        />
         <div className="profile-name">
           <h1>{name || t("Your player profile")}</h1>
           {honor && (
