@@ -1,29 +1,7 @@
 // Challenges as threads (scripts/challenges.mjs): a player's score that
 // anyone can take on, with every result posted under it, highest first.
 import { api } from "./api";
-import { rememberChallenge } from "./my-challenges";
-import {
-  CHALLENGE_ID,
-  challengeUrl,
-  type Challenge,
-  type ChallengeUnit,
-} from "@/data/challenge.mjs";
-
-/** Saves a round and builds a share link from the ID dingn assigned it. */
-export async function createChallengeLink(
-  game: string,
-  round: Challenge,
-  locale: string,
-): Promise<string> {
-  const { id } = await api<{ id: string }>("/api/challenges", {
-    ...round,
-    game,
-  });
-  if (typeof id !== "string" || !CHALLENGE_ID.test(id))
-    throw new Error("dingn returned an invalid challenge ID.");
-  rememberChallenge(id);
-  return challengeUrl(location.origin, game, id, locale);
-}
+import type { ChallengeUnit } from "@/data/challenge.mjs";
 
 /** One result under a challenge; `name` is null for a guest's own score. */
 export type ThreadResult = {
