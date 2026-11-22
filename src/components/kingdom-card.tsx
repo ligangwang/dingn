@@ -32,7 +32,7 @@ export function KingdomCard() {
           )}{" "}
           {next &&
             t(
-              `Level ${next.level}: your land grows into a ${name(next.title).toLowerCase()}, ${toGo.toLocaleString(locale)} XP to go.`,
+              `Level ${next.level}: your land grows into a ${name(next.title).toLowerCase()}, with a new hall and free buildings. ${toGo.toLocaleString(locale)} XP to go.`,
             )}
         </p>
       ) : (

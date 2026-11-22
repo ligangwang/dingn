@@ -117,10 +117,13 @@ with the numeral only on the player's current step.
 | 80–99  | Space           | Starfarer     | Stellar (new) | (to design)     |       |                                                   |
 | 100    | Multi-planetary | Worldmaker    | Stellar       | (to design)     |       |                                                   |
 
-- **Owning:** a stage opens with the level, but every building, the hall
-  upgrades included, is bought with coins (`BUILDINGS` in
-  `src/data/kingdom.mjs`), and the land grows with the stage. A player keeps
-  every building they bought, even if the stage they can build at changes.
+- **Owning:** a stage is a reward: when the level opens it, the land grows,
+  the hall upgrades itself and a few basic buildings (paths, homes, a field,
+  a well…) are placed for free (`STARTERS` in `src/data/kingdom.mjs`). The
+  player can move them. Everything else is decoration bought with coins
+  (`BUILDINGS`). A player keeps every building they own, even if the stage
+  they can build at changes. Players who bought hall upgrades before halls
+  were free got those coins back on their next visit (`hallRefund`).
 - **The medal and title** go everywhere the player is shown: the site
   header, the profile page, their public page (`/player/<number>/`) and the
   leaderboard.
