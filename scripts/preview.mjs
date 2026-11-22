@@ -32,6 +32,13 @@ import {
   handleRewardReleases,
   rewardReleaseRoutes,
 } from "./reward-releases.mjs";
+import {
+  handlePlugins,
+  isRewardFilePath,
+  pluginRoutes,
+  serveRewardFile,
+  startPluginRefresh,
+} from "./reward-plugin.mjs";
 import { funnelRoutes, handleFunnel, startFunnelFlushing } from "./funnel.mjs";
 import {
   findChallenge,
@@ -109,6 +116,8 @@ const types = {
 };
 startFlushing();
 startFunnelFlushing();
+// Run the kingdom's live plugin version, and pick up new approvals.
+startPluginRefresh();
 http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
@@ -152,6 +161,14 @@ http
     }
     if (kingdomRoutes.includes(pathname)) {
       void handleKingdom(req, res, pathname);
+      return;
+    }
+    if (pluginRoutes.includes(pathname)) {
+      void handlePlugins(req, res);
+      return;
+    }
+    if (isRewardFilePath(pathname)) {
+      void serveRewardFile(req, res, pathname);
       return;
     }
     if (rewardReleaseRoutes.includes(pathname)) {

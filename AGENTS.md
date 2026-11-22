@@ -20,34 +20,39 @@ and the API, and asks the package what a player earns. Read the kingdom
 repo's `AGENTS.md` for the levels, XP and honors design and the kingdom's
 art credits.
 
-- **Never copy a reward rule into dingn.** Import it: `kingdom/levels` (XP
-  curve, `DAILY_XP_CAP`), `kingdom/honors`, `kingdom/coins` (`TIER_COINS`,
-  `BADGE_XP` and the caps), `kingdom/ledger`, `kingdom/kingdom` (stages,
-  buildings) and `kingdom/scene` (the 3D island).
+- **Never copy a reward rule into dingn.** Call it through the plugin (below):
+  `levels` (XP curve, `DAILY_XP_CAP`), `honors`, `coins` (`TIER_COINS`,
+  `BADGE_XP` and the caps), `ledger`, `kingdom` (stages, buildings) and
+  `rewards`.
 - **Report events, don't pay rewards by hand.** `grantEvent` in
   `scripts/rewards.mjs` passes an event (`badge`, `earn`) to the package's
   `grant()` and saves the rewards and XP documents in one transaction. A new
   reward is added in the kingdom repo as a reward kind and needs no change
   here; a new kind of event needs dingn to report it once.
-- **Shipping a change to the rewards** works like a game upload. Merge it
-  in kingdom with a new version (kingdom's README, "Releasing a version");
-  kingdom's CI publishes a GitHub release and sends the version here
+- **Shipping a change to the rewards** works like a game upload, with no
+  dingn rebuild. Merge it in kingdom with a new version (kingdom's README,
+  "Releasing a version"); kingdom's CI uploads its plugin bundle here
   (`/api/rewards/upload`, scripts/reward-releases.mjs). It waits on the
   admin Rewards page until an admin approves it there or with a review key.
-  Approving starts the Website workflow, which installs it on main
-  (`scripts/install-reward.mjs`) and deploys. Never pin a commit: the
-  Rewards page flags anything that isn't a published release.
-- The kingdom's models are copied from the package to
-  `public/models/kingdom` before `dev` and `build`
+  Approving makes it live: the servers run its rules and the pages load its
+  UI within a minute (scripts/reward-plugin.mjs, src/lib/reward-plugin.ts).
+- **Call the rules through the plugin.** On the server, `rules()` from
+  `scripts/reward-plugin.mjs` (never a static `kingdom/*` import, which would
+  stay on the built-in copy); on a page, `useKingdomRules()` from
+  `src/lib/reward-plugin.ts`. The `kingdom` package dingn installs is the
+  built-in copy it falls back on, and its types.
+- The live plugin serves its own models. The built-in copy's are copied from
+  the package to `public/models/kingdom` before `dev` and `build`
   (`scripts/kingdom-assets.mjs`) and are not committed. The footer's Credits
   link still reaches them through `public/models/CREDITS.md`.
 - **Every reward system is listed** in `src/data/reward-systems.ts`, which
-  the admin Rewards page (`/admin/rewards/`) shows, kingdom first, with the
-  version dingn runs. A new reward system (its own repository and package)
+  the admin Rewards page (`/admin/rewards/`) shows, kingdom first, with its
+  built-in copy, its uploaded versions and the live one. A new reward system (its own repository and package)
   is added there too.
-- **The kingdom's pages come from the package** (`kingdom/ui`: the build
-  page, a visit and the account card). `src/components/kingdom.tsx` only
-  gives them dingn's words, links, coin picture and kingdom API; don't add
+- **The kingdom's pages come from the plugin** (its `ui.js`: the build page,
+  a visit and the account card, drawn into an element with their own React).
+  `src/components/kingdom.tsx` only gives them dingn's words, links, coin
+  picture (`public/coin.svg`) and kingdom API as plain values; don't add
   kingdom UI or rules here. Their words stay in dingn's language packs.
 - What stays here: what dingn's own games score (`xpFor` in
   `scripts/game-core.mjs`), the reward API and storage

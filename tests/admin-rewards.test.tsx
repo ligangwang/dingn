@@ -36,13 +36,14 @@ const release = (version: string, over = {}) => ({
   uploadedAt: "2026-11-22T12:00:00.000Z",
   approvedAt: null,
   rejected: null,
+  bundle: true,
   ...over,
 });
 
 beforeEach(() => {
   mocks.session = { user: { uid: "me" }, ready: true, isAdmin: true };
   mocks.list.mockReset().mockResolvedValue({
-    systems: [{ system: "kingdom", versions: [] }],
+    systems: [{ system: "kingdom", live: null, running: null, versions: [] }],
   });
   mocks.review.mockReset();
 });
@@ -97,21 +98,24 @@ it("reads the release and commit from kingdom's install spec only", () => {
   expect(pinnedCommit(system)).toBeNull();
 });
 
-it("lists the versions sent for review, and approves one", async () => {
-  const running = kingdomPkg.version;
+it("approves a waiting version, which makes it live", async () => {
   mocks.list.mockResolvedValue({
     systems: [
       {
         system: "kingdom",
-        versions: [release("9.0.0"), release(running, { approvedAt: "x" })],
+        live: "0.3.0",
+        running: { version: "0.3.0", builtIn: false, problem: null },
+        versions: [release("9.0.0"), release("0.3.0", { approvedAt: "x" })],
       },
     ],
   });
   mocks.review.mockResolvedValue({
     system: "kingdom",
+    live: "9.0.0",
+    running: { version: "9.0.0", builtIn: false, problem: null },
     versions: [
       release("9.0.0", { approvedAt: "2026-11-22T12:05:00.000Z" }),
-      release(running, { approvedAt: "x" }),
+      release("0.3.0", { approvedAt: "x" }),
     ],
   });
   vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -121,39 +125,66 @@ it("lists the versions sent for review, and approves one", async () => {
     await within(kingdom).findByRole("link", { name: "9.0.0" })
   ).closest("tr")!;
   expect(within(waiting).getByText("Waiting for review")).toBeTruthy();
-  const current = within(kingdom)
-    .getAllByRole("link", { name: running })
-    .map((a) => a.closest("tr"))
-    .find(Boolean)!;
-  expect(within(current).getByText("Running")).toBeTruthy();
+  const live = within(kingdom)
+    .getByRole("link", { name: "0.3.0" })
+    .closest("tr")!;
+  expect(within(live).getByText("Live")).toBeTruthy();
 
   fireEvent.click(within(waiting).getByRole("button", { name: "Approve" }));
+  expect(window.confirm).toHaveBeenCalledWith(
+    "Approve Kingdom 9.0.0? It goes live within a minute.",
+  );
   expect(mocks.review).toHaveBeenCalledWith("kingdom", "9.0.0", {
     action: "approve",
   });
   expect(
     await within(kingdom).findByText(
-      "Kingdom 9.0.0 is approved and deploying. It goes live in a few minutes.",
+      "Kingdom 9.0.0 is live. Every server runs it within a minute.",
     ),
   ).toBeTruthy();
-  expect(within(waiting).getByText("Approved")).toBeTruthy();
+  expect(within(waiting).getByText("Live")).toBeTruthy();
+  // The one live before can be made live again, to roll back.
+  expect(within(live).getByRole("button", { name: "Make live" })).toBeTruthy();
 });
 
-it("says when deploying isn't set up", async () => {
+it("says when this server can't load the live version", async () => {
   mocks.list.mockResolvedValue({
-    systems: [{ system: "kingdom", versions: [release("9.0.0")] }],
+    systems: [
+      {
+        system: "kingdom",
+        live: "9.0.0",
+        running: {
+          version: "0.2.0",
+          builtIn: true,
+          problem: "kingdom 9.0.0: rules.mjs does not match its upload",
+        },
+        versions: [release("9.0.0", { approvedAt: "x" })],
+      },
+    ],
   });
-  mocks.review.mockRejectedValue(
-    Object.assign(new Error("deploy-unavailable"), {
-      code: "deploy-unavailable",
-    }),
-  );
-  vi.spyOn(window, "confirm").mockReturnValue(true);
   render(<AdminRewards />);
-  fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert.textContent).toContain(
+    "This server can't load the live version, so it runs 0.2.0 meanwhile:",
+  );
+  expect(alert.textContent).toContain("does not match its upload");
+});
+
+it("can't approve a version sent before plugins", async () => {
+  mocks.list.mockResolvedValue({
+    systems: [
+      {
+        system: "kingdom",
+        live: null,
+        running: null,
+        versions: [release("0.2.0", { bundle: false })],
+      },
+    ],
+  });
+  render(<AdminRewards />);
+  expect(await screen.findByText("Sent before plugins")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
   expect(
-    await screen.findByText(
-      "Deploying isn't set up yet: the dingn service needs a GITHUB_DISPATCH_TOKEN.",
-    ),
+    screen.getByText(/none yet, so dingn runs its built-in copy/),
   ).toBeTruthy();
 });

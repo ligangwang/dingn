@@ -9,10 +9,13 @@ import {
   ladderSequences,
   scoreLadder,
 } from "../src/data/ladder.mjs";
-// Levels, the XP curve and the daily cap are the reward system's (the
-// kingdom package); this file scores dingn's own games.
-import { capPlayXp, levelFor, levelProgress } from "kingdom/levels";
-export { DAILY_XP_CAP, levelFor, levelProgress } from "kingdom/levels";
+// Levels, the XP curve and the daily cap are the reward system's (the live
+// kingdom plugin, scripts/reward-plugin.mjs); this file scores dingn's own
+// games.
+import { rules } from "./reward-plugin.mjs";
+const capPlayXp = (...a) => rules().levels.capPlayXp(...a);
+export const levelFor = (...a) => rules().levels.levelFor(...a);
+export const levelProgress = (...a) => rules().levels.levelProgress(...a);
 
 export const GAMES = ["warmup", "ladder", "ladder_daily"];
 export const STARTS_PER_HOUR = 60;

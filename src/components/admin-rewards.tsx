@@ -1,9 +1,10 @@
 "use client";
 // Rewards admin: every reward system dingn's games feed, kingdom first
-// (src/data/reward-systems.ts), with what it grants and the version dingn
-// runs. Kingdom's rules are shown as the package has them, so this page
-// can't disagree with what players get. Nothing here changes them: they
-// change in the reward system's own repository.
+// (src/data/reward-systems.ts), with what it grants, its versions and the
+// one that is live. Kingdom runs as a plugin, like a game: its CI uploads
+// each version, an admin approves it here, and it goes live with no rebuild
+// (scripts/reward-plugin.mjs). Its rules are shown as the live version has
+// them, so this page can't disagree with what players get.
 import { useEffect, useState } from "react";
 import { pick } from "@/lib/i18n";
 import { AdminOnly } from "./admin-games";
@@ -19,16 +20,7 @@ import {
   pinnedRelease,
   type RewardSystem,
 } from "@/data/reward-systems";
-import {
-  BADGE_XP,
-  DAILY_GAME_COINS,
-  MAX_EARN,
-  MAX_GAME_COINS,
-  TIER_COINS,
-} from "kingdom/coins";
-import { DAILY_XP_CAP, xpToReach } from "kingdom/levels";
-import { HONORS } from "kingdom/honors";
-import { BUILDINGS, STAGES, STARTERS, building } from "kingdom/kingdom";
+import { useKingdomRules } from "@/lib/reward-plugin";
 
 export function AdminRewards() {
   return (
@@ -46,7 +38,7 @@ function Rewards() {
       <h1>{t("Rewards")}</h1>
       <p className="lede">
         {t(
-          "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then update the version dingn runs.",
+          "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.",
         )}
       </p>
       {REWARD_SYSTEMS.map((system) => (
@@ -75,7 +67,7 @@ function System({ system }: { system: RewardSystem }) {
             {system.repo}
           </a>
         </dd>
-        <dt>{t("Version")}</dt>
+        <dt>{t("Built-in copy")}</dt>
         <dd>
           {release ? (
             <a
@@ -138,8 +130,9 @@ function System({ system }: { system: RewardSystem }) {
 }
 
 /**
- * The versions the system's CI sent for review (scripts/reward-releases.mjs),
- * newest first. Approving one installs it on main and deploys the site.
+ * The versions the system's CI uploaded (scripts/reward-releases.mjs),
+ * newest first, and the live one. Approving a version makes it live;
+ * approving an older approved one makes it live again.
  */
 function Releases({ system }: { system: RewardSystem }) {
   const { t, locale } = useLocale();
@@ -155,6 +148,8 @@ function Releases({ system }: { system: RewardSystem }) {
         setReleases(
           systems.find((s) => s.system === system.id) ?? {
             system: system.id,
+            live: null,
+            running: null,
             versions: [],
           },
         );
@@ -179,14 +174,7 @@ function Releases({ system }: { system: RewardSystem }) {
       setReleases(await reviewRewardRelease(system.id, version, change));
       setNote(done);
     } catch (e) {
-      const code = (e as { code?: string }).code;
-      setNote(
-        code === "deploy-unavailable"
-          ? t(
-              "Deploying isn't set up yet: the dingn service needs a GITHUB_DISPATCH_TOKEN.",
-            )
-          : t("Something went wrong. Try again."),
-      );
+      setNote(t("Something went wrong. Try again."));
     } finally {
       setBusy(false);
     }
@@ -197,9 +185,27 @@ function Releases({ system }: { system: RewardSystem }) {
       <h3>{t("Releases")}</h3>
       <p className="muted">
         {t(
-          "Each new version waits here for review. Approving it installs it on main and deploys the site.",
+          "Each new version waits here for review. Approving it makes it live: every server runs it within a minute, with no rebuild.",
         )}
       </p>
+      {releases && (
+        <p>
+          {t("Live version")}:{" "}
+          {releases.live ? (
+            <code>{releases.live}</code>
+          ) : (
+            t("none yet, so dingn runs its built-in copy.")
+          )}
+        </p>
+      )}
+      {releases?.running?.problem && (
+        <p className="error" role="alert">
+          {t(
+            `This server can't load the live version, so it runs ${releases.running.version} meanwhile:`,
+          )}{" "}
+          <code>{releases.running.problem}</code>
+        </p>
+      )}
       {failed ? (
         <p>{t("Releases could not be loaded. Try again.")}</p>
       ) : !releases ? (
@@ -226,12 +232,12 @@ function Releases({ system }: { system: RewardSystem }) {
                   </th>
                   <td>{date(v.uploadedAt)}</td>
                   <td className="admin-version-actions">
-                    {v.version === system.version ? (
-                      <span className="admin-tag live">{t("Running")}</span>
+                    {v.version === releases.live ? (
+                      <span className="admin-tag live">{t("Live")}</span>
                     ) : v.approvedAt ? (
                       <>
                         <span className="admin-tag">{t("Approved")}</span>
-                        {/* For when its install or deploy failed. */}
+                        {/* To roll back to it. */}
                         <button
                           type="button"
                           className="secondary-button"
@@ -239,23 +245,25 @@ function Releases({ system }: { system: RewardSystem }) {
                           onClick={() => {
                             if (
                               window.confirm(
-                                t(
-                                  `Install and deploy ${name} ${v.version} again?`,
-                                ),
+                                t(`Make ${name} ${v.version} live again?`),
                               )
                             )
                               void review(
                                 v.version,
                                 { action: "approve" },
                                 t(
-                                  `${name} ${v.version} is approved and deploying. It goes live in a few minutes.`,
+                                  `${name} ${v.version} is live. Every server runs it within a minute.`,
                                 ),
                               );
                           }}
                         >
-                          {t("Deploy again")}
+                          {t("Make live")}
                         </button>
                       </>
+                    ) : !v.bundle ? (
+                      <span className="admin-tag review">
+                        {t("Sent before plugins")}
+                      </span>
                     ) : v.rejected ? (
                       <span className="admin-tag review" title={v.rejected}>
                         {t("Sent back")}
@@ -273,7 +281,7 @@ function Releases({ system }: { system: RewardSystem }) {
                             if (
                               window.confirm(
                                 t(
-                                  `Approve ${name} ${v.version}? dingn installs it and deploys the site.`,
+                                  `Approve ${name} ${v.version}? It goes live within a minute.`,
                                 ),
                               )
                             )
@@ -281,7 +289,7 @@ function Releases({ system }: { system: RewardSystem }) {
                                 v.version,
                                 { action: "approve" },
                                 t(
-                                  `${name} ${v.version} is approved and deploying. It goes live in a few minutes.`,
+                                  `${name} ${v.version} is live. Every server runs it within a minute.`,
                                 ),
                               );
                           }}
@@ -331,9 +339,15 @@ function Releases({ system }: { system: RewardSystem }) {
 /** "bronze" → "Bronze". */
 const title = (word: string) => word[0].toUpperCase() + word.slice(1);
 
-/** Kingdom's numbers, straight from the package. */
+/** Kingdom's numbers, straight from the live version. */
 function KingdomRules() {
   const { t, locale } = useLocale();
+  const {
+    coins: { BADGE_XP, DAILY_GAME_COINS, MAX_EARN, MAX_GAME_COINS, TIER_COINS },
+    levels: { DAILY_XP_CAP, xpToReach },
+    honors: { HONORS },
+    kingdom: { BUILDINGS, STAGES, STARTERS, building },
+  } = useKingdomRules();
   const n = (value: number) => value.toLocaleString(locale);
   const tiers = Object.keys(TIER_COINS) as (keyof typeof TIER_COINS)[];
   return (

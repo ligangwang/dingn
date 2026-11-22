@@ -27,8 +27,14 @@ import {
   PersonIcon,
   WalletIcon,
 } from "./icons";
-import { HonorAvatar, HonorPath, honorName, honorOf } from "./honor";
-export { HONORS, honorName, honorOf } from "./honor";
+import {
+  HonorAvatar,
+  HonorPath,
+  honorName,
+  honorOf,
+  useKingdomRules,
+} from "./honor";
+export { honorName, honorOf } from "./honor";
 
 type Tab = "overview" | "wallet" | "shop" | "settings";
 const TABS: {
@@ -58,6 +64,7 @@ function tabFromLocation(): Tab {
 function ProfileHead({ onEdit }: { onEdit: () => void }) {
   const { t, locale, href } = useLocale();
   const { user, profile, stats } = useSession();
+  useKingdomRules();
   const wallet = useWallet();
   const name = profile.userName || user?.email?.split("@")[0] || "";
   const span = stats ? Math.max(1, stats.next - stats.floor) : 1;

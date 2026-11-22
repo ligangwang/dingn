@@ -1,21 +1,21 @@
 // Releases of dingn's reward systems, reviewed like games. A reward system
-// (its own repository and package, src/data/reward-systems.ts) publishes a
-// version as a GitHub release; its CI then announces the version here with
-// an admin's upload key. The version waits on the admin Rewards page
-// (/admin/rewards/) until an admin approves or rejects it there, or with a
-// review key (scripts/upload-keys.mjs), as with games.
+// (its own repository, src/data/reward-systems.ts) builds a plugin bundle
+// for each version, and its CI uploads the zip here with an upload key of an
+// admin, as a developer uploads a game. The version waits on the admin
+// Rewards page (/admin/rewards/) until an admin approves or rejects it there,
+// or with a review key (scripts/upload-keys.mjs), as with games.
 //
-// dingn bundles a reward system when it builds, so approving a version
-// can't swap it in at once: it starts the Website workflow, which installs
-// the version on main and deploys the site (GitHub's workflow_dispatch, with
-// a token in GITHUB_DISPATCH_TOKEN that may run dingn's workflows).
+// Approving makes the version live: dingn's servers run its rules and its
+// pages load its UI within about a minute, with no rebuild
+// (scripts/reward-plugin.mjs). Approving an older approved version makes it
+// live again, to roll back.
 //
-//   POST /api/rewards/upload         { system, version }   upload key of an admin
-//   POST /api/admin/rewards          {}                     admin or review key
+//   POST /api/rewards/upload         a zip body                upload key of an admin
+//   POST /api/admin/rewards          {}                        admin or review key
 //   POST /api/admin/rewards/update   { system, version, action: "approve" | "reject", reason? }
 //
-// The releases are kept in rewardReleases/{system}, which firestore.rules
-// leave closed to browsers.
+// The releases are kept in rewardReleases/{system} (`versions`, and `live`,
+// the version dingn runs), which firestore.rules leave closed to browsers.
 import { ApiError, readBody, refresh, validateOrigin } from "./api.mjs";
 import { VERSION, compareVersions } from "./game-registry.mjs";
 import { firebaseAuth } from "./games-admin.mjs";
@@ -28,10 +28,24 @@ import {
 } from "./upload-keys.mjs";
 import { queueMail, reviewers } from "./mail.mjs";
 import { RELEASE_SYSTEMS, releaseUrl } from "./reward-systems.mjs";
+import { ZipError, unzip } from "./zip.mjs";
+import {
+  BundleError,
+  checkBundle,
+  clearReleaseCache,
+  refreshPlugins,
+  runtimeStatus,
+  saveBundle,
+} from "./reward-plugin.mjs";
 export { RELEASE_SYSTEMS, releaseUrl } from "./reward-systems.mjs";
 
-/** dingn's repository and the workflow that installs and deploys. */
-const DINGN = { repo: "ligangwang/dingn", workflow: "website.yml" };
+/** A bundle's limits: its models make it bigger than most games. */
+export const BUNDLE_LIMITS = {
+  maxZip: 40 * 1024 * 1024,
+  maxTotal: 80 * 1024 * 1024,
+  maxFile: 20 * 1024 * 1024,
+  maxFiles: 2000,
+};
 
 export const rewardReleaseRoutes = [
   "/api/rewards/upload",
@@ -53,14 +67,15 @@ function checkVersion(version) {
  * Adds an uploaded version to a system's record, waiting for review.
  * Uploading a version that is already there changes nothing.
  */
-export function addRelease(record, version, by, now) {
+export function addRelease(record, bundle, by, now) {
   const versions = record?.versions ?? {};
+  const { system: _system, version, ...kept } = bundle;
   if (versions[version]) return record;
   return {
     ...record,
     versions: {
       ...versions,
-      [version]: { uploadedAt: now, uploadedBy: by },
+      [version]: { uploadedAt: now, uploadedBy: by, bundle: kept },
     },
   };
 }
@@ -70,10 +85,13 @@ export function reviewRelease(record, { version, action, reason }, by, now) {
   const release = record?.versions?.[version];
   if (!release) throw new ApiError(404, "no-such-version");
   let change;
-  // Approving an approved version again starts its install and deploy again,
-  // for when the last one failed. Sending one back is too late by then.
-  if (action === "approve") change = { approvedAt: now, approvedBy: by };
-  else if (release.approvedAt) throw new ApiError(409, "already-approved");
+  // Approving makes a version live. Approving an approved version again
+  // makes it live again, to roll back to it; sending one back is too late
+  // by then.
+  if (action === "approve") {
+    if (!release.bundle) throw new ApiError(409, "no-bundle");
+    change = release.approvedAt ? {} : { approvedAt: now, approvedBy: by };
+  } else if (release.approvedAt) throw new ApiError(409, "already-approved");
   else if (action === "reject") {
     const why = typeof reason === "string" ? reason.trim() : "";
     if (!why || why.length > MAX_REASON)
@@ -83,15 +101,19 @@ export function reviewRelease(record, { version, action, reason }, by, now) {
   const { rejectedAt, rejectedBy, rejectReason, ...kept } = release;
   return {
     ...record,
+    ...(action === "approve" ? { live: version } : {}),
     versions: { ...record.versions, [version]: { ...kept, ...change } },
   };
 }
 
 /** What the admin page sees of a system's releases, newest first. */
-export function adminReleases(system, record) {
+export function adminReleases(system, record, status = null) {
   const { repo } = RELEASE_SYSTEMS[system];
   return {
     system,
+    live: record?.live ?? null,
+    // What this server runs, and why not the live version if it doesn't.
+    running: status,
     versions: Object.entries(record?.versions ?? {})
       .map(([version, v]) => ({
         version,
@@ -100,45 +122,11 @@ export function adminReleases(system, record) {
         uploadedAt: v.uploadedAt ?? null,
         approvedAt: v.approvedAt ?? null,
         rejected: v.rejectReason ?? null,
+        // Versions sent before bundles can't be made live.
+        bundle: Boolean(v.bundle),
       }))
       .sort((a, b) => compareVersions(b.version, a.version)),
   };
-}
-
-/**
- * Starts the Website workflow to install an approved version on main and
- * deploy it. Throws ApiError 503 when dingn can't start workflows.
- */
-export async function dispatchInstall(
-  system,
-  version,
-  { token = process.env.GITHUB_DISPATCH_TOKEN, fetchImpl = fetch } = {},
-) {
-  if (!token) throw new ApiError(503, "deploy-unavailable");
-  const response = await fetchImpl(
-    `https://api.github.com/repos/${DINGN.repo}/actions/workflows/${DINGN.workflow}/dispatches`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "dingn",
-      },
-      body: JSON.stringify({
-        ref: "main",
-        inputs: { reward: system, reward_version: version },
-      }),
-    },
-  );
-  if (!response.ok) {
-    console.error(
-      "reward install dispatch",
-      response.status,
-      await response.text().catch(() => ""),
-    );
-    throw new ApiError(503, "deploy-unavailable");
-  }
 }
 
 function send(res, status, body) {
@@ -163,10 +151,22 @@ async function signedInAdmin(req, res, verify, exchange) {
   return { uid: decoded.uid };
 }
 
+/** Reads a request body of at most `max` bytes. */
+async function readZip(req, max) {
+  const parts = [];
+  let size = 0;
+  for await (const part of req) {
+    size += part.length;
+    if (size > max) throw new ApiError(413, "too-large");
+    parts.push(part);
+  }
+  return Buffer.concat(parts);
+}
+
 /**
- * `verify`, `exchange`, `users`, `dispatch` and `now` replace the token
- * check, the session cookie exchange, the Admin SDK's auth, starting the
- * workflow and the clock in tests.
+ * `verify`, `exchange`, `users`, `save`, `reload` and `now` replace the
+ * token check, the session cookie exchange, the Admin SDK's auth, keeping
+ * the bundle's files, loading the live version and the clock in tests.
  */
 export async function handleRewardReleases(
   req,
@@ -176,7 +176,8 @@ export async function handleRewardReleases(
     verify,
     exchange = refresh,
     users,
-    dispatch = dispatchInstall,
+    save = saveBundle,
+    reload = refreshPlugins,
     now = () => new Date().toISOString(),
   } = {},
 ) {
@@ -184,28 +185,36 @@ export async function handleRewardReleases(
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
 
     if (pathname === "/api/rewards/upload") {
-      // Only from CI, with an admin's upload key: a developer's key can't
-      // announce a reward system.
+      // Only from CI, with an admin's upload key: the bundle's rules run on
+      // dingn's servers once approved, so a developer's key can't send one.
       if (!hasUploadKey(req)) throw new ApiError(401, "upload-key-required");
       const account = await keyClaims(req, users ?? (await firebaseAuth()));
       if (!account.admin) throw new ApiError(403, "admin-required");
-      const body = await readBody(req);
-      checkSystem(body.system);
-      checkVersion(body.version);
-      let added = false;
-      const record = await updateDoc("rewardReleases", body.system, (r) => {
-        const next = addRelease(r, body.version, account.uid, now());
-        added = next !== r;
-        return next;
-      });
-      console.log("reward release", body.system, body.version, account.uid);
-      if (added)
+      const files = unzip(
+        await readZip(req, BUNDLE_LIMITS.maxZip),
+        BUNDLE_LIMITS,
+      );
+      const bundle = checkBundle(files);
+      const known = await getDoc("rewardReleases", bundle.system);
+      let record = known;
+      if (!known?.versions?.[bundle.version]) {
+        await save(bundle.system, bundle.version, files);
+        record = await updateDoc("rewardReleases", bundle.system, (r) =>
+          addRelease(r, bundle, account.uid, now()),
+        );
+        console.log(
+          "reward release",
+          bundle.system,
+          bundle.version,
+          account.uid,
+        );
         await queueMail(
           reviewers(),
-          `dingn: ${body.system} ${body.version} is waiting for review`,
-          `${body.system} ${body.version} was published.\n\nRelease notes: https://github.com/${RELEASE_SYSTEMS[body.system].repo}/releases/tag/v${body.version}\n\nApprove it to install and deploy it: https://dingn.com/admin/rewards/`,
+          `dingn: ${bundle.system} ${bundle.version} is waiting for review`,
+          `${bundle.system} ${bundle.version} was uploaded.\n\nRelease notes: https://github.com/${RELEASE_SYSTEMS[bundle.system].repo}/releases/tag/v${bundle.version}\n\nApprove it to make it live: https://dingn.com/admin/rewards/`,
         ).catch((e) => console.error("reward release mail", e));
-      return send(res, 200, adminReleases(body.system, record));
+      }
+      return send(res, 200, adminReleases(bundle.system, record));
     }
 
     // Reviewing: an admin on the website, or an admin's review key.
@@ -219,7 +228,11 @@ export async function handleRewardReleases(
     if (pathname === "/api/admin/rewards") {
       const systems = await Promise.all(
         Object.keys(RELEASE_SYSTEMS).map(async (id) =>
-          adminReleases(id, await getDoc("rewardReleases", id)),
+          adminReleases(
+            id,
+            await getDoc("rewardReleases", id),
+            id === "kingdom" ? runtimeStatus() : null,
+          ),
         ),
       );
       return send(res, 200, { systems });
@@ -228,11 +241,6 @@ export async function handleRewardReleases(
     if (pathname === "/api/admin/rewards/update") {
       checkSystem(body.system);
       checkVersion(body.version);
-      // Check the review before starting a deploy, and save the approval
-      // only once the deploy has started.
-      const current = await getDoc("rewardReleases", body.system);
-      reviewRelease(current, body, admin.uid, now());
-      if (body.action === "approve") await dispatch(body.system, body.version);
       const record = await updateDoc("rewardReleases", body.system, (r) =>
         reviewRelease(r, body, admin.uid, now()),
       );
@@ -243,12 +251,28 @@ export async function handleRewardReleases(
         body.action,
         keyed ? `by key of ${admin.uid}` : admin.uid,
       );
-      return send(res, 200, adminReleases(body.system, record));
+      // This server runs it at once; the others within a minute.
+      clearReleaseCache();
+      if (body.action === "approve") await reload();
+      return send(
+        res,
+        200,
+        adminReleases(
+          body.system,
+          record,
+          body.system === "kingdom" ? runtimeStatus() : null,
+        ),
+      );
     }
     throw new ApiError(404, "not-found");
   } catch (error) {
     if (error instanceof ApiError)
       return send(res, error.status, { error: error.message });
+    if (error instanceof ZipError || error instanceof BundleError)
+      return send(res, 400, {
+        error: error.code,
+        ...(error.detail ? { detail: error.detail } : {}),
+      });
     console.error("reward releases", error);
     return send(res, 503, { error: "unavailable" });
   }

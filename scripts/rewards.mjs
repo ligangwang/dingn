@@ -45,17 +45,18 @@ import {
   updateMany,
 } from "./platform-store.mjs";
 import { publicName } from "./game-core.mjs";
-import { RewardError, buyItem, payBadgeXp } from "kingdom/ledger";
-import { grant, total } from "kingdom/rewards";
-export {
-  awardBadge,
-  badgeXpOwed,
-  buyItem,
-  earnCoins,
-  payBadgeXp,
-  wallet,
-} from "kingdom/ledger";
-import { wallet } from "kingdom/ledger";
+import { isRuleError, rules } from "./reward-plugin.mjs";
+
+// The rules are the live kingdom plugin's (scripts/reward-plugin.mjs), looked
+// up on each call so an approved version takes over without a restart.
+const grant = (...a) => rules().rewards.grant(...a);
+const total = (...a) => rules().rewards.total(...a);
+export const awardBadge = (...a) => rules().ledger.awardBadge(...a);
+export const badgeXpOwed = (...a) => rules().ledger.badgeXpOwed(...a);
+export const buyItem = (...a) => rules().ledger.buyItem(...a);
+export const earnCoins = (...a) => rules().ledger.earnCoins(...a);
+export const payBadgeXp = (...a) => rules().ledger.payBadgeXp(...a);
+export const wallet = (...a) => rules().ledger.wallet(...a);
 
 export const rewardRoutes = [
   "/api/rewards/unlock",
@@ -295,7 +296,7 @@ export async function handleRewards(
       granted,
     });
   } catch (error) {
-    if (error instanceof ApiError || error instanceof RewardError)
+    if (error instanceof ApiError || isRuleError(error))
       return send(error.status, { error: error.message });
     console.error("rewards", error);
     send(503, { error: "unavailable" });
