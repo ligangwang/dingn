@@ -15,7 +15,7 @@ before(async () => {
   rewards = await import("../scripts/rewards.mjs");
   kingdom = await import("../scripts/kingdom.mjs");
   store = await import("../scripts/platform-store.mjs");
-  rules = await import("../src/data/kingdom.mjs");
+  rules = await import("kingdom/kingdom");
   backfill = await import("../scripts/backfill-badge-xp.mjs");
 });
 after(() => rm(dir, { recursive: true, force: true }));
@@ -201,6 +201,11 @@ test("a player earns badges, reaches the camp and builds", async () => {
 
   const first = await unlock("gold-1");
   assert.equal(first.body.xp, 100);
+  // The badge's coins, its XP and the camp leader honor, in one save.
+  assert.deepEqual(
+    first.body.granted.map((g) => g.reward),
+    ["coins", "xp", "level", "honor"],
+  );
   assert.equal((await unlock("gold-1")).body.xp, 0);
   me = await visit("/api/kingdom/me");
   assert.equal(me.body.level, 2);

@@ -1,6 +1,7 @@
-// The kingdom API. The rules (stages, buildings, prices, the land) are in
-// src/data/kingdom.mjs, which the kingdom page reads too; this file loads the
-// player's level and coins, applies a rule, and saves the result.
+// The kingdom API. The rules (stages, buildings, prices, the land) are the
+// reward system's (the kingdom package's kingdom module), which the kingdom
+// page reads too; this file loads the player's level and coins, applies a
+// rule, and saves the result.
 //
 //   POST /api/kingdom/me                          the player's kingdom
 //   POST /api/kingdom/build { building, x?, y? }  build, paying its coins
@@ -16,53 +17,24 @@ import {
   throttle,
   validateOrigin,
 } from "./api.mjs";
-import { levelProgress } from "./game-core.mjs";
+import { levelProgress } from "kingdom/levels";
 import { getDoc, updateDoc } from "./platform-store.mjs";
 import { badgeXpOwed, settleBadgeXp } from "./rewards.mjs";
 import {
   KingdomError,
-  build,
+  buildIn,
   building,
   kingdomOf,
+  kingdomView,
   move,
-  stageFor,
-} from "../src/data/kingdom.mjs";
+} from "kingdom/kingdom";
+export { buildIn, kingdomView } from "kingdom/kingdom";
 
 export const kingdomRoutes = [
   "/api/kingdom/me",
   "/api/kingdom/build",
   "/api/kingdom/move",
 ];
-
-/** What the page needs: the level, the open stage, the map and the coins. */
-export function kingdomView(doc, player) {
-  const progress = levelProgress(player?.xp ?? 0);
-  const stage = stageFor(progress.level);
-  const kingdom = kingdomOf(doc);
-  return {
-    ...progress,
-    stage: stage?.id ?? null,
-    size: stage?.size ?? 0,
-    hall: kingdom.hall,
-    tiles: kingdom.tiles,
-    coins: doc?.coins ?? 0,
-  };
-}
-
-/** Builds in a rewards document. Returns the new document and the cost. */
-export function buildIn(doc, request, level) {
-  const coins = doc?.coins ?? 0;
-  const done = build(kingdomOf(doc), request, level, coins);
-  return {
-    doc: {
-      ...(doc ?? {}),
-      coins: coins - done.coins,
-      spent: (doc?.spent ?? 0) + done.coins,
-      kingdom: done.kingdom,
-    },
-    coins: done.coins,
-  };
-}
 
 export async function handleKingdom(
   req,

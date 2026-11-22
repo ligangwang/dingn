@@ -15,7 +15,7 @@ import { HonorAvatar, HonorPath, honorName, honorOf } from "./honor";
 import { PencilIcon } from "./icons";
 import { KingdomVisit } from "./kingdom-visit";
 import { pick } from "@/lib/i18n";
-import { STAGES } from "@/data/kingdom.mjs";
+import { STAGES } from "kingdom/kingdom";
 import { fetchPlayer, XpError, type PublicPlayer } from "@/lib/xp";
 
 /** The public number in the address, or null. */

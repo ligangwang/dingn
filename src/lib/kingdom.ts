@@ -1,6 +1,6 @@
-// The kingdom API (scripts/kingdom.mjs). The rules are in src/data/kingdom.mjs.
+// The kingdom API (scripts/kingdom.mjs). The rules are in the kingdom package.
 import { api } from "./api";
-import type { StageId } from "@/data/kingdom.mjs";
+import type { StageId } from "kingdom/kingdom";
 
 export type KingdomView = {
   level: number;

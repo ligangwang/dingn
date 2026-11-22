@@ -22,7 +22,7 @@ vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
 }));
 // No WebGL in tests: the kingdom shows as a list of its buildings.
-vi.mock("../src/components/kingdom-scene", () => ({
+vi.mock("kingdom/scene", () => ({
   KingdomScene: class {},
   webglAvailable: () => false,
 }));

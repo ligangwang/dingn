@@ -1,6 +1,6 @@
 import type { GameId } from "./xp-config";
 import type { EarnedBadge } from "./rewards";
-import type { StageId } from "@/data/kingdom.mjs";
+import type { StageId } from "kingdom/kingdom";
 export { MIN_PLAY_MS, type GameId } from "./xp-config";
 export type PlayerStats = {
   level: number;

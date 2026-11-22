@@ -6,9 +6,9 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "predev": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs",
+    "predev": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs && node scripts/kingdom-assets.mjs",
     "dev": "next dev --hostname 127.0.0.1 --port 3001",
-    "prebuild": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs",
+    "prebuild": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs && node scripts/kingdom-assets.mjs",
     "build": "next build",
     "preview": "node scripts/preview.mjs",
     "publish:game": "node scripts/publish-game.mjs",
@@ -23,6 +23,7 @@
     "@fontsource-variable/space-grotesk": "5.3.0",
     "firebase": "12.19.0",
     "firebase-admin": "14.5.0",
+    "kingdom": "https://codeload.github.com/ligangwang/kingdom/tar.gz/af28d14be6c1d63dee25e5a1d2d65fbdb3033582",
     "next": "16.3.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",

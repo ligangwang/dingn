@@ -9,9 +9,12 @@ import {
   ladderSequences,
   scoreLadder,
 } from "../src/data/ladder.mjs";
+// Levels, the XP curve and the daily cap are the reward system's (the
+// kingdom package); this file scores dingn's own games.
+import { capPlayXp, levelFor, levelProgress } from "kingdom/levels";
+export { DAILY_XP_CAP, levelFor, levelProgress } from "kingdom/levels";
 
 export const GAMES = ["warmup", "ladder", "ladder_daily"];
-export const DAILY_XP_CAP = 300;
 export const STARTS_PER_HOUR = 60;
 export const PLAY_TTL_MS = 30 * 60 * 1000;
 /** Fastest believable completion for each game, in milliseconds. */
@@ -32,19 +35,6 @@ export class GameError extends Error {
 
 export const dayKey = (ms) => new Date(ms).toISOString().slice(0, 10);
 export const hourKey = (ms) => new Date(ms).toISOString().slice(0, 13);
-
-/** Level n starts at 50·n·(n−1) XP: 0, 100, 300, 600, 1000, … */
-export function levelFor(xp) {
-  let level = 1;
-  while (50 * (level + 1) * level <= xp) level++;
-  return level;
-}
-export function levelProgress(xp) {
-  const level = levelFor(xp);
-  const floor = 50 * level * (level - 1);
-  const next = 50 * (level + 1) * level;
-  return { level, xp, floor, next };
-}
 
 /** Builds the challenge the server hands out for a new play. */
 export function newChallenge(game, randomInt) {
@@ -129,7 +119,7 @@ export function settle({ play, player, uid, answers, now }) {
   const sameDay = player?.dailyKey === today;
   const dailyXp = sameDay ? player.dailyXp || 0 : 0;
   const earned = xpFor(play.game, score, max);
-  const xpGained = Math.max(0, Math.min(earned, DAILY_XP_CAP - dailyXp));
+  const { gained: xpGained, capped } = capPlayXp(earned, dailyXp);
 
   const yesterday = dayKey(now - 86_400_000);
   const last = player?.lastPlayed;
@@ -150,7 +140,7 @@ export function settle({ play, player, uid, answers, now }) {
       score,
       max,
       xpGained,
-      capped: xpGained < earned,
+      capped,
       newBest,
       streak,
       ...levelProgress(xp),
