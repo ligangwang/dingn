@@ -378,6 +378,28 @@ test("a thread keeps the best results only", () => {
   });
   assert.equal(low.outcome.rank, null);
   assert.equal(low.outcome.beat, true);
+  // Below the kept results, a player is known by their own best: playing
+  // again counts them once, and a lower score is no improvement.
+  const again = challenges.postResult(
+    low.next,
+    { uid: "late", name: "Late", score: 1, now: "2026-01-04" },
+    { score: 2 },
+  );
+  assert.equal(again.outcome.players, low.outcome.players);
+  assert.equal(again.outcome.improved, false);
+  assert.equal(again.outcome.best, 2);
+});
+
+test("a player's own best is kept apart from the thread's top results", async () => {
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    ...ada,
+  });
+  await post(body.id, 12, bo);
+  await post(body.id, 4, bo);
+  const own = await store.getDoc("challengeResults", `${body.id}_u-bo`);
+  assert.equal(own.score, 12);
+  assert.equal(own.challenge, body.id);
 });
 
 test("open challenges list signed-in players' ones, newest first, by game", async () => {

@@ -1,6 +1,12 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  within,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Header } from "../src/components/header";
 import { CategoryPage } from "../src/components/catalog";
@@ -73,31 +79,31 @@ afterEach(() => {
   mocks.session.user = null;
 });
 
-it("each menu category opens its page and lists its games", async () => {
+it("one Games menu lists every category, and marks the one a game is in", async () => {
   mocks.path = "/play/pawpal/";
-  render(<Header />);
-  const casual = screen.getByRole("link", { name: "Casual" });
-  expect(casual.getAttribute("href")).toBe("/casual");
+  const { container } = render(<Header />);
+  const menu = container.querySelector(".games-menu")!;
+  expect(menu.querySelector("summary")!.textContent).toBe("Games");
+  const links = within(menu as HTMLElement).getAllByRole("link", {
+    hidden: true,
+  });
+  expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+    ["Casual", "/casual"],
+    ["Memory", "/memory"],
+    ["Puzzle", "/puzzle"],
+    ["Adventure", "/adventure"],
+  ]);
   expect(
-    ["Memory", "Puzzle", "Adventure", "Kingdom"].map((name) =>
-      screen.getByRole("link", { name }).getAttribute("href"),
-    ),
-  ).toEqual(["/memory", "/puzzle", "/adventure", "/kingdom"]);
-  // On a game's page, its category is the current one.
-  await screen.findByText("PAWPAL");
-  expect(casual.getAttribute("aria-current")).toBe("page");
-  const menu = casual.parentElement!.querySelector("ul")!;
-  expect(
-    within(menu)
-      .getAllByRole("link", { hidden: true })
-      .map((a) => a.textContent),
-  ).toEqual(["CROWDRUSH", "PAWPAL", "All casual games →"]);
-  // Memory has no games yet, so it has no list.
-  expect(
-    screen
-      .getByRole("link", { name: "Memory" })
-      .parentElement!.querySelector("ul"),
-  ).toBeNull();
+    screen.getByRole("link", { name: "Kingdom" }).getAttribute("href"),
+  ).toBe("/kingdom");
+  // On a game's page, its category is the current one, and so is the menu.
+  await waitFor(() =>
+    expect(links[0].getAttribute("aria-current")).toBe("page"),
+  );
+  expect(menu.querySelector("summary")!.getAttribute("aria-current")).toBe(
+    "page",
+  );
+  expect(links[1].getAttribute("aria-current")).toBeNull();
 });
 
 it("a category page shows a banner, sorting, tags and the player's progress", async () => {

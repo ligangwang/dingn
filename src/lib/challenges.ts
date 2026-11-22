@@ -95,7 +95,13 @@ export const deleteChallenge = (id: string) =>
 const PENDING = "dingn.challenge.pending.v1";
 export function keepPendingResult(id: string, score: number) {
   try {
-    sessionStorage.setItem(PENDING, JSON.stringify({ id, score }));
+    // Several rounds before signing in: the best one is the one posted.
+    const kept = JSON.parse(sessionStorage.getItem(PENDING) ?? "null");
+    const best =
+      kept?.id === id && Number.isInteger(kept.score)
+        ? Math.max(kept.score, score)
+        : score;
+    sessionStorage.setItem(PENDING, JSON.stringify({ id, score: best }));
   } catch {
     // Storage blocked: they play the round again after signing in.
   }

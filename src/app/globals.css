@@ -129,8 +129,7 @@ nav {
   align-items: center;
   gap: 8px;
 }
-nav > a,
-.nav-category > a {
+nav > a {
   padding: 9px 17px;
   text-decoration: none;
   color: var(--muted);
@@ -138,9 +137,7 @@ nav > a,
   border-radius: 30px;
 }
 nav > a:hover,
-.nav-category > a:hover,
-nav > a[aria-current="page"],
-.nav-category > a[aria-current="page"] {
+nav > a[aria-current="page"] {
   color: var(--green);
   background: var(--sage);
 }
@@ -867,8 +864,7 @@ input[type="radio"] {
   nav {
     gap: 3px;
   }
-  nav > a,
-  .nav-category > a {
+  nav > a {
     padding: 8px 10px;
   }
   .nav-label {
@@ -1351,4 +1347,16 @@ input[type="radio"] {
 /* A player opened from the leaderboard, on the Players admin page. */
 .admin-player-wanted > * {
   background: rgba(255, 210, 63, 0.14);
+}
+/* The Games menu: the same pill and list as the admin menu, opening under
+   its left edge, with each category's icon beside its name. */
+.games-menu > ul {
+  left: 0;
+  right: auto;
+  min-width: 190px;
+}
+.games-menu li a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
