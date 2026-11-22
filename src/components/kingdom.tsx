@@ -145,6 +145,8 @@ export function Kingdom() {
       .then((v) => {
         if (!live) return;
         setView(v);
+        // A hall refund may have changed the balance the wallet holds.
+        setWalletCoins(uid, v.coins);
         // A new stage came with free buildings: say so.
         const stage = STAGES.find((s) => s.id === v.stage);
         if (v.gifts?.length && stage)
