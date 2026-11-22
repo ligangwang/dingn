@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
     ready: true,
     isAdmin: false,
     isDeveloper: false,
+    isTester: false,
     profile: { avatar: "fox", userName: "Ada" },
     stats: null as null | { level: number; xp: number },
   },
@@ -97,4 +98,15 @@ it("gives a developer who isn't an admin an API keys link", () => {
     screen.getAllByRole("link", { name: "API keys", hidden: true }),
   ).toHaveLength(1);
   mocks.session.isDeveloper = false;
+});
+
+it("marks a test account's avatar with a TEST tag", () => {
+  mocks.session.user = { displayName: null, email: "qa1@dingn.com" };
+  const view = render(<Header />);
+  expect(screen.queryByText("TEST")).toBeNull();
+  mocks.session.isTester = true;
+  view.rerender(<Header />);
+  expect(screen.getByText("TEST")).toBeTruthy();
+  mocks.session.isTester = false;
+  mocks.session.user = null;
 });

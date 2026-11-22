@@ -6,15 +6,20 @@ export declare const PROTOCOL: 1;
  * code it receives.
  */
 export type Locale =
-  | "en"
-  | "zh-CN"
-  | "es"
-  | "pt-BR"
-  | "id"
-  | "ja"
-  | "ko"
-  | (string & {});
-export type Player = { signedIn: boolean; name: string; avatar: string };
+  "en" | "zh-CN" | "es" | "pt-BR" | "id" | "ja" | "ko" | (string & {});
+export type Player = {
+  signedIn: boolean;
+  name: string;
+  avatar: string;
+  /**
+   * True for a test account that dingn's admins made for testing. A game may
+   * show test tools (skip a level, unlock everything) to it, and must not
+   * show them to anyone else. dingn already keeps test accounts off its
+   * leaderboard and statistics. Websites from before test accounts leave it
+   * out, so treat a missing value as false.
+   */
+  tester?: boolean;
+};
 export type Json =
   null | boolean | number | string | Json[] | { [key: string]: Json };
 export type BadgeTier = "bronze" | "silver" | "gold" | "diamond";

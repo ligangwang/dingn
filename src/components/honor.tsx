@@ -121,12 +121,15 @@ export function HonorAvatar({
   level,
   size,
   medal,
+  tester = false,
   className = "",
   ...avatar
 }: {
   level: number | null | undefined;
   size: number;
   medal: number;
+  /** A test account: a striped ring and a TEST tag, so it is never mistaken for a player. */
+  tester?: boolean;
   className?: string;
 } & Omit<Parameters<typeof Avatar>[0], "size" | "className">) {
   const { t } = useLocale();
@@ -134,9 +137,18 @@ export function HonorAvatar({
   const honor = level ? honorOf(level) : null;
   return (
     <span
-      className={`profile-avatar honor-${honor?.tier ?? "none"} ${className}`}
+      className={`profile-avatar honor-${honor?.tier ?? "none"}${tester ? " is-tester" : ""} ${className}`}
     >
       <Avatar {...avatar} size={size} />
+      {tester && (
+        <span
+          className="tester-tag"
+          style={{ fontSize: Math.max(8, Math.round(size * 0.22)) }}
+          title={t("Test account")}
+        >
+          {t("TEST")}
+        </span>
+      )}
       {level && honor ? (
         <span className="profile-medal">
           <BadgeMedal

@@ -286,7 +286,7 @@
     "Call": "呼び出し",
     "What it does": "動作",
     "The player's language, \"en\" or \"zh-CN\". Show your game in it.": "プレイヤーの言語（\"en\" または \"zh-CN\"）。ゲームをこの言語で表示してください。",
-    "{ signedIn, name, avatar }. Never an email address or account id.": "{ signedIn, name, avatar }。メールアドレスやアカウント ID は含まれません。",
+    "{ signedIn, name, avatar, tester }. tester is true for a test account dingn's admins made: show test tools only to it. Never an email address or account id.": "{ signedIn, name, avatar, tester }。tester は dingn の管理者が作成したテストアカウントの場合に true です。テスト用ツールはそのアカウントにだけ表示してください。メールアドレスやアカウント ID は含まれません。",
     "Called when the player signs in or out. Returns a function that stops listening.": "プレイヤーがログインまたはログアウトしたときに呼ばれます。監視を停止する関数を返します。",
     "Saves JSON on this device only. Keys are up to 64 letters, digits, dots, dashes or underscores. Values are up to 16 KB.": "この端末にのみ JSON を保存します。キーは英字、数字、ドット、ハイフン、アンダースコアで最大64文字。値は最大16 KBです。",
     "Saves JSON to the signed-in player's account, so it follows them to any device. Up to 16 KB. save() fails with the code \"signed_out\" when no one is signed in.": "ログイン中のプレイヤーのアカウントに JSON を保存するので、どの端末でも引き継がれます。最大16 KB。誰もログインしていない場合、save() はコード \"signed_out\" で失敗します。",
@@ -968,6 +968,10 @@
     "New password": "新しいパスワード",
     "Delete the test account {0}? This can't be undone.": "テストアカウント {0} を削除しますか？元に戻せません。",
     "Delete": "削除",
-    "Test account": "テストアカウント"
+    "Test account": "テストアカウント",
+    "As a test account": "テストアカウントとして",
+    "TEST": "テスト",
+    "Administrator": "管理者",
+    "Tester": "テスター"
   }
 }

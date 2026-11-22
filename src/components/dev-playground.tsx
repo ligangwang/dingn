@@ -68,6 +68,7 @@ export function DevPlayground() {
   const [run, setRun] = useState(0);
   const [locale, setGameLocale] = useState<Locale>(siteLocale);
   const [signedIn, setSignedIn] = useState(false);
+  const [tester, setTester] = useState(false);
   const [name, setName] = useState("Test player");
   const [ready, setReady] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
@@ -124,6 +125,7 @@ export function DevPlayground() {
     signedIn,
     name: signedIn ? name : "",
     avatar: "",
+    tester: signedIn && tester,
   };
   const context = useRef<BridgeContext | null>(null);
   context.current = {
@@ -145,12 +147,7 @@ export function DevPlayground() {
     // A link shaped like dingn's (whose id names a saved challenge); the
     // playground saves nothing, so the id is made up.
     challengeLink: async () =>
-      challengeUrl(
-        location.origin,
-        "playground",
-        "playground-1",
-        locale,
-      ),
+      challengeUrl(location.origin, "playground", "playground-1", locale),
     // The playground has no game.json, so any badge id unlocks once and any
     // item can be bought, as tests that pay, charge and save nothing.
     rewards: {
@@ -285,6 +282,15 @@ export function DevPlayground() {
             onChange={(event) => setSignedIn(event.target.checked)}
           />{" "}
           {t("Test player signed in")}
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={tester}
+            disabled={!signedIn}
+            onChange={(event) => setTester(event.target.checked)}
+          />{" "}
+          {t("As a test account")}
         </label>
         <label>
           {t("Player name")}{" "}

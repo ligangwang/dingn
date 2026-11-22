@@ -10,20 +10,33 @@ import { api } from "@/lib/api";
 import { defaultProfile, friendlyError, type Profile } from "@/lib/models";
 import { readProfile, saveProfile } from "@/lib/repository";
 import { fetchStats, type PlayerStats } from "@/lib/xp";
+/**
+ * What an account may do on dingn (scripts/roles.mjs). Every account but a
+ * tester is a player.
+ */
+export type Role = "administrator" | "developer" | "player" | "tester";
 type Account = {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL?: string | null;
+  /** Every role the account holds; isAdmin, isDeveloper and isTester are shortcuts. */
+  roles?: Role[];
   isAdmin: boolean;
   /** Has the developer role: uploads games and makes upload keys. */
   isDeveloper?: boolean;
+  /** A test account an admin made on the Users page. */
+  isTester?: boolean;
 };
 type Session = {
   user: Account | null;
   ready: boolean;
+  /** The signed-in account's roles (none when signed out). */
+  roles: Role[];
   isAdmin: boolean;
   isDeveloper: boolean;
+  /** Signed in with a test account: kept out of statistics, marked TEST. */
+  isTester: boolean;
   profile: Profile;
   profileError: string;
   stats: PlayerStats | null;
@@ -108,8 +121,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         ready,
+        roles: user?.roles ?? [],
         isAdmin: user?.isAdmin === true,
         isDeveloper: user?.isDeveloper === true,
+        isTester: user?.isTester === true,
         profile,
         profileError,
         stats,

@@ -286,7 +286,7 @@
     "Call": "Chamada",
     "What it does": "O que faz",
     "The player's language, \"en\" or \"zh-CN\". Show your game in it.": "O idioma do jogador, \"en\" ou \"zh-CN\". Mostre seu jogo nesse idioma.",
-    "{ signedIn, name, avatar }. Never an email address or account id.": "{ signedIn, name, avatar }. Nunca um endereço de e-mail ou ID de conta.",
+    "{ signedIn, name, avatar, tester }. tester is true for a test account dingn's admins made: show test tools only to it. Never an email address or account id.": "{ signedIn, name, avatar, tester }. tester é true para uma conta de teste criada pelos administradores do dingn: mostre as ferramentas de teste só para ela. Nunca um endereço de e-mail nem um id de conta.",
     "Called when the player signs in or out. Returns a function that stops listening.": "Chamada quando o jogador entra ou sai. Retorna uma função que para de escutar.",
     "Saves JSON on this device only. Keys are up to 64 letters, digits, dots, dashes or underscores. Values are up to 16 KB.": "Salva JSON só neste dispositivo. As chaves têm até 64 letras, dígitos, pontos, hifens ou sublinhados. Os valores têm até 16 KB.",
     "Saves JSON to the signed-in player's account, so it follows them to any device. Up to 16 KB. save() fails with the code \"signed_out\" when no one is signed in.": "Salva JSON na conta do jogador conectado, para que o acompanhe em qualquer dispositivo. Até 16 KB. O save() falha com o código \"signed_out\" quando ninguém está conectado.",
@@ -968,6 +968,10 @@
     "New password": "Nova senha",
     "Delete the test account {0}? This can't be undone.": "Excluir a conta de teste {0}? Isso não pode ser desfeito.",
     "Delete": "Excluir",
-    "Test account": "Conta de teste"
+    "Test account": "Conta de teste",
+    "As a test account": "Como conta de teste",
+    "TEST": "TESTE",
+    "Administrator": "Administrador",
+    "Tester": "Testador"
   }
 }

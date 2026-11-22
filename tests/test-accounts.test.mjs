@@ -91,7 +91,7 @@ test("test accounts are made confirmed, as testers, with one password that comes
   for (const user of auth.users.values()) {
     // Confirmed, so they sign in without an activation email.
     assert.equal(user.emailVerified, true);
-    assert.deepEqual(user.customClaims, { tester: true });
+    assert.deepEqual(user.customClaims, { roles: ["tester"] });
     assert.equal(user.password, made.password);
   }
   // A password asked for is used as it is.

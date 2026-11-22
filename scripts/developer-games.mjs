@@ -1,5 +1,5 @@
 // Uploads by outside developers. A developer (an account with the
-// `developer: true` claim, which admins grant on /admin/games/) uploads a zip
+// developer role, scripts/roles.mjs, which admins grant on /admin/users/) uploads a zip
 // of their built game on /developers/games/. The server checks it, stores it
 // at the same immutable path as every published version, and adds it to the
 // registry as the game's beta. Only an admin making it live publishes it, so
@@ -40,6 +40,7 @@ import { ZIP_LIMITS, ZipError, unzip } from "./zip.mjs";
 import { queueMail, reviewers } from "./mail.mjs";
 import { mergeDoc, updateDoc } from "./platform-store.mjs";
 import { playsFor } from "./game-stats.mjs";
+import { hasRole, withRole } from "./roles.mjs";
 import {
   createKey,
   hasUploadKey,
@@ -321,10 +322,10 @@ async function join(claims, body, users) {
     agreement: AGREEMENT_VERSION,
     agreedAt: new Date().toISOString(),
   });
-  await users.setCustomUserClaims(claims.uid, {
-    ...user.customClaims,
-    developer: true,
-  });
+  await users.setCustomUserClaims(
+    claims.uid,
+    withRole(user.customClaims, "developer"),
+  );
   console.log("developer joined", claims.uid);
 }
 
@@ -375,7 +376,8 @@ export async function handleDeveloperGames(
         throw new ApiError(401, "invalid-credential");
       }
     }
-    const isDeveloper = claims.developer === true || claims.admin === true;
+    const isDeveloper =
+      hasRole(claims, "developer") || hasRole(claims, "administrator");
     const developer = { uid: claims.uid, email: claims.email ?? "" };
 
     if (pathname === "/api/developer/keys") {
@@ -438,7 +440,7 @@ export async function handleDeveloperGames(
       throw error;
     }
     const { manifest, files } = prepareUpload(zipped);
-    if (claims.admin !== true) {
+    if (!hasRole(claims, "administrator")) {
       const owned = (await listRecords()).filter(
         (r) => r.owner === developer.uid,
       );

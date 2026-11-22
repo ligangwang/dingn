@@ -286,7 +286,7 @@
     "Call": "Panggilan",
     "What it does": "Fungsinya",
     "The player's language, \"en\" or \"zh-CN\". Show your game in it.": "Bahasa pemain, \"en\" atau \"zh-CN\". Tampilkan game-mu dalam bahasa itu.",
-    "{ signedIn, name, avatar }. Never an email address or account id.": "{ signedIn, name, avatar }. Tidak pernah berisi alamat email atau ID akun.",
+    "{ signedIn, name, avatar, tester }. tester is true for a test account dingn's admins made: show test tools only to it. Never an email address or account id.": "{ signedIn, name, avatar, tester }. tester bernilai true untuk akun uji yang dibuat admin dingn: tampilkan alat uji hanya untuknya. Tidak pernah berisi alamat email atau id akun.",
     "Called when the player signs in or out. Returns a function that stops listening.": "Dipanggil saat pemain masuk atau keluar. Mengembalikan fungsi untuk berhenti mendengarkan.",
     "Saves JSON on this device only. Keys are up to 64 letters, digits, dots, dashes or underscores. Values are up to 16 KB.": "Menyimpan JSON hanya di perangkat ini. Kunci maksimal 64 huruf, digit, titik, tanda hubung, atau garis bawah. Nilai maksimal 16 KB.",
     "Saves JSON to the signed-in player's account, so it follows them to any device. Up to 16 KB. save() fails with the code \"signed_out\" when no one is signed in.": "Menyimpan JSON ke akun pemain yang sedang masuk, jadi datanya ikut ke perangkat mana pun. Maksimal 16 KB. save() gagal dengan kode \"signed_out\" jika tidak ada yang masuk.",
@@ -968,6 +968,10 @@
     "New password": "Kata sandi baru",
     "Delete the test account {0}? This can't be undone.": "Hapus akun uji {0}? Tindakan ini tidak bisa dibatalkan.",
     "Delete": "Hapus",
-    "Test account": "Akun uji"
+    "Test account": "Akun uji",
+    "As a test account": "Sebagai akun uji",
+    "TEST": "UJI",
+    "Administrator": "Administrator",
+    "Tester": "Penguji"
   }
 }

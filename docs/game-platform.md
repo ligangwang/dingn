@@ -60,7 +60,7 @@ live. To ship a beta or roll back without a local `gcloud`, go to Actions →
 Website → Run workflow, and fill in the game id and action.
 
 Admins can also do this on the website at `/admin/games/` (accounts with the
-`admin: true` claim, like the feedback inbox). The page lists every published
+administrator role, like the feedback inbox; see "Roles" in the README). The page lists every published
 version of each game, with buttons to make a version live (release or roll
 back), set or clear the beta, and show or hide a game in the catalog. It
 cannot upload new versions: those always come from the repository through CI.
@@ -97,7 +97,7 @@ until the page closes, and logs every call.
 
 Anyone signed in with a verified email (a Google account, for example) can
 become a developer on `/developers/games/` by accepting the developer
-agreement (`/developers/agreement/`). That sets the `developer: true` claim
+agreement (`/developers/agreement/`). That gives the account the `developer` role
 and records the acceptance in Firestore `developers/{uid}` (agreement
 version and time). Admins can also add a developer by email on
 `/admin/games/` (Developers). Removing one there sets `developerBlocked`, so
@@ -179,7 +179,7 @@ curl -sX POST https://dingn.com/api/admin/games/update \
 
 A review key can do only those three things; anything else answers 403
 `not-allowed-with-key`. It stops working when it is revoked or its account
-loses the `admin` claim. Upload keys (`dgk.…`) can never review, so a game's
+loses the `administrator` role. Upload keys (`dgk.…`) can never review, so a game's
 CI secret cannot approve its own uploads.
 
 ### Reports and take-down
@@ -245,7 +245,7 @@ import { connect } from "./dingn-sdk.js";
 const dingn = await connect();
 dingn.locale; // the player's language, one your game.json lists
 dingn.onLanguage((locale) => {}); // the player switched language
-dingn.player; // { signedIn, name, avatar }
+dingn.player; // { signedIn, name, avatar, tester }: tester is an admin's test account
 await dingn.storage.set("best", 12); // this device
 await dingn.progress.save({ level: 3 }); // the player's account (signed in only)
 await dingn.rewards.unlock("level-10"); // a badge from game.json
@@ -361,8 +361,12 @@ The website's text in every language but English is a pack in `locales/`,
 one file per language:
 
 ```json
-{ "name": "Español", "lang": "es", "path": "/es",
-  "strings": { "Play": "Jugar", "Level {0}": "Nivel {0}" } }
+{
+  "name": "Español",
+  "lang": "es",
+  "path": "/es",
+  "strings": { "Play": "Jugar", "Level {0}": "Nivel {0}" }
+}
 ```
 
 Keys are the English text; `{0}`-style placeholders carry numbers and

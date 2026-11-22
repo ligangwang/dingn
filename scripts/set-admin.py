@@ -30,13 +30,25 @@ if len(users) != 1 or users[0].get("email", "").lower() != args.email.lower():
 user = users[0]
 if user.get("disabled") or not user.get("emailVerified"):
     raise SystemExit("The account must be enabled and have a verified email.")
+# Old flags and the role each one is, as LEGACY_FLAGS in scripts/roles.mjs.
+LEGACY_FLAGS = {"admin": "administrator", "developer": "developer", "tester": "tester"}
 claims = json.loads(user.get("customAttributes", "{}"))
-if args.grant:
-    claims["admin"] = True
-else:
-    claims.pop("admin", None)
+# Every role the account holds is kept as it is, including any this script
+# doesn't know; old `admin: true`-style flags move into the list. Only
+# administrator is added or removed.
+roles = claims.pop("roles", None)
+roles = [r for r in roles if isinstance(r, str)] if isinstance(roles, list) else []
+for flag, role in LEGACY_FLAGS.items():
+    if claims.pop(flag, None) is True and role not in roles:
+        roles.append(role)
+if args.grant and "administrator" not in roles:
+    roles.append("administrator")
+if not args.grant:
+    roles = [r for r in roles if r != "administrator"]
+if roles:
+    claims["roles"] = roles
 call("update", {"localId": user["localId"], "customAttributes": json.dumps(claims)})
 verified = call("lookup", {"localId": [user["localId"]]})["users"][0]
-assert (json.loads(verified.get("customAttributes", "{}")).get("admin") is True) == args.grant
-print("Admin claim", "granted" if args.grant else "removed", "for", args.email)
+assert ("administrator" in json.loads(verified.get("customAttributes", "{}")).get("roles", [])) == args.grant
+print("Administrator role", "granted" if args.grant else "removed", "for", args.email)
 print("Sign out and back in to refresh the ID token. Existing tokens may remain valid for up to an hour.")

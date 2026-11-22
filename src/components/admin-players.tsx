@@ -5,13 +5,21 @@
 import { useEffect, useRef, useState } from "react";
 import { AdminOnly } from "./admin-games";
 import { useLocale } from "./locale";
-import { useSession } from "./session";
+import { useSession, type Role } from "./session";
 import {
   getSettings,
   listPlayers,
   updateSettings,
   type Player,
 } from "@/lib/admin-games";
+
+/** Each role as the Players page names it. */
+const ROLE_NAMES: Record<Role, string> = {
+  administrator: "Administrator",
+  developer: "Developer",
+  player: "Player",
+  tester: "Tester",
+};
 
 const PROVIDERS: Record<string, string> = {
   "google.com": "Google",
@@ -94,14 +102,12 @@ function PlayerList() {
       : t("Never");
   const roles = (p: Player) =>
     [
-      p.admin && t("Admin"),
-      p.developer && t("Developer"),
+      ...p.roles.map((role) => t(ROLE_NAMES[role])),
       p.developerBlocked && t("Uploads blocked"),
-      p.tester && t("Test account"),
       p.disabled && t("Disabled"),
     ]
       .filter(Boolean)
-      .join(", ") || t("Player");
+      .join(", ");
   const hasNext = page < pages;
   const loading = !players && !error;
 

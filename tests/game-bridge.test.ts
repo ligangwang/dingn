@@ -20,7 +20,12 @@ function context(signedIn: boolean) {
     gameId: "hello",
     version: "1.0.0",
     locale: "zh-CN",
-    player: { signedIn, name: signedIn ? "Ada" : "", avatar: "" },
+    player: {
+      signedIn,
+      name: signedIn ? "Ada" : "",
+      avatar: "",
+      tester: signedIn,
+    },
     storage: {
       getItem: (k) => store.get(k) ?? null,
       setItem: (k, v) => void store.set(k, v),
@@ -65,7 +70,8 @@ test("init tells the game who is playing, in which language", async () => {
       gameId: "hello",
       version: "1.0.0",
       locale: "zh-CN",
-      player: { signedIn: true, name: "Ada", avatar: "" },
+      // A test account is told so, for the game's test tools.
+      player: { signedIn: true, name: "Ada", avatar: "", tester: true },
       challenge: null,
     },
   });

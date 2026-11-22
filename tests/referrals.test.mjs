@@ -135,6 +135,10 @@ test("existing members, guests' challenges and your own links earn nothing", asy
     (await claim("ko", "ChallengeCy1", { tester: true })).body.state,
     "none",
   );
+  // A challenge a test account made.
+  await challenge("ChallengeQa1", "qa");
+  await store.mergeDoc("challenges", "ChallengeQa1", { test: true });
+  assert.equal((await claim("lu", "ChallengeQa1")).body.state, "none");
   // Your own challenge.
   assert.equal((await claim("cy", "ChallengeCy1")).body.state, "none");
   // A guest's challenge has nobody to pay.
@@ -148,7 +152,7 @@ test("existing members, guests' challenges and your own links earn nothing", asy
   );
   assert.equal((await claim("gu", "NoSuchChalle")).body.state, "none");
   assert.equal((await claim("gu", "../x")).body.state, "none");
-  for (const uid of ["cy", "di", "ed", "fy", "gu", "jo", "ko"])
+  for (const uid of ["cy", "di", "ed", "fy", "gu", "jo", "ko", "lu", "qa"])
     assert.equal(await coins(uid), 0, uid);
   // Signed out: nothing to pay.
   assert.equal(

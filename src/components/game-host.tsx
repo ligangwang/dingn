@@ -336,7 +336,10 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     signedIn: !!user,
     name: session?.profile.userName || user?.displayName || "",
     avatar: user?.photoURL || "",
+    tester: user?.isTester === true,
   };
+  // A test account's play stays out of the statistics.
+  const counted = !session?.user?.isTester;
   // The bridge reads the latest values through a ref, so the message listener
   // is attached once per game.
   const context = useRef<BridgeContext | null>(null);
@@ -382,7 +385,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         ...c,
       });
       rememberChallenge(id);
-      trackGame("share", game.id);
+      if (counted) trackGame("share", game.id);
       return challengeUrl(location.origin, game.id, id, locale);
     },
     roundEnded: () => {
@@ -390,7 +393,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       // flood the statistics.
       if (Date.now() - lastRound.current < 3000) return;
       lastRound.current = Date.now();
-      trackGame("finish", game.id);
+      if (counted) trackGame("finish", game.id);
       if (!user && referralOpen())
         setInvite((was) => (was === "hidden" ? "shown" : was));
       // A signed-in player who arrived through a friend's challenge: their
@@ -561,12 +564,14 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     return () => window.removeEventListener("message", onMessage);
   }, [game?.id, game?.version]);
 
-  // Count one play each time a game opens, for its developer's stats.
+  // Count one play each time a game opens, for its developer's stats, once
+  // dingn knows who is playing: a test account's plays aren't counted.
+  const known = !session || session.ready;
   useEffect(() => {
-    if (!game) return;
+    if (!game || !known || !counted) return;
     countPlay(game.id, game.version);
     trackGame("start", game.id);
-  }, [game?.id, game?.version]);
+  }, [game?.id, game?.version, known]);
 
   // Tell the game when the player switches language, in the language it
   // shows (a game that doesn't speak the new one stays in English).
@@ -645,10 +650,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       {challenge && (
         <p className="play-challenge" role="note">
           <strong>
-            {
-              challengeText(challenge, title, locale, challenger, t)
-                .title
-            }
+            {challengeText(challenge, title, locale, challenger, t).title}
           </strong>{" "}
           <span>
             {challenge.mine

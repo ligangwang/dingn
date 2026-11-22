@@ -32,6 +32,7 @@ import {
 } from "./api.mjs";
 import { getDoc, updateMany } from "./platform-store.mjs";
 import { CHALLENGE_ID } from "../src/data/challenge.mjs";
+import { hasRole } from "./roles.mjs";
 
 export const referralRoutes = ["/api/referrals"];
 export const JOIN_COINS = 100;
@@ -206,10 +207,12 @@ async function join(claims, challengeId, account, now) {
   if (typeof challengeId !== "string" || !CHALLENGE_ID.test(challengeId))
     return { state: "none" };
   // A test account (scripts/test-accounts.mjs) is never a friend brought.
-  if (claims.tester === true) return { state: "none" };
+  if (hasRole(claims, "tester")) return { state: "none" };
   const challenge = await getDoc("challenges", challengeId);
-  // Only a signed-in player's challenge can bring a friend, never their own.
-  if (!challenge?.uid || challenge.uid === uid) return { state: "none" };
+  // Only a signed-in player's challenge can bring a friend, never their own,
+  // and never a test account's.
+  if (!challenge?.uid || challenge.uid === uid || challenge.test === true)
+    return { state: "none" };
   const { created: made, verified } = await account(uid);
   const age = Date.parse(now) - made.getTime();
   // A new account with a real address: made after the challenge, recently,

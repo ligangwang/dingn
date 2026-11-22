@@ -3,7 +3,7 @@
 //
 // Each one is an email-and-password account whose address is marked as
 // confirmed when it is made, so Firebase sends no activation email and it can
-// sign in on /signin/ at once. It carries the `tester: true` claim, which
+// sign in on /signin/ at once. It holds the tester role (scripts/roles.mjs), which
 // keeps it out of what real players see and earn: it is never on the
 // leaderboard (scripts/game-api.mjs) and never brings a friend for referral
 // coins (scripts/referrals.mjs). Everything else works as for a player.
@@ -28,6 +28,7 @@
 // replies are never cached.
 import { randomBytes } from "node:crypto";
 import { ApiError } from "./api.mjs";
+import { hasRole, rolesOf, withRole } from "./roles.mjs";
 
 /** The most test accounts one request may make. */
 export const MAX_TESTERS = 20;
@@ -37,7 +38,7 @@ const MAX_PASSWORD = 128;
 const MAX_NAME = 60;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const isTester = (user) => user?.customClaims?.tester === true;
+const isTester = (user) => hasRole(user?.customClaims, "tester");
 
 const dateOrNull = (value) => {
   const time = value ? Date.parse(value) : NaN;
@@ -50,7 +51,7 @@ export const tester = (user) => ({
   email: user.email ?? "",
   name: user.displayName ?? "",
   disabled: user.disabled === true,
-  admin: user.customClaims?.admin === true,
+  roles: rolesOf(user.customClaims),
   createdAt: dateOrNull(user.metadata?.creationTime),
   lastActive: dateOrNull(
     user.metadata?.lastRefreshTime ?? user.metadata?.lastSignInTime,
@@ -142,7 +143,7 @@ async function createTesters(users, body, by) {
       ...(name ? { displayName: count > 1 ? `${name} ${i + 1}` : name } : {}),
     });
     try {
-      await users.setCustomUserClaims(user.uid, { tester: true });
+      await users.setCustomUserClaims(user.uid, withRole({}, "tester"));
     } catch (error) {
       // Never leave an ordinary account this page can't see or remove.
       await users
@@ -152,7 +153,7 @@ async function createTesters(users, body, by) {
         );
       throw error;
     }
-    made.push(tester({ ...user, customClaims: { tester: true } }));
+    made.push(tester({ ...user, customClaims: withRole({}, "tester") }));
     console.log("test account", "create", user.uid, "by", by);
   }
   return { testers: made, password };

@@ -19,7 +19,8 @@ export function Header() {
   const { t, locale, href: to } = useLocale();
 
   const path = usePathname();
-  const { user, ready, profile, isAdmin, isDeveloper, stats } = useSession();
+  const { user, ready, profile, isAdmin, isDeveloper, isTester, stats } =
+    useSession();
   const catalog = useCatalog();
   const here = (href: string) =>
     path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
@@ -92,6 +93,7 @@ export function Header() {
               {/* The level rides on the avatar, as on the profile page. */}
               <HonorAvatar
                 className="header-avatar"
+                tester={isTester}
                 level={stats?.level}
                 choice={profile.avatar}
                 name={profile.userName}

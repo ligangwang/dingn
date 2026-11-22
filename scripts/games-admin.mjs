@@ -3,8 +3,8 @@
 // Building and uploading a new version stays in CI (scripts/publish-game.mjs),
 // so every version comes from the repository and passed its tests.
 //
-// Only accounts whose Firebase ID token has `admin: true` (the same claim as
-// the feedback inbox) may call these, and only as same-origin POSTs. The one
+// Only accounts with the administrator role (scripts/roles.mjs; the same one the
+// feedback inbox checks) may call these, and only as same-origin POSTs. The one
 // exception is reviewing: an admin's review key (scripts/upload-keys.mjs),
 // sent as `Authorization: Bearer dak.…`, may list the games and approve or
 // reject a version from a script, and do nothing else.
@@ -33,6 +33,7 @@ import {
 } from "./upload-keys.mjs";
 import { queueMail } from "./mail.mjs";
 import { testers } from "./test-accounts.mjs";
+import { hasRole, rolesOf, withRole } from "./roles.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 export const adminGameRoutes = [
@@ -82,7 +83,8 @@ async function requireAdmin(req, res, verify, exchange) {
   } catch {
     throw new ApiError(401, "invalid-credential");
   }
-  if (decoded.admin !== true) throw new ApiError(403, "admin-required");
+  if (!hasRole(decoded, "administrator"))
+    throw new ApiError(403, "admin-required");
   return decoded;
 }
 
@@ -115,23 +117,27 @@ export function adminGame(record, plays = null) {
   };
 }
 
+/** Every account holding `role`, by email. */
+async function holders(users, role) {
+  const list = [];
+  let pageToken;
+  do {
+    const page = await users.listUsers(1000, pageToken);
+    for (const user of page.users)
+      if (hasRole(user.customClaims, role))
+        list.push({ uid: user.uid, email: user.email ?? "" });
+    pageToken = page.pageToken;
+  } while (pageToken);
+  return list.sort((a, b) => a.email.localeCompare(b.email));
+}
+
 /**
- * Developer access: the `developer: true` claim on an account, which lets it
- * upload games on /developers/games/. `users` is the Admin SDK's auth.
+ * Developer access: the developer role on an account, which lets it upload
+ * games on /developers/games/. `users` is the Admin SDK's auth.
  */
 async function developers(pathname, body, users) {
-  if (pathname === "/api/admin/developers") {
-    const list = [];
-    let pageToken;
-    do {
-      const page = await users.listUsers(1000, pageToken);
-      for (const user of page.users)
-        if (user.customClaims?.developer === true)
-          list.push({ uid: user.uid, email: user.email ?? "" });
-      pageToken = page.pageToken;
-    } while (pageToken);
-    return { developers: list.sort((a, b) => a.email.localeCompare(b.email)) };
-  }
+  if (pathname === "/api/admin/developers")
+    return { developers: await holders(users, "developer") };
   const email = typeof body.email === "string" ? body.email.trim() : "";
   if (!email || !["add", "remove"].includes(body.action))
     throw new ApiError(400, "invalid-request");
@@ -141,41 +147,27 @@ async function developers(pathname, body, users) {
   } catch {
     throw new ApiError(404, "user-not-found");
   }
-  const {
-    developer: _old,
-    developerBlocked: _blocked,
-    ...claims
-  } = user.customClaims ?? {};
+  const { developerBlocked: _blocked, ...claims } = user.customClaims ?? {};
   // Removing access also stops the account from signing up again by itself.
   await users.setCustomUserClaims(
     user.uid,
     body.action === "add"
-      ? { ...claims, developer: true }
-      : { ...claims, developerBlocked: true },
+      ? withRole(claims, "developer")
+      : { ...withRole(claims, "developer", false), developerBlocked: true },
   );
   console.log("games admin developer", body.action, user.uid);
   return { developer: { uid: user.uid, email: user.email ?? email } };
 }
 
 /**
- * Admin access: the `admin: true` claim, which opens these pages and the
+ * Admin access: the administrator role, which opens these pages and the
  * feedback inbox. Each request reads the account's claims afresh, so a change
  * takes effect on that account's next request. An admin cannot remove their
  * own access, so the site always keeps at least the admin making changes.
  */
 async function admins(pathname, body, users, self) {
-  if (pathname === "/api/admin/admins") {
-    const list = [];
-    let pageToken;
-    do {
-      const page = await users.listUsers(1000, pageToken);
-      for (const user of page.users)
-        if (user.customClaims?.admin === true)
-          list.push({ uid: user.uid, email: user.email ?? "" });
-      pageToken = page.pageToken;
-    } while (pageToken);
-    return { admins: list.sort((a, b) => a.email.localeCompare(b.email)) };
-  }
+  if (pathname === "/api/admin/admins")
+    return { admins: await holders(users, "administrator") };
   const email = typeof body.email === "string" ? body.email.trim() : "";
   if (!email || !["add", "remove"].includes(body.action))
     throw new ApiError(400, "invalid-request");
@@ -187,10 +179,9 @@ async function admins(pathname, body, users, self) {
   }
   if (body.action === "remove" && user.uid === self)
     throw new ApiError(400, "cannot-remove-self");
-  const { admin: _old, ...claims } = user.customClaims ?? {};
   await users.setCustomUserClaims(
     user.uid,
-    body.action === "add" ? { ...claims, admin: true } : claims,
+    withRole(user.customClaims, "administrator", body.action === "add"),
   );
   console.log("games admin admin", body.action, user.uid);
   return { admin: { uid: user.uid, email: user.email ?? email } };
@@ -210,10 +201,8 @@ const player = (user) => {
     email: user.email ?? "",
     name: user.displayName ?? "",
     providers: (user.providerData ?? []).map((p) => p.providerId),
-    admin: claims.admin === true,
-    developer: claims.developer === true,
+    roles: rolesOf(claims),
     developerBlocked: claims.developerBlocked === true,
-    tester: claims.tester === true,
     disabled: user.disabled === true,
     createdAt: dateOrNull(user.metadata?.creationTime),
     lastSignIn: dateOrNull(user.metadata?.lastSignInTime),
@@ -295,7 +284,7 @@ async function developerByEmail(value, users) {
     throw new ApiError(404, "user-not-found");
   }
   // They must have signed up (accepting the agreement) or been added.
-  if (user.customClaims?.developer !== true)
+  if (!hasRole(user.customClaims, "developer"))
     throw new ApiError(400, "not-a-developer");
   return { uid: user.uid, email: user.email ?? email };
 }
