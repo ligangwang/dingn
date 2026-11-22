@@ -250,7 +250,8 @@ password empty and dingn makes one up, shown once. Firebase allows one
 password account per address, so making several numbers the address:
 `you+qa@gmail.com` makes `you+qa1@gmail.com`, `you+qa2@gmail.com`, and so on.
 
-Test accounts hold the `tester` role. They play like anyone else, but
+Test accounts hold the `tester` role, and their default nickname is
+`Tester<public number>` instead of `Player<public number>`. They play like anyone else, but
 never appear on the leaderboard and never earn referral coins as a friend
 brought in. The Players page labels them. Only accounts with that claim can
 be given a new password or deleted from this page. Deleting one removes its

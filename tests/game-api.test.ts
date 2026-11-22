@@ -133,6 +133,40 @@ test("a new player's default nickname is their public number", async () => {
   assert.equal(await ensureNickname(db, "d"), "Kate");
 });
 
+test("a test account's default nickname is Tester and its number", async () => {
+  const { ensureNickname, claimNickname } =
+    await import("../scripts/game-api.mjs");
+  const { db, store } = fakeDb();
+  const name = await ensureNickname(db, "qa", { tester: true });
+  const number = store.get("accounts/qa")?.player_no as string;
+  assert.equal(name, `Tester${number}`);
+  assert.deepEqual(store.get(`nicknames/tester${number}`), { uid: "qa", name });
+
+  // One named Player<number> before this is renamed on its next visit, and
+  // the old name is freed.
+  const old = await ensureNickname(db, "qa2");
+  const number2 = store.get("accounts/qa2")?.player_no as string;
+  assert.equal(old, `Player${number2}`);
+  assert.equal(
+    await ensureNickname(db, "qa2", { tester: true }),
+    `Tester${number2}`,
+  );
+  assert.equal(store.has(`nicknames/player${number2}`), false);
+  assert.equal(store.get("accounts/qa2")?.user_name, `Tester${number2}`);
+  // A name the tester chose is kept.
+  await claimNickname(db, "qa2", "Bug Hunter");
+  assert.equal(await ensureNickname(db, "qa2", { tester: true }), "Bug Hunter");
+  // Tester<number> names are reserved like Player ones.
+  await assert.rejects(claimNickname(db, "qa2", `Tester${number}`), {
+    status: 409,
+    code: "nickname_taken",
+  });
+  assert.equal(
+    (await claimNickname(db, "qa2", `Tester${number2}`)).name,
+    `Tester${number2}`,
+  );
+});
+
 test("a name chosen before names were unique is registered on the next visit, first come first served", async () => {
   const { ensureNickname } = await import("../scripts/game-api.mjs");
   const { db, store } = fakeDb();
