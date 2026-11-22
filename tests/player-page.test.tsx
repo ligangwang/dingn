@@ -21,10 +21,22 @@ vi.mock("../src/components/session", () => ({
   useOptionalSession: () => mocks.session,
   useSession: () => mocks.session,
 }));
-// No WebGL in tests: the kingdom shows as a list of its buildings.
-vi.mock("kingdom/scene", () => ({
-  KingdomScene: class {},
-  webglAvailable: () => false,
+// The kingdom's visit is the live plugin's: a stand-in that lists the
+// buildings it was given.
+vi.mock("../src/lib/reward-plugin", async (real) => ({
+  ...(await real<typeof import("../src/lib/reward-plugin")>()),
+  loadKingdomUi: async () => ({
+    plugin: { assets: "/rewards/kingdom/0.3.0/assets/kingdom/" },
+    ui: {
+      mountKingdomVisit: (
+        element: Element,
+        props: { kingdom: { tiles: Record<string, string> } },
+      ) => {
+        element.textContent = Object.values(props.kingdom.tiles).join(", ");
+        return { update() {}, unmount() {} };
+      },
+    },
+  }),
 }));
 vi.mock("../src/components/rewards", () => ({
   titleOf: (title: { en: string }) => title.en,
@@ -88,8 +100,8 @@ it("shows a player's honor, level, kingdom and badges to anyone", async () => {
   expect(screen.getByRole("region", { name: "Path of honor" })).toBeTruthy();
   // Their kingdom as they built it, to look around.
   const kingdom = screen.getByRole("region", { name: "Kingdom · City" });
-  expect(await within(kingdom).findByText("Windmill")).toBeTruthy();
-  expect(within(kingdom).getByText("Well")).toBeTruthy();
+  expect(await within(kingdom).findByText(/windmill/)).toBeTruthy();
+  expect(within(kingdom).getByText(/well/)).toBeTruthy();
   expect(
     within(kingdom).getByText(
       "Choose Look around, then drag to turn and pinch or scroll to zoom.",

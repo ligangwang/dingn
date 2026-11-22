@@ -71,7 +71,7 @@ it("a level earns a metal and a title, rising with the kingdom's stages", () => 
     title: "City governor",
     rank: 3,
   });
-  expect(honorOf(15).title).toBe("Monarch");
+  expect(honorOf(15)!.title).toBe("Monarch");
   expect(honorOf(25)).toEqual({
     tier: "diamond",
     title: "High monarch",

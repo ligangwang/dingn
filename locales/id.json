@@ -897,7 +897,6 @@
     "Rewards admin": "Admin hadiah",
     "Account XP and levels, honors, coins for badges and play, the coin shop, and the 3D kingdom players build with their coins.": "XP dan level akun, gelar kehormatan, koin dari lencana dan bermain, toko koin, dan kerajaan 3D yang dibangun pemain dengan koin mereka.",
     "Repository": "Repositori",
-    "Not a published release": "Bukan rilis yang diterbitkan",
     "Releases": "Rilis",
     "Releases could not be loaded. Try again.": "Rilis tidak dapat dimuat. Coba lagi.",
     "No versions have been sent for review yet.": "Belum ada versi yang dikirim untuk ditinjau.",
@@ -937,15 +936,16 @@
     "Sign in to manage your API keys.": "Masuk untuk mengelola kunci API Anda.",
     "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "Kunci API untuk developer dan admin. Daftar sebagai developer di Game-ku untuk membuat kunci unggah.",
     "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "Buat kunci unggah di Kunci API, lalu kirim zip dengan kunci itu. Unggahan ini ditinjau seperti unggahan lainnya. Di GitHub Action, simpan kunci sebagai secret bernama DINGN_UPLOAD_KEY:",
-    "Built-in copy": "Salinan bawaan",
     "Live version": "Versi aktif",
-    "none yet, so dingn runs its built-in copy.": "belum ada, jadi dingn menjalankan salinan bawaannya.",
     "This server can't load the live version, so it runs {0} meanwhile:": "Server ini tidak dapat memuat versi aktif, jadi untuk sementara menjalankan {0}:",
     "Each new version waits here for review. Approving it makes it live: every server runs it within a minute, with no rebuild.": "Setiap versi baru menunggu peninjauan di sini. Menyetujuinya membuatnya aktif: setiap server menjalankannya dalam satu menit, tanpa build ulang.",
     "Make {0} {1} live again?": "Aktifkan lagi {0} {1}?",
     "{0} {1} is live. Every server runs it within a minute.": "{0} {1} sudah aktif. Setiap server menjalankannya dalam satu menit.",
     "Sent before plugins": "Dikirim sebelum plugin",
     "Approve {0} {1}? It goes live within a minute.": "Setujui {0} {1}? Versi ini aktif dalam satu menit.",
-    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "Sistem hadiah yang diberi data oleh game dingn. Masing-masing ada di repositorinya sendiri dan menentukan apa yang didapat pemain; dingn melaporkan apa yang dilakukan pemain dan menyimpan apa yang mereka dapat. Untuk mengubah hadiah, ubah di repositorinya dan terbitkan versi baru, lalu setujui di sini."
+    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "Sistem hadiah yang diberi data oleh game dingn. Masing-masing ada di repositorinya sendiri dan menentukan apa yang didapat pemain; dingn melaporkan apa yang dilakukan pemain dan menyimpan apa yang mereka dapat. Untuk mengubah hadiah, ubah di repositorinya dan terbitkan versi baru, lalu setujui di sini.",
+    "none yet, so rewards are paused until one is approved.": "belum ada, jadi hadiah dijeda sampai satu versi disetujui.",
+    "This server can't load the live version, so rewards are paused:": "Server ini tidak bisa memuat versi aktif, jadi hadiah dijeda:",
+    "The kingdom isn't available right now. Try again in a minute.": "Kerajaan sedang tidak tersedia. Coba lagi sebentar lagi."
   }
 }

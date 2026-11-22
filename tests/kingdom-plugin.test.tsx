@@ -1,5 +1,6 @@
 // The kingdom's pages from the live plugin version: dingn draws them into an
-// element with plain values, or its built-in copy when none is live.
+// element with plain values, or say the kingdom is unavailable when none is
+// live: dingn has no copy of its own.
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -19,10 +20,6 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => ({ user: { uid: "ada" }, ready: true }),
-}));
-vi.mock("kingdom/scene", () => ({
-  KingdomScene: class {},
-  webglAvailable: () => false,
 }));
 
 const plugin = {
@@ -75,7 +72,7 @@ it("draws the live plugin's card into an element, with plain values", async () =
   await waitFor(() => expect(unmount).toHaveBeenCalled());
 });
 
-it("draws the built-in copy when no version is live", async () => {
+it("says the kingdom is unavailable when no version is live", async () => {
   mocks.loadKingdomUi.mockResolvedValue(null);
   render(
     <KingdomVisit
@@ -83,7 +80,8 @@ it("draws the built-in copy when no version is live", async () => {
       label="Ada's kingdom"
     />,
   );
-  expect(
-    await screen.findByRole("img", { name: "Ada's kingdom" }),
-  ).toBeTruthy();
+  expect((await screen.findByRole("status")).textContent).toBe(
+    "The kingdom isn't available right now. Try again in a minute.",
+  );
+  expect(screen.queryByRole("img", { name: "Ada's kingdom" })).toBeNull();
 });

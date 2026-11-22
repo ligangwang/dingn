@@ -5,19 +5,11 @@
 // (src/lib/reward-plugin.ts) and draws them into an element with their own
 // React, giving them plain values: dingn's words, links, coin picture and
 // kingdom API (scripts/kingdom.mjs). Until it knows which version is live,
-// the space stays empty; with none live, or if it can't load, it draws the
-// copy of the package dingn was built with (kingdom/ui).
+// the space stays empty; with none live, or if it can't load, it says the
+// kingdom is unavailable: dingn has no copy of its own.
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  KingdomCard as BuiltInCard,
-  KingdomPage as BuiltInPage,
-  KingdomVisit as BuiltInVisit,
-  type KingdomHost,
-  type VisitedKingdom,
-} from "kingdom/ui";
-import "kingdom/ui/kingdom.css";
+import type { VisitedKingdom } from "kingdom/ui";
 import { pick } from "@/lib/i18n";
 import { buildInKingdom, fetchKingdom, moveInKingdom } from "@/lib/kingdom";
 import { setWalletCoins } from "@/lib/rewards";
@@ -29,9 +21,8 @@ import {
 } from "@/lib/reward-plugin";
 import { useLocale } from "./locale";
 import { useSession } from "./session";
-import { Coin } from "./rewards-art";
 
-const api: KingdomHost["api"] = {
+const api: PluginHost["api"] = {
   fetch: fetchKingdom,
   build: buildInKingdom,
   move: moveInKingdom,
@@ -66,15 +57,19 @@ function usePluginHost(): Omit<PluginHost, "assets"> {
   );
 }
 
-/** The same, for the built-in copy, which takes dingn's own components. */
-function builtInHost(host: Omit<PluginHost, "assets">): KingdomHost {
-  const { navigate: _navigate, coin: _coin, ...rest } = host;
-  return { ...rest, Link, Coin };
+/** In the kingdom's place when no version is live or it can't load. */
+function Unavailable({ className = "" }: { className?: string }) {
+  const { t } = useLocale();
+  return (
+    <p className={`kingdom-unavailable muted ${className}`} role="status">
+      {t("The kingdom isn't available right now. Try again in a minute.")}
+    </p>
+  );
 }
 
 type Loaded = { ui: KingdomUi; plugin: LivePlugin } | null;
 
-/** The live plugin's UI: undefined while asking, null for the built-in copy. */
+/** The live plugin's UI: undefined while asking, null if there is none. */
 function usePluginUi() {
   const [loaded, setLoaded] = useState<Loaded | undefined>(undefined);
   useEffect(() => {
@@ -142,10 +137,7 @@ export function Kingdom() {
     [host, loaded, player, ready],
   );
   if (loaded === undefined) return null;
-  if (loaded === null)
-    return (
-      <BuiltInPage host={builtInHost(host)} player={player} ready={ready} />
-    );
+  if (loaded === null) return <Unavailable className="panel" />;
   return <PluginMount mount={loaded.ui.mountKingdomPage} props={props} />;
 }
 
@@ -176,8 +168,7 @@ export function KingdomVisit({
     [host, loaded, kingdom, label],
   );
   if (loaded === undefined) return null;
-  if (loaded === null)
-    return <BuiltInVisit host={host} kingdom={kingdom} label={label} />;
+  if (loaded === null) return <Unavailable />;
   return <PluginMount mount={loaded.ui.mountKingdomVisit} props={props} />;
 }
 
@@ -190,6 +181,6 @@ export function KingdomCard() {
     [host, loaded],
   );
   if (loaded === undefined) return null;
-  if (loaded === null) return <BuiltInCard host={builtInHost(host)} />;
+  if (loaded === null) return <Unavailable className="panel" />;
   return <PluginMount mount={loaded.ui.mountKingdomCard} props={props} />;
 }

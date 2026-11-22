@@ -3,6 +3,11 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { gameRoutes, handleGameApi } from "../scripts/game-api.mjs";
 import { kingdomOf, settle } from "kingdom/kingdom";
+import * as kingdomRules from "kingdom/rules";
+import { setRules } from "../scripts/reward-plugin.mjs";
+
+// dingn runs the live plugin's rules; tests run the installed version.
+setRules(kingdomRules);
 
 const origin = "http://127.0.0.1:3001";
 function call(
@@ -224,6 +229,8 @@ test("every player gets a public number of ten random digits that no one else ha
 
 test("a player's public page shows what anyone may see, and nothing private", async () => {
   const { publicPlayer } = await import("../scripts/game-api.mjs");
+  // The module as game-api.mjs imports it, which a dynamic import keeps apart.
+  (await import("../scripts/reward-plugin.mjs")).setRules(kingdomRules);
   const { db, store } = fakeDb();
   store.set("playerNumbers/7302518846", { uid: "ada" });
   store.set("accounts/ada", {

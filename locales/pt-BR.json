@@ -897,7 +897,6 @@
     "Rewards admin": "Administração de recompensas",
     "Account XP and levels, honors, coins for badges and play, the coin shop, and the 3D kingdom players build with their coins.": "XP e níveis da conta, honrarias, moedas por emblemas e por jogar, a loja de moedas e o reino 3D que os jogadores constroem com suas moedas.",
     "Repository": "Repositório",
-    "Not a published release": "Não é uma versão publicada",
     "Releases": "Versões publicadas",
     "Releases could not be loaded. Try again.": "Não foi possível carregar as versões. Tente novamente.",
     "No versions have been sent for review yet.": "Nenhuma versão foi enviada para revisão ainda.",
@@ -937,15 +936,16 @@
     "Sign in to manage your API keys.": "Entre para gerenciar suas chaves de API.",
     "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "As chaves de API são para desenvolvedores e administradores. Cadastre-se como desenvolvedor em Meus jogos para criar chaves de envio.",
     "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "Crie uma chave de envio em Chaves de API e depois envie o zip com ela. O envio é revisado como qualquer outro. Em uma GitHub Action, guarde a chave como um secret chamado DINGN_UPLOAD_KEY:",
-    "Built-in copy": "Cópia embutida",
     "Live version": "Versão no ar",
-    "none yet, so dingn runs its built-in copy.": "nenhuma ainda, então o dingn usa sua cópia embutida.",
     "This server can't load the live version, so it runs {0} meanwhile:": "Este servidor não consegue carregar a versão no ar, então usa {0} enquanto isso:",
     "Each new version waits here for review. Approving it makes it live: every server runs it within a minute, with no rebuild.": "Cada versão nova espera aqui pela revisão. Aprová-la a coloca no ar: todos os servidores passam a usá-la em até um minuto, sem novo build.",
     "Make {0} {1} live again?": "Colocar {0} {1} no ar de novo?",
     "{0} {1} is live. Every server runs it within a minute.": "{0} {1} está no ar. Todos os servidores passam a usá-la em até um minuto.",
     "Sent before plugins": "Enviada antes dos plugins",
     "Approve {0} {1}? It goes live within a minute.": "Aprovar {0} {1}? Ela entra no ar em até um minuto.",
-    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "Os sistemas de recompensas alimentados pelos jogos do dingn. Cada um fica no próprio repositório e decide o que os jogadores ganham; o dingn informa o que os jogadores fazem e salva o que eles recebem. Para mudar uma recompensa, mude-a no repositório dela e publique uma nova versão; depois aprove-a aqui."
+    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "Os sistemas de recompensas alimentados pelos jogos do dingn. Cada um fica no próprio repositório e decide o que os jogadores ganham; o dingn informa o que os jogadores fazem e salva o que eles recebem. Para mudar uma recompensa, mude-a no repositório dela e publique uma nova versão; depois aprove-a aqui.",
+    "none yet, so rewards are paused until one is approved.": "nenhuma ainda, então as recompensas ficam pausadas até que uma seja aprovada.",
+    "This server can't load the live version, so rewards are paused:": "Este servidor não consegue carregar a versão ativa, então as recompensas estão pausadas:",
+    "The kingdom isn't available right now. Try again in a minute.": "O reino não está disponível agora. Tente de novo em um minuto."
   }
 }

@@ -61,6 +61,24 @@ if (flag("--local"))
   process.env.GAMES_LOCAL_DIR ||= path.join(repo, ".games-local");
 
 const registry = await import("./game-registry.mjs");
+// What badges pay is the kingdom's rule: its live plugin version's
+// (scripts/reward-plugin.mjs). A dry run only checks a game, so without one
+// it may use the version installed for development.
+const plugin = await import("./reward-plugin.mjs");
+await plugin.refreshPlugins();
+try {
+  plugin.rules();
+} catch {
+  const why = plugin.runtimeStatus().problem ?? "not loaded";
+  if (!flag("--dry-run"))
+    fail(
+      `The kingdom's rules can't be loaded (${why}), so badges can't be priced.`,
+    );
+  console.warn(
+    `! The kingdom's live rules (${why}): checking with the installed kingdom.`,
+  );
+  plugin.setRules(await import("kingdom/rules"), "installed");
+}
 const gameDir = path.join(repo, "games", id);
 const manifestPath = path.join(gameDir, "game.json");
 if (!existsSync(manifestPath)) fail(`No games/${id}/game.json`);

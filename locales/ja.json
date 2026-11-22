@@ -897,7 +897,6 @@
     "Rewards admin": "報酬の管理",
     "Account XP and levels, honors, coins for badges and play, the coin shop, and the 3D kingdom players build with their coins.": "アカウントの XP とレベル、称号、バッジとプレイで得るコイン、コインショップ、そしてプレイヤーがコインで築く 3D の王国。",
     "Repository": "リポジトリ",
-    "Not a published release": "公開リリースではありません",
     "Releases": "リリース",
     "Releases could not be loaded. Try again.": "リリースを読み込めませんでした。もう一度お試しください。",
     "No versions have been sent for review yet.": "まだ審査に送られたバージョンはありません。",
@@ -937,15 +936,16 @@
     "Sign in to manage your API keys.": "API キーを管理するにはサインインしてください。",
     "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "API キーは開発者と管理者向けです。「マイゲーム」で開発者として登録すると、アップロードキーを作成できます。",
     "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "「API キー」でアップロードキーを作成し、それを使って zip を送信します。アップロードはほかと同じように審査されます。GitHub Action では、キーを DINGN_UPLOAD_KEY という名前の secret に保存してください：",
-    "Built-in copy": "組み込みコピー",
     "Live version": "公開中のバージョン",
-    "none yet, so dingn runs its built-in copy.": "まだありません。dingn は組み込みコピーを実行します。",
     "This server can't load the live version, so it runs {0} meanwhile:": "このサーバーは公開中のバージョンを読み込めないため、当面 {0} を実行しています：",
     "Each new version waits here for review. Approving it makes it live: every server runs it within a minute, with no rebuild.": "新しいバージョンはここで審査を待ちます。承認すると公開され、再ビルドなしで 1 分以内にすべてのサーバーで実行されます。",
     "Make {0} {1} live again?": "{0} {1} をもう一度公開しますか？",
     "{0} {1} is live. Every server runs it within a minute.": "{0} {1} を公開しました。1 分以内にすべてのサーバーで実行されます。",
     "Sent before plugins": "プラグイン化以前に送信",
     "Approve {0} {1}? It goes live within a minute.": "{0} {1} を承認しますか？1 分以内に公開されます。",
-    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "dingn のゲームがつながっている報酬システムです。それぞれ独自のリポジトリにあり、プレイヤーが何を得るかを決めます。dingn はプレイヤーの行動を報告し、得たものを保存します。報酬を変えるには、そのリポジトリで変更して新しいバージョンを公開し、ここで承認してください。"
+    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "dingn のゲームがつながっている報酬システムです。それぞれ独自のリポジトリにあり、プレイヤーが何を得るかを決めます。dingn はプレイヤーの行動を報告し、得たものを保存します。報酬を変えるには、そのリポジトリで変更して新しいバージョンを公開し、ここで承認してください。",
+    "none yet, so rewards are paused until one is approved.": "まだありません。承認されるまで報酬は一時停止しています。",
+    "This server can't load the live version, so rewards are paused:": "このサーバーは公開中のバージョンを読み込めないため、報酬は一時停止しています：",
+    "The kingdom isn't available right now. Try again in a minute.": "王国は今は表示できません。少ししてからもう一度お試しください。"
   }
 }

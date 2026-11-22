@@ -897,7 +897,6 @@
     "Rewards admin": "보상 관리",
     "Account XP and levels, honors, coins for badges and play, the coin shop, and the 3D kingdom players build with their coins.": "계정 XP와 레벨, 칭호, 배지와 플레이로 얻는 코인, 코인 상점, 그리고 플레이어가 코인으로 짓는 3D 왕국.",
     "Repository": "저장소",
-    "Not a published release": "게시된 릴리스가 아님",
     "Releases": "릴리스",
     "Releases could not be loaded. Try again.": "릴리스를 불러오지 못했습니다. 다시 시도하세요.",
     "No versions have been sent for review yet.": "아직 검토를 위해 보낸 버전이 없습니다.",
@@ -937,15 +936,16 @@
     "Sign in to manage your API keys.": "API 키를 관리하려면 로그인하세요.",
     "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "API 키는 개발자와 관리자를 위한 것입니다. 내 게임에서 개발자로 가입하면 업로드 키를 만들 수 있습니다.",
     "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "API 키에서 업로드 키를 만든 다음, 그 키로 zip 파일을 보내세요. 업로드는 다른 업로드와 똑같이 검토돼요. GitHub Action에서는 키를 DINGN_UPLOAD_KEY라는 이름의 시크릿으로 보관하세요:",
-    "Built-in copy": "내장 사본",
     "Live version": "라이브 버전",
-    "none yet, so dingn runs its built-in copy.": "아직 없어 dingn이 내장 사본을 실행합니다.",
     "This server can't load the live version, so it runs {0} meanwhile:": "이 서버는 라이브 버전을 불러올 수 없어 당분간 {0}을(를) 실행합니다:",
     "Each new version waits here for review. Approving it makes it live: every server runs it within a minute, with no rebuild.": "새 버전은 여기서 검토를 기다립니다. 승인하면 라이브가 되며, 다시 빌드하지 않아도 1분 안에 모든 서버에서 실행됩니다.",
     "Make {0} {1} live again?": "{0} {1}을(를) 다시 라이브로 만들까요?",
     "{0} {1} is live. Every server runs it within a minute.": "{0} {1}이(가) 라이브입니다. 1분 안에 모든 서버에서 실행됩니다.",
     "Sent before plugins": "플러그인 이전에 전송됨",
     "Approve {0} {1}? It goes live within a minute.": "{0} {1}을(를) 승인할까요? 1분 안에 라이브가 됩니다.",
-    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "dingn 게임이 연결된 보상 시스템입니다. 각 시스템은 자체 저장소에 있으며 플레이어가 무엇을 받을지 정합니다. dingn은 플레이어의 행동을 보고하고 받은 보상을 저장합니다. 보상을 바꾸려면 해당 저장소에서 변경하고 새 버전을 게시한 다음, 여기서 승인하세요."
+    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "dingn 게임이 연결된 보상 시스템입니다. 각 시스템은 자체 저장소에 있으며 플레이어가 무엇을 받을지 정합니다. dingn은 플레이어의 행동을 보고하고 받은 보상을 저장합니다. 보상을 바꾸려면 해당 저장소에서 변경하고 새 버전을 게시한 다음, 여기서 승인하세요.",
+    "none yet, so rewards are paused until one is approved.": "아직 없어서, 버전이 승인될 때까지 보상이 일시 중지됩니다.",
+    "This server can't load the live version, so rewards are paused:": "이 서버가 라이브 버전을 불러오지 못해 보상이 일시 중지되었습니다:",
+    "The kingdom isn't available right now. Try again in a minute.": "지금은 왕국을 볼 수 없습니다. 잠시 후 다시 시도하세요."
   }
 }

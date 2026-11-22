@@ -8,6 +8,7 @@
 //   node scripts/backfill-badge-xp.mjs --apply  # writes
 import { pathToFileURL } from "node:url";
 import { firestore } from "./game-registry.mjs";
+import { refreshPlugins, rules, runtimeStatus } from "./reward-plugin.mjs";
 import { badgeXpOwed, settleBadgeXp } from "./rewards.mjs";
 
 const PAGE = 300;
@@ -41,6 +42,16 @@ export async function backfill(
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  // What a badge owes is the kingdom's rule: its live plugin version's.
+  await refreshPlugins();
+  try {
+    rules();
+  } catch {
+    console.error(
+      `The kingdom's rules can't be loaded (${runtimeStatus().problem ?? "not loaded"}).`,
+    );
+    process.exit(1);
+  }
   await backfill(await firestore(), {
     apply: process.argv.includes("--apply"),
   });

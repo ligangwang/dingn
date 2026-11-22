@@ -1,14 +1,14 @@
 {
   "name": "dingn-web",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
   },
   "scripts": {
-    "predev": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs && node scripts/kingdom-assets.mjs",
+    "predev": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs",
     "dev": "next dev --hostname 127.0.0.1 --port 3001",
-    "prebuild": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs && node scripts/kingdom-assets.mjs",
+    "prebuild": "node scripts/build-sdk.mjs && node scripts/build-locales.mjs",
     "build": "next build",
     "preview": "node scripts/preview.mjs",
     "publish:game": "node scripts/publish-game.mjs",
@@ -23,12 +23,10 @@
     "@fontsource-variable/space-grotesk": "5.3.0",
     "firebase": "12.19.0",
     "firebase-admin": "14.5.0",
-    "kingdom": "https://github.com/ligangwang/kingdom/releases/download/v0.2.0/kingdom-0.2.0.tgz",
     "next": "16.3.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "stripe": "^23.1.0",
-    "three": "0.187.0"
+    "stripe": "^23.1.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
@@ -39,6 +37,7 @@
     "@types/react-dom": "^19",
     "@types/three": "0.187.0",
     "jsdom": "^30.0.1",
+    "kingdom": "https://github.com/ligangwang/kingdom/releases/download/v0.3.0/kingdom-0.3.0.tgz",
     "prettier": "^3.9.6",
     "tsx": "^4",
     "typescript": "^5",

@@ -111,9 +111,18 @@ const bearer = (key) => ({ authorization: `Bearer ${key}` });
 function get(pathname) {
   return new Promise((resolve) => {
     let status = 0;
+    let location;
     const res = {
-      writeHead: (s) => (status = s),
-      end: (b) => resolve({ status, body: b ? String(b) : "" }),
+      writeHead: (s, headers) => {
+        status = s;
+        location = headers?.Location;
+      },
+      end: (b) =>
+        resolve(
+          location
+            ? { status, location }
+            : { status, body: b ? String(b) : "" },
+        ),
     };
     void plugin.serveRewardFile({ method: "GET", headers: {} }, res, pathname);
   });
@@ -198,6 +207,14 @@ test("approving makes a version live; this server runs its rules at once", async
   assert.deepEqual(css, { status: 200, body: ".kingdom {}" });
   assert.equal((await get("/rewards/kingdom/0.3.0/../secret")).status, 404);
   assert.equal((await get("/rewards/kingdom/0.3.0/nothing.js")).status, 404);
+  // A lasting link to the live version's files (the kingdom's credits).
+  assert.deepEqual(
+    await get("/rewards/kingdom/live/assets/kingdom/CREDITS.md"),
+    {
+      status: 302,
+      location: "/rewards/kingdom/0.3.0/assets/kingdom/CREDITS.md",
+    },
+  );
 
   // The pages are told where to load it from.
   const live = await new Promise((resolve) => {
@@ -223,12 +240,15 @@ test("approving makes a version live; this server runs its rules at once", async
       throw new Error("storage 503");
     },
   });
-  assert.equal(plugin.rules().builtIn, true);
+  // dingn has no rules of its own: until one loads, the rules are unavailable.
+  assert.throws(() => plugin.rules(), plugin.RulesUnavailable);
+  assert.ok(plugin.isRuleError(new plugin.RulesUnavailable()));
+  assert.equal(plugin.runtimeStatus().version, null);
   assert.match(plugin.runtimeStatus().problem, /storage 503/);
   const rules = await plugin.useLive(record);
   assert.equal(rules.version, "0.3.0");
   assert.equal(plugin.rules().honors.honorName(1), "Plugin 0.3.0");
-  assert.equal(plugin.runtimeStatus().builtIn, false);
+  assert.deepEqual(plugin.runtimeStatus(), { version: "0.3.0", problem: null });
 });
 
 test("a live version whose rules don't load leaves the rules as they were", async () => {
@@ -245,10 +265,10 @@ test("a live version whose rules don't load leaves the rules as they were", asyn
   await plugin.useLive(record, { read: async () => Buffer.from("x") });
   assert.equal(plugin.rules(), before);
   assert.match(plugin.runtimeStatus().problem, /does not match its upload/);
-  // With no live version, the built-in copy.
+  // With no live version, no rules.
   await plugin.useLive({ versions: {} });
-  assert.equal(plugin.rules().builtIn, true);
-  assert.equal(plugin.runtimeStatus().problem, null);
+  assert.throws(() => plugin.rules(), plugin.RulesUnavailable);
+  assert.equal(plugin.runtimeStatus().problem, "no version is live");
 });
 
 test("approving an older approved version makes it live again", async () => {

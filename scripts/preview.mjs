@@ -116,8 +116,9 @@ const types = {
 };
 startFlushing();
 startFunnelFlushing();
-// Run the kingdom's live plugin version, and pick up new approvals.
-startPluginRefresh();
+// Run the kingdom's live plugin version, and pick up new approvals. dingn has
+// no rules of its own, so it loads them before taking requests.
+await startPluginRefresh();
 http
   .createServer((req, res) => {
     const pathname = new URL(req.url, "http://localhost").pathname;
@@ -169,6 +170,15 @@ http
     }
     if (isRewardFilePath(pathname)) {
       void serveRewardFile(req, res, pathname);
+      return;
+    }
+    // The kingdom's models were once served from /models/kingdom/; they are
+    // the live plugin's now (its credits are linked from outside dingn).
+    if (pathname.startsWith("/models/kingdom/")) {
+      res.writeHead(301, {
+        Location: `/rewards/kingdom/live/assets/kingdom/${pathname.slice("/models/kingdom/".length)}`,
+      });
+      res.end();
       return;
     }
     if (rewardReleaseRoutes.includes(pathname)) {

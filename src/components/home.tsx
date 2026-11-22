@@ -127,7 +127,7 @@ function HeroKingdom() {
   const { t, locale, href } = useLocale();
   const session = useOptionalSession();
   const signedIn = !!session?.user;
-  const [view, setView] = useState<KingdomView | null>(null);
+  const [fetched, setView] = useState<KingdomView | null>(null);
   useEffect(() => {
     if (!signedIn) return setView(null);
     let current = true;
@@ -138,10 +138,13 @@ function HeroKingdom() {
       current = false;
     };
   }, [signedIn]);
+  const rules = useKingdomRules();
+  // The card needs the kingdom's rules; without them it invites, as signed out.
+  const view = rules ? fetched : null;
   const {
     kingdom: { STAGES },
     levels: { xpToReach },
-  } = useKingdomRules();
+  } = rules ?? { kingdom: { STAGES: [] }, levels: { xpToReach: () => 0 } };
   const name = (title: { en: string; zh: string }) => pick(title, locale, true);
   const stage = STAGES.find((s) => s.id === view?.stage);
   const next = STAGES.find((s) => s.level > (view?.level ?? 0));

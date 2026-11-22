@@ -73,9 +73,8 @@ export function PlayerPage() {
 function PlayerView({ player }: { player: PublicPlayer }) {
   const { t, locale, href } = useLocale();
   const session = useOptionalSession();
-  const {
-    kingdom: { STAGES },
-  } = useKingdomRules();
+  // Without the kingdom's rules (not loaded yet), no stage and no honor.
+  const STAGES = useKingdomRules()?.kingdom.STAGES ?? [];
   const mine =
     !!session?.stats?.number && session.stats.number === player.number;
   const honor = honorOf(player.level);
@@ -101,9 +100,11 @@ function PlayerView({ player }: { player: PublicPlayer }) {
           />
           <div className="profile-name">
             <h1>{player.name}</h1>
-            <p className={`profile-honor honor-${honor.tier}`}>
-              {honorName(player.level, t)}
-            </p>
+            {honor && (
+              <p className={`profile-honor honor-${honor.tier}`}>
+                {honorName(player.level, t)}
+              </p>
+            )}
           </div>
           {mine && (
             // The owner can edit what this page shows, from Settings.

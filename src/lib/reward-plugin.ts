@@ -2,15 +2,16 @@
 // (scripts/reward-plugin.mjs). The server says which approved version is
 // live (GET /api/rewards/live); the pages then import its rules (for honors
 // and stages) and its UI (for the kingdom's pages) from
-// /rewards/kingdom/<version>/. Until that answers, and whenever no version is
-// live or the live one can't load, they use the copy of the package dingn
-// was built with.
+// /rewards/kingdom/<version>/. dingn has no copy of its own (the `kingdom`
+// package is only a dev dependency, for its types and the tests): until the
+// rules arrive, or if no version is live or it can't load, there are none,
+// and the pages leave out what needs them.
 import { useEffect, useSyncExternalStore } from "react";
-import * as rewards from "kingdom/rewards";
-import * as levels from "kingdom/levels";
-import * as honors from "kingdom/honors";
-import * as coins from "kingdom/coins";
-import * as kingdom from "kingdom/kingdom";
+import type * as rewards from "kingdom/rewards";
+import type * as levels from "kingdom/levels";
+import type * as honors from "kingdom/honors";
+import type * as coins from "kingdom/coins";
+import type * as kingdom from "kingdom/kingdom";
 import type { KingdomApiError, KingdomView, VisitedKingdom } from "kingdom/ui";
 
 /** The plugin contract dingn speaks (kingdom's PLUGIN_API). */
@@ -18,7 +19,7 @@ export const PLUGIN_API = 1;
 
 /** The kingdom's rules the pages draw with. */
 export type KingdomRules = {
-  version: string | null;
+  version: string;
   rewards: typeof rewards;
   levels: typeof levels;
   honors: typeof honors;
@@ -86,31 +87,32 @@ export type KingdomUi = {
   ) => Mounted<{ host: PluginHost }>;
 };
 
-export const builtInRules: KingdomRules = {
-  version: null,
-  rewards,
-  levels,
-  honors,
-  coins,
-  kingdom,
-};
-
-let rules = builtInRules;
+let rules: KingdomRules | null = null;
 const listeners = new Set<() => void>();
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
   return () => void listeners.delete(listener);
 };
 
-/** The rules now: the live plugin's once loaded, else the built-in copy. */
+/** The live plugin's rules, or null until they load (or if they can't). */
 export const kingdomRules = () => rules;
 
 /** The rules, redrawing the component when the live plugin's arrive. */
-export function useKingdomRules(): KingdomRules {
+export function useKingdomRules(): KingdomRules | null {
   useEffect(() => {
     void loadKingdomRules();
   }, []);
-  return useSyncExternalStore(subscribe, kingdomRules, () => builtInRules);
+  return useSyncExternalStore(subscribe, kingdomRules, () => null);
+}
+
+/** Uses `module` (kingdom/rules) as the live rules, or none with null: for tests. */
+export function setKingdomRules(
+  module: Omit<KingdomRules, "version"> | null,
+  version = "test",
+) {
+  rules = module && { ...module, version };
+  loadingRules = Promise.resolve(rules);
+  listeners.forEach((listener) => listener());
 }
 
 // A URL import the bundler must leave alone: the browser fetches it.
@@ -119,7 +121,7 @@ const importUrl = (url: string): Promise<unknown> =>
 
 let live: Promise<LivePlugin | null> | null = null;
 
-/** The live plugin, or null for the built-in copy. Asked once per page load. */
+/** The live plugin, or null with none live. Asked once per page load. */
 export function livePlugin(): Promise<LivePlugin | null> {
   live ??= fetch("/api/rewards/live", { credentials: "same-origin" })
     .then((r) => (r.ok ? r.json() : null))
@@ -128,10 +130,10 @@ export function livePlugin(): Promise<LivePlugin | null> {
   return live;
 }
 
-let loadingRules: Promise<KingdomRules> | null = null;
+let loadingRules: Promise<KingdomRules | null> | null = null;
 
 /** Loads the live plugin's rules, so the pages draw what the server runs. */
-export function loadKingdomRules(): Promise<KingdomRules> {
+export function loadKingdomRules(): Promise<KingdomRules | null> {
   loadingRules ??= livePlugin().then(async (plugin) => {
     if (!plugin) return rules;
     try {
@@ -154,10 +156,7 @@ export function loadKingdomRules(): Promise<KingdomRules> {
 let loadingUi: Promise<{ ui: KingdomUi; plugin: LivePlugin } | null> | null =
   null;
 
-/**
- * Loads the live plugin's pages and their styles, or null to draw the
- * built-in copy.
- */
+/** Loads the live plugin's pages and their styles, or null if it can't. */
 export function loadKingdomUi() {
   loadingUi ??= livePlugin().then(async (plugin) => {
     if (!plugin) return null;
@@ -186,6 +185,6 @@ export function loadKingdomUi() {
 /** Forgets what was loaded, for tests. */
 export function resetKingdomPlugin() {
   live = loadingRules = loadingUi = null;
-  rules = builtInRules;
+  rules = null;
   listeners.forEach((listener) => listener());
 }

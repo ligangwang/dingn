@@ -13,44 +13,22 @@
 // once an admin approved the version (scripts/reward-releases.mjs). The
 // approved version marked live is the one dingn runs: this server imports its
 // rules.mjs (checked against the hash taken at upload) and the pages load its
-// ui.js (src/lib/reward-plugin.ts). Until a version is live, or if the live
-// one can't load, dingn runs the copy of the package it was built with.
+// ui.js (src/lib/reward-plugin.ts). dingn ships no copy of its own: until a
+// version is live and loaded, the rules aren't there and the reward API
+// answers 503 (RulesUnavailable).
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import https from "node:https";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import * as rewards from "kingdom/rewards";
-import * as levels from "kingdom/levels";
-import * as honors from "kingdom/honors";
-import * as coins from "kingdom/coins";
-import * as ledger from "kingdom/ledger";
-import * as kingdom from "kingdom/kingdom";
 import { bucket, localDir, types } from "./game-registry.mjs";
 import { getDoc } from "./platform-store.mjs";
 import { RELEASE_SYSTEMS, RELEASE_VERSION } from "./reward-systems.mjs";
 
 /** The plugin contract this dingn speaks (kingdom's PLUGIN_API). */
 export const PLUGIN_API = 1;
-
-/** The version of the package dingn was built with. */
-export const builtInVersion = createRequire(import.meta.url)(
-  "kingdom/package.json",
-).version;
-
-const BUILT_IN = Object.freeze({
-  version: builtInVersion,
-  builtIn: true,
-  rewards,
-  levels,
-  honors,
-  coins,
-  ledger,
-  kingdom,
-});
 
 /** What dingn needs of a rules module, by module: the names it calls. */
 const NEEDED = {
@@ -86,13 +64,41 @@ const NEEDED = {
   ],
 };
 
-let current = BUILT_IN;
+/** No version of the rules is loaded yet, or none is live: try again later. */
+export class RulesUnavailable extends Error {
+  constructor() {
+    super("rewards-unavailable");
+    this.status = 503;
+    this.code = "rewards-unavailable";
+  }
+}
+
+let current = null;
 // The error classes of every rules module loaded, so an error thrown by the
 // live rules is still known after a newer version is swapped in.
-const ruleErrors = new Set([ledger.RewardError, kingdom.KingdomError]);
+const ruleErrors = new Set([RulesUnavailable]);
 
-/** The kingdom's rules dingn runs now: the live plugin's, or the built-in copy. */
-export const rules = () => current;
+/** The kingdom's rules dingn runs now: the live plugin's. Throws RulesUnavailable. */
+export function rules() {
+  if (!current) throw new RulesUnavailable();
+  return current;
+}
+
+/**
+ * Runs `module` (a plugin's rules.mjs, as kingdom/rules exports it) as the
+ * live rules, or none with null: for tests.
+ */
+export function setRules(module, version = "test") {
+  if (module) {
+    checkRules(module);
+    ruleErrors.add(module.ledger.RewardError);
+    ruleErrors.add(module.kingdom.KingdomError);
+  }
+  current = module ? Object.freeze({ ...module, version }) : null;
+  loadedFor = module ? `set:${version}` : null;
+  problem = null;
+  return current;
+}
 
 /** Whether an error is a rule refusing a request (it carries a status). */
 export const isRuleError = (error) =>
@@ -273,7 +279,7 @@ export function liveRelease(record) {
   return { version, ...release.bundle };
 }
 
-/** What the pages need to load a system's live plugin, or null for the built-in copy. */
+/** What the pages need to load a system's live plugin, or null with none live. */
 export function livePlugin(system, record) {
   const live = liveRelease(record);
   if (!live) return null;
@@ -294,16 +300,15 @@ let problem = null;
 
 /** The version this server runs and why it isn't the live one, if it isn't. */
 export const runtimeStatus = () => ({
-  version: current.version,
-  builtIn: current.builtIn === true,
+  version: current?.version ?? null,
   problem,
 });
 
 /**
  * Makes this server run the live version in `record` (the kingdom's
  * rewardReleases document): imports its rules once, checked against the hash
- * taken at upload. With no live version, the built-in copy. A version that
- * fails to load leaves the rules as they were. `read` replaces the storage
+ * taken at upload. With no live version, no rules. A version that fails to
+ * load leaves the rules as they were. `read` replaces the storage
  * in tests.
  */
 export async function useLive(record, { read = readBundleFile } = {}) {
@@ -311,9 +316,9 @@ export async function useLive(record, { read = readBundleFile } = {}) {
   const want = live ? `${live.version}:${live.rulesHash}` : null;
   if (want === loadedFor) return current;
   if (!live) {
-    current = BUILT_IN;
+    current = null;
     loadedFor = null;
-    problem = null;
+    problem = "no version is live";
     return current;
   }
   try {
@@ -332,11 +337,7 @@ export async function useLive(record, { read = readBundleFile } = {}) {
     checkRules(module);
     ruleErrors.add(module.ledger.RewardError);
     ruleErrors.add(module.kingdom.KingdomError);
-    current = Object.freeze({
-      ...module,
-      version: live.version,
-      builtIn: false,
-    });
+    current = Object.freeze({ ...module, version: live.version });
     loadedFor = want;
     problem = null;
     console.log("rewards plugin", "kingdom", live.version);
@@ -362,12 +363,14 @@ export function refreshPlugins() {
 
 /**
  * Checks for a new live version now and every minute, so an approval
- * reaches every server instance within about a minute.
+ * reaches every server instance within about a minute. Resolves once the
+ * first check is done.
  */
-export function startPluginRefresh(every = 60_000) {
-  void refreshPlugins();
+export async function startPluginRefresh(every = 60_000) {
+  const first = refreshPlugins();
   const timer = setInterval(() => void refreshPlugins(), every);
   timer.unref?.();
+  await first;
   return timer;
 }
 
@@ -377,7 +380,11 @@ export function startPluginRefresh(every = 60_000) {
 export const isRewardFilePath = (pathname) => pathname.startsWith("/rewards/");
 export const pluginRoutes = ["/api/rewards/live"];
 
-/** Splits /rewards/<system>/<version>/<file>; null for anything else. */
+/**
+ * Splits /rewards/<system>/<version>/<file>; null for anything else. The
+ * version may be "live", for a link that always reaches the live version
+ * (the kingdom's credits).
+ */
 export function parseRewardPath(pathname) {
   const match = /^\/rewards\/([a-z][a-z0-9-]*)\/([^/]+)\/(.+)$/.exec(pathname);
   if (!match) return null;
@@ -388,7 +395,10 @@ export function parseRewardPath(pathname) {
     return null;
   }
   const [, system, version] = match;
-  if (!Object.hasOwn(RELEASE_SYSTEMS, system) || !RELEASE_VERSION.test(version))
+  if (
+    !Object.hasOwn(RELEASE_SYSTEMS, system) ||
+    (version !== "live" && !RELEASE_VERSION.test(version))
+  )
     return null;
   if (!SAFE_FILE.test(file)) return null;
   return { system, version, file };
@@ -429,6 +439,18 @@ export async function serveRewardFile(req, res, pathname, { load } = {}) {
   } catch (error) {
     console.error("reward file", error);
     res.writeHead(503, { "Cache-Control": "no-store" });
+    return res.end();
+  }
+  if (version === "live") {
+    const live = liveRelease(record);
+    if (!live) return notFound(res);
+    res.writeHead(302, {
+      Location: `/rewards/${system}/${live.version}/${file
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/")}`,
+      "Cache-Control": "public, max-age=60",
+    });
     return res.end();
   }
   if (!record?.versions?.[version]?.approvedAt) return notFound(res);

@@ -22,8 +22,7 @@ export type RewardReleases = {
   live: string | null;
   /** What the server that answered runs, and why not the live version. */
   running: {
-    version: string;
-    builtIn: boolean;
+    version: string | null;
     problem: string | null;
   } | null;
   versions: RewardRelease[];

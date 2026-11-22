@@ -167,9 +167,13 @@ game, so a new version goes live with no rebuild of dingn:
    approved versions' files are served. Approving an older approved version
    makes it live again, to roll back.
 
-Until a version is live, or if the live one can't load, dingn runs the copy
-of the package it was built with (`kingdom` in `package.json`); the Rewards
-page says when a server can't load the live version. The code is in
+dingn ships no copy of a reward system. A server loads the live version's
+rules before it takes requests; until it has them (no version is live, or it
+can't load), the reward API answers 503, the pages leave out honors and say
+the kingdom is unavailable, and the Rewards page says why. `kingdom` is only a
+dev dependency, for its types, the tests and a game's `--dry-run` check. The
+live version's files also have a lasting address,
+`/rewards/<system>/live/<file>` (the credits link uses it). The code is in
 `scripts/reward-plugin.mjs`, `scripts/reward-releases.mjs` and
 `src/lib/reward-plugin.ts`. No other secret is needed.
 

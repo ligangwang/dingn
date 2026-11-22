@@ -13,11 +13,14 @@ import type * as Honors from "kingdom/honors";
 // The honors themselves (titles, levels, metals and numerals) are the
 // reward system's: the live kingdom plugin's honors module
 // (src/lib/reward-plugin.ts). This file draws them. A component that uses
-// these calls useKingdomRules(), so it redraws when the plugin's arrive.
-export const honorName: typeof Honors.honorName = (...a) =>
-  kingdomRules().honors.honorName(...a);
-export const honorOf: typeof Honors.honorOf = (...a) =>
-  kingdomRules().honors.honorOf(...a);
+// these calls useKingdomRules(), so it redraws when the plugin's arrive;
+// until then there are no honors: an empty name, and no honor.
+export const honorName = (...a: Parameters<typeof Honors.honorName>): string =>
+  kingdomRules()?.honors.honorName(...a) ?? "";
+export const honorOf = (
+  ...a: Parameters<typeof Honors.honorOf>
+): ReturnType<typeof Honors.honorOf> | null =>
+  kingdomRules()?.honors.honorOf(...a) ?? null;
 export { useKingdomRules };
 
 /**
@@ -30,10 +33,25 @@ export function HonorPath({
   stats: { level: number; xp: number } | null | undefined;
 }) {
   const { t, locale } = useLocale();
-  const {
+  const rules = useKingdomRules();
+  if (!rules) return null;
+  return <HonorRoad stats={stats} rules={rules} t={t} locale={locale} />;
+}
+
+function HonorRoad({
+  stats,
+  rules: {
     honors: { HONORS },
     levels: { xpToReach: xpFor },
-  } = useKingdomRules();
+  },
+  t,
+  locale,
+}: {
+  stats: { level: number; xp: number } | null | undefined;
+  rules: NonNullable<ReturnType<typeof useKingdomRules>>;
+  t: (text: string) => string;
+  locale: string;
+}) {
   const level = stats?.level ?? 0;
   const next = HONORS.find((h) => h.level > level);
   // How far along the road to the next rank: the line to it fills in.
@@ -53,7 +71,7 @@ export function HonorPath({
         {HONORS.map((h) => {
           const reached = level >= h.level;
           const state = reached
-            ? honorOf(level).title === h.title
+            ? honorOf(level)?.title === h.title
               ? "current"
               : "reached"
             : next === h

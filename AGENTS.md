@@ -14,9 +14,9 @@ row to the table (newest at the bottom) and note license terms and where it's us
 ## Rewards: levels, XP, honors, coins and the kingdom
 
 The reward system lives in its own repository, `ligangwang/kingdom`, and
-dingn installs it as the `kingdom` package, from a published version (a
-GitHub release) in `package.json`. dingn is the platform: it runs the games, sign-in, Firestore
-and the API, and asks the package what a player earns. Read the kingdom
+runs in dingn as a plugin: an approved version's bundle, loaded at run time.
+dingn is the platform: it runs the games, sign-in, Firestore and the API,
+and asks the plugin what a player earns. Read the kingdom
 repo's `AGENTS.md` for the levels, XP and honors design and the kingdom's
 art credits.
 
@@ -37,18 +37,23 @@ art credits.
   Approving makes it live: the servers run its rules and the pages load its
   UI within a minute (scripts/reward-plugin.mjs, src/lib/reward-plugin.ts).
 - **Call the rules through the plugin.** On the server, `rules()` from
-  `scripts/reward-plugin.mjs` (never a static `kingdom/*` import, which would
-  stay on the built-in copy); on a page, `useKingdomRules()` from
-  `src/lib/reward-plugin.ts`. The `kingdom` package dingn installs is the
-  built-in copy it falls back on, and its types.
-- The live plugin serves its own models. The built-in copy's are copied from
-  the package to `public/models/kingdom` before `dev` and `build`
-  (`scripts/kingdom-assets.mjs`) and are not committed. The footer's Credits
-  link still reaches them through `public/models/CREDITS.md`.
+  `scripts/reward-plugin.mjs` (never a `kingdom/*` import); on a page,
+  `useKingdomRules()` from `src/lib/reward-plugin.ts`, which is null until
+  the rules load, so draw nothing that needs them until then. dingn has no
+  copy of its own: without a live version the reward API answers 503.
+- **The `kingdom` package is a dev dependency only**, for its types
+  (`import type`), the tests (`tests/kingdom-rules.mjs` and
+  `tests/setup-kingdom.ts` run it as the live version) and a game's
+  `--dry-run` check. Never import it at run time: it isn't in the image.
+- The live plugin serves its own models. The footer's Credits link reaches
+  their credits through `public/models/CREDITS.md`, which links
+  `/rewards/kingdom/live/assets/kingdom/CREDITS.md` (old `/models/kingdom/`
+  links are redirected there).
 - **Every reward system is listed** in `src/data/reward-systems.ts`, which
-  the admin Rewards page (`/admin/rewards/`) shows, kingdom first, with its
-  built-in copy, its uploaded versions and the live one. A new reward system (its own repository and package)
-  is added there too.
+  the admin Rewards page (`/admin/rewards/`) shows, kingdom first, with
+  what its live version grants, its uploaded versions and the live one. A new
+  reward system (its own repository) is added there and in
+  `scripts/reward-systems.mjs`.
 - **The kingdom's pages come from the plugin** (its `ui.js`: the build page,
   a visit and the account card, drawn into an element with their own React).
   `src/components/kingdom.tsx` only gives them dingn's words, links, coin
@@ -58,3 +63,10 @@ art credits.
   `scripts/game-core.mjs`), the reward API and storage
   (`scripts/rewards.mjs`, `scripts/kingdom.mjs`), and the honors drawn
   across the site (`src/components/honor.tsx`).
+
+## Versions
+
+dingn's version is `version` in `package.json`, and the footer shows it with
+the commit the site was built from (`GIT_COMMIT`, which the Website workflow
+passes to `docker build`). Raise it when you ship a change people would
+notice: minor for a feature, patch for a fix.
