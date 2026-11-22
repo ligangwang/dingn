@@ -41,8 +41,13 @@ art credits.
   link still reaches them through `public/models/CREDITS.md`.
 - **Every reward system is listed** in `src/data/reward-systems.ts`, which
   the admin Rewards page (`/admin/rewards/`) shows, kingdom first, with the
-  version dingn runs. A new
-  reward system (its own repository and package) is added there too.
-- What dingn's own games score (`xpFor` in `scripts/game-core.mjs`) and the
-  pages that draw the rewards (`src/components/honor.tsx`, `kingdom.tsx`,
-  `kingdom-visit.tsx`, `kingdom-card.tsx`) stay here.
+  version dingn runs. A new reward system (its own repository and package)
+  is added there too.
+- **The kingdom's pages come from the package** (`kingdom/ui`: the build
+  page, a visit and the account card). `src/components/kingdom.tsx` only
+  gives them dingn's words, links, coin picture and kingdom API; don't add
+  kingdom UI or rules here. Their words stay in dingn's language packs.
+- What stays here: what dingn's own games score (`xpFor` in
+  `scripts/game-core.mjs`), the reward API and storage
+  (`scripts/rewards.mjs`, `scripts/kingdom.mjs`), and the honors drawn
+  across the site (`src/components/honor.tsx`).
