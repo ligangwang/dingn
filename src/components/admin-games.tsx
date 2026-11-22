@@ -12,15 +12,11 @@ import { useSession } from "./session";
 import {
   changeGame,
   closeReport,
-  createReviewKey,
   listGames,
   listReports,
-  listReviewKeys,
-  revokeReviewKey,
   type AdminGame,
   type GameChange,
   type Report,
-  type ReviewKey,
 } from "@/lib/admin-games";
 
 const REASON_LABELS: Record<Report["reason"], string> = {
@@ -176,128 +172,7 @@ function GameList() {
           apply={apply}
         />
       ))}
-      <ReviewKeys />
     </div>
-  );
-}
-
-/**
- * Review keys: approve or reject uploads from a script or an assistant
- * without this page. A key can only list games and approve or reject a
- * version. A new key is shown once; dingn keeps only a hash of it.
- */
-function ReviewKeys() {
-  const { t, locale } = useLocale();
-  const [keys, setKeys] = useState<ReviewKey[] | null>(null);
-  const [name, setName] = useState("");
-  const [created, setCreated] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState("");
-  useEffect(() => {
-    listReviewKeys()
-      .then((result) => setKeys(result.keys))
-      .catch(() => setProblem(t("Review keys could not be loaded.")));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function run(work: () => Promise<{ keys: ReviewKey[]; key?: string }>) {
-    setBusy(true);
-    setProblem("");
-    try {
-      const result = await work();
-      setKeys(result.keys);
-      return result;
-    } catch (error) {
-      setProblem(
-        (error as { code?: string }).code === "too-many-keys"
-          ? t("You can have up to 5 keys. Revoke one first.")
-          : t("That did not work. Try again."),
-      );
-      return null;
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function create(event: React.FormEvent) {
-    event.preventDefault();
-    const result = await run(() => createReviewKey(name));
-    if (result?.key) {
-      setCreated(result.key);
-      setName("");
-    }
-  }
-  const date = (iso: string) =>
-    new Date(iso).toLocaleDateString(locale, { dateStyle: "medium" });
-
-  return (
-    <section className="admin-keys" aria-labelledby="admin-keys-title">
-      <h2 id="admin-keys-title">{t("Review keys")}</h2>
-      <p>
-        {t(
-          "A review key lets a script or an assistant review games for you: it can list the games and approve or reject a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games and https://dingn.com/api/admin/games/update with the header Authorization: Bearer followed by the key. A key stops working when it is revoked or its account is no longer an admin.",
-        )}
-      </p>
-      {created && (
-        <div role="status" className="admin-key-new">
-          <p>{t("Copy your new key now. dingn shows it only once.")}</p>
-          <code className="admin-key">{created}</code>
-        </div>
-      )}
-      <form className="admin-key-form" onSubmit={create}>
-        <label htmlFor="admin-key-name" className="sr-only">
-          {t("Key name")}
-        </label>
-        <input
-          id="admin-key-name"
-          value={name}
-          maxLength={60}
-          placeholder={t("Key name, such as Claude")}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <button
-          type="submit"
-          className="button"
-          disabled={busy || !name.trim()}
-        >
-          {t("Create key")}
-        </button>
-      </form>
-      {problem && (
-        <p role="alert" className="error">
-          {problem}
-        </p>
-      )}
-      {keys && keys.length > 0 && (
-        <ul className="admin-key-list">
-          {keys.map((key) => (
-            <li key={key.id}>
-              <strong>{key.name}</strong> {t(`Created ${date(key.createdAt)}`)}
-              {", "}
-              {key.lastUsedAt
-                ? t(`last used ${date(key.lastUsedAt)}`)
-                : t("never used")}{" "}
-              <button
-                type="button"
-                className="text-button"
-                disabled={busy}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      t(
-                        `Revoke ${key.name}? Anything using it will stop working.`,
-                      ),
-                    )
-                  )
-                    void run(() => revokeReviewKey(key.id));
-                }}
-              >
-                {t("Revoke")}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 

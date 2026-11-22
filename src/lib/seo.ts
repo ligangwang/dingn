@@ -165,6 +165,10 @@ export const pages = {
     index: false,
     en: { title: "Rewards admin" },
   },
+  "/admin/keys/": {
+    index: false,
+    en: { title: "API keys" },
+  },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },

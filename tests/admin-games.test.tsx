@@ -17,9 +17,6 @@ const mocks = vi.hoisted(() => ({
   changeDeveloper: vi.fn(),
   listReports: vi.fn(),
   closeReport: vi.fn(),
-  listReviewKeys: vi.fn(),
-  createReviewKey: vi.fn(),
-  revokeReviewKey: vi.fn(),
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
@@ -31,9 +28,6 @@ vi.mock("../src/lib/admin-games", () => ({
   changeDeveloper: mocks.changeDeveloper,
   listReports: mocks.listReports,
   closeReport: mocks.closeReport,
-  listReviewKeys: mocks.listReviewKeys,
-  createReviewKey: mocks.createReviewKey,
-  revokeReviewKey: mocks.revokeReviewKey,
 }));
 
 const title = { en: "Crowd Rush", zh: "人潮突击" };
@@ -73,7 +67,6 @@ beforeEach(() => {
   mocks.listGames.mockResolvedValue([crowd]);
   mocks.listDevelopers.mockResolvedValue([]);
   mocks.listReports.mockResolvedValue([]);
-  mocks.listReviewKeys.mockResolvedValue({ keys: [] });
 });
 afterEach(() => {
   cleanup();
@@ -310,32 +303,4 @@ it("transfers dingn's own game to a developer", async () => {
   expect(
     within(card).queryByRole("button", { name: "Transfer to a developer" }),
   ).toBeNull();
-});
-
-it("creates a review key, shows it once, and revokes it", async () => {
-  const key = {
-    id: "k1",
-    name: "Claude",
-    createdAt: "2026-11-20T00:00:00Z",
-    lastUsedAt: null,
-  };
-  mocks.createReviewKey.mockResolvedValue({
-    key: "dak.admin.k1.secret",
-    keys: [key],
-  });
-  mocks.revokeReviewKey.mockResolvedValue({ keys: [] });
-  vi.spyOn(window, "confirm").mockReturnValue(true);
-  render(<AdminGames />);
-  const user = userEvent.setup();
-  const section = await screen.findByRole("region", { name: "Review keys" });
-  await user.type(within(section).getByLabelText("Key name"), "Claude");
-  await user.click(within(section).getByRole("button", { name: "Create key" }));
-  expect(mocks.createReviewKey).toHaveBeenCalledWith("Claude");
-  expect(await within(section).findByText("dak.admin.k1.secret")).toBeTruthy();
-  expect(
-    within(section).getByText("never used", { exact: false }),
-  ).toBeTruthy();
-  await user.click(within(section).getByRole("button", { name: "Revoke" }));
-  expect(mocks.revokeReviewKey).toHaveBeenCalledWith("k1");
-  expect(within(section).queryByRole("listitem")).toBeNull();
 });
