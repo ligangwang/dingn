@@ -2,10 +2,15 @@ import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AdminKeys } from "../src/components/admin-keys";
+import { ApiKeys } from "../src/components/api-keys";
 
 const mocks = vi.hoisted(() => ({
-  session: { user: { uid: "admin" }, ready: true, isAdmin: true },
+  session: {
+    user: { uid: "admin" },
+    ready: true,
+    isAdmin: true,
+    isDeveloper: true,
+  },
   listReviewKeys: vi.fn(),
   createReviewKey: vi.fn(),
   revokeReviewKey: vi.fn(),
@@ -35,7 +40,12 @@ const key = (id: string, name: string, lastUsedAt: string | null = null) => ({
 });
 
 beforeEach(() => {
-  mocks.session = { user: { uid: "admin" }, ready: true, isAdmin: true };
+  mocks.session = {
+    user: { uid: "admin" },
+    ready: true,
+    isAdmin: true,
+    isDeveloper: true,
+  };
   for (const fn of Object.values(mocks))
     if (typeof fn === "function") fn.mockReset();
   mocks.listReviewKeys.mockResolvedValue({ keys: [] });
@@ -43,19 +53,40 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-it("shows nothing to someone who isn't an admin", () => {
+it("sends someone with neither role to My games", () => {
   mocks.session.isAdmin = false;
-  render(<AdminKeys />);
-  expect(screen.queryByRole("heading", { name: "API keys" })).toBeNull();
+  mocks.session.isDeveloper = false;
+  render(<ApiKeys />);
+  expect(screen.queryByRole("region")).toBeNull();
+  expect(
+    screen.getByRole("link", { name: "My games" }).getAttribute("href"),
+  ).toBe("/developers/games");
+  expect(mocks.listReviewKeys).not.toHaveBeenCalled();
+  expect(mocks.listUploadKeys).not.toHaveBeenCalled();
+});
+
+it("shows an admin only review keys", async () => {
+  mocks.session.isDeveloper = false;
+  render(<ApiKeys />);
+  expect(screen.getByRole("region", { name: "Review keys" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Upload keys" })).toBeNull();
+  expect(mocks.listUploadKeys).not.toHaveBeenCalled();
+});
+
+it("shows a developer only upload keys", async () => {
+  mocks.session.isAdmin = false;
+  render(<ApiKeys />);
+  expect(screen.getByRole("region", { name: "Upload keys" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Review keys" })).toBeNull();
   expect(mocks.listReviewKeys).not.toHaveBeenCalled();
 });
 
-it("lists the admin's review and upload keys on one page", async () => {
+it("shows both kinds to an admin who is also a developer", async () => {
   mocks.listReviewKeys.mockResolvedValue({ keys: [key("r1", "Claude")] });
   mocks.listUploadKeys.mockResolvedValue({
     keys: [key("u1", "kingdom CI", "2026-11-21T00:00:00Z")],
   });
-  render(<AdminKeys />);
+  render(<ApiKeys />);
   expect(screen.getByRole("heading", { name: "API keys" })).toBeTruthy();
   const review = screen.getByRole("region", { name: "Review keys" });
   const upload = screen.getByRole("region", { name: "Upload keys" });
@@ -71,7 +102,7 @@ it("creates a review key, shows it once, and revokes it", async () => {
   });
   mocks.revokeReviewKey.mockResolvedValue({ keys: [] });
   vi.spyOn(window, "confirm").mockReturnValue(true);
-  render(<AdminKeys />);
+  render(<ApiKeys />);
   const user = userEvent.setup();
   const section = screen.getByRole("region", { name: "Review keys" });
   await within(section).findByText("No keys yet.");
@@ -92,7 +123,7 @@ it("creates an upload key for CI", async () => {
     key: "dgk.admin.u1.secret",
     keys: [key("u1", "kingdom CI")],
   });
-  render(<AdminKeys />);
+  render(<ApiKeys />);
   const user = userEvent.setup();
   const section = screen.getByRole("region", { name: "Upload keys" });
   await within(section).findByText("No keys yet.");

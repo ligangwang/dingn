@@ -458,7 +458,6 @@
     "Upload keys could not be loaded.": "업로드 키를 불러오지 못했어요.",
     "You can have up to 5 keys. Revoke one first.": "키는 최대 5개까지 가질 수 있어요. 먼저 하나를 폐기하세요.",
     "That did not work. Try again.": "실패했어요. 다시 시도해 주세요.",
-    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Send the zip to https://dingn.com/api/developer/games/upload with the header Authorization: Bearer followed by the key. Keep keys secret, for example as a GitHub secret.": "키가 있으면 스크립트나 GitHub Action으로 게임을 업로드할 수 있으며, 이 페이지와 같은 검토와 한도가 적용돼요. Authorization: Bearer 헤더 뒤에 키를 붙여 https://dingn.com/api/developer/games/upload로 zip 파일을 보내세요. 키는 GitHub 시크릿 등으로 안전하게 보관하세요.",
     "Copy your new key now. dingn shows it only once.": "지금 새 키를 복사하세요. dingn은 키를 한 번만 보여 줘요.",
     "Key name": "키 이름",
     "Key name, such as GitHub Actions": "키 이름(예: GitHub Actions)",
@@ -469,7 +468,6 @@
     "Revoke": "폐기",
     "Revoke {0}? Anything using it will stop uploading.": "{0}을(를) 폐기할까요? 이 키를 사용하는 곳은 더 이상 업로드할 수 없어요.",
     "Uploading from GitHub or a script": "GitHub나 스크립트로 업로드하기",
-    "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "내 게임에서 업로드 키를 만든 다음, 그 키로 zip 파일을 보내세요. 업로드는 다른 업로드와 똑같이 검토돼요. GitHub Action에서는 키를 DINGN_UPLOAD_KEY라는 이름의 시크릿으로 보관하세요:",
     "Admin": "관리자",
     "Users": "사용자",
     "Admins": "관리자",
@@ -910,7 +908,6 @@
     "Approved": "승인됨",
     "API keys": "API 키",
     "No keys yet.": "아직 키가 없습니다.",
-    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account is no longer an admin.": "키를 사용하면 스크립트, 어시스턴트 또는 CI가 로그인 없이 내 계정으로 dingn을 호출할 수 있습니다. Authorization: Bearer 헤더 뒤에 키를 붙여 보내고, GitHub 시크릿 등으로 안전하게 보관하세요. 키를 폐기하거나 해당 계정이 더 이상 관리자가 아니면 키는 작동하지 않습니다.",
     "A review key reviews for you: it can list games and reward system releases and approve or send back a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards and https://dingn.com/api/admin/rewards/update.": "검토 키는 나 대신 검토합니다. 게임과 보상 시스템 릴리스를 나열하고 버전을 승인하거나 반려하는 것만 할 수 있습니다. https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards, https://dingn.com/api/admin/rewards/update 로 POST 요청을 보내세요.",
     "An upload key uploads for you: games to https://dingn.com/api/developer/games/upload, and reward system releases to https://dingn.com/api/rewards/upload, where they wait for review. kingdom's release workflow uses one as its DINGN_UPLOAD_KEY secret. An upload key can never review.": "업로드 키는 나 대신 업로드합니다. 게임은 https://dingn.com/api/developer/games/upload 로, 보상 시스템 릴리스는 https://dingn.com/api/rewards/upload 로 보내져 검토를 기다립니다. kingdom의 릴리스 워크플로는 이 키를 DINGN_UPLOAD_KEY 시크릿으로 사용합니다. 업로드 키는 검토할 수 없습니다.",
     "Deploy again": "다시 배포",
@@ -942,6 +939,11 @@
     "Building": "건물",
     "Most per kingdom": "왕국당 최대",
     "Memory practice": "기억력 연습",
-    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "메이저 시스템을 배워 보세요: 숫자를 기억하기 쉬운 단어와 그림으로 바꿉니다. 점수 없음."
+    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "메이저 시스템을 배워 보세요: 숫자를 기억하기 쉬운 단어와 그림으로 바꿉니다. 점수 없음.",
+    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account loses the role it needs.": "키를 사용하면 스크립트, 어시스턴트 또는 CI가 로그인하지 않고 내 계정으로 dingn을 호출할 수 있습니다. 헤더 Authorization: Bearer 뒤에 키를 붙여 보내고, GitHub 시크릿 등으로 안전하게 보관하세요. 키를 폐기하거나 계정이 필요한 역할을 잃으면 키는 더 이상 작동하지 않습니다.",
+    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Make and revoke them on API keys.": "키를 사용하면 스크립트나 GitHub Action이 내 게임을 업로드할 수 있으며, 검토와 한도는 이 페이지와 같습니다. 키 생성과 폐기는 API 키 페이지에서 합니다.",
+    "Sign in to manage your API keys.": "API 키를 관리하려면 로그인하세요.",
+    "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "API 키는 개발자와 관리자를 위한 것입니다. 내 게임에서 개발자로 가입하면 업로드 키를 만들 수 있습니다.",
+    "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "API 키에서 업로드 키를 만든 다음, 그 키로 zip 파일을 보내세요. 업로드는 다른 업로드와 똑같이 검토돼요. GitHub Action에서는 키를 DINGN_UPLOAD_KEY라는 이름의 시크릿으로 보관하세요:"
   }
 }

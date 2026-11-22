@@ -1,13 +1,15 @@
 "use client";
-// API keys admin: the admin's own keys for calling dingn from a script, an
-// assistant or CI, in one place (scripts/upload-keys.mjs).
-//   - Review keys review games and reward system releases.
-//   - Upload keys upload games and send reward system releases for review,
-//     such as kingdom's DINGN_UPLOAD_KEY secret.
-// A new key is shown once; dingn keeps only a hash of it.
+// /developers/keys/: an account's API keys, for calling dingn from a script,
+// an assistant or CI (scripts/upload-keys.mjs). Each role sees its own keys:
+//   - Developers: upload keys, which upload games and send reward system
+//     releases for review (such as kingdom's DINGN_UPLOAD_KEY secret).
+//   - Admins: review keys, which review games and reward system releases.
+// An account with both roles sees both. A new key is shown once; dingn keeps
+// only a hash of it.
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AdminOnly } from "./admin-games";
 import { useLocale } from "./locale";
+import { useSession } from "./session";
 import {
   createReviewKey,
   listReviewKeys,
@@ -27,49 +29,82 @@ type ApiKey = {
 };
 type KeysResult = { keys: ApiKey[]; key?: string };
 
-export function AdminKeys() {
-  return (
-    <AdminOnly path="/admin/keys/">
-      <Keys />
-    </AdminOnly>
-  );
-}
-
-function Keys() {
-  const { t } = useLocale();
+export function ApiKeys() {
+  const { t, href } = useLocale();
+  const { user, ready, isAdmin, isDeveloper } = useSession();
+  if (!ready)
+    return (
+      <div className="center-page">
+        <p role="status">{t("Checking access…")}</p>
+      </div>
+    );
+  if (!user)
+    return (
+      <div className="center-page">
+        <section className="panel signin-panel">
+          <h1>{t("API keys")}</h1>
+          <p>{t("Sign in to manage your API keys.")}</p>
+          <Link
+            className="button"
+            href={`${href("/signin/")}?next=${encodeURIComponent(href("/developers/keys/"))}`}
+          >
+            {t("Sign in")}
+          </Link>
+        </section>
+      </div>
+    );
+  if (!isAdmin && !isDeveloper)
+    return (
+      <div className="center-page">
+        <section className="panel signin-panel">
+          <h1>{t("API keys")}</h1>
+          <p>
+            {t(
+              "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.",
+            )}
+          </p>
+          <Link className="button" href={href("/developers/games/")}>
+            {t("My games")}
+          </Link>
+        </section>
+      </div>
+    );
   return (
     <div className="container admin-games admin-api-keys">
-      <p className="eyebrow">{t("ADMIN")}</p>
       <h1>{t("API keys")}</h1>
       <p className="lede">
         {t(
-          "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account is no longer an admin.",
+          "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account loses the role it needs.",
         )}
       </p>
-      <KeySection
-        id="review"
-        title="Review keys"
-        about="A review key reviews for you: it can list games and reward system releases and approve or send back a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards and https://dingn.com/api/admin/rewards/update."
-        placeholder="Key name, such as Claude"
-        failed="Review keys could not be loaded."
-        api={{
-          list: listReviewKeys,
-          create: createReviewKey,
-          revoke: revokeReviewKey,
-        }}
-      />
-      <KeySection
-        id="upload"
-        title="Upload keys"
-        about="An upload key uploads for you: games to https://dingn.com/api/developer/games/upload, and reward system releases to https://dingn.com/api/rewards/upload, where they wait for review. kingdom's release workflow uses one as its DINGN_UPLOAD_KEY secret. An upload key can never review."
-        placeholder="Key name, such as GitHub Actions"
-        failed="Upload keys could not be loaded."
-        api={{
-          list: listUploadKeys,
-          create: createUploadKey,
-          revoke: revokeUploadKey,
-        }}
-      />
+      {isDeveloper && (
+        <KeySection
+          id="upload"
+          title="Upload keys"
+          about="An upload key uploads for you: games to https://dingn.com/api/developer/games/upload, and reward system releases to https://dingn.com/api/rewards/upload, where they wait for review. kingdom's release workflow uses one as its DINGN_UPLOAD_KEY secret. An upload key can never review."
+          placeholder="Key name, such as GitHub Actions"
+          failed="Upload keys could not be loaded."
+          api={{
+            list: listUploadKeys,
+            create: createUploadKey,
+            revoke: revokeUploadKey,
+          }}
+        />
+      )}
+      {isAdmin && (
+        <KeySection
+          id="review"
+          title="Review keys"
+          about="A review key reviews for you: it can list games and reward system releases and approve or send back a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards and https://dingn.com/api/admin/rewards/update."
+          placeholder="Key name, such as Claude"
+          failed="Review keys could not be loaded."
+          api={{
+            list: listReviewKeys,
+            create: createReviewKey,
+            revoke: revokeReviewKey,
+          }}
+        />
+      )}
     </div>
   );
 }

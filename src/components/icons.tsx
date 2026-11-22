@@ -182,3 +182,13 @@ export function CastleIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/** API keys: a key. */
+export function KeyIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="8" cy="15" r="4" />
+      <path d="m10.8 12.2 8.7-8.7M16 7l2.5 2.5M14 9l2 2" />
+    </Svg>
+  );
+}

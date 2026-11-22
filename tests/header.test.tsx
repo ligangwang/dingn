@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
     user: null as null | { displayName: null; email: string },
     ready: true,
     isAdmin: false,
+    isDeveloper: false,
     profile: { avatar: "fox", userName: "Ada" },
     stats: null as null | { level: number; xp: number },
   },
@@ -79,4 +80,21 @@ it("shows the Leaderboard in the menu to admins only", () => {
   expect(
     screen.getByRole("link", { name: "Leaderboard" }).getAttribute("href"),
   ).toMatch(/^\/leaderboard\/?$/);
+});
+
+it("gives a developer who isn't an admin an API keys link", () => {
+  mocks.session.isAdmin = false;
+  mocks.session.isDeveloper = true;
+  render(<Header />);
+  expect(
+    screen.getByRole("link", { name: "API keys" }).getAttribute("href"),
+  ).toBe("/developers/keys");
+  cleanup();
+  mocks.session.isAdmin = true;
+  render(<Header />);
+  // Admins find it in the Admin menu instead: one link, not two.
+  expect(
+    screen.getAllByRole("link", { name: "API keys", hidden: true }),
+  ).toHaveLength(1);
+  mocks.session.isDeveloper = false;
 });

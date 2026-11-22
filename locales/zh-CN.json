@@ -458,7 +458,6 @@
     "Upload keys could not be loaded.": "无法加载上传密钥。",
     "You can have up to 5 keys. Revoke one first.": "最多可以有 5 个密钥。请先撤销一个。",
     "That did not work. Try again.": "操作没有成功，请重试。",
-    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Send the zip to https://dingn.com/api/developer/games/upload with the header Authorization: Bearer followed by the key. Keep keys secret, for example as a GitHub secret.": "密钥让脚本或 GitHub Action 上传你的游戏，审核和限额与本页相同。把 zip 发送到 https://dingn.com/api/developer/games/upload，并带上请求头 Authorization: Bearer 加上密钥。请妥善保管密钥，例如存为 GitHub secret。",
     "Copy your new key now. dingn shows it only once.": "请立即复制新密钥。dingn 只显示一次。",
     "Key name": "密钥名称",
     "Key name, such as GitHub Actions": "密钥名称，例如 GitHub Actions",
@@ -469,7 +468,6 @@
     "Revoke": "撤销",
     "Revoke {0}? Anything using it will stop uploading.": "撤销 {0}？使用它的程序将无法再上传。",
     "Uploading from GitHub or a script": "从 GitHub 或脚本上传",
-    "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "在“我的游戏”中创建上传密钥，然后用它发送 zip。这样上传的版本与其他上传一样需要审核。在 GitHub Action 中，把密钥存为名为 DINGN_UPLOAD_KEY 的 secret：",
     "Admin": "管理",
     "Users": "用户",
     "Admins": "管理员",
@@ -910,7 +908,6 @@
     "Approved": "已批准",
     "API keys": "API 密钥",
     "No keys yet.": "还没有密钥。",
-    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account is no longer an admin.": "密钥让脚本、助手或 CI 无需登录即可以你的身份调用 dingn。请在请求头 Authorization: Bearer 后附上密钥，并妥善保密，例如保存为 GitHub secret。密钥被撤销或其账号不再是管理员时，密钥即失效。",
     "A review key reviews for you: it can list games and reward system releases and approve or send back a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards and https://dingn.com/api/admin/rewards/update.": "审核密钥代你审核：它可以列出游戏和奖励系统的版本，并批准或退回某个版本，除此之外不能做任何事。请向 https://dingn.com/api/admin/games、https://dingn.com/api/admin/games/update、https://dingn.com/api/admin/rewards 和 https://dingn.com/api/admin/rewards/update 发送 POST 请求。",
     "An upload key uploads for you: games to https://dingn.com/api/developer/games/upload, and reward system releases to https://dingn.com/api/rewards/upload, where they wait for review. kingdom's release workflow uses one as its DINGN_UPLOAD_KEY secret. An upload key can never review.": "上传密钥代你上传：游戏上传到 https://dingn.com/api/developer/games/upload，奖励系统版本上传到 https://dingn.com/api/rewards/upload，然后等待审核。kingdom 的发布工作流把它用作 DINGN_UPLOAD_KEY secret。上传密钥永远不能审核。",
     "Deploy again": "重新部署",
@@ -942,6 +939,11 @@
     "Building": "建筑",
     "Most per kingdom": "每个王国上限",
     "Memory practice": "记忆练习",
-    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "学习数字编码法：把数字变成好记的词语和画面。不计分。"
+    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "学习数字编码法：把数字变成好记的词语和画面。不计分。",
+    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account loses the role it needs.": "密钥让脚本、助手或 CI 无需登录即可以你的身份调用 dingn。请在请求头 Authorization: Bearer 后附上密钥，并妥善保密，例如保存为 GitHub secret。密钥被撤销或其账号失去所需角色时，密钥即失效。",
+    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Make and revoke them on API keys.": "密钥让脚本或 GitHub Action 上传你的游戏，审核和限额与本页相同。请在“API 密钥”页面创建和撤销密钥。",
+    "Sign in to manage your API keys.": "登录以管理你的 API 密钥。",
+    "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "API 密钥供开发者和管理员使用。在“我的游戏”中注册为开发者，即可创建上传密钥。",
+    "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "在“API 密钥”中创建上传密钥，然后用它发送 zip。这样上传的版本与其他上传一样需要审核。在 GitHub Action 中，把密钥存为名为 DINGN_UPLOAD_KEY 的 secret："
   }
 }

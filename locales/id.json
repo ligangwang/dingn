@@ -458,7 +458,6 @@
     "Upload keys could not be loaded.": "Kunci unggah tidak bisa dimuat.",
     "You can have up to 5 keys. Revoke one first.": "Kamu bisa punya maksimal 5 kunci. Cabut salah satunya dulu.",
     "That did not work. Try again.": "Itu tidak berhasil. Coba lagi.",
-    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Send the zip to https://dingn.com/api/developer/games/upload with the header Authorization: Bearer followed by the key. Keep keys secret, for example as a GitHub secret.": "Kunci memungkinkan skrip atau GitHub Action mengunggah game-mu, dengan tinjauan dan batas yang sama seperti di halaman ini. Kirim zip ke https://dingn.com/api/developer/games/upload dengan header Authorization: Bearer diikuti kuncinya. Rahasiakan kuncimu, misalnya sebagai GitHub secret.",
     "Copy your new key now. dingn shows it only once.": "Salin kunci barumu sekarang. dingn hanya menampilkannya sekali.",
     "Key name": "Nama kunci",
     "Key name, such as GitHub Actions": "Nama kunci, misalnya GitHub Actions",
@@ -469,7 +468,6 @@
     "Revoke": "Cabut",
     "Revoke {0}? Anything using it will stop uploading.": "Cabut {0}? Apa pun yang memakainya akan berhenti mengunggah.",
     "Uploading from GitHub or a script": "Mengunggah dari GitHub atau skrip",
-    "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "Buat kunci unggah di Game-ku, lalu kirim zip dengan kunci itu. Unggahan ini ditinjau seperti unggahan lainnya. Di GitHub Action, simpan kunci sebagai secret bernama DINGN_UPLOAD_KEY:",
     "Admin": "Admin",
     "Users": "Pengguna",
     "Admins": "Admin",
@@ -910,7 +908,6 @@
     "Approved": "Disetujui",
     "API keys": "Kunci API",
     "No keys yet.": "Belum ada kunci.",
-    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account is no longer an admin.": "Kunci memungkinkan skrip, asisten, atau CI memanggil dingn atas nama Anda tanpa masuk. Kirim kunci di header Authorization: Bearer diikuti kuncinya, dan rahasiakan, misalnya sebagai secret GitHub. Kunci berhenti berfungsi saat dicabut atau akunnya bukan admin lagi.",
     "A review key reviews for you: it can list games and reward system releases and approve or send back a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards and https://dingn.com/api/admin/rewards/update.": "Kunci tinjauan meninjau atas nama Anda: dapat menampilkan game dan rilis sistem hadiah serta menyetujui atau mengembalikan sebuah versi, dan tidak lebih. Kirim permintaan POST ke https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards, dan https://dingn.com/api/admin/rewards/update.",
     "An upload key uploads for you: games to https://dingn.com/api/developer/games/upload, and reward system releases to https://dingn.com/api/rewards/upload, where they wait for review. kingdom's release workflow uses one as its DINGN_UPLOAD_KEY secret. An upload key can never review.": "Kunci unggah mengunggah atas nama Anda: game ke https://dingn.com/api/developer/games/upload, dan rilis sistem hadiah ke https://dingn.com/api/rewards/upload, tempat rilis menunggu tinjauan. Alur rilis kingdom memakainya sebagai secret DINGN_UPLOAD_KEY. Kunci unggah tidak pernah bisa meninjau.",
     "Deploy again": "Terapkan lagi",
@@ -942,6 +939,11 @@
     "Building": "Bangunan",
     "Most per kingdom": "Maksimum per kerajaan",
     "Memory practice": "Latihan memori",
-    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "Pelajari Sistem Mayor: ubah angka menjadi kata dan gambar yang mudah diingat. Tanpa skor."
+    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "Pelajari Sistem Mayor: ubah angka menjadi kata dan gambar yang mudah diingat. Tanpa skor.",
+    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account loses the role it needs.": "Kunci memungkinkan skrip, asisten, atau CI memanggil dingn atas nama Anda tanpa masuk. Kirim kunci di header Authorization: Bearer diikuti kuncinya, dan rahasiakan, misalnya sebagai secret GitHub. Kunci berhenti berfungsi saat dicabut atau akunnya kehilangan peran yang dibutuhkan.",
+    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Make and revoke them on API keys.": "Kunci memungkinkan skrip atau GitHub Action mengunggah game Anda, dengan peninjauan dan batas yang sama seperti halaman ini. Buat dan cabut kunci di Kunci API.",
+    "Sign in to manage your API keys.": "Masuk untuk mengelola kunci API Anda.",
+    "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "Kunci API untuk developer dan admin. Daftar sebagai developer di Game-ku untuk membuat kunci unggah.",
+    "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "Buat kunci unggah di Kunci API, lalu kirim zip dengan kunci itu. Unggahan ini ditinjau seperti unggahan lainnya. Di GitHub Action, simpan kunci sebagai secret bernama DINGN_UPLOAD_KEY:"
   }
 }
