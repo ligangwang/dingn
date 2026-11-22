@@ -1,5 +1,6 @@
 // Coins and badges: game.json badges, unlocking them through the API, and the
 // limits that keep a cheating game from printing coins.
+import { DAILY_GAME_COINS } from "kingdom/coins";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -327,7 +328,6 @@ test("players buy a version's upgrades through the API", async () => {
 });
 
 test("a game pays coins for play only up to its daily allowance", () => {
-  const { DAILY_GAME_COINS } = registry;
   let doc = { coins: 5, spent: 20, items: { "x/a": {} } };
   const at = "2026-11-10T08:00:00.000Z";
   const earn = (coins, game = "rush", now = at) => {
@@ -385,7 +385,7 @@ test("games pay coins for play through the API", async () => {
       new: true,
       coins: 3,
       balance: 3,
-      left: registry.DAILY_GAME_COINS - 3,
+      left: DAILY_GAME_COINS - 3,
     },
   ]);
   const store = await import("../scripts/platform-store.mjs");

@@ -31,8 +31,6 @@ import {
 import {
   BADGE_ID,
   ID,
-  MAX_EARN,
-  TIER_COINS,
   VERSION,
   cachedRecord,
   isPreview,
@@ -216,7 +214,11 @@ export async function handleRewards(
     if (pathname === "/api/rewards/earn") {
       const record = await cachedRecord(body.game);
       const coins = body.coins;
-      if (!Number.isInteger(coins) || coins < 1 || coins > MAX_EARN)
+      if (
+        !Number.isInteger(coins) ||
+        coins < 1 ||
+        coins > rules().coins.MAX_EARN
+      )
         throw new ApiError(400, "invalid-request");
       const reviewed = checkGame(record, body);
       // An unreviewed version can try it, but nothing is paid.
@@ -273,7 +275,7 @@ export async function handleRewards(
       return send(200, {
         badge: shown,
         new: true,
-        coins: TIER_COINS[badge.tier] ?? 0,
+        coins: rules().coins.TIER_COINS[badge.tier] ?? 0,
         balance: null,
         test: true,
       });

@@ -38,6 +38,7 @@ const rulesFor = (title) => `
 export const PLUGIN_API = 1;
 const fn = () => 0;
 export const rewards = { grant: fn, total: fn };
+export const coins = { DAILY_GAME_COINS: 50, MAX_EARN: 10, MAX_GAME_COINS: 1000, TIER_COINS: {} };
 export const levels = { levelFor: () => 7, levelProgress: fn, capPlayXp: fn, xpToReach: fn, DAILY_XP_CAP: 300 };
 export const honors = { HONORS: [], honorName: () => ${JSON.stringify(title)}, honorOf: fn };
 class RewardError extends Error {}
@@ -216,6 +217,14 @@ test("approving makes a version live; this server runs its rules at once", async
 
   // The server runs the plugin's rules, checked against the upload.
   const record = await store.getDoc("rewardReleases", "kingdom");
+  // A passing storage failure is tried again on the next refresh.
+  await plugin.useLive(record, {
+    read: async () => {
+      throw new Error("storage 503");
+    },
+  });
+  assert.equal(plugin.rules().builtIn, true);
+  assert.match(plugin.runtimeStatus().problem, /storage 503/);
   const rules = await plugin.useLive(record);
   assert.equal(rules.version, "0.3.0");
   assert.equal(plugin.rules().honors.honorName(1), "Plugin 0.3.0");

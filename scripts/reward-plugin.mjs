@@ -55,6 +55,7 @@ const BUILT_IN = Object.freeze({
 /** What dingn needs of a rules module, by module: the names it calls. */
 const NEEDED = {
   rewards: ["grant", "total"],
+  coins: ["DAILY_GAME_COINS", "MAX_EARN", "MAX_GAME_COINS", "TIER_COINS"],
   levels: [
     "levelFor",
     "levelProgress",
@@ -340,9 +341,9 @@ export async function useLive(record, { read = readBundleFile } = {}) {
     problem = null;
     console.log("rewards plugin", "kingdom", live.version);
   } catch (error) {
-    // Keep running what was running, and say why on the Rewards page.
+    // Keep running what was running, and say why on the Rewards page. The
+    // next refresh tries again, in case the failure was passing (storage).
     problem = `kingdom ${live.version}: ${error.message}`;
-    loadedFor = want;
     console.error("rewards plugin", problem);
   }
   return current;
