@@ -988,6 +988,10 @@
     "Your best is #{0} of {1} here.": "Skor terbaikmu peringkat {0} dari {1} di sini.",
     "Sign in to post your score": "Masuk untuk memasang skormu",
     "Challenge results": "Hasil tantangan",
-    "you": "kamu"
+    "you": "kamu",
+    "This challenge is closed. It takes no more results.": "Tantangan ini sudah ditutup. Hasil baru tidak diterima lagi.",
+    "Close challenge": "Tutup tantangan",
+    "Delete challenge": "Hapus tantangan",
+    "Delete this challenge? Its link will stop working.": "Hapus tantangan ini? Tautannya tidak akan berfungsi lagi."
   }
 }

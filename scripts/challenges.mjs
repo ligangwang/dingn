@@ -7,6 +7,8 @@
 //   GET  /api/challenges/<id> → { id, game, mode, seed?, score, unit, rules?,
 //                                 name, mine, results, players }
 //   POST /api/challenges/<id>/results { score } → { best, rank, players, improved, beat }
+//   POST /api/challenges/<id>/close  → { closed: true }   (its maker, or an admin)
+//   POST /api/challenges/<id>/delete → { deleted: true }  (its maker, or an admin)
 //   GET  /api/challenges[?game=<id>] → { challenges: [ … ] }  (the open ones)
 //
 // Each one is a server-only Firestore document, `challenges/{id}`:
@@ -31,6 +33,12 @@
 // (`results`, each player's best, highest first, at most MAX_RESULTS kept;
 // `players` counts everyone who posted). Scores are the ones games report, so
 // a thread pays nothing.
+//
+// Its maker (or an admin) can close it: it stays readable by its link, takes
+// no more results and leaves the list (`closed`, `closedAt`). They can also
+// delete it: the document is kept but nothing shows it any more, so its link
+// opens the game without a challenge (`deleted`, `deletedAt`). A guest's
+// challenge has no maker to do either.
 //
 // `public` says whether dingn lists it ("Challenge anyone"): true for a
 // signed-in player's challenge, false for a guest's, a test account's and
@@ -200,12 +208,23 @@ export function boardWith(board, id, doc) {
   return { threads };
 }
 
-/** What anyone with the link may see of a saved challenge. */
+/** A game's list without the challenge `id`. */
+export const boardWithout = (board, id) => ({
+  threads: (board?.threads ?? []).filter((t) => t.id !== id),
+});
+
+/** What anyone with the link may see of a saved challenge; a deleted one shows nothing. */
 export function shownChallenge(id, doc) {
-  if (!doc || typeof doc.game !== "string") return null;
+  if (!doc || typeof doc.game !== "string" || doc.deleted === true) return null;
   const challenge = validChallenge(doc);
   if (!challenge) return null;
-  return { id, game: doc.game, ...challenge, name: nickname(doc.name) };
+  return {
+    id,
+    game: doc.game,
+    ...challenge,
+    name: nickname(doc.name),
+    ...(doc.closed === true ? { closed: true } : {}),
+  };
 }
 
 /** A thread's results as anyone may see them: nicknames, never uids. */
@@ -306,6 +325,7 @@ async function addResult(req, res, id, { verify, exchange, account }) {
   limit(uid);
   const saved = await getDoc("challenges", id);
   if (!shownChallenge(id, saved)) throw new ApiError(404, "not-found");
+  if (saved.closed === true) throw new ApiError(409, "closed");
   const now = new Date().toISOString();
   const post = (doc) => postResult(doc, { uid, name, score, now });
   if (test) return { ...post(saved).outcome, test: true };
@@ -317,6 +337,10 @@ async function addResult(req, res, id, { verify, exchange, account }) {
       ["challengeBoards", saved.game],
     ],
     ([doc, board]) => {
+      // Closed or deleted meanwhile: nothing is posted.
+      outcome = null;
+      if (doc?.closed === true || doc?.deleted === true)
+        return [undefined, undefined];
       const posted = post(doc ?? saved);
       outcome = posted.outcome;
       if (!outcome.improved) return [undefined, undefined];
@@ -326,8 +350,45 @@ async function addResult(req, res, id, { verify, exchange, account }) {
       ];
     },
   );
+  if (!outcome) throw new ApiError(409, "closed");
   if (outcome.improved && saved.public) forgetLists();
   return outcome;
+}
+
+/**
+ * Closes or deletes the challenge `id` for its maker, or for an admin (who
+ * can take any challenge off dingn). Either way it leaves its game's list.
+ * Doing it twice changes nothing.
+ */
+async function endChallenge(req, res, id, how, { verify, exchange }) {
+  if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
+  validateOrigin(req);
+  throttle(req);
+  const claims = await signedIn(req, res, verify, exchange);
+  if (!claims) throw new ApiError(401, "signed-out");
+  const saved = CHALLENGE_ID.test(id) ? await getDoc("challenges", id) : null;
+  if (!shownChallenge(id, saved)) throw new ApiError(404, "not-found");
+  if (saved.uid !== claims.uid && !hasRole(claims, "administrator"))
+    throw new ApiError(403, "forbidden");
+  const now = new Date().toISOString();
+  const end = (doc) =>
+    how === "delete"
+      ? { ...doc, deleted: true, deletedAt: doc.deletedAt ?? now }
+      : { ...doc, closed: true, closedAt: doc.closedAt ?? now };
+  await updateMany(
+    [
+      ["challenges", id],
+      ["challengeBoards", saved.game],
+    ],
+    ([doc, board]) => [
+      end(doc ?? saved),
+      board?.threads?.some((t) => t.id === id)
+        ? boardWithout(board, id)
+        : undefined,
+    ],
+  );
+  forgetLists();
+  return how === "delete" ? { deleted: true } : { closed: true };
 }
 
 const send = (res, status, body, cache = "no-store") => {
@@ -359,6 +420,12 @@ export async function handleChallenges(
           res,
           200,
           await addResult(req, res, id, { verify, exchange, account }),
+        );
+      if ((part === "close" || part === "delete") && !more.length)
+        return send(
+          res,
+          200,
+          await endChallenge(req, res, id, part, { verify, exchange }),
         );
       if (part !== undefined) throw new ApiError(404, "not-found");
       if (req.method !== "GET") throw new ApiError(405, "method-not-allowed");

@@ -348,11 +348,19 @@ page. A guest's, a test account's and every challenge from before threads
 stay unlisted: only their link opens them. So a game's button should say
 "Challenge anyone", not "Challenge a friend".
 
+The player who made a challenge (signed in) can close it or delete it, from
+its results on the game's page. A closed challenge can still be opened and
+played by its link, but takes no more results and leaves the lists. A deleted
+one is kept on the server (`deleted`, a soft delete) but nothing shows it:
+its link opens the game without a challenge. An admin can do both to any
+challenge. Games need do nothing for either.
+
 On the server (`scripts/challenges.mjs`): `POST /api/challenges/<id>/results
 { score }` posts a result; a thread keeps its best 50 in the challenge's own
 document (`results`, with `players` counting everyone who posted). `GET
 /api/challenges[?game=<id>]` lists the open ones, read from one small
-document per game (`challengeBoards/{game}`, the newest 20). Results pay no
+document per game (`challengeBoards/{game}`, the newest 20). `POST
+/api/challenges/<id>/close` and `…/delete` are the maker's (or an admin's). Results pay no
 coins or XP: the scores are the ones games report.
 
 ### Referral coins

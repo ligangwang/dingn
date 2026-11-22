@@ -988,6 +988,10 @@
     "Your best is #{0} of {1} here.": "Tu mejor marca es la n.º {0} de {1} aquí.",
     "Sign in to post your score": "Inicia sesión para publicar tu puntuación",
     "Challenge results": "Resultados del desafío",
-    "you": "tú"
+    "you": "tú",
+    "This challenge is closed. It takes no more results.": "Este desafío está cerrado. Ya no admite resultados.",
+    "Close challenge": "Cerrar desafío",
+    "Delete challenge": "Eliminar desafío",
+    "Delete this challenge? Its link will stop working.": "¿Eliminar este desafío? Su enlace dejará de funcionar."
   }
 }

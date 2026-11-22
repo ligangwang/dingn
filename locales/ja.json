@@ -988,6 +988,10 @@
     "Your best is #{0} of {1} here.": "あなたのベストはここで {1} 人中 {0} 位です。",
     "Sign in to post your score": "ログインしてスコアを掲載",
     "Challenge results": "チャレンジの結果",
-    "you": "あなた"
+    "you": "あなた",
+    "This challenge is closed. It takes no more results.": "このチャレンジは終了しました。新しい結果は受け付けません。",
+    "Close challenge": "チャレンジを終了",
+    "Delete challenge": "チャレンジを削除",
+    "Delete this challenge? Its link will stop working.": "このチャレンジを削除しますか？リンクは使えなくなります。"
   }
 }

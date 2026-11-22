@@ -9,7 +9,14 @@ export type ThreadResult = {
   score: number;
   mine?: boolean;
 };
-export type Thread = { results: ThreadResult[]; players: number };
+export type Thread = {
+  results: ThreadResult[];
+  players: number;
+  /** Closed by its maker: it takes no more results. */
+  closed: boolean;
+  /** Opened by the signed-in player who made it: they can close or delete it. */
+  owner: boolean;
+};
 
 /** An open challenge, as a game's list shows it. */
 export type OpenChallenge = {
@@ -36,7 +43,12 @@ export type PostedResult = {
 
 /** A saved challenge's results, from what /api/challenges/<id> answered. */
 export function threadOf(found: unknown): Thread | null {
-  const raw = found as { results?: unknown; players?: unknown } | null;
+  const raw = found as {
+    results?: unknown;
+    players?: unknown;
+    closed?: unknown;
+    mine?: unknown;
+  } | null;
   if (!raw || !Array.isArray(raw.results)) return null;
   const results = raw.results.filter(
     (r): r is ThreadResult => !!r && typeof r.score === "number",
@@ -44,6 +56,8 @@ export function threadOf(found: unknown): Thread | null {
   return {
     results,
     players: typeof raw.players === "number" ? raw.players : results.length,
+    closed: raw.closed === true,
+    owner: raw.mine === true,
   };
 }
 
@@ -68,6 +82,13 @@ export const fetchThread = (id: string) =>
 
 export const postChallengeResult = (id: string, score: number) =>
   api<PostedResult>(`/api/challenges/${id}/results`, { score });
+
+/** Closes the player's own challenge: it takes no more results. */
+export const closeChallenge = (id: string) =>
+  api<{ closed: true }>(`/api/challenges/${id}/close`);
+/** Deletes the player's own challenge: its link no longer opens it. */
+export const deleteChallenge = (id: string) =>
+  api<{ deleted: true }>(`/api/challenges/${id}/delete`);
 
 // A signed-out player's finished challenge round, kept while they sign in so
 // their score is posted when they come back to the challenge.

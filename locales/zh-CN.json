@@ -988,6 +988,10 @@
     "Your best is #{0} of {1} here.": "你的最好成绩在这里排第 {0} 名，共 {1} 人。",
     "Sign in to post your score": "登录以发布你的成绩",
     "Challenge results": "挑战成绩",
-    "you": "你"
+    "you": "你",
+    "This challenge is closed. It takes no more results.": "这个挑战已关闭，不再接收新成绩。",
+    "Close challenge": "关闭挑战",
+    "Delete challenge": "删除挑战",
+    "Delete this challenge? Its link will stop working.": "要删除这个挑战吗？它的链接将会失效。"
   }
 }

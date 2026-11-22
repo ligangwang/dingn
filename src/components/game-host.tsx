@@ -60,6 +60,8 @@ import {
 import { api } from "@/lib/api";
 import { madeHere, rememberChallenge } from "@/lib/my-challenges";
 import {
+  closeChallenge,
+  deleteChallenge,
   fetchThread,
   keepPendingResult,
   postChallengeResult,
@@ -369,6 +371,28 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     if (!test) void fetchThread(cid).then((next) => next && setThread(next));
     return { ...result, posted: !test, ...(test ? { test } : {}) };
   }
+  /** The maker closes their challenge, or deletes it and stays on the game. */
+  async function endChallenge(how: "close" | "delete") {
+    const cid = challengeId.current;
+    if (!cid) return;
+    if (
+      how === "delete" &&
+      !window.confirm(t("Delete this challenge? Its link will stop working."))
+    )
+      return;
+    try {
+      if (how === "close") {
+        await closeChallenge(cid);
+        setThread((was) => was && { ...was, closed: true });
+      } else {
+        await deleteChallenge(cid);
+        // The game page itself, without the challenge that is gone.
+        location.href = location.pathname;
+      }
+    } catch {
+      // Nothing changed: the buttons stay for another try.
+    }
+  }
   useEffect(() => {
     // Back from signing in: the round finished before is posted now.
     const cid = challengeId.current;
@@ -446,9 +470,10 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           "This page was not opened from a challenge.",
         );
       const beat = score > challenge.score;
-      if (!user) {
+      // A closed challenge can still be played, but takes no more results.
+      if (!user || thread?.closed) {
         // Kept while they sign in, and posted when they come back.
-        keepPendingResult(cid, score);
+        if (!thread?.closed) keepPendingResult(cid, score);
         const players = thread?.players ?? 1;
         setOutcome({ score, beat, posted: false, rank: null, players });
         return { beat, posted: false, best: score, rank: null, players };
@@ -755,7 +780,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
                 .replace("{1}", String(outcome.players))}
             </span>
           )}
-          {!user && (
+          {!user && !thread?.closed && (
             <span>
               <a href={signUpHref()}>{t("Sign in to post your score")}</a>
             </span>
@@ -821,6 +846,11 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       {challenge && thread && thread.results.length > 0 && (
         <section className="play-thread" aria-label={t("Challenge results")}>
           <h2>{t("Challenge results")}</h2>
+          {thread.closed && (
+            <p className="play-thread-closed">
+              {t("This challenge is closed. It takes no more results.")}
+            </p>
+          )}
           <ol>
             {thread.results.map((r, i) => (
               <li key={i} className={r.mine ? "mine" : undefined}>
@@ -835,6 +865,27 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               </li>
             ))}
           </ol>
+          {thread.owner && (
+            // Its maker can stop it taking results, or take it off dingn.
+            <p className="play-thread-actions">
+              {!thread.closed && (
+                <button
+                  type="button"
+                  className="quiet-link"
+                  onClick={() => void endChallenge("close")}
+                >
+                  {t("Close challenge")}
+                </button>
+              )}
+              <button
+                type="button"
+                className="quiet-link"
+                onClick={() => void endChallenge("delete")}
+              >
+                {t("Delete challenge")}
+              </button>
+            </p>
+          )}
         </section>
       )}
       <GameBadges game={state.game.id} badges={state.game.badges ?? []} />

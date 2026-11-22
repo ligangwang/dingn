@@ -427,3 +427,85 @@ test("open challenges list signed-in players' ones, newest first, by game", asyn
   registry.clearRegistryCache();
   assert.ok(body.challenges.length <= challenges.MAX_LISTED);
 });
+
+test("its maker closes a challenge: it stays readable, takes no results and leaves the list", async () => {
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    ...ada,
+  });
+  await post(body.id, 12, bo);
+  const end = (how, who = {}) => call(`/api/challenges/${body.id}/${how}`, who);
+  // Only its maker, signed in.
+  assert.equal((await end("close")).status, 401);
+  assert.equal((await end("close", bo)).status, 403);
+  assert.deepEqual((await end("close", ada)).body, { closed: true });
+  assert.deepEqual((await end("close", ada)).body, { closed: true });
+
+  const thread = (await open(body.id)).body;
+  assert.equal(thread.closed, true);
+  assert.equal(thread.results.length, 2);
+  assert.equal((await post(body.id, 50, bo)).status, 409);
+  assert.equal((await open(body.id)).body.results[0].score, 12);
+  const listed = await call("/api/challenges?game=memory", { method: "GET" });
+  assert.equal(
+    listed.body.challenges.some((c) => c.id === body.id),
+    false,
+  );
+});
+
+test("its maker deletes a challenge: it is kept but nothing shows it", async () => {
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    ...ada,
+  });
+  const remove = (who = {}) => call(`/api/challenges/${body.id}/delete`, who);
+  assert.equal((await remove(bo)).status, 403);
+  assert.deepEqual((await remove(ada)).body, { deleted: true });
+  // A soft delete: the record stays on the server.
+  const saved = await store.getDoc("challenges", body.id);
+  assert.equal(saved.deleted, true);
+  assert.ok(Date.parse(saved.deletedAt));
+  assert.equal(saved.score, 10);
+  assert.equal((await open(body.id)).status, 404);
+  assert.equal(await challenges.findChallenge(body.id), null);
+  assert.equal((await post(body.id, 50, bo)).status, 404);
+  assert.equal((await remove(ada)).status, 404);
+  const listed = await call("/api/challenges?game=memory", { method: "GET" });
+  assert.equal(
+    listed.body.challenges.some((c) => c.id === body.id),
+    false,
+  );
+});
+
+test("an admin can close or delete anyone's challenge, and nobody a guest's", async () => {
+  const admin = {
+    claims: { uid: "u-admin", name: "Root", roles: ["administrator"] },
+    cookie: "dingn-session=x",
+  };
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    ...ada,
+  });
+  assert.equal(
+    (await call(`/api/challenges/${body.id}/delete`, admin)).status,
+    200,
+  );
+  // (Written straight to the store: the guests' quota is used up above.)
+  const guest = { body: { id: "GuestGuest01" } };
+  await store.mergeDoc("challenges", guest.body.id, {
+    game: "memory",
+    ...round,
+    uid: null,
+    name: null,
+    createdAt: new Date().toISOString(),
+    public: false,
+  });
+  assert.equal(
+    (await call(`/api/challenges/${guest.body.id}/close`, bo)).status,
+    403,
+  );
+  assert.equal(
+    (await call(`/api/challenges/${guest.body.id}/close`, admin)).status,
+    200,
+  );
+});

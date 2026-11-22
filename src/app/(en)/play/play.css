@@ -638,3 +638,13 @@ html.play-window-full body {
 .play-thread li.mine {
   color: #d5ff58;
 }
+.play-thread-closed {
+  margin: 0 0 8px;
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+.play-thread-actions {
+  display: flex;
+  gap: 16px;
+  margin: 10px 0 0;
+}
