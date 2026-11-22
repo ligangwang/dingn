@@ -393,6 +393,25 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       // Nothing changed: the buttons stay for another try.
     }
   }
+  const gameReady = !!game && loaded;
+  useEffect(() => {
+    // A signed-in player who arrived through someone's challenge: the coins
+    // for both of them are claimed as soon as a game is open, once per page.
+    // Nothing waits on the game (not every game says when a round ends); the
+    // server decides whether the account counts (scripts/referrals.mjs).
+    if (!uid || !gameReady || referralAsked.current) return;
+    referralAsked.current = true;
+    void claimReferral().then((result) => {
+      if (result?.state !== "joined" || !result.coins) return;
+      const coins = result.coins;
+      earnToWallet(uid, { coins, balance: null, left: null });
+      setCoinToast((shown) => ({
+        key: ++toastKey.current,
+        coins: (shown?.coins ?? 0) + coins,
+        test: false,
+      }));
+    });
+  }, [uid, gameReady]);
   useEffect(() => {
     // Back from signing in: the round finished before is posted now.
     const cid = challengeId.current;
@@ -488,21 +507,6 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       if (counted) trackGame("finish", game.id);
       if (!user && referralOpen())
         setInvite((was) => (was === "hidden" ? "shown" : was));
-      // A signed-in player who arrived through a friend's challenge: their
-      // first finished round on a page claims the coins for both of them.
-      if (user && !referralAsked.current) {
-        referralAsked.current = true;
-        void claimReferral().then((result) => {
-          if (result?.state !== "joined" || !result.coins) return;
-          const coins = result.coins;
-          earnToWallet(user.uid, { coins, balance: null, left: null });
-          setCoinToast((shown) => ({
-            key: ++toastKey.current,
-            coins: (shown?.coins ?? 0) + coins,
-            test: false,
-          }));
-        });
-      }
     },
     rewards: {
       unlock: async (id) => {
