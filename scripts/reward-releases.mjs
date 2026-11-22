@@ -69,9 +69,11 @@ export function addRelease(record, version, by, now) {
 export function reviewRelease(record, { version, action, reason }, by, now) {
   const release = record?.versions?.[version];
   if (!release) throw new ApiError(404, "no-such-version");
-  if (release.approvedAt) throw new ApiError(409, "already-approved");
   let change;
+  // Approving an approved version again starts its install and deploy again,
+  // for when the last one failed. Sending one back is too late by then.
   if (action === "approve") change = { approvedAt: now, approvedBy: by };
+  else if (release.approvedAt) throw new ApiError(409, "already-approved");
   else if (action === "reject") {
     const why = typeof reason === "string" ? reason.trim() : "";
     if (!why || why.length > MAX_REASON)

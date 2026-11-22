@@ -140,7 +140,15 @@ test("approving starts the install and deploy, then records it", async () => {
   assert.equal(ok.status, 200);
   assert.deepEqual(started, [["kingdom", "0.2.0"]]);
   assert.equal(ok.body.versions[0].approvedAt, "2026-11-22T12:00:00.000Z");
-  // Once approved, it can't be approved or rejected again.
+  // Approving it again starts the install and deploy again, in case the
+  // last one failed; sending it back is too late.
+  const again = await call(
+    "/api/admin/rewards/update",
+    { system: "kingdom", version: "0.2.0", action: "approve" },
+    { dispatch: async (...args) => started.push(args) },
+  );
+  assert.equal(again.status, 200);
+  assert.equal(started.length, 2);
   const twice = await call("/api/admin/rewards/update", {
     system: "kingdom",
     version: "0.2.0",

@@ -908,6 +908,8 @@
     "Uploaded": "Subida",
     "Running": "En uso",
     "Approved": "Aprobada",
+    "Deploy again": "Desplegar de nuevo",
+    "Install and deploy {0} {1} again?": "¿Instalar y desplegar {0} {1} de nuevo?",
     "Approve {0} {1}? dingn installs it and deploys the site.": "¿Aprobar {0} {1}? dingn lo instala y despliega el sitio.",
     "{0} {1} is approved and deploying. It goes live in a few minutes.": "{0} {1} está aprobado y desplegándose. Estará en línea en unos minutos.",
     "Why is this version sent back?": "¿Por qué se devuelve esta versión?",

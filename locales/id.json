@@ -908,6 +908,8 @@
     "Uploaded": "Diunggah",
     "Running": "Berjalan",
     "Approved": "Disetujui",
+    "Deploy again": "Terapkan lagi",
+    "Install and deploy {0} {1} again?": "Pasang dan terapkan {0} {1} lagi?",
     "Approve {0} {1}? dingn installs it and deploys the site.": "Setujui {0} {1}? dingn akan memasangnya dan menerapkan situs.",
     "{0} {1} is approved and deploying. It goes live in a few minutes.": "{0} {1} disetujui dan sedang diterapkan. Akan aktif dalam beberapa menit.",
     "Why is this version sent back?": "Mengapa versi ini dikembalikan?",

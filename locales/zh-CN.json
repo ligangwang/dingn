@@ -908,6 +908,8 @@
     "Uploaded": "上传时间",
     "Running": "运行中",
     "Approved": "已批准",
+    "Deploy again": "重新部署",
+    "Install and deploy {0} {1} again?": "重新安装并部署 {0} {1}？",
     "Approve {0} {1}? dingn installs it and deploys the site.": "批准 {0} {1}？dingn 会安装它并部署网站。",
     "{0} {1} is approved and deploying. It goes live in a few minutes.": "{0} {1} 已批准，正在部署，几分钟后上线。",
     "Why is this version sent back?": "为什么退回这个版本？",

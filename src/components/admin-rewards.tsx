@@ -229,7 +229,33 @@ function Releases({ system }: { system: RewardSystem }) {
                     {v.version === system.version ? (
                       <span className="admin-tag live">{t("Running")}</span>
                     ) : v.approvedAt ? (
-                      <span className="admin-tag">{t("Approved")}</span>
+                      <>
+                        <span className="admin-tag">{t("Approved")}</span>
+                        {/* For when its install or deploy failed. */}
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={busy}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                t(
+                                  `Install and deploy ${name} ${v.version} again?`,
+                                ),
+                              )
+                            )
+                              void review(
+                                v.version,
+                                { action: "approve" },
+                                t(
+                                  `${name} ${v.version} is approved and deploying. It goes live in a few minutes.`,
+                                ),
+                              );
+                          }}
+                        >
+                          {t("Deploy again")}
+                        </button>
+                      </>
                     ) : v.rejected ? (
                       <span className="admin-tag review" title={v.rejected}>
                         {t("Sent back")}

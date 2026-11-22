@@ -908,6 +908,8 @@
     "Uploaded": "업로드",
     "Running": "실행 중",
     "Approved": "승인됨",
+    "Deploy again": "다시 배포",
+    "Install and deploy {0} {1} again?": "{0} {1}을(를) 다시 설치하고 배포할까요?",
     "Approve {0} {1}? dingn installs it and deploys the site.": "{0} {1}을(를) 승인할까요? dingn이 설치하고 사이트를 배포합니다.",
     "{0} {1} is approved and deploying. It goes live in a few minutes.": "{0} {1}이(가) 승인되어 배포 중입니다. 몇 분 후 적용됩니다.",
     "Why is this version sent back?": "이 버전을 반려하는 이유는 무엇인가요?",

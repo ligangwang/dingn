@@ -908,6 +908,8 @@
     "Uploaded": "アップロード日",
     "Running": "稼働中",
     "Approved": "承認済み",
+    "Deploy again": "再デプロイ",
+    "Install and deploy {0} {1} again?": "{0} {1} をもう一度インストールしてデプロイしますか？",
     "Approve {0} {1}? dingn installs it and deploys the site.": "{0} {1} を承認しますか？dingn がインストールしてサイトをデプロイします。",
     "{0} {1} is approved and deploying. It goes live in a few minutes.": "{0} {1} を承認しました。デプロイ中で、数分で公開されます。",
     "Why is this version sent back?": "このバージョンを差し戻す理由は？",
