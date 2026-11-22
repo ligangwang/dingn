@@ -104,14 +104,19 @@ async function isAdmin(req, res) {
 
 /**
  * The ten players with the most XP, each with their public number and
- * avatar, and their account id (which only admins are sent).
+ * avatar, and their account id (which only admins are sent). `hidden(uids)`
+ * names the ones to leave out (test accounts and deleted ones); the board
+ * looks past up to 40 of them.
  */
-export async function topPlayers(db) {
-  const snap = await db
+export async function topPlayers(db, hidden) {
+  const top = await db
     .collection("players")
     .orderBy("xp", "desc")
-    .limit(10)
+    .limit(hidden ? 50 : 10)
     .get();
+  const skip = hidden ? await hidden(top.docs.map((d) => d.id)) : new Set();
+  const docs = top.docs.filter((d) => !skip.has(d.id)).slice(0, 10);
+  const snap = { empty: !docs.length, docs };
   // Each player's public number links their name to their page.
   const accounts = snap.empty
     ? []
@@ -150,6 +155,30 @@ export async function topPlayers(db) {
 }
 
 /**
+ * Which of these accounts stay off the leaderboard: test accounts (the
+ * `tester` claim, scripts/test-accounts.mjs) and accounts that were deleted.
+ * If Firebase can't be asked, none are left out.
+ */
+export async function notOnBoard(auth, uids) {
+  const hidden = new Set();
+  try {
+    for (let i = 0; i < uids.length; i += 100) {
+      const ids = uids.slice(i, i + 100);
+      const { users, notFound } = await auth.getUsers(
+        ids.map((uid) => ({ uid })),
+      );
+      for (const user of users)
+        if (user.customClaims?.tester === true) hidden.add(user.uid);
+      for (const missing of notFound) hidden.add(missing.uid);
+    }
+  } catch (e) {
+    console.error("leaderboard: accounts", e);
+    return new Set();
+  }
+  return hidden;
+}
+
+/**
  * The top ten players, each with their public number for their page. An
  * admin also gets each one's account id, so the board can link to them on
  * the Players admin page; nobody else does.
@@ -164,8 +193,8 @@ async function leaderboard(req, res) {
     forAdmin ? entries : entries.map(({ uid: _uid, ...entry }) => entry);
   if (board.entries && Date.now() - board.at < 30_000)
     return { shown, entries: visible(board.entries) };
-  const { db } = await admin();
-  const entries = await topPlayers(db);
+  const { db, auth } = await admin();
+  const entries = await topPlayers(db, (uids) => notOnBoard(auth, uids));
   board = { at: Date.now(), entries };
   return { shown, entries: visible(entries) };
 }

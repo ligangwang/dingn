@@ -32,6 +32,7 @@ import {
   revokeAdminKey,
 } from "./upload-keys.mjs";
 import { queueMail } from "./mail.mjs";
+import { testers } from "./test-accounts.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 export const adminGameRoutes = [
@@ -47,6 +48,8 @@ export const adminGameRoutes = [
   "/api/admin/settings",
   "/api/admin/settings/update",
   "/api/admin/keys",
+  "/api/admin/testers",
+  "/api/admin/testers/update",
 ];
 const MAX_REASON = 500;
 
@@ -210,6 +213,7 @@ const player = (user) => {
     admin: claims.admin === true,
     developer: claims.developer === true,
     developerBlocked: claims.developerBlocked === true,
+    tester: claims.tester === true,
     disabled: user.disabled === true,
     createdAt: dateOrNull(user.metadata?.creationTime),
     lastSignIn: dateOrNull(user.metadata?.lastSignInTime),
@@ -555,6 +559,17 @@ export async function handleAdminGames(
         res,
         200,
         await developers(pathname, body, users ?? (await firebaseAuth())),
+      );
+    if (pathname.startsWith("/api/admin/testers"))
+      return send(
+        res,
+        200,
+        await testers(
+          pathname,
+          body,
+          users ?? (await firebaseAuth()),
+          admin.uid,
+        ),
       );
     if (pathname === "/api/admin/players")
       return send(

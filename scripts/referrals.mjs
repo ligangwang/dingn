@@ -13,8 +13,8 @@
 // The player page calls it after a finished round while this browser holds a
 // challenge it arrived through (src/lib/referral.ts). The friend's account
 // must be new (made after the challenge) with a confirmed email address, and
-// they can't be its maker, so existing members swapping links, or accounts
-// made with made-up addresses, earn nothing. Each friend is recorded once,
+// they can't be its maker, so existing members swapping links, accounts
+// made with made-up addresses, or admins' test accounts, earn nothing. Each friend is recorded once,
 // in server-only Firestore `referrals/{friend uid}`:
 //
 //   { referrer, challenge, game, joinedAt, joinDay, returnedAt, paidReferrer }
@@ -201,9 +201,12 @@ export const returnWrites =
       : [{ ...referral, returnedAt: now }, pay(inviter, RETURN_COINS)];
 
 /** A friend's first finished round: records them and pays both, or says why not. */
-async function join(uid, challengeId, account, now) {
+async function join(claims, challengeId, account, now) {
+  const uid = claims.uid;
   if (typeof challengeId !== "string" || !CHALLENGE_ID.test(challengeId))
     return { state: "none" };
+  // A test account (scripts/test-accounts.mjs) is never a friend brought.
+  if (claims.tester === true) return { state: "none" };
   const challenge = await getDoc("challenges", challengeId);
   // Only a signed-in player's challenge can bring a friend, never their own.
   if (!challenge?.uid || challenge.uid === uid) return { state: "none" };
@@ -271,7 +274,7 @@ export async function handleReferrals(
       200,
       referral
         ? await comeBack(claims.uid, referral, at)
-        : await join(claims.uid, body.challenge, account, at),
+        : await join(claims, body.challenge, account, at),
     );
   } catch (error) {
     if (error instanceof ApiError)

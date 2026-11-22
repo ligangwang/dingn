@@ -1001,6 +1001,10 @@ input[type="radio"] {
   border-radius: 8px;
   min-width: 240px;
 }
+.admin-developer-form input.admin-number {
+  min-width: 0;
+  width: 5em;
+}
 .admin-table-scroll {
   overflow-x: auto;
 }
