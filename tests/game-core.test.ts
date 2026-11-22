@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MIN_PLAY_MS } from "../src/lib/xp-config";
+import { DAILY_XP_CAP } from "kingdom/levels";
 import {
-  DAILY_XP_CAP,
   MIN_DURATION_MS,
   GAMES,
   GameError,

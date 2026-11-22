@@ -13,8 +13,7 @@ import {
   settle,
 } from "./game-core.mjs";
 import { readSettings } from "./site-settings.mjs";
-import { publicKingdom } from "kingdom/kingdom";
-import { publicBadges } from "kingdom/ledger";
+import { rules } from "./reward-plugin.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 let adminPromise;
@@ -435,10 +434,10 @@ export async function publicPlayer(db, number) {
     avatar: typeof account.avatar === "string" ? account.avatar : "",
     ...progress,
     streak: player.streak || 0,
-    badges: publicBadges(rewards),
+    badges: rules().ledger.publicBadges(rewards),
     // Their kingdom as they built it, for visitors to look around. Never
     // their coins.
-    kingdom: publicKingdom(rewards, progress.level),
+    kingdom: rules().kingdom.publicKingdom(rewards, progress.level),
   };
 }
 

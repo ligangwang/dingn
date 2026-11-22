@@ -19,18 +19,17 @@ import {
   throttle,
   validateOrigin,
 } from "./api.mjs";
-import { levelProgress } from "kingdom/levels";
 import { getDoc, updateDoc } from "./platform-store.mjs";
 import { badgeXpOwed, settleBadgeXp } from "./rewards.mjs";
-import {
-  KingdomError,
-  buildIn,
-  building,
-  kingdomView,
-  moveIn,
-  settleDoc,
-} from "kingdom/kingdom";
-export { buildIn, kingdomView, settleDoc } from "kingdom/kingdom";
+import { isRuleError, rules } from "./reward-plugin.mjs";
+
+// The live kingdom plugin's rules (scripts/reward-plugin.mjs).
+const levelProgress = (...a) => rules().levels.levelProgress(...a);
+const building = (...a) => rules().kingdom.building(...a);
+const moveIn = (...a) => rules().kingdom.moveIn(...a);
+export const buildIn = (...a) => rules().kingdom.buildIn(...a);
+export const kingdomView = (...a) => rules().kingdom.kingdomView(...a);
+export const settleDoc = (...a) => rules().kingdom.settleDoc(...a);
 
 export const kingdomRoutes = [
   "/api/kingdom/me",
@@ -111,8 +110,7 @@ export async function handleKingdom(
     }
     throw new ApiError(404, "not-found");
   } catch (error) {
-    if (error instanceof KingdomError)
-      return send(error.status, { error: error.code });
+    if (isRuleError(error)) return send(error.status, { error: error.code });
     if (error instanceof ApiError)
       return send(error.status, { error: error.message });
     console.error("kingdom", error);

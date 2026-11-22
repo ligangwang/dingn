@@ -55,14 +55,9 @@ export const BADGE_ICONS = [
 ];
 export const MAX_BADGES = 50;
 // What badges pay, and the caps on coins a game can pay, are the reward
-// system's (the kingdom package's coins module), the same in every game.
-import {
-  DAILY_GAME_COINS,
-  MAX_EARN,
-  MAX_GAME_COINS,
-  TIER_COINS,
-} from "kingdom/coins";
-export { DAILY_GAME_COINS, MAX_EARN, MAX_GAME_COINS, TIER_COINS };
+// system's (the live kingdom plugin's coins module, scripts/
+// reward-plugin.mjs), the same in every game.
+import { rules } from "./reward-plugin.mjs";
 const MAX_BADGE_TITLE = 60;
 
 /** Checks a game.json `badges` list. Adds what is wrong to `problems`. */
@@ -101,7 +96,7 @@ export function validateBadges(raw, problems) {
       problems.push(`${at}.level must be a whole number from 1 to 9999`);
     if (hasIcon && !BADGE_ICONS.includes(badge.icon))
       problems.push(`${at}.icon must be one of ${BADGE_ICONS.join(", ")}`);
-    const coins = TIER_COINS[badge.tier] ?? 0;
+    const coins = rules().coins.TIER_COINS[badge.tier] ?? 0;
     total += coins;
     for (const lang of ["en", "zh"])
       if (!text(badge.title?.[lang], MAX_BADGE_TITLE))
@@ -116,6 +111,7 @@ export function validateBadges(raw, problems) {
       title: { en: badge.title?.en?.trim(), zh: badge.title?.zh?.trim() },
     };
   });
+  const { MAX_GAME_COINS, TIER_COINS } = rules().coins;
   if (total > MAX_GAME_COINS)
     problems.push(
       `badges pay ${total} coins in all (${Object.entries(TIER_COINS)

@@ -148,18 +148,30 @@ bank account for payouts).
 
 ## Reward system releases
 
-A reward system (such as kingdom) is reviewed like a game. Its CI sends each
-new version to `/api/rewards/upload` with an upload key of an account that is
-an admin (its repository secret, `DINGN_UPLOAD_KEY` for kingdom). The version
-waits on `/admin/rewards/`; an admin approves or sends it back there, or with
-a review key at `/api/admin/rewards` and `/api/admin/rewards/update`.
+A reward system (such as kingdom) is a plugin, uploaded and reviewed like a
+game, so a new version goes live with no rebuild of dingn:
 
-dingn bundles reward systems when it builds, so approving starts the Website
-workflow (`workflow_dispatch` with `reward` and `reward_version`), which
-installs the version on main, checks it and deploys. For that, set
-`GITHUB_DISPATCH_TOKEN` on Cloud Run: a fine-grained GitHub token for
-`ligangwang/dingn` with **Actions: read and write**. Without it, approving
-says deploying isn't set up and the version keeps waiting.
+1. Its CI builds a plugin bundle (a zip with `reward.json`, `rules.mjs`, its
+   pages in `ui.js`, their styles and models; see kingdom's README, "The
+   plugin bundle") and uploads it to `/api/rewards/upload` with an upload key
+   of an account that is an admin (the repository secret
+   `DINGN_UPLOAD_KEY`). dingn checks it and keeps its files in the games
+   bucket under `rewards/<system>/<version>/`.
+2. The version waits on `/admin/rewards/`. An admin approves or sends it back
+   there, or with a review key at `/api/admin/rewards` and
+   `/api/admin/rewards/update`.
+3. Approving makes it the live version (`rewardReleases/<system>.live`).
+   Every server imports its `rules.mjs` within a minute (checked against the
+   hash taken at upload), and the pages load its `ui.js` from
+   `/rewards/<system>/<version>/` (`GET /api/rewards/live` says which). Only
+   approved versions' files are served. Approving an older approved version
+   makes it live again, to roll back.
+
+Until a version is live, or if the live one can't load, dingn runs the copy
+of the package it was built with (`kingdom` in `package.json`); the Rewards
+page says when a server can't load the live version. The code is in
+`scripts/reward-plugin.mjs`, `scripts/reward-releases.mjs` and
+`src/lib/reward-plugin.ts`. No other secret is needed.
 
 ## Hosting and cutover
 

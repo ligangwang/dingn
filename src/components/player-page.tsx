@@ -11,11 +11,16 @@ import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
-import { HonorAvatar, HonorPath, honorName, honorOf } from "./honor";
+import {
+  HonorAvatar,
+  HonorPath,
+  honorName,
+  honorOf,
+  useKingdomRules,
+} from "./honor";
 import { PencilIcon } from "./icons";
 import { KingdomVisit } from "./kingdom";
 import { pick } from "@/lib/i18n";
-import { STAGES } from "kingdom/kingdom";
 import { fetchPlayer, XpError, type PublicPlayer } from "@/lib/xp";
 
 /** The public number in the address, or null. */
@@ -68,6 +73,9 @@ export function PlayerPage() {
 function PlayerView({ player }: { player: PublicPlayer }) {
   const { t, locale, href } = useLocale();
   const session = useOptionalSession();
+  const {
+    kingdom: { STAGES },
+  } = useKingdomRules();
   const mine =
     !!session?.stats?.number && session.stats.number === player.number;
   const honor = honorOf(player.level);

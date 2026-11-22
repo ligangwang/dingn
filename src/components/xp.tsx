@@ -5,7 +5,7 @@ import Link from "next/link";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "./session";
-import { HonorAvatar, honorName, honorOf } from "./honor";
+import { HonorAvatar, honorName, honorOf, useKingdomRules } from "./honor";
 import {
   fetchLeaderboard,
   finishPlay,
@@ -198,6 +198,7 @@ export function Leaderboard({
   hidden?: React.ReactNode;
 }) {
   const { t, locale, href } = useLocale();
+  useKingdomRules();
 
   // Refetch whenever this player's XP changes so fresh scores show up.
   const { stats, isAdmin } = useSession();

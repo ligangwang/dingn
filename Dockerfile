@@ -18,12 +18,13 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080
 # Only server dependencies (firebase-admin and Stripe) ship in the runtime image.
 COPY server/package.json server/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
-# The reward system the server scripts import (rules only; its models are
-# already in out/).
+# The built-in copy of the reward system's rules, which the server runs until
+# an approved plugin version is live (scripts/reward-plugin.mjs); its models
+# are already in out/.
 COPY --from=build --chown=node:node /app/node_modules/kingdom/package.json ./node_modules/kingdom/package.json
 COPY --from=build --chown=node:node /app/node_modules/kingdom/src ./node_modules/kingdom/src
 COPY --from=build --chown=node:node /app/out ./out
-COPY --chown=node:node scripts/preview.mjs scripts/api.mjs scripts/game-api.mjs scripts/game-core.mjs scripts/billing.mjs scripts/locale-redirect.mjs scripts/game-registry.mjs scripts/games-admin.mjs scripts/developer-games.mjs scripts/zip.mjs scripts/platform-store.mjs scripts/mail.mjs scripts/game-stats.mjs scripts/game-reports.mjs scripts/rewards.mjs scripts/kingdom.mjs scripts/reward-releases.mjs scripts/reward-systems.mjs scripts/funnel.mjs scripts/challenges.mjs scripts/referrals.mjs scripts/upload-keys.mjs scripts/game-seo.mjs scripts/site-settings.mjs scripts/i18n.mjs ./scripts/
+COPY --chown=node:node scripts/preview.mjs scripts/api.mjs scripts/game-api.mjs scripts/game-core.mjs scripts/billing.mjs scripts/locale-redirect.mjs scripts/game-registry.mjs scripts/games-admin.mjs scripts/developer-games.mjs scripts/zip.mjs scripts/platform-store.mjs scripts/mail.mjs scripts/game-stats.mjs scripts/game-reports.mjs scripts/rewards.mjs scripts/kingdom.mjs scripts/reward-releases.mjs scripts/reward-systems.mjs scripts/reward-plugin.mjs scripts/funnel.mjs scripts/challenges.mjs scripts/referrals.mjs scripts/upload-keys.mjs scripts/game-seo.mjs scripts/site-settings.mjs scripts/i18n.mjs ./scripts/
 COPY --chown=node:node src/data ./src/data
 # The language packs, for the pages and previews the server fills in.
 COPY --chown=node:node locales ./locales

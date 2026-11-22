@@ -7,11 +7,18 @@ import { useLocale } from "./locale";
 import { BadgeMedal } from "./rewards-art";
 import { Avatar } from "./avatar";
 
+import { kingdomRules, useKingdomRules } from "@/lib/reward-plugin";
+import type * as Honors from "kingdom/honors";
+
 // The honors themselves (titles, levels, metals and numerals) are the
-// reward system's: the kingdom package's honors module. This file draws them.
-export { HONORS, honorName, honorOf, roman } from "kingdom/honors";
-import { HONORS, honorName, honorOf } from "kingdom/honors";
-import { xpToReach as xpFor } from "kingdom/levels";
+// reward system's: the live kingdom plugin's honors module
+// (src/lib/reward-plugin.ts). This file draws them. A component that uses
+// these calls useKingdomRules(), so it redraws when the plugin's arrive.
+export const honorName: typeof Honors.honorName = (...a) =>
+  kingdomRules().honors.honorName(...a);
+export const honorOf: typeof Honors.honorOf = (...a) =>
+  kingdomRules().honors.honorOf(...a);
+export { useKingdomRules };
 
 /**
  * Every rank on one road: the ones reached lit, the next one marked with the
@@ -23,6 +30,10 @@ export function HonorPath({
   stats: { level: number; xp: number } | null | undefined;
 }) {
   const { t, locale } = useLocale();
+  const {
+    honors: { HONORS },
+    levels: { xpToReach: xpFor },
+  } = useKingdomRules();
   const level = stats?.level ?? 0;
   const next = HONORS.find((h) => h.level > level);
   // How far along the road to the next rank: the line to it fills in.
@@ -101,6 +112,7 @@ export function HonorAvatar({
   className?: string;
 } & Omit<Parameters<typeof Avatar>[0], "size" | "className">) {
   const { t } = useLocale();
+  useKingdomRules();
   const honor = level ? honorOf(level) : null;
   return (
     <span

@@ -12,8 +12,7 @@ import {
 import { homeGame, type CatalogGame, type Category } from "@/lib/catalog";
 import { useEffect, useState } from "react";
 import { useOptionalSession } from "@/components/session";
-import { STAGES } from "kingdom/kingdom";
-import { xpToReach } from "kingdom/levels";
+import { useKingdomRules } from "@/lib/reward-plugin";
 import { fetchKingdom, type KingdomView } from "@/lib/kingdom";
 
 /** The home page's category cards, in menu order. */
@@ -80,7 +79,9 @@ export function Home() {
           )}
         </p>
         <div className="library-links">
-          <Link href={href("/play/memory/#number")}>{t("Number practice")}</Link>
+          <Link href={href("/play/memory/#number")}>
+            {t("Number practice")}
+          </Link>
           <Link href={href("/play/memory/#word")}>{t("Word practice")}</Link>
           <Link href={href("/play/memory/#card")}>{t("Card practice")}</Link>
         </div>
@@ -137,6 +138,10 @@ function HeroKingdom() {
       current = false;
     };
   }, [signedIn]);
+  const {
+    kingdom: { STAGES },
+    levels: { xpToReach },
+  } = useKingdomRules();
   const name = (title: { en: string; zh: string }) => pick(title, locale, true);
   const stage = STAGES.find((s) => s.id === view?.stage);
   const next = STAGES.find((s) => s.level > (view?.level ?? 0));
