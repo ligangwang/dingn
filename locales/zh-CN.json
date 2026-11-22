@@ -897,7 +897,6 @@
     "Rewards admin": "奖励管理",
     "Account XP and levels, honors, coins for badges and play, the coin shop, and the 3D kingdom players build with their coins.": "账号经验和等级、荣誉、徽章和游玩获得的金币、金币商店，以及玩家用金币建造的 3D 王国。",
     "Repository": "代码仓库",
-    "Not a published release": "不是已发布的版本",
     "Releases": "版本发布",
     "Releases could not be loaded. Try again.": "无法加载版本发布，请重试。",
     "No versions have been sent for review yet.": "还没有提交审核的版本。",
@@ -937,15 +936,16 @@
     "Sign in to manage your API keys.": "登录以管理你的 API 密钥。",
     "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "API 密钥供开发者和管理员使用。在“我的游戏”中注册为开发者，即可创建上传密钥。",
     "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "在“API 密钥”中创建上传密钥，然后用它发送 zip。这样上传的版本与其他上传一样需要审核。在 GitHub Action 中，把密钥存为名为 DINGN_UPLOAD_KEY 的 secret：",
-    "Built-in copy": "内置副本",
     "Live version": "线上版本",
-    "none yet, so dingn runs its built-in copy.": "暂无，因此 dingn 运行其内置副本。",
     "This server can't load the live version, so it runs {0} meanwhile:": "此服务器无法加载线上版本，因此暂时运行 {0}：",
     "Each new version waits here for review. Approving it makes it live: every server runs it within a minute, with no rebuild.": "每个新版本都会在这里等待审核。批准后即上线：每台服务器都会在一分钟内运行它，无需重新构建。",
     "Make {0} {1} live again?": "要让 {0} {1} 重新上线吗？",
     "{0} {1} is live. Every server runs it within a minute.": "{0} {1} 已上线。每台服务器都会在一分钟内运行它。",
     "Sent before plugins": "插件化之前发送",
     "Approve {0} {1}? It goes live within a minute.": "批准 {0} {1} 吗？它会在一分钟内上线。",
-    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "dingn 游戏所接入的奖励系统。每个系统都有自己的代码仓库，决定玩家能获得什么；dingn 上报玩家的行为，并保存他们获得的奖励。要修改奖励，请在对应仓库中修改并发布新版本，然后在这里批准。"
+    "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then approve it here.": "dingn 游戏所接入的奖励系统。每个系统都有自己的代码仓库，决定玩家能获得什么；dingn 上报玩家的行为，并保存他们获得的奖励。要修改奖励，请在对应仓库中修改并发布新版本，然后在这里批准。",
+    "none yet, so rewards are paused until one is approved.": "还没有，所以在批准一个版本之前奖励暂停。",
+    "This server can't load the live version, so rewards are paused:": "此服务器无法加载正式版本，所以奖励已暂停：",
+    "The kingdom isn't available right now. Try again in a minute.": "王国暂时无法显示。请过一分钟再试。"
   }
 }

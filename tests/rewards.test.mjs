@@ -1,5 +1,6 @@
 // Coins and badges: game.json badges, unlocking them through the API, and the
 // limits that keep a cheating game from printing coins.
+import "./kingdom-rules.mjs";
 import { DAILY_GAME_COINS } from "kingdom/coins";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";

@@ -9,12 +9,9 @@ import {
 } from "@testing-library/react";
 import { AdminRewards } from "../src/components/admin-rewards";
 import pkg from "../package.json";
-import kingdomPkg from "kingdom/package.json";
-import {
-  REWARD_SYSTEMS,
-  pinnedCommit,
-  pinnedRelease,
-} from "../src/data/reward-systems";
+import * as kingdomRules from "kingdom/rules";
+import { REWARD_SYSTEMS } from "../src/data/reward-systems";
+import { setKingdomRules } from "../src/lib/reward-plugin";
 
 const mocks = vi.hoisted(() => ({
   session: { user: { uid: "me" }, ready: true, isAdmin: true },
@@ -55,12 +52,8 @@ it("shows nothing to someone who isn't an admin", () => {
   expect(screen.queryByRole("heading", { name: "Kingdom" })).toBeNull();
 });
 
-it("lists the reward systems, kingdom first, with the version dingn runs", () => {
+it("lists the reward systems, kingdom first, with what the live version grants", () => {
   expect(REWARD_SYSTEMS[0].id).toBe("kingdom");
-  // dingn installs kingdom from a published release.
-  const release = pinnedRelease(REWARD_SYSTEMS[0]);
-  expect(release).toBe(`v${kingdomPkg.version}`);
-  expect(REWARD_SYSTEMS[0].version).toBe(kingdomPkg.version);
 
   render(<AdminRewards />);
   const kingdom = screen.getByRole("region", { name: "Kingdom" });
@@ -70,17 +63,12 @@ it("lists the reward systems, kingdom first, with the version dingn runs", () =>
   expect(repo.getAttribute("href")).toBe(
     "https://github.com/ligangwang/kingdom",
   );
-  const version = within(kingdom).getByRole("link", {
-    name: kingdomPkg.version,
-  });
-  expect(version.getAttribute("href")).toBe(
-    `https://github.com/ligangwang/kingdom/releases/tag/${release}`,
-  );
-  expect(within(kingdom).queryByText("Not a published release")).toBeNull();
-  // What it grants comes from the package's reward kinds.
+  // dingn has no copy of its own to show.
+  expect(within(kingdom).queryByText("Built-in copy")).toBeNull();
+  // What it grants comes from the live version's reward kinds.
   expect(within(kingdom).getByText("badge-coins")).toBeTruthy();
   expect(within(kingdom).getByText("level-ups")).toBeTruthy();
-  // And its rules, from the package's numbers.
+  // And its rules, from the live version's numbers.
   expect(within(kingdom).getByText("Kingdom's rules")).toBeTruthy();
   expect(
     within(kingdom).getByText("One game's badges pay at most 1,000 coins."),
@@ -88,14 +76,36 @@ it("lists the reward systems, kingdom first, with the version dingn runs", () =>
   expect(within(kingdom).getByText("Village elder")).toBeTruthy();
 });
 
-it("reads the release and commit from kingdom's install spec only", () => {
-  expect(pkg.dependencies.kingdom).toMatch(
+it("installs kingdom only for its types and the tests", () => {
+  expect(pkg.dependencies).not.toHaveProperty("kingdom");
+  expect(pkg.devDependencies.kingdom).toMatch(
     /^https:\/\/github\.com\/ligangwang\/kingdom\/releases\/download\/v[^/]+\/kingdom-[^/]+\.tgz$/,
   );
-  expect(pinnedCommit(REWARD_SYSTEMS[0])).toBeNull();
-  const system = { ...REWARD_SYSTEMS[0], packageName: "react" };
-  expect(pinnedRelease(system)).toBeNull();
-  expect(pinnedCommit(system)).toBeNull();
+});
+
+it("says rewards are paused when no version is live or loaded", async () => {
+  setKingdomRules(null);
+  try {
+    mocks.list.mockResolvedValue({
+      systems: [
+        {
+          system: "kingdom",
+          live: "0.3.0",
+          running: { version: null, problem: "kingdom 0.3.0: storage 503" },
+          versions: [release("0.3.0", { approvedAt: "x" })],
+        },
+      ],
+    });
+    render(<AdminRewards />);
+    const kingdom = screen.getByRole("region", { name: "Kingdom" });
+    expect((await within(kingdom).findByRole("alert")).textContent).toContain(
+      "rewards are paused",
+    );
+    // Without the rules, nothing of what it grants is shown.
+    expect(within(kingdom).queryByText("Kingdom's rules")).toBeNull();
+  } finally {
+    setKingdomRules(kingdomRules);
+  }
 });
 
 it("approves a waiting version, which makes it live", async () => {
@@ -104,7 +114,7 @@ it("approves a waiting version, which makes it live", async () => {
       {
         system: "kingdom",
         live: "0.3.0",
-        running: { version: "0.3.0", builtIn: false, problem: null },
+        running: { version: "0.3.0", problem: null },
         versions: [release("9.0.0"), release("0.3.0", { approvedAt: "x" })],
       },
     ],
@@ -112,7 +122,7 @@ it("approves a waiting version, which makes it live", async () => {
   mocks.review.mockResolvedValue({
     system: "kingdom",
     live: "9.0.0",
-    running: { version: "9.0.0", builtIn: false, problem: null },
+    running: { version: "9.0.0", problem: null },
     versions: [
       release("9.0.0", { approvedAt: "2026-11-22T12:05:00.000Z" }),
       release("0.3.0", { approvedAt: "x" }),
@@ -155,7 +165,6 @@ it("says when this server can't load the live version", async () => {
         live: "9.0.0",
         running: {
           version: "0.2.0",
-          builtIn: true,
           problem: "kingdom 9.0.0: rules.mjs does not match its upload",
         },
         versions: [release("9.0.0", { approvedAt: "x" })],
@@ -185,6 +194,6 @@ it("can't approve a version sent before plugins", async () => {
   expect(await screen.findByText("Sent before plugins")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
   expect(
-    screen.getByText(/none yet, so dingn runs its built-in copy/),
+    screen.getByText(/none yet, so rewards are paused until one is approved/),
   ).toBeTruthy();
 });

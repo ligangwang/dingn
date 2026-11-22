@@ -36,10 +36,22 @@ export function SiteChrome({
           <a href="/models/CREDITS.md">
             <Text>Credits</Text>
           </a>{" "}
-          · <DevelopersLink /> · <LegalLinks />
+          · <DevelopersLink /> · <LegalLinks /> · <Version />
         </footer>
         <Analytics />
       </SessionProvider>
     </LocaleProvider>
+  );
+}
+
+/** The version of dingn this page was built as, and its commit. */
+export function Version() {
+  const version = process.env.NEXT_PUBLIC_DINGN_VERSION;
+  const commit = process.env.NEXT_PUBLIC_DINGN_COMMIT;
+  return (
+    <span className="site-version">
+      v{version}
+      {commit ? ` (${commit})` : ""}
+    </span>
   );
 }

@@ -259,7 +259,7 @@ export function Leaderboard({
                   e.name
                 )}
               </span>
-              <span className={`lv honor-${honorOf(e.level).tier}`}>
+              <span className={`lv honor-${honorOf(e.level)?.tier ?? "none"}`}>
                 {honorName(e.level, t)}
               </span>
               <span className="pts">{t(`${e.xp} XP`)}</span>

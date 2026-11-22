@@ -1,6 +1,6 @@
 // The reward systems that publish releases to dingn (scripts/reward-
 // releases.mjs), by id: the repository whose GitHub releases hold each
-// version, and the package name dingn installs it as. The admin Rewards
+// version, and its package name. The admin Rewards
 // page lists the same systems (src/data/reward-systems.ts).
 export const RELEASE_SYSTEMS = {
   kingdom: { repo: "ligangwang/kingdom", package: "kingdom" },

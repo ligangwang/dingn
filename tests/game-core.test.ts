@@ -13,6 +13,11 @@ import {
   publicName,
   settle,
 } from "../scripts/game-core.mjs";
+import * as kingdomRules from "kingdom/rules";
+import { setRules } from "../scripts/reward-plugin.mjs";
+
+// dingn runs the live plugin's rules; tests run the installed version.
+setRules(kingdomRules);
 
 const T0 = Date.parse("2026-11-02T12:00:00Z");
 const play = (over: Record<string, unknown> = {}) => ({

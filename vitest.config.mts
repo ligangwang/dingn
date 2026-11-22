@@ -6,6 +6,6 @@ export default defineConfig({
     environment: "jsdom",
     include: ["tests/**/*.test.tsx"],
     // Every language pack, as the language layouts give each page its own.
-    setupFiles: ["tests/setup-packs.ts"],
+    setupFiles: ["tests/setup-packs.ts", "tests/setup-kingdom.ts"],
   },
 });

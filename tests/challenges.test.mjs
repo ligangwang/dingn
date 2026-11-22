@@ -1,5 +1,6 @@
 // Saved challenges: a challenge link names a challenge dingn saved, so its
 // score can't be changed in the address.
+import "./kingdom-rules.mjs";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";

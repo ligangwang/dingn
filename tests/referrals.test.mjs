@@ -1,4 +1,5 @@
 // Coins for friends brought through challenge links.
+import "./kingdom-rules.mjs";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";

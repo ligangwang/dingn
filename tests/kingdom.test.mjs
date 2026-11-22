@@ -1,5 +1,6 @@
 // The kingdom: badges give account XP, the level opens stages and land, and
 // buildings cost coins under rules the server enforces.
+import "./kingdom-rules.mjs";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";

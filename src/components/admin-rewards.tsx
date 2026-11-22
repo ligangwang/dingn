@@ -14,12 +14,7 @@ import {
   type RewardReleases,
 } from "@/lib/reward-releases";
 import { useLocale } from "./locale";
-import {
-  REWARD_SYSTEMS,
-  pinnedCommit,
-  pinnedRelease,
-  type RewardSystem,
-} from "@/data/reward-systems";
+import { REWARD_SYSTEMS, type RewardSystem } from "@/data/reward-systems";
 import { useKingdomRules } from "@/lib/reward-plugin";
 
 export function AdminRewards() {
@@ -50,8 +45,11 @@ function Rewards() {
 
 function System({ system }: { system: RewardSystem }) {
   const { t } = useLocale();
-  const release = pinnedRelease(system);
-  const commit = release ? null : pinnedCommit(system);
+  // What it grants and listens for comes from its live version's rules.
+  const rules = useKingdomRules();
+  const live = system.id === "kingdom" ? rules : null;
+  const events = live ? Object.values(live.rewards.EVENTS) : [];
+  const kinds = live?.rewards.REWARD_KINDS ?? [];
   const repo = `https://github.com/${system.repo}`;
   return (
     <section
@@ -67,37 +65,9 @@ function System({ system }: { system: RewardSystem }) {
             {system.repo}
           </a>
         </dd>
-        <dt>{t("Built-in copy")}</dt>
-        <dd>
-          {release ? (
-            <a
-              href={`${repo}/releases/tag/${release}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <code>{system.version}</code>
-            </a>
-          ) : (
-            <>
-              <code>{system.version}</code>{" "}
-              {commit ? (
-                <a
-                  href={`${repo}/commit/${commit}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <code>{commit.slice(0, 7)}</code>
-                </a>
-              ) : null}{" "}
-              <span className="reward-unreleased">
-                {t("Not a published release")}
-              </span>
-            </>
-          )}
-        </dd>
         <dt>{t("Events from dingn")}</dt>
         <dd>
-          {system.events.map((e) => (
+          {events.map((e) => (
             <code key={e}>{e}</code>
           ))}
         </dd>
@@ -112,7 +82,7 @@ function System({ system }: { system: RewardSystem }) {
             </tr>
           </thead>
           <tbody>
-            {system.kinds.map((kind) => (
+            {kinds.map((kind) => (
               <tr key={kind.id}>
                 <th scope="row">
                   <code>{kind.id}</code>
@@ -194,15 +164,19 @@ function Releases({ system }: { system: RewardSystem }) {
           {releases.live ? (
             <code>{releases.live}</code>
           ) : (
-            t("none yet, so dingn runs its built-in copy.")
+            t("none yet, so rewards are paused until one is approved.")
           )}
         </p>
       )}
-      {releases?.running?.problem && (
+      {releases?.live && releases.running?.problem && (
         <p className="error" role="alert">
-          {t(
-            `This server can't load the live version, so it runs ${releases.running.version} meanwhile:`,
-          )}{" "}
+          {releases.running.version
+            ? t(
+                `This server can't load the live version, so it runs ${releases.running.version} meanwhile:`,
+              )
+            : t(
+                "This server can't load the live version, so rewards are paused:",
+              )}{" "}
           <code>{releases.running.problem}</code>
         </p>
       )}
@@ -341,13 +315,22 @@ const title = (word: string) => word[0].toUpperCase() + word.slice(1);
 
 /** Kingdom's numbers, straight from the live version. */
 function KingdomRules() {
+  const rules = useKingdomRules();
+  return rules ? <RulesTables rules={rules} /> : null;
+}
+
+function RulesTables({
+  rules,
+}: {
+  rules: NonNullable<ReturnType<typeof useKingdomRules>>;
+}) {
   const { t, locale } = useLocale();
   const {
     coins: { BADGE_XP, DAILY_GAME_COINS, MAX_EARN, MAX_GAME_COINS, TIER_COINS },
     levels: { DAILY_XP_CAP, xpToReach },
     honors: { HONORS },
     kingdom: { BUILDINGS, STAGES, STARTERS, building },
-  } = useKingdomRules();
+  } = rules;
   const n = (value: number) => value.toLocaleString(locale);
   const tiers = Object.keys(TIER_COINS) as (keyof typeof TIER_COINS)[];
   return (

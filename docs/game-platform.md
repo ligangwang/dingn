@@ -429,11 +429,9 @@ a building and its coins are one write. Games need no change to feed it.
 The hall stands on the 3 x 3 tiles around 0,0 (`HALL_RADIUS`) and grows from
 a campfire into a village hall, great hall, keep, castle and palace; the land
 around it is 5 x 5 tiles at the camp and 10 x 10 at the capital. The buildings
-are Polyfork Medieval Village models in `public/models/kingdom/` (CC BY 4.0,
-listed in its `CREDITS.md`, linked from the page); the keep, castle and
-palace add stone walls and towers drawn in `src/components/kingdom-models.ts`.
-Add a model by putting its GLB there, naming it in `FILES` in that file and
-adding a row to `CREDITS.md`.
+come from the kingdom plugin (`ligangwang/kingdom`, its
+`assets/kingdom/` and `CREDITS.md`), served from the live version at
+`/rewards/kingdom/<version>/`. Add a model there, in the kingdom repo.
 
 Badges earned before badges gave XP are paid when the player next earns a
 badge or opens the kingdom, or all at once by the Website workflow's

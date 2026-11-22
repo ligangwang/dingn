@@ -1,3 +1,4 @@
+import "./kingdom-rules.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
