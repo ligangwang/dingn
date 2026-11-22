@@ -28,7 +28,7 @@
 // replies are never cached.
 import { randomBytes } from "node:crypto";
 import { ApiError } from "./api.mjs";
-import { hasRole, rolesOf, withRole } from "./roles.mjs";
+import { hasRole, rolesOf, withRoles } from "./roles.mjs";
 
 /** The most test accounts one request may make. */
 export const MAX_TESTERS = 20;
@@ -143,7 +143,7 @@ async function createTesters(users, body, by) {
       ...(name ? { displayName: count > 1 ? `${name} ${i + 1}` : name } : {}),
     });
     try {
-      await users.setCustomUserClaims(user.uid, withRole({}, "tester"));
+      await users.setCustomUserClaims(user.uid, withRoles({}, ["tester"]));
     } catch (error) {
       // Never leave an ordinary account this page can't see or remove.
       await users
@@ -153,7 +153,7 @@ async function createTesters(users, body, by) {
         );
       throw error;
     }
-    made.push(tester({ ...user, customClaims: withRole({}, "tester") }));
+    made.push(tester({ ...user, customClaims: withRoles({}, ["tester"]) }));
     console.log("test account", "create", user.uid, "by", by);
   }
   return { testers: made, password };

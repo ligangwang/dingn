@@ -1,22 +1,20 @@
 #!/usr/bin/env node
-// One-time move of every dingn account to roles (scripts/roles.mjs): the old
-// `admin: true`, `developer: true` and `tester: true` claims become one
-// `roles` list (administrator, developer, tester), keeping every other claim
-// (such as `developerBlocked`). player is never stored.
+// Moves every dingn account to a full list of roles (scripts/roles.mjs):
+// the old `admin: true`, `developer: true` and `tester: true` claims become
+// one `roles` list, every account but a test account gets the player role,
+// and every other claim (such as `developerBlocked`) is kept.
 //
 // Run it with Firebase Authentication admin rights, as for set-admin.py: in
 // Cloud Shell as the project owner (or after `gcloud auth application-default
 // login`), from the repository folder after `npm ci`:
 //
-//   node scripts/migrate-roles.mjs                         # dry run
-//   node scripts/migrate-roles.mjs --apply                 # step 1
-//   node scripts/migrate-roles.mjs --apply --drop-flags    # step 2
+//   node scripts/migrate-roles.mjs --drop-flags            # dry run
+//   node scripts/migrate-roles.mjs --apply --drop-flags    # change accounts
 //
-// Step 1 adds the `roles` list and keeps the old flags, so it is safe before
-// and after a website that reads roles (2.3.0) is live: the older website
-// still reads the flags. Step 2 removes the old flags; run it only once
-// 2.3.0 is live. Both are safe to run again: an account already done is left
-// as it is. Changed claims reach an account's ID token within the hour.
+// --drop-flags removes the old flags; leave it out to keep them beside the
+// list, which only matters while a website from before 2.3.0 still runs.
+// Safe to run again: an account already done is left as it is. Changed
+// claims reach an account's ID token within the hour.
 import { pathToFileURL } from "node:url";
 import { migratedClaims } from "./roles.mjs";
 

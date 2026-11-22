@@ -36,17 +36,19 @@ claims = json.loads(user.get("customAttributes", "{}"))
 # Every role the account holds is kept as it is, including any this script
 # doesn't know; old `admin: true`-style flags move into the list. Only
 # administrator is added or removed.
-roles = claims.pop("roles", None)
-roles = [r for r in roles if isinstance(r, str)] if isinstance(roles, list) else []
+stored = claims.pop("roles", None)
+roles = [r for r in stored if isinstance(r, str)] if isinstance(stored, list) else []
 for flag, role in LEGACY_FLAGS.items():
     if claims.pop(flag, None) is True and role not in roles:
         roles.append(role)
+# An account with no list yet is a player, unless it is a test account.
+if not isinstance(stored, list) and "tester" not in roles:
+    roles.append("player")
 if args.grant and "administrator" not in roles:
     roles.append("administrator")
 if not args.grant:
     roles = [r for r in roles if r != "administrator"]
-if roles:
-    claims["roles"] = roles
+claims["roles"] = roles
 call("update", {"localId": user["localId"], "customAttributes": json.dumps(claims)})
 verified = call("lookup", {"localId": [user["localId"]]})["users"][0]
 assert ("administrator" in json.loads(verified.get("customAttributes", "{}")).get("roles", [])) == args.grant

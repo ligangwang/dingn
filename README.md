@@ -221,39 +221,29 @@ After deployment, authorize the exact returned `run.app` hostname in Firebase Au
 
 What an account may do is its roles: `administrator` (runs dingn),
 `developer` (uploads games), `player` (a real person playing) and `tester` (a
-test account). An account holds any number of them. Every account that isn't
-a tester is a player, so an administrator or developer is a player too, and
-`player` is never stored or granted. The other three are granted, and kept as
-the `roles` custom claim on the Firebase account (so they ride in its ID token
-and the Firestore rules can read them). Code reads and changes them only
-through `scripts/roles.mjs`, and the session (`/api/auth/session`) returns
-them as `roles`. `developerBlocked` is not a role
-but a restriction on signing up as a developer again.
+test account, never a player). They are the `roles` list in the account's
+Firebase custom claims (so they ride in its ID token and the Firestore rules
+can read them), and the list is exactly what the account holds: an
+administrator who plays is `["administrator", "player"]`. An account with no
+list yet, such as a new sign-up, is a player; its list is written the first
+time its roles change. Code reads and changes roles only through
+`scripts/roles.mjs`, and the session (`/api/auth/session`) returns them as
+`roles`. `developerBlocked` is not a role but a restriction on signing up as a
+developer again.
 
 Accounts made before roles carried `admin: true`, `developer: true` or
-`tester: true` instead. The website and the Firestore rules still accept those
-(`admin` counts as `administrator`). Moving every account to roles takes two
-steps, run from Cloud Shell as the project owner after `npm ci` in the
-repository folder. Each lists what it would change without `--apply`, and is
-safe to run again.
-
-Step 1 adds the `roles` list and keeps the old flags, so it works with the
-website from before roles too. Run it before releasing a website that reads
-roles, and don't change anyone's access on the admin pages until that
-release is live (the older website changes only the flags):
-
-```bash
-node scripts/migrate-roles.mjs --apply
-```
-
-Step 2 removes the old flags. Run it only once the website that reads roles
-is live:
+`tester: true` instead, which still count (`admin` as `administrator`). To
+give every account its full list (every account but a test account gets
+`player`) and remove the old flags, run this from Cloud Shell as the project
+owner after `npm ci` in the repository folder, first without `--apply` to
+see what would change:
 
 ```bash
 node scripts/migrate-roles.mjs --apply --drop-flags
 ```
 
-Changed claims reach each account's ID token within the hour.
+It is safe to run again. Changed claims reach each account's ID token within
+the hour.
 
 ## Admin access
 

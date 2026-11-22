@@ -11,8 +11,8 @@ import { defaultProfile, friendlyError, type Profile } from "@/lib/models";
 import { readProfile, saveProfile } from "@/lib/repository";
 import { fetchStats, type PlayerStats } from "@/lib/xp";
 /**
- * What an account may do on dingn (scripts/roles.mjs). Every account but a
- * tester is a player.
+ * What an account may do on dingn (scripts/roles.mjs): its list of roles. A
+ * tester is never a player.
  */
 export type Role = "administrator" | "developer" | "player" | "tester";
 type Account = {
