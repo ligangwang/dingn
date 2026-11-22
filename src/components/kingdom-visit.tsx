@@ -1,13 +1,13 @@
 "use client";
 // Another player's kingdom, on their public page (player-page.tsx): the same
-// 3D island they build on /kingdom/ (kingdom-scene.ts), to turn and zoom
+// 3D island they build on /kingdom/ (the kingdom package's scene), to turn and zoom
 // around but not change. The scene and its models load only once the
 // kingdom scrolls into view, so the page itself stays light.
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "./locale";
 import { pick as textIn } from "@/lib/i18n";
-import { building, type StageId } from "@/data/kingdom.mjs";
-import type { KingdomScene } from "./kingdom-scene";
+import { building, type StageId } from "kingdom/kingdom";
+import type { KingdomScene } from "kingdom/scene";
 
 export type VisitedKingdom = {
   stage: StageId;
@@ -54,7 +54,7 @@ export function KingdomVisit({
   useEffect(() => {
     if (!near || scene.current) return;
     let cancelled = false;
-    void import("./kingdom-scene").then(({ KingdomScene, webglAvailable }) => {
+    void import("kingdom/scene").then(({ KingdomScene, webglAvailable }) => {
       if (cancelled || !host.current) return;
       if (!webglAvailable()) return setNoWebgl(true);
       scene.current = new KingdomScene(host.current, {

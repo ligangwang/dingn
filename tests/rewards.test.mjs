@@ -378,6 +378,18 @@ test("games pay coins for play through the API", async () => {
   assert.equal(first.status, 200);
   assert.equal(first.body.coins, 3);
   assert.equal(first.body.balance, 3);
+  // The reward system says what it granted, and coins for play add no XP.
+  assert.deepEqual(first.body.granted, [
+    {
+      reward: "coins",
+      new: true,
+      coins: 3,
+      balance: 3,
+      left: registry.DAILY_GAME_COINS - 3,
+    },
+  ]);
+  const store = await import("../scripts/platform-store.mjs");
+  assert.equal(await store.getDoc("players", "player9"), null);
   for (const bad of [0, 11, 2.5, "3", null])
     assert.equal((await earn(bad)).status, 400);
   assert.equal((await earn(3, { version: "9.9.9" })).status, 404);

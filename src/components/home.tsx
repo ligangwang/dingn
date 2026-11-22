@@ -12,7 +12,8 @@ import {
 import { homeGame, type CatalogGame, type Category } from "@/lib/catalog";
 import { useEffect, useState } from "react";
 import { useOptionalSession } from "@/components/session";
-import { STAGES } from "@/data/kingdom.mjs";
+import { STAGES } from "kingdom/kingdom";
+import { xpToReach } from "kingdom/levels";
 import { fetchKingdom, type KingdomView } from "@/lib/kingdom";
 
 /** The home page's category cards, in menu order. */
@@ -180,13 +181,14 @@ function HeroKingdom() {
   const name = (title: { en: string; zh: string }) => pick(title, locale, true);
   const stage = STAGES.find((s) => s.id === view?.stage);
   const next = STAGES.find((s) => s.level > (view?.level ?? 0));
-  // XP needed for a level, as src/components/kingdom-card.tsx.
-  const xpFor = (level: number) => 50 * level * (level - 1);
-  const toGo = view && next ? Math.max(0, xpFor(next.level) - view.xp) : 0;
-  const from = stage ? xpFor(stage.level) : 0;
+  const toGo = view && next ? Math.max(0, xpToReach(next.level) - view.xp) : 0;
+  const from = stage ? xpToReach(stage.level) : 0;
   const share =
     view && next
-      ? Math.min(1, Math.max(0, (view.xp - from) / (xpFor(next.level) - from)))
+      ? Math.min(
+          1,
+          Math.max(0, (view.xp - from) / (xpToReach(next.level) - from)),
+        )
       : 1;
   return (
     <div className="hero-kingdom">

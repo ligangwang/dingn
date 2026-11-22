@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { gameRoutes, handleGameApi } from "../scripts/game-api.mjs";
-import { kingdomOf, settle } from "../src/data/kingdom.mjs";
+import { kingdomOf, settle } from "kingdom/kingdom";
 
 const origin = "http://127.0.0.1:3001";
 function call(

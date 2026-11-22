@@ -1,6 +1,6 @@
 "use client";
-// The kingdom page: the 3D island (kingdom-scene.ts, loaded only here), the
-// stage and level over it, and the build panel. Signed-out visitors and
+// The kingdom page: the 3D island (the kingdom package's scene, loaded only
+// here), the stage and level over it, and the build panel. Signed-out visitors and
 // players below level 2 see a sample kingdom.
 import { pick as textIn } from "@/lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -20,7 +20,7 @@ import {
   type BuildingDef,
   type StageId,
   type Title,
-} from "@/data/kingdom.mjs";
+} from "kingdom/kingdom";
 import {
   buildInKingdom,
   fetchKingdom,
@@ -28,7 +28,7 @@ import {
   type KingdomView,
 } from "@/lib/kingdom";
 import { setWalletCoins } from "@/lib/rewards";
-import type { KingdomScene, SceneState } from "./kingdom-scene";
+import type { KingdomScene, SceneState } from "kingdom/scene";
 
 // What a signed-out visitor sees: a kingdom-stage city, to show where a
 // camp can go.
@@ -199,7 +199,7 @@ export function Kingdom() {
   useEffect(() => {
     if (!shown || scene.current || !host.current) return;
     let cancelled = false;
-    void import("./kingdom-scene").then(({ KingdomScene, webglAvailable }) => {
+    void import("kingdom/scene").then(({ KingdomScene, webglAvailable }) => {
       if (cancelled || !host.current) return;
       if (!webglAvailable()) return setNoWebgl(true);
       scene.current = new KingdomScene(host.current, {

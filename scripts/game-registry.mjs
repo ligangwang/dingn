@@ -54,21 +54,15 @@ export const BADGE_ICONS = [
   "clock",
 ];
 export const MAX_BADGES = 50;
-/**
- * What a badge pays. dingn sets it by tier, the same in every game, so no game
- * can pay more than another for the same effort; review checks the tiers.
- */
-export const TIER_COINS = { bronze: 10, silver: 25, gold: 50, diamond: 100 };
-/** Most coins all of one game's badges can pay together. */
-export const MAX_GAME_COINS = 1000;
-// Coins a game may pay a player each UTC day for play itself (rewards.earn),
-// such as a cleared level, coins picked up on the way, or a failed level that
-// still got somewhere. Apart from MAX_GAME_COINS. High enough for a good day of
-// play (about 25 wins), low enough that replaying an easy level or a game
-// reporting fake wins can't mint coins without end.
-export const DAILY_GAME_COINS = 500;
-// The most one rewards.earn call may ask for.
-export const MAX_EARN = 10;
+// What badges pay, and the caps on coins a game can pay, are the reward
+// system's (the kingdom package's coins module), the same in every game.
+import {
+  DAILY_GAME_COINS,
+  MAX_EARN,
+  MAX_GAME_COINS,
+  TIER_COINS,
+} from "kingdom/coins";
+export { DAILY_GAME_COINS, MAX_EARN, MAX_GAME_COINS, TIER_COINS };
 const MAX_BADGE_TITLE = 60;
 
 /** Checks a game.json `badges` list. Adds what is wrong to `problems`. */

@@ -13,11 +13,8 @@ import {
   settle,
 } from "./game-core.mjs";
 import { readSettings } from "./site-settings.mjs";
-import {
-  kingdomOf,
-  settle as settleKingdom,
-  stageFor,
-} from "../src/data/kingdom.mjs";
+import { publicKingdom } from "kingdom/kingdom";
+import { publicBadges } from "kingdom/ledger";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 let adminPromise;
@@ -428,21 +425,7 @@ export async function publicPlayer(db, number) {
         .then((snap) => snap.data() ?? {}),
     ),
   );
-  const badges = Object.values(rewards.badges ?? {})
-    .sort((a, b) => String(b.at).localeCompare(String(a.at)))
-    .map(({ game, id, tier, level, icon, title }) => ({
-      game,
-      id,
-      tier,
-      ...(level != null ? { level } : { icon }),
-      title,
-    }));
   const progress = levelProgress(player.xp || 0);
-  // Their kingdom as they built it, for visitors to look around: the land
-  // their level opens, the hall and what stands on each tile. Never their
-  // coins.
-  const stage = stageFor(progress.level);
-  const kingdom = settleKingdom(kingdomOf(rewards), progress.level);
   return {
     number,
     // Their nickname; one who has none yet gets their default now.
@@ -452,15 +435,10 @@ export async function publicPlayer(db, number) {
     avatar: typeof account.avatar === "string" ? account.avatar : "",
     ...progress,
     streak: player.streak || 0,
-    badges,
-    kingdom: stage
-      ? {
-          stage: stage.id,
-          size: stage.size,
-          hall: kingdom.hall,
-          tiles: kingdom.tiles,
-        }
-      : null,
+    badges: publicBadges(rewards),
+    // Their kingdom as they built it, for visitors to look around. Never
+    // their coins.
+    kingdom: publicKingdom(rewards, progress.level),
   };
 }
 

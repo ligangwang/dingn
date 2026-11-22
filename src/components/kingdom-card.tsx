@@ -4,7 +4,7 @@ import { pick } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "./locale";
-import { HALL_TITLES, MIN_LEVEL, STAGES } from "@/data/kingdom.mjs";
+import { HALL_TITLES, MIN_LEVEL, STAGES } from "kingdom/kingdom";
 import { fetchKingdom, type KingdomView } from "@/lib/kingdom";
 
 export function KingdomCard() {

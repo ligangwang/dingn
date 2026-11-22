@@ -7,70 +7,11 @@ import { useLocale } from "./locale";
 import { BadgeMedal } from "./rewards-art";
 import { Avatar } from "./avatar";
 
-/**
- * The ranks a player rises through, from a wanderer to the ruler of a
- * capital. Each opens at a level, in the badge tiers' metals; the titles
- * follow the kingdom's stages (src/data/kingdom.mjs).
- */
-export const HONORS = [
-  { level: 1, tier: "bronze", title: "Wanderer" },
-  { level: 2, tier: "bronze", title: "Camp leader" },
-  { level: 4, tier: "bronze", title: "Village elder" },
-  { level: 6, tier: "silver", title: "Town lord" },
-  { level: 10, tier: "gold", title: "City governor" },
-  { level: 15, tier: "gold", title: "Monarch" },
-  { level: 20, tier: "diamond", title: "High monarch" },
-] as const;
-
-/** I, II, III … for the steps within an honor. */
-export function roman(n: number): string {
-  let out = "";
-  for (const [value, mark] of [
-    [1000, "M"],
-    [900, "CM"],
-    [500, "D"],
-    [400, "CD"],
-    [100, "C"],
-    [90, "XC"],
-    [50, "L"],
-    [40, "XL"],
-    [10, "X"],
-    [9, "IX"],
-    [5, "V"],
-    [4, "IV"],
-    [1, "I"],
-  ] as const)
-    for (; n >= value; n -= value) out += mark;
-  return out;
-}
-
-/**
- * The honor a level earns: the ring and medal round the avatar, its title,
- * and its step within the honor (`rank`, from 1: Town lord at level 6 is
- * Town lord I, at level 7 Town lord II).
- */
-export function honorOf(level: number): {
-  tier: (typeof HONORS)[number]["tier"];
-  title: string;
-  rank: number;
-} {
-  let honor: (typeof HONORS)[number] = HONORS[0];
-  for (const h of HONORS) if (level >= h.level) honor = h;
-  return {
-    tier: honor.tier,
-    title: honor.title,
-    rank: Math.max(1, level - honor.level + 1),
-  };
-}
-
-/** The honor's full name in the player's language: "Town lord II". */
-export function honorName(level: number, t: (text: string) => string): string {
-  const honor = honorOf(level);
-  return `${t(honor.title)} ${roman(honor.rank)}`;
-}
-
-/** XP to reach a level: 50 × level × (level − 1), as scripts/game-core.mjs. */
-const xpFor = (level: number) => 50 * level * (level - 1);
+// The honors themselves (titles, levels, metals and numerals) are the
+// reward system's: the kingdom package's honors module. This file draws them.
+export { HONORS, honorName, honorOf, roman } from "kingdom/honors";
+import { HONORS, honorName, honorOf } from "kingdom/honors";
+import { xpToReach as xpFor } from "kingdom/levels";
 
 /**
  * Every rank on one road: the ones reached lit, the next one marked with the

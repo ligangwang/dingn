@@ -94,3 +94,7 @@ games/*/dist/
 # Built from packages/game-sdk by scripts/build-sdk.mjs
 public/sdk/
 public/locales/
+
+# The kingdom models, copied from the kingdom package before each build
+# (scripts/kingdom-assets.mjs).
+/public/models/kingdom/

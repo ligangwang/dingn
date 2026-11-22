@@ -1,32 +1,22 @@
-// Coins and badges. A game lists the badges it can award in its game.json
-// (validateBadges in game-registry.mjs), and calls the SDK's
-// rewards.unlock(id) when a player earns one. The player page then asks this
-// API to record it: POST /api/rewards/unlock.
+// Coins and badges: dingn's side of the reward system. A game lists the
+// badges it can award in its game.json (validateBadges in game-registry.mjs),
+// and calls the SDK's rewards.unlock(id) when a player earns one. The player
+// page then asks this API to record it: POST /api/rewards/unlock.
+//
+// What a player earns is decided by the reward system, the kingdom package
+// (github.com/ligangwang/kingdom): this file checks the request, loads the
+// player's documents, reports the event to its grant() and saves what comes
+// back. So a new kind of reward needs no change here.
 //
 // Games run in the player's browser, so dingn cannot prove a level was really
 // passed. Instead it limits what cheating can win: only badges in the
-// published game.json count, each pays once per player, every game's coins
-// are capped (MAX_GAME_COINS), a version dingn has not reviewed pays nothing,
-// and an admin can switch a game's rewards off (record.rewards === "off").
+// published game.json count, the reward system caps what each game can pay,
+// a version dingn has not reviewed pays nothing, and an admin can switch a
+// game's rewards off (record.rewards === "off").
 //
-// Each player has one server-only document, Firestore `rewards/{uid}`:
-//   { coins, spent, games: { <game>: coins earned there },
-//     badges: { "<game>/<id>": … }, items: { "<game>/<id>": … } }
-// `coins` is the balance; coins earned in all = coins + spent.
-//
-// A game may also pay a few coins for play itself (rewards.earn), such as a
-// failed level that still got somewhere: POST /api/rewards/earn. That is
-// capped per game and player each UTC day (DAILY_GAME_COINS), kept in
-// `daily: { day: "YYYY-MM-DD", games: { <game>: coins } }`, and does not count
-// toward MAX_GAME_COINS, which is for badges.
-//
-// Every badge also adds account XP (BADGE_XP: twice the coins its tier pays),
-// so players of every game, not only dingn's brain games, level up their
-// account and their kingdom. The XP goes to Firestore `players/{uid}`, where
-// the brain games keep theirs; `xpPaid` in the rewards document counts what
-// was added, so settling twice (or a crash between the two writes) never pays
-// twice, and badges earned before badge XP existed are paid on the next one
-// (or by scripts/backfill-badge-xp.mjs).
+// Each player has one server-only document, Firestore `rewards/{uid}` (its
+// fields are described in the kingdom package's ledger.mjs), beside their XP
+// document `players/{uid}`, where badges add account XP.
 //
 // Players spend coins on upgrades a game sells (validateShop): POST
 // /api/rewards/spend. The player page asks the player to confirm first, so a
@@ -40,19 +30,32 @@ import {
 } from "./api.mjs";
 import {
   BADGE_ID,
-  DAILY_GAME_COINS,
   ID,
   MAX_EARN,
-  MAX_GAME_COINS,
   TIER_COINS,
   VERSION,
   cachedRecord,
   isPreview,
   publicGame,
 } from "./game-registry.mjs";
-import { getDoc, updateDoc, updateDocs } from "./platform-store.mjs";
-import { levelFor, publicName } from "./game-core.mjs";
-import { BADGE_XP } from "../src/data/kingdom.mjs";
+import {
+  getDoc,
+  updateDoc,
+  updateDocs,
+  updateMany,
+} from "./platform-store.mjs";
+import { publicName } from "./game-core.mjs";
+import { RewardError, buyItem, payBadgeXp } from "kingdom/ledger";
+import { grant, total } from "kingdom/rewards";
+export {
+  awardBadge,
+  badgeXpOwed,
+  buyItem,
+  earnCoins,
+  payBadgeXp,
+  wallet,
+} from "kingdom/ledger";
+import { wallet } from "kingdom/ledger";
 
 export const rewardRoutes = [
   "/api/rewards/unlock",
@@ -73,142 +76,29 @@ function limit(uid, now = Date.now()) {
 export const resetLimits = () => recent.clear();
 
 /**
- * Records one badge in a player's rewards document. Returns the new document
- * and what the player got: `new` is false for a badge they already had, and
- * `coins` is what it paid (less than the badge's coins once the game's cap is
- * reached).
+ * Reports an event to the reward system and saves what it grants: the
+ * player's rewards and XP documents, in one transaction. Returns what was
+ * granted (see the kingdom package's rewards.mjs). `name` is a leaderboard
+ * name for a player who has none yet.
  */
-export function awardBadge(doc, game, badge, now = new Date().toISOString()) {
-  const current = {
-    ...(doc ?? {}),
-    coins: doc?.coins ?? 0,
-    games: { ...(doc?.games ?? {}) },
-    badges: { ...(doc?.badges ?? {}) },
-  };
-  const key = `${game}/${badge.id}`;
-  if (current.badges[key])
-    return {
-      doc: current,
-      result: { new: false, coins: 0, balance: current.coins },
-    };
-  // Own properties only: a game id such as "constructor" must not read
-  // Object.prototype.
-  const earned = Object.hasOwn(current.games, game) ? current.games[game] : 0;
-  // The tier's coins now, so dingn can change what a tier pays.
-  const coins = Math.max(
-    0,
-    Math.min(TIER_COINS[badge.tier] ?? 0, MAX_GAME_COINS - earned),
-  );
-  current.badges[key] = {
-    game,
-    id: badge.id,
-    tier: badge.tier,
-    ...(badge.level != null ? { level: badge.level } : { icon: badge.icon }),
-    title: badge.title,
-    coins,
-    at: now,
-  };
-  current.games[game] = earned + coins;
-  current.coins += coins;
-  return {
-    doc: current,
-    result: { new: true, coins, balance: current.coins },
-  };
-}
-
-/**
- * Buys one upgrade with a player's coins. Returns the new document and what
- * happened: `new` is false for an upgrade they already own (nothing is
- * charged). Throws ApiError when they need an earlier upgrade first or do not
- * have enough coins.
- */
-export function buyItem(doc, game, item, now = new Date().toISOString()) {
-  const current = {
-    ...(doc ?? {}),
-    coins: doc?.coins ?? 0,
-    spent: doc?.spent ?? 0,
-    games: { ...(doc?.games ?? {}) },
-    badges: { ...(doc?.badges ?? {}) },
-    items: { ...(doc?.items ?? {}) },
-  };
-  const key = `${game}/${item.id}`;
-  if (current.items[key])
-    return {
-      doc: current,
-      result: { new: false, coins: 0, balance: current.coins },
-    };
-  if (item.requires && !current.items[`${game}/${item.requires}`])
-    throw new ApiError(409, "requires");
-  if (current.coins < item.price) throw new ApiError(402, "not-enough-coins");
-  current.items[key] = {
-    game,
-    id: item.id,
-    price: item.price,
-    title: item.title,
-    at: now,
-  };
-  current.coins -= item.price;
-  current.spent += item.price;
-  return {
-    doc: current,
-    result: { new: true, coins: item.price, balance: current.coins },
-  };
-}
-
-/**
- * Pays a player coins for play (rewards.earn), up to the game's daily
- * allowance. Returns the new document and what was paid: `coins` is less than
- * asked once today's allowance runs out, and 0 after that.
- */
-export function earnCoins(doc, game, coins, now = new Date().toISOString()) {
-  const day = now.slice(0, 10);
-  const daily = doc?.daily?.day === day ? doc.daily : { day, games: {} };
-  const today = Object.hasOwn(daily.games, game) ? daily.games[game] : 0;
-  const paid = Math.max(0, Math.min(coins, DAILY_GAME_COINS - today));
-  const current = {
-    ...(doc ?? {}),
-    coins: (doc?.coins ?? 0) + paid,
-    daily: { day, games: { ...daily.games, [game]: today + paid } },
-  };
-  return {
-    doc: current,
-    result: {
-      coins: paid,
-      balance: current.coins,
-      left: DAILY_GAME_COINS - today - paid,
+export async function grantEvent(uid, event, name = "") {
+  let granted = [];
+  await updateMany(
+    [
+      ["rewards", uid],
+      ["players", uid],
+    ],
+    ([doc, player]) => {
+      const out = grant({ rewards: doc, player }, event, { name });
+      granted = out.granted;
+      // A document no reward changed is left as it is.
+      return [
+        out.rewards === doc ? undefined : out.rewards,
+        out.player === player ? undefined : out.player,
+      ];
     },
-  };
-}
-
-/** Account XP a player's badges have earned but not yet been paid. */
-export function badgeXpOwed(doc) {
-  const earned = Object.values(doc?.badges ?? {}).reduce(
-    (sum, b) => sum + (BADGE_XP[b.tier] ?? 0),
-    0,
   );
-  return Math.max(0, earned - (doc?.xpPaid ?? 0));
-}
-
-/**
- * Pays the XP a rewards document owes into the player's XP document. Returns
- * the two new documents and the XP paid. `name` is the leaderboard name for a
- * player who has none yet.
- */
-export function payBadgeXp(doc, player, name) {
-  const owed = badgeXpOwed(doc);
-  if (!owed || !doc) return { doc, player, xp: 0 };
-  const xp = (player?.xp ?? 0) + owed;
-  return {
-    doc: { ...doc, xpPaid: (doc.xpPaid ?? 0) + owed },
-    player: {
-      ...(player ?? {}),
-      xp,
-      level: levelFor(xp),
-      badgeXp: (player?.badgeXp ?? 0) + owed,
-      ...(player?.name || !name ? {} : { name }),
-    },
-    xp: owed,
-  };
+  return { granted };
 }
 
 /** Pays a player's owed badge XP, in one transaction. Returns the XP paid. */
@@ -221,23 +111,6 @@ export async function settleBadgeXp(uid, name = "") {
     return [next.doc ?? doc ?? {}, next.player ?? player ?? {}];
   });
   return paid;
-}
-
-/**
- * A player's coins, badges (newest first), the upgrades they own and how
- * many friends joined dingn through their challenges (scripts/referrals.mjs).
- */
-export function wallet(doc) {
-  return {
-    coins: doc?.coins ?? 0,
-    friends: doc?.referrals?.friends ?? 0,
-    badges: Object.values(doc?.badges ?? {}).sort((a, b) =>
-      b.at.localeCompare(a.at),
-    ),
-    items: Object.values(doc?.items ?? {})
-      .sort((a, b) => b.at.localeCompare(a.at))
-      .map(({ game, id, title }) => ({ game, id, title })),
-  };
 }
 
 /**
@@ -349,15 +222,19 @@ export async function handleRewards(
       if (!reviewed)
         return send(200, { coins, balance: null, left: null, test: true });
       limit(claims.uid);
-      let earned;
-      await updateDoc("rewards", claims.uid, (doc) => {
-        const next = earnCoins(doc, body.game, coins);
-        earned = next.result;
-        return next.doc;
+      const { granted } = await grantEvent(claims.uid, {
+        type: "earn",
+        game: body.game,
+        coins,
       });
-      if (earned.coins)
-        console.log("earn", body.game, claims.uid, earned.coins);
-      return send(200, earned);
+      const paid = granted.find((g) => g.reward === "coins");
+      if (paid.coins) console.log("earn", body.game, claims.uid, paid.coins);
+      return send(200, {
+        coins: paid.coins,
+        balance: paid.balance,
+        left: paid.left,
+        granted,
+      });
     }
 
     if (pathname === "/api/rewards/spend") {
@@ -400,32 +277,25 @@ export async function handleRewards(
         test: true,
       });
     limit(claims.uid);
-    let result;
-    await updateDoc("rewards", claims.uid, (doc) => {
-      const next = awardBadge(doc, body.game, badge);
-      result = next.result;
-      return next.doc;
-    });
-    if (result.new) {
-      console.log("badge", body.game, badge.id, claims.uid, result.coins);
-      try {
-        const account = await getDoc("accounts", claims.uid);
-        await settleBadgeXp(
-          claims.uid,
-          publicName(account?.user_name, claims.name),
-        );
-      } catch (error) {
-        // The badge and its coins are saved; its XP is paid with the next one.
-        console.error("badge xp", error);
-      }
-    }
+    const account = await getDoc("accounts", claims.uid);
+    const { granted } = await grantEvent(
+      claims.uid,
+      { type: "badge", game: body.game, badge },
+      publicName(account?.user_name, claims.name),
+    );
+    const paid = granted.find((g) => g.reward === "coins");
+    if (paid.new)
+      console.log("badge", body.game, badge.id, claims.uid, paid.coins);
     send(200, {
       badge: shown,
-      ...result,
-      xp: result.new ? (BADGE_XP[badge.tier] ?? 0) : 0,
+      new: paid.new,
+      coins: paid.coins,
+      balance: paid.balance,
+      xp: total(granted, "xp"),
+      granted,
     });
   } catch (error) {
-    if (error instanceof ApiError)
+    if (error instanceof ApiError || error instanceof RewardError)
       return send(error.status, { error: error.message });
     console.error("rewards", error);
     send(503, { error: "unavailable" });
