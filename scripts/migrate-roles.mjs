@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // One-time move of every dingn account to roles (scripts/roles.mjs): the old
 // `admin: true`, `developer: true` and `tester: true` claims become one
-// `roles` list, keeping every other claim (such as `developerBlocked`).
+// `roles` list (administrator, developer, tester), keeping every other claim
+// (such as `developerBlocked`). player is never stored.
 //
 // Run it with Firebase Authentication admin rights, as for set-admin.py: in
 // Cloud Shell as the project owner (or after `gcloud auth application-default
@@ -14,16 +15,10 @@
 // The website accepts both forms meanwhile, so nobody loses access while it
 // runs. Changed claims reach an account's ID token within the hour.
 import { pathToFileURL } from "node:url";
-import { rolesOf, withRoles } from "./roles.mjs";
+import { migratedClaims } from "./roles.mjs";
 
+export { migratedClaims };
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
-const LEGACY = ["admin", "developer", "tester"];
-
-/** The account's claims on roles, or null when they need no change. */
-export function migratedClaims(claims) {
-  if (!claims || !LEGACY.some((role) => role in claims)) return null;
-  return withRoles(claims, rolesOf(claims));
-}
 
 /**
  * Moves every account (`users` is the Admin SDK's auth) and returns what it

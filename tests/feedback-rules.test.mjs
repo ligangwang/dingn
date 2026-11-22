@@ -35,7 +35,9 @@ const data = () => ({
 });
 it("allows only the admin role to read and list feedback", async () => {
   const admin = env
-    .authenticatedContext("admin-user", { roles: ["developer", "admin"] })
+    .authenticatedContext("admin-user", {
+      roles: ["developer", "administrator"],
+    })
     .firestore();
   await assertSucceeds(getDocs(collection(admin, "feedback")));
   // An account not yet moved to roles.
@@ -59,7 +61,9 @@ it("allows only the admin role to read and list feedback", async () => {
     { admin: "true" },
     { admin: 1 },
     { roles: ["developer", "tester"] },
-    { roles: "admin" },
+    { roles: "administrator" },
+    { roles: ["admin"] },
+    { roles: ["player"] },
     { roles: [] },
   ]) {
     await assertFails(

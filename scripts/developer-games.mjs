@@ -377,7 +377,7 @@ export async function handleDeveloperGames(
       }
     }
     const isDeveloper =
-      hasRole(claims, "developer") || hasRole(claims, "admin");
+      hasRole(claims, "developer") || hasRole(claims, "administrator");
     const developer = { uid: claims.uid, email: claims.email ?? "" };
 
     if (pathname === "/api/developer/keys") {
@@ -440,7 +440,7 @@ export async function handleDeveloperGames(
       throw error;
     }
     const { manifest, files } = prepareUpload(zipped);
-    if (!hasRole(claims, "admin")) {
+    if (!hasRole(claims, "administrator")) {
       const owned = (await listRecords()).filter(
         (r) => r.owner === developer.uid,
       );

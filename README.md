@@ -24,7 +24,7 @@ npm run preview
 
 ## Existing behavior and data
 
-The homepage feedback link opens `/feedback/`. Signed-in users can submit up to 5,000 characters to the `feedback` Firestore collection. Each record contains the authenticated `uid`, message, server `createdAt`, and `status: new`. Ordinary users can create submissions but cannot read, edit, or delete them. The read-only inbox at `/admin/feedback/` requires the admin role (see "Roles" below). Administrators can also review submissions in Firebase Console using Google Cloud IAM.
+The homepage feedback link opens `/feedback/`. Signed-in users can submit up to 5,000 characters to the `feedback` Firestore collection. Each record contains the authenticated `uid`, message, server `createdAt`, and `status: new`. Ordinary users can create submissions but cannot read, edit, or delete them. The read-only inbox at `/admin/feedback/` requires the administrator role (see "Roles" below). Administrators can also review submissions in Firebase Console using Google Cloud IAM.
 
 Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project dingn-193716` before releasing the form. These rules preserve legacy collection access but exclude feedback from the old catch-all permission. Test with `npm run test:rules` in an environment with Firebase CLI and Java 21; the tests use only the `demo-dingn-feedback` emulator project.
 
@@ -219,12 +219,15 @@ After deployment, authorize the exact returned `run.app` hostname in Firebase Au
 
 ## Roles
 
-What an account may do is its roles, kept as the `roles` custom claim on its
-Firebase account (so they ride in its ID token and the Firestore rules can
-read them): `admin` (runs dingn), `developer` (uploads games) and `tester`
-(a test account). An account holds any number of them; a player holds none.
-Code reads and changes them only through `scripts/roles.mjs`, and the session
-(`/api/auth/session`) returns them as `roles`. `developerBlocked` is not a role
+What an account may do is its roles: `administrator` (runs dingn),
+`developer` (uploads games), `player` (a real person playing) and `tester` (a
+test account). An account holds any number of them. Every account that isn't
+a tester is a player, so an administrator or developer is a player too, and
+`player` is never stored or granted. The other three are granted, and kept as
+the `roles` custom claim on the Firebase account (so they ride in its ID token
+and the Firestore rules can read them). Code reads and changes them only
+through `scripts/roles.mjs`, and the session (`/api/auth/session`) returns
+them as `roles`. `developerBlocked` is not a role
 but a restriction on signing up as a developer again.
 
 Accounts made before roles carried `admin: true`, `developer: true` or
@@ -245,7 +248,7 @@ nothing. Changed claims reach each account's ID token within the hour.
 
 ## Admin access
 
-Admins add or remove other admins on `/admin/users/`. For the first admin, in authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (or `--revoke`) for an explicitly approved existing account. This uses the project-owner credentials, preserves other custom claims and roles, and verifies the change. The script is excluded from the website container. Never store admin access in editable account documents. After a change, sign out and back in; existing tokens can retain their claims until expiry (up to an hour). The admin navigation link appears only after the token claim is confirmed; Firestore independently enforces access.
+Administrators add or remove other administrators on `/admin/users/`. For the first admin, in authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (or `--revoke`) for an explicitly approved existing account. This uses the project-owner credentials, preserves other custom claims and roles, and verifies the change. The script is excluded from the website container. Never store admin access in editable account documents. After a change, sign out and back in; existing tokens can retain their claims until expiry (up to an hour). The admin navigation link appears only after the token claim is confirmed; Firestore independently enforces access.
 
 ## Test accounts
 

@@ -157,7 +157,7 @@ export type Player = {
   email: string;
   name: string;
   providers: string[];
-  /** What the account may do: admin, developer, tester (none for a player). */
+  /** What the account may do: administrator, developer, player, tester. */
   roles: Role[];
   /** A developer removed by an admin, who can't sign up again by themselves. */
   developerBlocked: boolean;

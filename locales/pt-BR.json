@@ -970,6 +970,8 @@
     "Delete": "Excluir",
     "Test account": "Conta de teste",
     "As a test account": "Como conta de teste",
-    "TEST": "TESTE"
+    "TEST": "TESTE",
+    "Administrator": "Administrador",
+    "Tester": "Testador"
   }
 }

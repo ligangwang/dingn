@@ -970,6 +970,8 @@
     "Delete": "Hapus",
     "Test account": "Akun uji",
     "As a test account": "Sebagai akun uji",
-    "TEST": "UJI"
+    "TEST": "UJI",
+    "Administrator": "Administrator",
+    "Tester": "Penguji"
   }
 }

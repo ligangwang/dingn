@@ -970,6 +970,8 @@
     "Delete": "削除",
     "Test account": "テストアカウント",
     "As a test account": "テストアカウントとして",
-    "TEST": "テスト"
+    "TEST": "テスト",
+    "Administrator": "管理者",
+    "Tester": "テスター"
   }
 }

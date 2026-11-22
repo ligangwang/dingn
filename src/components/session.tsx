@@ -10,8 +10,11 @@ import { api } from "@/lib/api";
 import { defaultProfile, friendlyError, type Profile } from "@/lib/models";
 import { readProfile, saveProfile } from "@/lib/repository";
 import { fetchStats, type PlayerStats } from "@/lib/xp";
-/** What an account may do on dingn (scripts/roles.mjs). */
-export type Role = "admin" | "developer" | "tester";
+/**
+ * What an account may do on dingn (scripts/roles.mjs). Every account but a
+ * tester is a player.
+ */
+export type Role = "administrator" | "developer" | "player" | "tester";
 type Account = {
   uid: string;
   email: string | null;

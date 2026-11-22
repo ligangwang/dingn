@@ -128,7 +128,7 @@ async function identity(token, known) {
         : null,
     // What the account may do (scripts/roles.mjs), and a shortcut for each.
     roles: rolesOf(claims),
-    isAdmin: hasRole(claims, "admin"),
+    isAdmin: hasRole(claims, "administrator"),
     isDeveloper: hasRole(claims, "developer"),
     // A test account an admin made (scripts/test-accounts.mjs).
     isTester: hasRole(claims, "tester"),

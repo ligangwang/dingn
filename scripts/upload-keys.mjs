@@ -179,9 +179,10 @@ export async function adminKeyClaims(
     req,
     users,
     (claims) => {
-      if (!hasRole(claims, "admin")) throw new ApiError(403, "admin-required");
+      if (!hasRole(claims, "administrator"))
+        throw new ApiError(403, "admin-required");
     },
     now,
   );
-  return { uid, email, roles: ["admin"] };
+  return { uid, email, roles: ["administrator"] };
 }

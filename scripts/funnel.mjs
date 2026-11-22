@@ -214,7 +214,8 @@ export async function handleFunnel(
     } catch {
       throw new ApiError(401, "invalid-credential");
     }
-    if (!hasRole(claims, "admin")) throw new ApiError(403, "admin-required");
+    if (!hasRole(claims, "administrator"))
+      throw new ApiError(403, "admin-required");
     const days = [1, 7, 30, 90].includes(body.days) ? body.days : 7;
     // Today's counts still waiting in this instance are added in, so a test
     // visit shows up at once.

@@ -444,7 +444,10 @@ test("admins grant and remove developer access by email", async () => {
     action: "remove",
   });
   // It also stops the account from signing up again by itself.
-  assert.deepEqual(claims.u2, { roles: ["admin"], developerBlocked: true });
+  assert.deepEqual(claims.u2, {
+    roles: ["administrator"],
+    developerBlocked: true,
+  });
   assert.equal(
     (
       await adminCall("/api/admin/developers/update", {
@@ -463,7 +466,7 @@ test("admins grant and remove developer access by email", async () => {
     action: "add",
   });
   assert.equal(granted.status, 200);
-  assert.deepEqual(claims.u3, { roles: ["admin", "developer"] });
+  assert.deepEqual(claims.u3, { roles: ["administrator", "developer"] });
   assert.deepEqual(
     (await adminCall("/api/admin/admins", {})).body.admins.map((a) => a.uid),
     ["u1", "u2", "u3"],
@@ -484,10 +487,11 @@ test("admins grant and remove developer access by email", async () => {
   const listed = await adminCall("/api/admin/players", {});
   assert.equal(listed.status, 200);
   const u1 = listed.body.players.find((p) => p.uid === "u1");
-  // u1 still has the old `admin: true` flag: it shows as the admin role.
-  assert.deepEqual(u1.roles, ["admin"]);
+  // u1 still has the old `admin: true` flag: it shows as administrator.
+  assert.deepEqual(u1.roles, ["administrator", "player"]);
   assert.deepEqual(listed.body.players.find((p) => p.uid === "u3").roles, [
     "developer",
+    "player",
   ]);
   assert.equal(listed.body.pages, 1);
   assert.equal(

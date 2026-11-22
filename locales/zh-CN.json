@@ -970,6 +970,8 @@
     "Delete": "删除",
     "Test account": "测试账号",
     "As a test account": "以测试账号身份",
-    "TEST": "测试"
+    "TEST": "测试",
+    "Administrator": "管理员",
+    "Tester": "测试员"
   }
 }

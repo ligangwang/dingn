@@ -97,7 +97,7 @@ let board = { at: 0, entries: null };
 async function isAdmin(req, res) {
   if (!hasSession(req)) return false;
   try {
-    return hasRole(await verify(req, res), "admin");
+    return hasRole(await verify(req, res), "administrator");
   } catch {
     return false;
   }

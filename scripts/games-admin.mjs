@@ -3,7 +3,7 @@
 // Building and uploading a new version stays in CI (scripts/publish-game.mjs),
 // so every version comes from the repository and passed its tests.
 //
-// Only accounts with the admin role (scripts/roles.mjs; the same one the
+// Only accounts with the administrator role (scripts/roles.mjs; the same one the
 // feedback inbox checks) may call these, and only as same-origin POSTs. The one
 // exception is reviewing: an admin's review key (scripts/upload-keys.mjs),
 // sent as `Authorization: Bearer dak.…`, may list the games and approve or
@@ -83,7 +83,8 @@ async function requireAdmin(req, res, verify, exchange) {
   } catch {
     throw new ApiError(401, "invalid-credential");
   }
-  if (!hasRole(decoded, "admin")) throw new ApiError(403, "admin-required");
+  if (!hasRole(decoded, "administrator"))
+    throw new ApiError(403, "admin-required");
   return decoded;
 }
 
@@ -159,14 +160,14 @@ async function developers(pathname, body, users) {
 }
 
 /**
- * Admin access: the admin role, which opens these pages and the
+ * Admin access: the administrator role, which opens these pages and the
  * feedback inbox. Each request reads the account's claims afresh, so a change
  * takes effect on that account's next request. An admin cannot remove their
  * own access, so the site always keeps at least the admin making changes.
  */
 async function admins(pathname, body, users, self) {
   if (pathname === "/api/admin/admins")
-    return { admins: await holders(users, "admin") };
+    return { admins: await holders(users, "administrator") };
   const email = typeof body.email === "string" ? body.email.trim() : "";
   if (!email || !["add", "remove"].includes(body.action))
     throw new ApiError(400, "invalid-request");
@@ -180,7 +181,7 @@ async function admins(pathname, body, users, self) {
     throw new ApiError(400, "cannot-remove-self");
   await users.setCustomUserClaims(
     user.uid,
-    withRole(user.customClaims, "admin", body.action === "add"),
+    withRole(user.customClaims, "administrator", body.action === "add"),
   );
   console.log("games admin admin", body.action, user.uid);
   return { admin: { uid: user.uid, email: user.email ?? email } };
