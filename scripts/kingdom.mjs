@@ -1,7 +1,9 @@
 // The kingdom API. The rules (stages, buildings, prices, the land) are the
 // reward system's (the kingdom package's kingdom module), which the kingdom
 // page reads too; this file loads the player's level and coins, applies a
-// rule, and saves the result.
+// rule, and saves the result. What the level opens (the hall and each
+// stage's free buildings) is saved the first time the player looks at their
+// kingdom after reaching it.
 //
 //   POST /api/kingdom/me                          the player's kingdom
 //   POST /api/kingdom/build { building, x?, y? }  build, paying its coins
@@ -24,11 +26,11 @@ import {
   KingdomError,
   buildIn,
   building,
-  kingdomOf,
   kingdomView,
-  move,
+  moveIn,
+  settleDoc,
 } from "kingdom/kingdom";
-export { buildIn, kingdomView } from "kingdom/kingdom";
+export { buildIn, kingdomView, settleDoc } from "kingdom/kingdom";
 
 export const kingdomRoutes = [
   "/api/kingdom/me",
@@ -74,8 +76,17 @@ export async function handleKingdom(
     const player = await getDoc("players", uid);
     const { level } = levelProgress(player?.xp ?? 0);
 
-    if (pathname === "/api/kingdom/me")
-      return send(200, kingdomView(await getDoc("rewards", uid), player));
+    if (pathname === "/api/kingdom/me") {
+      let doc = await getDoc("rewards", uid);
+      let gifts = [];
+      if (settleDoc(doc, level).gifts.length)
+        doc = await updateDoc("rewards", uid, (current) => {
+          const next = settleDoc(current, level);
+          gifts = next.gifts;
+          return next.doc;
+        });
+      return send(200, { ...kingdomView(doc, player), gifts });
+    }
 
     if (pathname === "/api/kingdom/build") {
       const id = body.building;
@@ -93,10 +104,9 @@ export async function handleKingdom(
     }
 
     if (pathname === "/api/kingdom/move") {
-      const doc = await updateDoc("rewards", uid, (current) => ({
-        ...(current ?? {}),
-        kingdom: move(kingdomOf(current), body, level),
-      }));
+      const doc = await updateDoc("rewards", uid, (current) =>
+        moveIn(current, body, level),
+      );
       return send(200, kingdomView(doc, player));
     }
     throw new ApiError(404, "not-found");

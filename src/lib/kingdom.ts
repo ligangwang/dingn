@@ -13,6 +13,8 @@ export type KingdomView = {
   hall: StageId;
   tiles: Record<string, string>;
   coins: number;
+  /** Stages whose free buildings this visit placed (from /me only). */
+  gifts?: StageId[];
 };
 
 export const fetchKingdom = () => api<KingdomView>("/api/kingdom/me");

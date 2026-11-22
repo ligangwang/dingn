@@ -64,9 +64,80 @@ test("stages open with the account level and the land keeps growing", () => {
     for (let x = small.lo; x <= small.hi; x++)
       assert.ok(rules.onLand(rules.STAGES[i].size, x, small.lo));
   }
-  // Each hall upgrade belongs to a stage after the camp, in order.
-  const halls = rules.BUILDINGS.filter((b) => b.hall).map((b) => b.stage);
-  assert.deepEqual(halls, rules.STAGE_IDS.slice(1));
+});
+
+test("every stage's free buildings fit its land, without moving", () => {
+  // Each stage's starters, placed on an empty kingdom one stage at a time,
+  // land on their own spots: on that stage's land, off the hall, and on
+  // tiles no earlier starter took.
+  let k = rules.kingdomOf(null);
+  const counts = {};
+  for (const stage of rules.STAGES) {
+    for (const [id, x, y] of rules.STARTERS[stage.id]) {
+      const def = rules.building(id);
+      assert.ok(def, id);
+      assert.ok(
+        rules.STAGE_IDS.indexOf(def.stage) <= rules.STAGE_IDS.indexOf(stage.id),
+        `${id} opens after ${stage.id}`,
+      );
+      assert.ok(rules.onLand(stage.size, x, y), `${id} ${x},${y}`);
+      assert.ok(!rules.isHallTile(x, y), `${id} ${x},${y}`);
+      counts[id] = (counts[id] ?? 0) + 1;
+      assert.ok(counts[id] <= def.max, id);
+    }
+    k = rules.settle(k, stage.level);
+    assert.equal(k.hall, stage.id);
+    for (const [id, x, y] of rules.STARTERS[stage.id])
+      assert.equal(k.tiles[rules.tileKey(x, y)], id);
+  }
+});
+
+test("the level gives the hall and free buildings, once", () => {
+  const empty = rules.kingdomOf(null);
+  assert.equal(rules.settle(empty, 1), empty);
+  const camp = rules.settle(empty, 2);
+  assert.equal(camp.hall, "camp");
+  assert.deepEqual(camp.granted, ["camp"]);
+  assert.equal(Object.keys(camp.tiles).length, rules.STARTERS.camp.length);
+  // Settled already: nothing changes.
+  assert.equal(rules.settle(camp, 3), camp);
+  // A player who moved or built over a starter spot keeps their layout;
+  // the free building goes to the nearest free tile instead.
+  const moved = rules.move(camp, { from: [2, 2], to: [2, 1] }, 3);
+  const village = rules.settle(moved, 4);
+  assert.equal(village.hall, "village");
+  assert.equal(village.tiles["2,1"], "cottage");
+  // The well wanted 2,1; it stands on the free tile beside it.
+  assert.equal(village.tiles["2,2"], "well");
+  assert.equal(
+    Object.keys(village.tiles).length,
+    rules.STARTERS.camp.length + rules.STARTERS.village.length,
+  );
+  // Levels skipped at once give every stage in between.
+  const town = rules.settle(empty, 6);
+  assert.equal(town.hall, "town");
+  assert.deepEqual(town.granted, ["camp", "village", "town"]);
+  // A building already at its limit isn't given again.
+  let full = rules.settle(empty, 9);
+  const statues = { ...full, granted: [...full.granted] };
+  statues.tiles = { ...full.tiles, "4,4": "statue", "-4,4": "statue" };
+  full = rules.settle(statues, 15);
+  assert.equal(
+    Object.values(full.tiles).filter((b) => b === "statue").length,
+    2,
+  );
+
+  // Halls bought before they came free are paid back, once.
+  assert.equal(rules.hallRefund(null), 0);
+  assert.equal(rules.hallRefund({ kingdom: { hall: "camp", tiles: {} } }), 0);
+  assert.equal(
+    rules.hallRefund({ kingdom: { hall: "town", tiles: {} } }),
+    100 + 250,
+  );
+  assert.equal(
+    rules.hallRefund({ kingdom: { hall: "town", tiles: {}, granted: [] } }),
+    0,
+  );
 });
 
 test("building follows the rules", () => {
@@ -84,45 +155,46 @@ test("building follows the rules", () => {
   assert.equal(at(2, 99, { id: "cottage", x: 3, y: 0 }), "off-land");
   // The hall's grounds are the 3 x 3 tiles around it.
   assert.equal(at(2, 99, { id: "cottage", x: 1, y: -1 }), "off-land");
-  assert.equal(at(2, 10, { id: "cottage", x: 2, y: 0 }), "not-enough-coins");
-  assert.equal(at(2, 999, { id: "market", x: 2, y: 0 }), "level");
-  assert.equal(at(4, 999, { id: "market", x: 2, y: 0 }), "hall-first");
-  assert.equal(at(4, 999, { id: "hall-town" }), "level");
-  assert.equal(at(6, 999, { id: "hall-town" }), "hall-first");
+  assert.equal(at(2, 10, { id: "cottage", x: 2, y: -1 }), "not-enough-coins");
+  assert.equal(at(2, 999, { id: "market", x: 2, y: -1 }), "level");
+  // The free camp path stands at 2,0.
+  assert.equal(at(2, 999, { id: "cottage", x: 2, y: 0 }), "occupied");
 
   const first = at(2, 20, { id: "cottage", x: 2, y: -1 });
   assert.equal(first.coins, 20);
   assert.equal(first.kingdom.tiles["2,-1"], "cottage");
+  assert.equal(first.kingdom.hall, "camp");
+  assert.deepEqual(first.kingdom.granted, ["camp"]);
   assert.equal(
     at(2, 99, { id: "farm", x: 2, y: -1 }, first.kingdom),
     "occupied",
   );
-  const hall = at(4, 100, { id: "hall-village" }, first.kingdom);
-  assert.equal(hall.kingdom.hall, "village");
-  assert.equal(
-    at(4, 999, { id: "hall-village" }, hall.kingdom),
-    "already-built",
-  );
-  assert.equal(
-    at(4, 80, { id: "market", x: -2, y: 2 }, hall.kingdom).coins,
-    40,
-  );
+  // The village opens with its hall, free.
+  const village = at(4, 80, { id: "market", x: -2, y: 1 }, first.kingdom);
+  assert.equal(village.coins, 40);
+  assert.equal(village.kingdom.hall, "village");
 
-  let k = empty;
-  for (let x = -2; x <= 2; x++)
-    for (let y = -2; y <= 2; y++)
-      if (!rules.isHallTile(x, y) && Object.keys(k.tiles).length < 6)
-        k = rules.build(k, { id: "farm", x, y }, 2, 99).kingdom;
-  assert.equal(at(2, 99, { id: "farm", x: 2, y: 2 }, k), "max");
+  // The camp gives one wheat field; five more fill the limit.
+  let k = rules.settle(empty, 2);
+  for (const [x, y] of [
+    [-2, -1],
+    [-2, 1],
+    [-1, -2],
+    [1, -2],
+    [-1, 2],
+  ])
+    k = rules.build(k, { id: "farm", x, y }, 2, 99).kingdom;
+  assert.equal(at(2, 99, { id: "farm", x: 1, y: 2 }, k), "max");
 
   const moved = rules.move(first.kingdom, { from: [2, -1], to: [-2, 1] }, 2);
-  assert.deepEqual(moved.tiles, { "-2,1": "cottage" });
+  assert.equal(moved.tiles["-2,1"], "cottage");
+  assert.equal(moved.tiles["2,-1"], undefined);
   assert.throws(
     () => rules.move(first.kingdom, { from: [2, -1], to: [1, 1] }, 2),
     { code: "off-land" },
   );
   assert.throws(
-    () => rules.move(first.kingdom, { from: [2, 2], to: [2, 1] }, 2),
+    () => rules.move(first.kingdom, { from: [1, 2], to: [2, 1] }, 2),
     {
       code: "empty",
     },
@@ -213,16 +285,23 @@ test("a player earns badges, reaches the camp and builds", async () => {
   assert.equal(me.body.size, 5);
   assert.equal(me.body.coins, 50);
   assert.equal((await store.getDoc("players", "kim")).name, "Kim");
+  // The camp comes with its free buildings, saved on the first look.
+  assert.deepEqual(me.body.gifts, ["camp"]);
+  assert.equal(me.body.tiles["2,0"], "path");
+  assert.deepEqual((await store.getDoc("rewards", "kim")).kingdom.granted, [
+    "camp",
+  ]);
+  assert.deepEqual((await visit("/api/kingdom/me")).body.gifts, []);
 
   const built = await visit("/api/kingdom/build", {
     building: "cottage",
     x: 2,
-    y: 0,
+    y: 1,
   });
   assert.equal(built.status, 200);
   assert.equal(built.body.paid, 20);
   assert.equal(built.body.coins, 30);
-  assert.deepEqual(built.body.tiles, { "2,0": "cottage" });
+  assert.equal(built.body.tiles["2,1"], "cottage");
   const doc = await store.getDoc("rewards", "kim");
   assert.equal(doc.spent, 20);
   assert.equal(rewards.wallet(doc).coins, 30);
@@ -230,18 +309,18 @@ test("a player earns badges, reaches the camp and builds", async () => {
   const busy = await visit("/api/kingdom/build", {
     building: "farm",
     x: 2,
-    y: 0,
+    y: 1,
   });
   assert.deepEqual([busy.status, busy.body.error], [409, "occupied"]);
   const poor = await visit("/api/kingdom/build", {
     building: "cottage",
     x: 2,
-    y: 1,
+    y: -1,
   });
   assert.equal(poor.status, 200);
   const broke = await visit("/api/kingdom/build", {
     building: "cottage",
-    x: 2,
+    x: 1,
     y: 2,
   });
   assert.deepEqual([broke.status, broke.body.error], [402, "not-enough-coins"]);
@@ -251,10 +330,30 @@ test("a player earns badges, reaches the camp and builds", async () => {
   );
 
   const moved = await visit("/api/kingdom/move", {
-    from: [2, 0],
-    to: [-2, -2],
+    from: [2, 1],
+    to: [1, 2],
   });
-  assert.deepEqual(moved.body.tiles, { "-2,-2": "cottage", "2,1": "cottage" });
+  assert.equal(moved.body.tiles["1,2"], "cottage");
+  assert.equal(moved.body.tiles["2,1"], undefined);
+});
+
+test("a hall bought before halls came free is paid back on the next look", async () => {
+  await store.mergeDoc("players", "hal", { xp: 1500 }); // level 6: the town
+  await store.mergeDoc("rewards", "hal", {
+    coins: 10,
+    spent: 400,
+    kingdom: { hall: "village", tiles: { "2,0": "cottage" } },
+  });
+  const me = await visit("/api/kingdom/me", {}, "hal");
+  assert.equal(me.body.stage, "town");
+  assert.equal(me.body.hall, "town");
+  assert.deepEqual(me.body.gifts, ["camp", "village", "town"]);
+  assert.equal(me.body.coins, 110);
+  // Their cottage stays; the camp's path goes beside it.
+  assert.equal(me.body.tiles["2,0"], "cottage");
+  const doc = await store.getDoc("rewards", "hal");
+  assert.equal(doc.spent, 300);
+  assert.equal((await visit("/api/kingdom/me", {}, "hal")).body.coins, 110);
 });
 
 test("visiting the kingdom pays badge XP earned before badges gave XP", async () => {
