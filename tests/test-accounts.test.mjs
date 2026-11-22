@@ -199,3 +199,32 @@ test("passwords never reach the server's logs", async () => {
     console.log = log;
   }
 });
+
+test("a test account made an admin can't delete itself", async () => {
+  const auth = fakeAuth([
+    {
+      uid: "qa",
+      email: "qa@example.com",
+      customClaims: { tester: true, admin: true },
+    },
+  ]);
+  await rejects(
+    testers(
+      "/api/admin/testers/update",
+      { action: "delete", uid: "qa" },
+      auth,
+      "qa",
+    ),
+    "cannot-remove-self",
+  );
+  assert.ok(auth.users.has("qa"));
+});
+
+test("an account whose tester claim can't be set is removed again", async () => {
+  const auth = fakeAuth();
+  auth.setCustomUserClaims = async () => {
+    throw new Error("auth unavailable");
+  };
+  await assert.rejects(create(auth, { email: "qa@example.com", count: 2 }));
+  assert.equal(auth.users.size, 0);
+});

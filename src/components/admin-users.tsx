@@ -327,13 +327,15 @@ function TestAccounts() {
           ? t(
               "One of those addresses already has a dingn account. Choose another address.",
             )
-          : code === "weak-password"
-            ? t("Use a password of 8 to 128 characters, or leave it empty.")
-            : code === "invalid-request"
-              ? t(
-                  `Check the email address, and make 1 to ${MAX_TESTERS} accounts at a time.`,
-                )
-              : t("That change could not be saved. Try again."),
+          : code === "cannot-remove-self"
+            ? t("You cannot remove your own admin access.")
+            : code === "weak-password"
+              ? t("Use a password of 8 to 128 characters, or leave it empty.")
+              : code === "invalid-request"
+                ? t(
+                    `Check the email address, and make 1 to ${MAX_TESTERS} accounts at a time.`,
+                  )
+                : t("That change could not be saved. Try again."),
     });
   };
 

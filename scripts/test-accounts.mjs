@@ -141,7 +141,17 @@ async function createTesters(users, body, by) {
       emailVerified: true,
       ...(name ? { displayName: count > 1 ? `${name} ${i + 1}` : name } : {}),
     });
-    await users.setCustomUserClaims(user.uid, { tester: true });
+    try {
+      await users.setCustomUserClaims(user.uid, { tester: true });
+    } catch (error) {
+      // Never leave an ordinary account this page can't see or remove.
+      await users
+        .deleteUser(user.uid)
+        .catch((e) =>
+          console.error("test account", "undo create", user.uid, e),
+        );
+      throw error;
+    }
     made.push(tester({ ...user, customClaims: { tester: true } }));
     console.log("test account", "create", user.uid, "by", by);
   }
@@ -164,6 +174,9 @@ export async function testers(pathname, body, users, by) {
   }
   if (body.action === "delete") {
     const user = await testerById(users, body.uid);
+    // A test account made an admin can't delete itself, as admins can't
+    // remove their own access (so dingn always keeps an admin).
+    if (user.uid === by) throw new ApiError(400, "cannot-remove-self");
     await users.deleteUser(user.uid);
     console.log("test account", "delete", user.uid, "by", by);
     return { uid: user.uid };
