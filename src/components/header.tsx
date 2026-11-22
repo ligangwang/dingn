@@ -1,18 +1,18 @@
 "use client";
-import { pick } from "@/lib/i18n";
 import { LanguageSwitcher, useLocale } from "@/components/locale";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import { CastleIcon, KeyIcon, ShieldIcon, TrophyIcon } from "./icons";
-import { CATEGORY_INFO, playPath, useCatalog } from "./catalog";
 import {
-  CATEGORIES,
-  gamesIn,
-  type CatalogGame,
-  type Category,
-} from "@/lib/catalog";
+  CastleIcon,
+  CrowdIcon,
+  KeyIcon,
+  ShieldIcon,
+  TrophyIcon,
+} from "./icons";
+import { CATEGORY_INFO, playPath, useCatalog } from "./catalog";
+import { CATEGORIES, gamesIn, type CatalogGame } from "@/lib/catalog";
 import { HonorAvatar } from "./honor";
 import { CoinCount } from "./rewards";
 export function Header() {
@@ -31,14 +31,8 @@ export function Header() {
         {t("dingn")}
       </Link>
       <nav aria-label={t("Main navigation")}>
-        {CATEGORIES.map((category) => (
-          <CategoryMenu
-            key={category}
-            category={category}
-            path={path}
-            games={catalog}
-          />
-        ))}
+        {/* One menu for all the games, so the header stays short. */}
+        <GamesMenu key={path} path={path} games={catalog} />
         <Link
           href={to("/kingdom/")}
           aria-label={t("Kingdom")}
@@ -112,55 +106,46 @@ export function Header() {
 }
 
 /**
- * A category in the menu: its link opens the category page, and hovering or
- * focusing it lists the category's games to jump straight into.
+ * Every kind of game in one menu: each category opens its page, which lists
+ * its games. On a game's page, the menu and the game's category are marked.
  */
-function CategoryMenu({
-  category,
+function GamesMenu({
   path,
   games,
 }: {
-  category: Category;
   path: string;
   games: CatalogGame[] | null;
 }) {
   const { t, locale, href: to } = useLocale();
-  const { label, path: page, Icon } = CATEGORY_INFO[category];
-  const list = games ? gamesIn(games, category, locale) : [];
   const same = (href: string) =>
     path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
-  // A game's page counts as being inside its category.
-  const inside = same(page) || list.some((g) => same(playPath(g.id)));
+  const items = CATEGORIES.map((category) => {
+    const { label, path: page, Icon } = CATEGORY_INFO[category];
+    const list = games ? gamesIn(games, category, locale) : [];
+    // A game's page counts as being inside its category.
+    const inside = same(page) || list.some((g) => same(playPath(g.id)));
+    return { category, label, page, Icon, inside };
+  });
   return (
-    <div className="nav-category">
-      <Link
-        href={to(page)}
-        aria-label={t(label)}
-        aria-current={inside ? "page" : undefined}
+    <details className="admin-menu games-menu">
+      <summary
+        aria-label={t("Games")}
+        aria-current={items.some((i) => i.inside) ? "page" : undefined}
       >
-        <Icon className="nav-icon" size={18} />
-        <span className="nav-label">{t(label)}</span>
-      </Link>
-      {list.length > 0 && (
-        <ul className="nav-games">
-          {list.map((g) => (
-            <li key={g.id}>
-              <Link
-                href={to(playPath(g.id))}
-                aria-current={same(playPath(g.id)) ? "page" : undefined}
-              >
-                {pick(g.title, locale)}
-              </Link>
-            </li>
-          ))}
-          <li className="nav-all">
-            <Link href={to(page)}>
-              {t(`All ${label.toLowerCase()} games →`)}
+        <CrowdIcon className="nav-icon" size={18} />
+        <span className="nav-label">{t("Games")}</span>
+      </summary>
+      <ul>
+        {items.map(({ category, label, page, Icon, inside }) => (
+          <li key={category}>
+            <Link href={to(page)} aria-current={inside ? "page" : undefined}>
+              <Icon className="nav-icon" size={18} />
+              {t(label)}
             </Link>
           </li>
-        </ul>
-      )}
-    </div>
+        ))}
+      </ul>
+    </details>
   );
 }
 

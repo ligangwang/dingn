@@ -33,8 +33,11 @@
 // A challenge is a thread: its maker's score comes first, and every signed-in
 // player who takes it and finishes posts their result under it
 // (`results`, each player's best, highest first, at most MAX_RESULTS kept;
-// `players` counts everyone who posted). Scores are the ones games report, so
-// a thread pays nothing.
+// `players` counts everyone who posted). Each player's own best under a
+// challenge is also kept on its own, server-only, in
+// `challengeResults/{id}_{uid}`, so a player below the kept results is still
+// counted once and keeps their best. Scores are the ones games report, so a
+// thread pays nothing.
 //
 // Its maker (or an admin) can close it: it stays readable by its link, takes
 // no more results and leaves the list (`closed`, `closedAt`). They can also
@@ -155,12 +158,14 @@ export function resultsOf(doc) {
 
 /**
  * The thread after `uid` posts `score`: a player keeps only their best, so a
- * lower score changes nothing. Returns the next document and what to tell
- * the player.
+ * lower score changes nothing. `own` is the player's best so far under this
+ * challenge ({ score }, kept in `challengeResults`), or null for their first
+ * result; a thread keeps only its top results, so a player below them is
+ * known only by it. Returns the next document and what to tell the player.
  */
-export function postResult(doc, { uid, name, score, now }) {
+export function postResult(doc, { uid, name, score, now }, own = null) {
   const before = resultsOf(doc);
-  const mine = before.find((r) => r.uid === uid);
+  const mine = own ?? before.find((r) => r.uid === uid);
   const improved = !mine || score > mine.score;
   const results = improved
     ? [...before.filter((r) => r.uid !== uid), { uid, name, score, at: now }]
@@ -331,26 +336,30 @@ async function addResult(req, res, id, { verify, exchange, account }) {
   if (!shownChallenge(id, saved)) throw new ApiError(404, "not-found");
   if (saved.closed === true) throw new ApiError(409, "closed");
   const now = new Date().toISOString();
-  const post = (doc) => postResult(doc, { uid, name, score, now });
+  const post = (doc, own = null) =>
+    postResult(doc, { uid, name, score, now }, own);
   if (test) return { ...post(saved).outcome, test: true };
-  // The thread and its line on the game's list change together.
+  // The thread, its line on the game's list and the player's own best
+  // change together.
   let outcome;
   await updateMany(
     [
       ["challenges", id],
       ["challengeBoards", saved.game],
+      ["challengeResults", `${id}_${uid}`],
     ],
-    ([doc, board]) => {
+    ([doc, board, own]) => {
       // Closed or deleted meanwhile: nothing is posted.
       outcome = null;
       if (doc?.closed === true || doc?.deleted === true)
-        return [undefined, undefined];
-      const posted = post(doc ?? saved);
+        return [undefined, undefined, undefined];
+      const posted = post(doc ?? saved, own);
       outcome = posted.outcome;
-      if (!outcome.improved) return [undefined, undefined];
+      if (!outcome.improved) return [undefined, undefined, undefined];
       return [
         posted.next,
         posted.next.public ? boardWith(board, id, posted.next) : undefined,
+        { challenge: id, uid, score, at: now },
       ];
     },
   );
