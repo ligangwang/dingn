@@ -62,6 +62,8 @@ export type SceneState = {
 };
 type Options = {
   onTile: (x: number, y: number) => void;
+  /** A tap while building that lands too far from the grid to count. */
+  onMiss?: () => void;
   reducedMotion: boolean;
   onReady?: () => void;
   /** Called with 0 to 1 as the models and the land's pictures arrive. */
@@ -452,6 +454,9 @@ export class KingdomScene {
     from: THREE.Vector3;
     to: THREE.Vector3;
     target: THREE.Vector3;
+    /** Seconds the flight takes, and how far it swings up on the way. */
+    time: number;
+    lift: number;
   } | null = null;
   private slowFrames = 0;
   private sampled = 0;
@@ -477,6 +482,9 @@ export class KingdomScene {
   private pending: { state: SceneState; animate: boolean } | null = null;
   private previewId: string | null = null;
   private grid: THREE.LineSegments | null = null;
+  // The buildable land, glowing under the grid while the player builds.
+  private plot: THREE.Mesh | null = null;
+  private bounds = { lo: 0, hi: 0 };
   private spinners: THREE.Object3D[] = [];
   private flows = new Set<THREE.Texture>(); // falling water
   private walkers: {
@@ -773,6 +781,16 @@ export class KingdomScene {
     this.scene.add(g);
   }
 
+  /**
+   * Shows the building being placed on a tile, or hides it. A finger has no
+   * hover, so this is how a phone sees where its tap will build.
+   */
+  showGhost(tile: [number, number] | null) {
+    if (!this.ghost) return;
+    this.ghost.visible = !!tile;
+    if (tile) this.ghost.position.set(tile[0] * T, 0.02, tile[1] * T);
+  }
+
   /** Marks a tile (the building picked to move), or none. */
   mark(tile: [number, number] | null) {
     this.cursor.visible = !!tile;
@@ -781,7 +799,54 @@ export class KingdomScene {
   }
   /** The tile grid shows only while the player is building or moving. */
   private showGrid() {
-    if (this.grid) this.grid.visible = !!this.previewId || this.cursor.visible;
+    const on = this.building();
+    if (this.grid) this.grid.visible = on;
+    if (this.plot) this.plot.visible = on;
+  }
+  private building() {
+    return !!this.previewId || this.cursor.visible;
+  }
+
+  /**
+   * Brings the camera up and in over the land, so its tiles are big enough
+   * to tap: from the low, wide view a phone shows them as thin slivers.
+   */
+  focusPlot() {
+    if (!this.ready || this.flight) return;
+    const target = this.controls.target.clone();
+    const { lo, hi } = this.bounds;
+    // Seen from a corner, the land is as wide as its diagonal.
+    const half = (hi - lo + 1) * T * 0.72 + T * 0.5;
+    const across =
+      Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) *
+      Math.min(this.camera.aspect, 1.6);
+    const distance = THREE.MathUtils.clamp(
+      half / across,
+      this.controls.minDistance,
+      this.controls.maxDistance,
+    );
+    // Keep the side the player is looking from, from well above.
+    const dir = this.camera.position.clone().sub(target);
+    dir.y = 0;
+    if (dir.lengthSq() < 1e-6) dir.set(13, 0, 19.5);
+    dir.normalize().multiplyScalar(Math.cos(0.9));
+    dir.y = Math.sin(0.9);
+    const to = dir.multiplyScalar(distance).add(target);
+    if (to.distanceTo(this.camera.position) < 1) return;
+    if (this.options.reducedMotion) {
+      this.camera.position.copy(to);
+      this.camera.lookAt(target);
+      return;
+    }
+    this.controls.enabled = false;
+    this.flight = {
+      t: 0,
+      from: this.camera.position.clone(),
+      to,
+      target,
+      time: 1.1,
+      lift: 0,
+    };
   }
 
   dispose() {
@@ -799,6 +864,7 @@ export class KingdomScene {
     this.island.clear();
     this.tileMeshes = [];
     const { lo, hi } = landBounds(size);
+    this.bounds = { lo, hi };
     const c = ((lo + hi) / 2) * T;
     // Wide enough for the land's corners, the city wall and a meadow beyond.
     const radius = (size * 0.707 + 1.7) * T;
@@ -866,12 +932,26 @@ export class KingdomScene {
       new THREE.LineBasicMaterial({
         color: "#fff6d8",
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.9,
         depthWrite: false,
       }),
     );
+    // A soft glow over the whole buildable land, so it stands out from the
+    // grass round it.
+    const span = (hi - lo + 1) * T;
+    this.plot = new THREE.Mesh(
+      new THREE.PlaneGeometry(span, span).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({
+        color: "#ffe08a",
+        transparent: true,
+        opacity: 0.16,
+        depthWrite: false,
+      }),
+    );
+    this.plot.position.set(c, 0.12, c);
+    this.plot.renderOrder = 1;
     this.showGrid();
-    this.island.add(this.grid);
+    this.island.add(this.grid, this.plot);
 
     // The meadow round the land: trees stand in groves with open grass
     // between them, and low cover (bushes, flowers, rocks) is scattered
@@ -1303,7 +1383,7 @@ export class KingdomScene {
     this.camera.position.copy(from);
     this.camera.lookAt(target);
     this.controls.enabled = false;
-    this.flight = { t: 0, from, to, target };
+    this.flight = { t: 0, from, to, target, time: 4.2, lift: 6 };
   }
 
   // ---- input ----
@@ -1317,7 +1397,11 @@ export class KingdomScene {
     this.down = null;
     if (moved > 8) return;
     const tile = this.tileAt(e);
-    if (tile) this.options.onTile(tile[0], tile[1]);
+    if (!tile) {
+      if (this.building()) this.options.onMiss?.();
+      return;
+    }
+    this.options.onTile(tile[0], tile[1]);
   };
   private onMove = (e: PointerEvent) => {
     if (!this.ghost) return;
@@ -1338,6 +1422,9 @@ export class KingdomScene {
       true,
     );
     for (const hit of hits) {
+      // The worn earth under a building reaches past its tile; a tap on it
+      // is a tap on the tile below.
+      if (hit.object.userData.flat) continue;
       let o: THREE.Object3D | null = hit.object;
       while (o && !o.userData.tile && o.parent !== this.buildings) o = o.parent;
       if (o?.userData.tile) return o.userData.tile;
@@ -1345,7 +1432,18 @@ export class KingdomScene {
       if (o && /^-?\d+,-?\d+$/.test(o.name))
         return o.name.split(",").map(Number) as [number, number];
     }
-    return null;
+    // While building, a tap on the grass just outside the land counts for
+    // the nearest tile at its edge.
+    if (!this.building()) return null;
+    const ground = new THREE.Vector3();
+    const flat = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    if (!this.raycaster.ray.intersectPlane(flat, ground)) return null;
+    const { lo, hi } = this.bounds;
+    const gx = ground.x / T;
+    const gy = ground.z / T;
+    const x = THREE.MathUtils.clamp(Math.round(gx), lo, hi);
+    const y = THREE.MathUtils.clamp(Math.round(gy), lo, hi);
+    return Math.max(Math.abs(gx - x), Math.abs(gy - y)) <= 1.5 ? [x, y] : null;
   }
   private onResize = () => {
     const w = this.host.clientWidth;
@@ -1370,11 +1468,11 @@ export class KingdomScene {
 
     if (this.flight) {
       const f = this.flight;
-      f.t = Math.min(1, f.t + this.realDt / 4.2);
+      f.t = Math.min(1, f.t + this.realDt / f.time);
       const e = 1 - (1 - f.t) ** 3;
       // Swing in on a curve, dropping out of the clouds.
       const p = f.from.clone().lerp(f.to, e);
-      p.y += Math.sin(e * Math.PI) * 6;
+      p.y += Math.sin(e * Math.PI) * f.lift;
       this.camera.position.copy(p);
       this.camera.lookAt(f.target);
       if (f.t >= 1) {

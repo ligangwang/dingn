@@ -158,6 +158,7 @@ export function Kingdom() {
     if (pick?.kind === "build") {
       if (isHallTile(x, y)) return setNote(t(ERRORS.occupied));
       if (view.tiles[key]) return setNote(t(ERRORS.occupied));
+      scene.current?.showGhost([x, y]);
       setAsk({ def: pick.def, x, y });
       return;
     }
@@ -173,6 +174,7 @@ export function Kingdom() {
     if (view.tiles[key]) {
       setPick({ kind: "move", from: [x, y] });
       scene.current?.mark([x, y]);
+      scene.current?.focusPlot();
       const def = building(view.tiles[key]);
       setNote(
         t(
@@ -190,6 +192,7 @@ export function Kingdom() {
       if (!webglAvailable()) return setNoWebgl(true);
       scene.current = new KingdomScene(host.current, {
         onTile: (x, y) => onTile.current(x, y),
+        onMiss: () => setNote(t("Tap a square inside the grid.")),
         reducedMotion: reducedMotion(),
         onProgress: setLoading,
         onReady: () => setLoading(null),
@@ -236,6 +239,7 @@ export function Kingdom() {
     } finally {
       setBusy(false);
       setAsk(null);
+      scene.current?.showGhost(null);
     }
   }
   async function doMove(from: [number, number], to: [number, number]) {
@@ -259,7 +263,8 @@ export function Kingdom() {
     if (def.hall) return setAsk({ def });
     setPick({ kind: "build", def });
     setPanelOpen(false);
-    setNote(t(`Tap a tile to build ${name(def.title)}.`));
+    setNote(t(`Tap a square on the grid to build ${name(def.title)}.`));
+    scene.current?.focusPlot();
   }
 
   const stage = view?.stage ? STAGES.find((s) => s.id === view.stage)! : null;
@@ -512,7 +517,10 @@ export function Kingdom() {
             <div className="spend-confirm-buttons">
               <button
                 type="button"
-                onClick={() => setAsk(null)}
+                onClick={() => {
+                  setAsk(null);
+                  scene.current?.showGhost(null);
+                }}
                 disabled={busy}
               >
                 {t("Cancel")}
