@@ -16,7 +16,7 @@ import { avatarPresets, friendlyError } from "@/lib/models";
 import { Avatar } from "./avatar";
 import { BadgeShelf, useWallet } from "./rewards";
 import { Coin } from "./rewards-art";
-import { KingdomCard } from "./kingdom-card";
+import { KingdomCard } from "./kingdom";
 import { LevelCard } from "./xp";
 import { saveNickname, XpError } from "@/lib/xp";
 import {

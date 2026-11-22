@@ -13,7 +13,7 @@ import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
 import { HonorAvatar, HonorPath, honorName, honorOf } from "./honor";
 import { PencilIcon } from "./icons";
-import { KingdomVisit } from "./kingdom-visit";
+import { KingdomVisit } from "./kingdom";
 import { pick } from "@/lib/i18n";
 import { STAGES } from "kingdom/kingdom";
 import { fetchPlayer, XpError, type PublicPlayer } from "@/lib/xp";

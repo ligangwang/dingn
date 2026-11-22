@@ -1,6 +1,6 @@
 "use client";
 // Rewards admin: every reward system dingn's games feed, kingdom first
-// (src/data/reward-systems.ts), with what it grants and the commit dingn
+// (src/data/reward-systems.ts), with what it grants and the version dingn
 // runs. Kingdom's rules are shown as the package has them, so this page
 // can't disagree with what players get. Nothing here changes them: they
 // change in the reward system's own repository.
@@ -10,6 +10,7 @@ import { useLocale } from "./locale";
 import {
   REWARD_SYSTEMS,
   pinnedCommit,
+  pinnedRelease,
   type RewardSystem,
 } from "@/data/reward-systems";
 import {
@@ -39,7 +40,7 @@ function Rewards() {
       <h1>{t("Rewards")}</h1>
       <p className="lede">
         {t(
-          "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository, then update the commit dingn runs.",
+          "The reward systems dingn's games feed. Each lives in its own repository and decides what players earn; dingn reports what players do and saves what they get. To change a reward, change it in its repository and publish a new version, then update the version dingn runs.",
         )}
       </p>
       {REWARD_SYSTEMS.map((system) => (
@@ -51,7 +52,8 @@ function Rewards() {
 
 function System({ system }: { system: RewardSystem }) {
   const { t } = useLocale();
-  const commit = pinnedCommit(system);
+  const release = pinnedRelease(system);
+  const commit = release ? null : pinnedCommit(system);
   const repo = `https://github.com/${system.repo}`;
   return (
     <section
@@ -67,18 +69,32 @@ function System({ system }: { system: RewardSystem }) {
             {system.repo}
           </a>
         </dd>
-        <dt>{t("Running")}</dt>
+        <dt>{t("Version")}</dt>
         <dd>
-          {commit ? (
+          {release ? (
             <a
-              href={`${repo}/commit/${commit}`}
+              href={`${repo}/releases/tag/${release}`}
               target="_blank"
               rel="noreferrer"
             >
-              <code>{commit.slice(0, 7)}</code>
+              <code>{system.version}</code>
             </a>
           ) : (
-            t("Not pinned to a commit")
+            <>
+              <code>{system.version}</code>{" "}
+              {commit ? (
+                <a
+                  href={`${repo}/commit/${commit}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <code>{commit.slice(0, 7)}</code>
+                </a>
+              ) : null}{" "}
+              <span className="reward-unreleased">
+                {t("Not a published release")}
+              </span>
+            </>
           )}
         </dd>
         <dt>{t("Events from dingn")}</dt>

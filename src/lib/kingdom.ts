@@ -1,21 +1,8 @@
-// The kingdom API (scripts/kingdom.mjs). The rules are in the kingdom package.
+// The kingdom API (scripts/kingdom.mjs), which the kingdom's pages
+// (kingdom/ui, given to them in src/components/kingdom.tsx) call.
 import { api } from "./api";
-import type { StageId } from "kingdom/kingdom";
-
-export type KingdomView = {
-  level: number;
-  xp: number;
-  floor: number;
-  next: number;
-  /** The furthest stage the account level opens, or null below level 2. */
-  stage: StageId | null;
-  size: number;
-  hall: StageId;
-  tiles: Record<string, string>;
-  coins: number;
-  /** Stages whose free buildings this visit placed (from /me only). */
-  gifts?: StageId[];
-};
+import type { KingdomView } from "kingdom/ui";
+export type { KingdomView } from "kingdom/ui";
 
 export const fetchKingdom = () => api<KingdomView>("/api/kingdom/me");
 export const buildInKingdom = (building: string, x?: number, y?: number) =>

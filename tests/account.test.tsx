@@ -51,7 +51,7 @@ vi.mock("../src/components/rewards", () => ({
 vi.mock("../src/components/item-shop", () => ({
   ItemShop: () => <p>item shop</p>,
 }));
-vi.mock("../src/components/kingdom-card", () => ({
+vi.mock("../src/components/kingdom", () => ({
   KingdomCard: () => <p>kingdom card</p>,
 }));
 
