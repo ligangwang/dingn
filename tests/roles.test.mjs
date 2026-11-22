@@ -65,6 +65,24 @@ test("changing a role writes the whole list, keeps other claims and drops old fl
   assert.throws(() => withRole({}, "owner"));
 });
 
+test("a tester is never a player, whichever way roles change", () => {
+  // Making an account a tester takes player away.
+  assert.deepEqual(withRole({}, "tester"), { roles: ["tester"] });
+  assert.deepEqual(withRole({ roles: ["administrator", "player"] }, "tester"), {
+    roles: ["administrator", "tester"],
+  });
+  // Giving a tester player changes nothing; removing tester makes a player.
+  assert.deepEqual(withRole({ roles: ["tester"] }, "player"), {
+    roles: ["tester"],
+  });
+  assert.deepEqual(withRole({ roles: ["tester"] }, "tester", false), {
+    roles: [],
+  });
+  assert.deepEqual(withRoles({}, ["player", "tester"]), { roles: ["tester"] });
+  // A list holding both is read as a tester.
+  assert.deepEqual(rolesOf({ roles: ["player", "tester"] }), ["tester"]);
+});
+
 test("the migration writes every account's full list, player included", () => {
   assert.deepEqual(migratedClaims(undefined), { roles: ["player"] });
   assert.deepEqual(migratedClaims({}), { roles: ["player"] });

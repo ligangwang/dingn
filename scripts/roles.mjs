@@ -39,8 +39,8 @@ export function rolesOf(claims) {
   for (const [flag, role] of Object.entries(LEGACY_FLAGS))
     if (claims?.[flag] === true) held.add(role);
   // No list yet: a player, unless it is a test account.
-  if (!listed && !held.has("tester")) held.add("player");
-  return ROLES.filter((role) => held.has(role));
+  if (!listed) held.add("player");
+  return onlyRoles([...held]);
 }
 
 /** Whether the account holds `role`. */
@@ -58,12 +58,26 @@ export function withRole(claims, role, on = true) {
   return withRoles(claims, [...held]);
 }
 
-/** The account's claims holding exactly `roles`; other claims are kept. */
+/**
+ * The known roles of `roles`, in ROLES order. A tester is never a player:
+ * with both, tester wins.
+ */
+function onlyRoles(roles) {
+  const tester = roles.includes("tester");
+  return ROLES.filter(
+    (role) => roles.includes(role) && !(tester && role === "player"),
+  );
+}
+
+/**
+ * The account's claims holding exactly `roles` (a tester never a player);
+ * other claims are kept.
+ */
 export function withRoles(claims, roles) {
   const rest = { ...(claims ?? {}) };
   for (const flag of Object.keys(LEGACY_FLAGS)) delete rest[flag];
   delete rest.roles;
-  return { ...rest, roles: ROLES.filter((role) => roles.includes(role)) };
+  return { ...rest, roles: onlyRoles(roles) };
 }
 
 /**
