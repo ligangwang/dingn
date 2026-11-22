@@ -93,7 +93,6 @@ const ERRORS: Record<string, string> = {
   occupied: "Something already stands there. Pick an empty tile.",
   "off-land": "That tile isn’t part of your land yet.",
   max: "You’ve built as many of those as your kingdom can hold.",
-  "hall-first": "Upgrade your hall first.",
   level: "Reach a higher level to build that.",
   locked: "Reach level 2 to found your kingdom.",
 };
@@ -102,7 +101,7 @@ type Pick =
   | { kind: "build"; def: BuildingDef }
   | { kind: "move"; from: [number, number] }
   | null;
-type Ask = { def: BuildingDef; x?: number; y?: number } | null;
+type Ask = { def: BuildingDef; x: number; y: number } | null;
 
 const rank = (s: StageId) => STAGE_IDS.indexOf(s);
 const reducedMotion = () =>
@@ -143,7 +142,18 @@ export function Kingdom() {
     if (!ready || !uid) return;
     let live = true;
     fetchKingdom()
-      .then((v) => live && setView(v))
+      .then((v) => {
+        if (!live) return;
+        setView(v);
+        // A new stage came with free buildings: say so.
+        const stage = STAGES.find((s) => s.id === v.stage);
+        if (v.gifts?.length && stage)
+          setNote(
+            t(
+              `Your ${name(stage.title)} came with free buildings. Use coins to add more.`,
+            ),
+          );
+      })
       .catch(() => live && setLoadError(true));
     return () => {
       live = false;
@@ -232,7 +242,7 @@ export function Kingdom() {
       const next = await buildInKingdom(ask.def.id, ask.x, ask.y);
       done(next);
       setNote(t(`${name(ask.def.title)} built.`));
-      if (ask.def.hall || ask.def.max === 1) setPick(null);
+      if (ask.def.max === 1) setPick(null);
     } catch (e) {
       const code = (e as { code?: string }).code ?? "";
       setNote(t(ERRORS[code] ?? "Something went wrong. Try again."));
@@ -260,7 +270,6 @@ export function Kingdom() {
   function choose(def: BuildingDef) {
     setNote("");
     scene.current?.mark(null);
-    if (def.hall) return setAsk({ def });
     setPick({ kind: "build", def });
     setPanelOpen(false);
     setNote(t(`Tap a square on the grid to build ${name(def.title)}.`));
@@ -289,14 +298,6 @@ export function Kingdom() {
     const needs = STAGES.find((s) => s.id === def.stage)!;
     if (rank(def.stage) > rank(view.stage))
       return t(`Needs level ${needs.level}`);
-    if (def.hall) {
-      if (rank(def.stage) <= rank(view.hall)) return t("Built");
-      if (rank(def.stage) !== rank(view.hall) + 1)
-        return t("Earlier hall first");
-      return "";
-    }
-    if (rank(def.stage) > rank(view.hall))
-      return t(`${name(HALL_TITLES[def.stage])} first`);
     if ((counts[def.id] ?? 0) >= def.max) return t("All built");
     return "";
   }
@@ -393,7 +394,7 @@ export function Kingdom() {
                 </div>
                 <p className="kingdom-small">
                   {t(
-                    `Level ${nextStage.level}: your land grows into a ${name(nextStage.title).toLowerCase()}, ${xpToNext.toLocaleString(locale)} XP to go.`,
+                    `Level ${nextStage.level}: your land grows into a ${name(nextStage.title).toLowerCase()}, with a new hall and free buildings. ${xpToNext.toLocaleString(locale)} XP to go.`,
                   )}
                 </p>
               </>
@@ -434,7 +435,6 @@ export function Kingdom() {
             <ul>
               {BUILDINGS.map((def) => {
                 const locked = lock(def);
-                if (def.hall && locked === t("Built")) return null;
                 const poor = !locked && view.coins < def.coins;
                 const picked = pick?.kind === "build" && pick.def.id === def.id;
                 return (
@@ -446,15 +446,13 @@ export function Kingdom() {
                       onClick={() => choose(def)}
                     >
                       <span className="kingdom-item-name">
-                        {def.hall
-                          ? t(`Upgrade hall: ${name(def.title)}`)
-                          : name(def.title)}
+                        {name(def.title)}
                       </span>
                       <span className="kingdom-item-meta">
                         {locked || (
                           <>
                             <Coin size={14} /> {def.coins}
-                            {!def.hall && def.max > 1 && (
+                            {def.max > 1 && (
                               <span className="kingdom-count">
                                 {" "}
                                 · {counts[def.id] ?? 0}/{def.max}
@@ -502,13 +500,7 @@ export function Kingdom() {
             aria-labelledby="kingdom-ask"
           >
             <Coin size={56} />
-            <h2 id="kingdom-ask">
-              {ask.def.hall
-                ? t(
-                    `Upgrade your hall to a ${name(ask.def.title).toLowerCase()}?`,
-                  )
-                : t(`Build ${name(ask.def.title)}?`)}
-            </h2>
+            <h2 id="kingdom-ask">{t(`Build ${name(ask.def.title)}?`)}</h2>
             <p>
               {t(
                 `It costs ${ask.def.coins} dingn coins. You will have ${(view.coins - ask.def.coins).toLocaleString(locale)} coins left.`,

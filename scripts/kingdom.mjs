@@ -1,6 +1,8 @@
 // The kingdom API. The rules (stages, buildings, prices, the land) are in
 // src/data/kingdom.mjs, which the kingdom page reads too; this file loads the
-// player's level and coins, applies a rule, and saves the result.
+// player's level and coins, applies a rule, and saves the result. What the
+// level opens (the hall and each stage's free buildings) is saved the first
+// time the player looks at their kingdom after reaching it.
 //
 //   POST /api/kingdom/me                          the player's kingdom
 //   POST /api/kingdom/build { building, x?, y? }  build, paying its coins
@@ -23,8 +25,10 @@ import {
   KingdomError,
   build,
   building,
+  hallRefund,
   kingdomOf,
   move,
+  settle,
   stageFor,
 } from "../src/data/kingdom.mjs";
 
@@ -34,11 +38,38 @@ export const kingdomRoutes = [
   "/api/kingdom/move",
 ];
 
+/**
+ * A rewards document with what the level has opened: the kingdom settled
+ * (see `settle`) and, once, the coins paid for halls before they were free.
+ * `gifts` lists the stages whose free buildings this adds; the same
+ * document comes back when nothing changes.
+ */
+export function settleDoc(doc, level) {
+  if (!stageFor(level)) return { doc, gifts: [] };
+  const before = kingdomOf(doc);
+  const kingdom = settle(before, level);
+  if (kingdom === before) return { doc, gifts: [] };
+  const refund = hallRefund(doc);
+  return {
+    doc: {
+      ...(doc ?? {}),
+      ...(refund
+        ? {
+            coins: (doc?.coins ?? 0) + refund,
+            spent: Math.max(0, (doc?.spent ?? 0) - refund),
+          }
+        : {}),
+      kingdom,
+    },
+    gifts: kingdom.granted.filter((id) => !before.granted.includes(id)),
+  };
+}
+
 /** What the page needs: the level, the open stage, the map and the coins. */
 export function kingdomView(doc, player) {
   const progress = levelProgress(player?.xp ?? 0);
   const stage = stageFor(progress.level);
-  const kingdom = kingdomOf(doc);
+  const kingdom = settle(kingdomOf(doc), progress.level);
   return {
     ...progress,
     stage: stage?.id ?? null,
@@ -50,7 +81,8 @@ export function kingdomView(doc, player) {
 }
 
 /** Builds in a rewards document. Returns the new document and the cost. */
-export function buildIn(doc, request, level) {
+export function buildIn(unsettled, request, level) {
+  const doc = settleDoc(unsettled, level).doc;
   const coins = doc?.coins ?? 0;
   const done = build(kingdomOf(doc), request, level, coins);
   return {
@@ -102,8 +134,17 @@ export async function handleKingdom(
     const player = await getDoc("players", uid);
     const { level } = levelProgress(player?.xp ?? 0);
 
-    if (pathname === "/api/kingdom/me")
-      return send(200, kingdomView(await getDoc("rewards", uid), player));
+    if (pathname === "/api/kingdom/me") {
+      let doc = await getDoc("rewards", uid);
+      let gifts = [];
+      if (settleDoc(doc, level).gifts.length)
+        doc = await updateDoc("rewards", uid, (current) => {
+          const next = settleDoc(current, level);
+          gifts = next.gifts;
+          return next.doc;
+        });
+      return send(200, { ...kingdomView(doc, player), gifts });
+    }
 
     if (pathname === "/api/kingdom/build") {
       const id = body.building;
@@ -121,10 +162,13 @@ export async function handleKingdom(
     }
 
     if (pathname === "/api/kingdom/move") {
-      const doc = await updateDoc("rewards", uid, (current) => ({
-        ...(current ?? {}),
-        kingdom: move(kingdomOf(current), body, level),
-      }));
+      const doc = await updateDoc("rewards", uid, (current) => {
+        const settled = settleDoc(current, level).doc;
+        return {
+          ...(settled ?? {}),
+          kingdom: move(kingdomOf(settled), body, level),
+        };
+      });
       return send(200, kingdomView(doc, player));
     }
     throw new ApiError(404, "not-found");

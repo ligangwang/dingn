@@ -13,7 +13,11 @@ import {
   settle,
 } from "./game-core.mjs";
 import { readSettings } from "./site-settings.mjs";
-import { kingdomOf, stageFor } from "../src/data/kingdom.mjs";
+import {
+  kingdomOf,
+  settle as settleKingdom,
+  stageFor,
+} from "../src/data/kingdom.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 let adminPromise;
@@ -438,7 +442,7 @@ export async function publicPlayer(db, number) {
   // their level opens, the hall and what stands on each tile. Never their
   // coins.
   const stage = stageFor(progress.level);
-  const kingdom = kingdomOf(rewards);
+  const kingdom = settleKingdom(kingdomOf(rewards), progress.level);
   return {
     number,
     // Their nickname; one who has none yet gets their default now.

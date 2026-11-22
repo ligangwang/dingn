@@ -7,16 +7,23 @@ export type BuildingDef = {
   stage: StageId;
   coins: number;
   max: number;
-  hall?: boolean;
   title: Title;
 };
-export type Kingdom = { hall: StageId; tiles: Record<string, string> };
+export type Kingdom = {
+  hall: StageId;
+  tiles: Record<string, string>;
+  granted: StageId[];
+};
 export const STAGES: Stage[];
 export const STAGE_IDS: StageId[];
 export const MIN_LEVEL: number;
 export const BADGE_XP: Record<"bronze" | "silver" | "gold" | "diamond", number>;
 export const BUILDINGS: BuildingDef[];
 export const HALL_TITLES: Record<StageId, Title>;
+export const OLD_HALL_COINS: Record<Exclude<StageId, "camp">, number>;
+export const STARTERS: Record<StageId, [string, number, number][]>;
+export function settle(kingdom: Kingdom, level: number): Kingdom;
+export function hallRefund(doc: unknown): number;
 export function building(id: string): BuildingDef | null;
 export function stageFor(level: number): Stage | null;
 export function landBounds(size: number): { lo: number; hi: number };

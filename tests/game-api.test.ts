@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { gameRoutes, handleGameApi } from "../scripts/game-api.mjs";
+import { kingdomOf, settle } from "../src/data/kingdom.mjs";
 
 const origin = "http://127.0.0.1:3001";
 function call(
@@ -284,12 +285,18 @@ test("a player's public page shows what anyone may see, and nothing private", as
         title: { en: "One" },
       },
     ],
-    // Their kingdom as built, on the land level 12 opens (a city).
+    // Their kingdom as built, on the land level 12 opens (a city), with
+    // the city's hall and the free buildings of every stage up to it.
     kingdom: {
       stage: "city",
       size: 8,
-      hall: "village",
-      tiles: { "2,0": "well", "-2,0": "tree" },
+      hall: "city",
+      tiles: settle(
+        kingdomOf({
+          kingdom: { tiles: { "2,0": "well", "-2,0": "tree" } },
+        }),
+        12,
+      ).tiles,
     },
   });
   // Below level 2 there is no kingdom yet.
