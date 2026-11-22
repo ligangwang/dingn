@@ -458,7 +458,6 @@
     "Upload keys could not be loaded.": "アップロードキーを読み込めませんでした。",
     "You can have up to 5 keys. Revoke one first.": "キーは最大5個までです。先にどれかを無効にしてください。",
     "That did not work. Try again.": "うまくいきませんでした。もう一度お試しください。",
-    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Send the zip to https://dingn.com/api/developer/games/upload with the header Authorization: Bearer followed by the key. Keep keys secret, for example as a GitHub secret.": "キーを使うと、スクリプトや GitHub Action からゲームをアップロードできます。審査と上限はこのページと同じです。zip を https://dingn.com/api/developer/games/upload に送信し、ヘッダーに Authorization: Bearer とキーを付けてください。キーは GitHub secret などに保存し、秘密にしてください。",
     "Copy your new key now. dingn shows it only once.": "新しいキーを今すぐコピーしてください。dingn では一度しか表示されません。",
     "Key name": "キーの名前",
     "Key name, such as GitHub Actions": "キーの名前（例：GitHub Actions）",
@@ -469,7 +468,6 @@
     "Revoke": "無効にする",
     "Revoke {0}? Anything using it will stop uploading.": "{0} を無効にしますか？このキーを使っているものはアップロードできなくなります。",
     "Uploading from GitHub or a script": "GitHub やスクリプトからアップロードする",
-    "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "「マイゲーム」でアップロードキーを作成し、それを使って zip を送信します。アップロードはほかと同じように審査されます。GitHub Action では、キーを DINGN_UPLOAD_KEY という名前の secret に保存してください：",
     "Admin": "管理",
     "Users": "ユーザー",
     "Admins": "管理者",
@@ -908,6 +906,10 @@
     "Uploaded": "アップロード日",
     "Running": "稼働中",
     "Approved": "承認済み",
+    "API keys": "API キー",
+    "No keys yet.": "まだキーはありません。",
+    "A review key reviews for you: it can list games and reward system releases and approve or send back a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards and https://dingn.com/api/admin/rewards/update.": "審査キーはあなたの代わりに審査します。ゲームと報酬システムのリリースを一覧し、バージョンを承認または差し戻すことだけができます。https://dingn.com/api/admin/games、https://dingn.com/api/admin/games/update、https://dingn.com/api/admin/rewards、https://dingn.com/api/admin/rewards/update に POST リクエストを送ってください。",
+    "An upload key uploads for you: games to https://dingn.com/api/developer/games/upload, and reward system releases to https://dingn.com/api/rewards/upload, where they wait for review. kingdom's release workflow uses one as its DINGN_UPLOAD_KEY secret. An upload key can never review.": "アップロードキーはあなたの代わりにアップロードします。ゲームは https://dingn.com/api/developer/games/upload へ、報酬システムのリリースは https://dingn.com/api/rewards/upload へ送られ、審査を待ちます。kingdom のリリースワークフローはこれを DINGN_UPLOAD_KEY シークレットとして使います。アップロードキーは審査できません。",
     "Deploy again": "再デプロイ",
     "Install and deploy {0} {1} again?": "{0} {1} をもう一度インストールしてデプロイしますか？",
     "Approve {0} {1}? dingn installs it and deploys the site.": "{0} {1} を承認しますか？dingn がインストールしてサイトをデプロイします。",
@@ -937,6 +939,11 @@
     "Building": "建物",
     "Most per kingdom": "王国ごとの上限",
     "Memory practice": "記憶の練習",
-    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "メジャー法を学ぼう：数字を覚えやすい言葉や絵に変えます。スコアはつきません。"
+    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "メジャー法を学ぼう：数字を覚えやすい言葉や絵に変えます。スコアはつきません。",
+    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account loses the role it needs.": "キーを使うと、スクリプトやアシスタント、CI がサインインせずにあなたとして dingn を呼び出せます。ヘッダー Authorization: Bearer の後にキーを付けて送り、GitHub のシークレットなどで秘密に保管してください。キーは取り消されるか、そのアカウントが必要な役割を失うと使えなくなります。",
+    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Make and revoke them on API keys.": "キーを使うと、スクリプトや GitHub Action があなたのゲームをアップロードできます。審査と上限はこのページと同じです。キーの作成と取り消しは「API キー」で行います。",
+    "Sign in to manage your API keys.": "API キーを管理するにはサインインしてください。",
+    "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "API キーは開発者と管理者向けです。「マイゲーム」で開発者として登録すると、アップロードキーを作成できます。",
+    "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "「API キー」でアップロードキーを作成し、それを使って zip を送信します。アップロードはほかと同じように審査されます。GitHub Action では、キーを DINGN_UPLOAD_KEY という名前の secret に保存してください："
   }
 }

@@ -5,7 +5,7 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import { CastleIcon, ShieldIcon, TrophyIcon } from "./icons";
+import { CastleIcon, KeyIcon, ShieldIcon, TrophyIcon } from "./icons";
 import { CATEGORY_INFO, playPath, useCatalog } from "./catalog";
 import {
   CATEGORIES,
@@ -19,7 +19,7 @@ export function Header() {
   const { t, locale, href: to } = useLocale();
 
   const path = usePathname();
-  const { user, ready, profile, isAdmin, stats } = useSession();
+  const { user, ready, profile, isAdmin, isDeveloper, stats } = useSession();
   const catalog = useCatalog();
   const here = (href: string) =>
     path.replace(/\/$/, "") === to(href).replace(/\/$/, "");
@@ -58,6 +58,17 @@ export function Header() {
           </Link>
         )}
         {ready && isAdmin && <AdminMenu key={path} path={path} />}
+        {ready && isDeveloper && !isAdmin && (
+          // Developers reach their upload keys here; admins in the Admin menu.
+          <Link
+            href={to("/developers/keys/")}
+            aria-label={t("API keys")}
+            aria-current={here("/developers/keys/") ? "page" : undefined}
+          >
+            <KeyIcon className="nav-icon" size={18} />
+            <span className="nav-label">{t("API keys")}</span>
+          </Link>
+        )}
         <div className="account-controls">
           <LanguageSwitcher />
           {/* The wallet sits by the account it belongs to. */}
@@ -164,6 +175,7 @@ function AdminMenu({ path }: { path: string }) {
     ["/admin/players/", "Players"],
     ["/admin/funnel/", "Funnel"],
     ["/admin/rewards/", "Rewards"],
+    ["/developers/keys/", "API keys"],
     ["/admin/feedback/", "Feedback"],
   ] as const;
   const inside = items.some(([href]) => here(href));

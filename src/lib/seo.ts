@@ -141,6 +141,10 @@ export const pages = {
     index: false,
     en: { title: "My games" },
   },
+  "/developers/keys/": {
+    index: false,
+    en: { title: "API keys" },
+  },
   "/developers/playground/": {
     index: false,
     en: { title: "Game playground" },

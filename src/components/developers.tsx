@@ -223,7 +223,7 @@ export function Developers() {
       <h3>{t("Uploading from GitHub or a script")}</h3>
       <p>
         {t(
-          "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:",
+          "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:",
         )}
       </p>
       <pre>

@@ -458,7 +458,6 @@
     "Upload keys could not be loaded.": "Não foi possível carregar as chaves de envio.",
     "You can have up to 5 keys. Revoke one first.": "Você pode ter até 5 chaves. Revogue uma primeiro.",
     "That did not work. Try again.": "Não deu certo. Tente de novo.",
-    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Send the zip to https://dingn.com/api/developer/games/upload with the header Authorization: Bearer followed by the key. Keep keys secret, for example as a GitHub secret.": "Uma chave permite que um script ou uma GitHub Action envie seus jogos, com a mesma revisão e os mesmos limites desta página. Envie o zip para https://dingn.com/api/developer/games/upload com o cabeçalho Authorization: Bearer seguido da chave. Mantenha as chaves em segredo, por exemplo como um secret do GitHub.",
     "Copy your new key now. dingn shows it only once.": "Copie sua nova chave agora. O dingn só a mostra uma vez.",
     "Key name": "Nome da chave",
     "Key name, such as GitHub Actions": "Nome da chave, como GitHub Actions",
@@ -469,7 +468,6 @@
     "Revoke": "Revogar",
     "Revoke {0}? Anything using it will stop uploading.": "Revogar {0}? Tudo o que a usa vai parar de enviar.",
     "Uploading from GitHub or a script": "Enviar pelo GitHub ou por um script",
-    "Create an upload key on My games, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "Crie uma chave de envio em Meus jogos e depois envie o zip com ela. O envio é revisado como qualquer outro. Em uma GitHub Action, guarde a chave como um secret chamado DINGN_UPLOAD_KEY:",
     "Admin": "Admin",
     "Users": "Usuários",
     "Admins": "Administradores",
@@ -908,6 +906,10 @@
     "Uploaded": "Enviada",
     "Running": "Em uso",
     "Approved": "Aprovada",
+    "API keys": "Chaves de API",
+    "No keys yet.": "Ainda não há chaves.",
+    "A review key reviews for you: it can list games and reward system releases and approve or send back a version, and nothing else. Send POST requests to https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards and https://dingn.com/api/admin/rewards/update.": "Uma chave de revisão revisa por você: pode listar jogos e versões de sistemas de recompensas e aprovar ou devolver uma versão, e nada mais. Envie requisições POST para https://dingn.com/api/admin/games, https://dingn.com/api/admin/games/update, https://dingn.com/api/admin/rewards e https://dingn.com/api/admin/rewards/update.",
+    "An upload key uploads for you: games to https://dingn.com/api/developer/games/upload, and reward system releases to https://dingn.com/api/rewards/upload, where they wait for review. kingdom's release workflow uses one as its DINGN_UPLOAD_KEY secret. An upload key can never review.": "Uma chave de envio envia por você: jogos para https://dingn.com/api/developer/games/upload e versões de sistemas de recompensas para https://dingn.com/api/rewards/upload, onde aguardam revisão. O fluxo de publicação do kingdom usa uma como seu secret DINGN_UPLOAD_KEY. Uma chave de envio nunca pode revisar.",
     "Deploy again": "Publicar de novo",
     "Install and deploy {0} {1} again?": "Instalar e publicar {0} {1} de novo?",
     "Approve {0} {1}? dingn installs it and deploys the site.": "Aprovar {0} {1}? O dingn instala e publica o site.",
@@ -937,6 +939,11 @@
     "Building": "Construção",
     "Most per kingdom": "Máximo por reino",
     "Memory practice": "Treino de memória",
-    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "Aprenda o Sistema Maior: transforme números em palavras e imagens fáceis de lembrar. Sem pontuação."
+    "Learn the Major System: turn numbers into words and pictures you can remember. No score.": "Aprenda o Sistema Maior: transforme números em palavras e imagens fáceis de lembrar. Sem pontuação.",
+    "Keys let a script, an assistant or CI call dingn as you, without signing in. Send one in the header Authorization: Bearer followed by the key, and keep it secret, for example as a GitHub secret. A key stops working when it is revoked or its account loses the role it needs.": "As chaves permitem que um script, um assistente ou CI chamem o dingn em seu nome, sem entrar. Envie uma no cabeçalho Authorization: Bearer seguido da chave e mantenha-a em segredo, por exemplo como um segredo do GitHub. Uma chave deixa de funcionar quando é revogada ou quando a conta perde o papel de que precisa.",
+    "A key lets a script or GitHub Action upload your games, with the same review and limits as this page. Make and revoke them on API keys.": "Uma chave permite que um script ou uma GitHub Action envie seus jogos, com a mesma revisão e os mesmos limites desta página. Crie e revogue chaves em Chaves de API.",
+    "Sign in to manage your API keys.": "Entre para gerenciar suas chaves de API.",
+    "API keys are for developers and admins. Sign up as a developer on My games to make upload keys.": "As chaves de API são para desenvolvedores e administradores. Cadastre-se como desenvolvedor em Meus jogos para criar chaves de envio.",
+    "Create an upload key on API keys, then send the zip with it. The upload is reviewed like any other. In a GitHub Action, keep the key as a secret named DINGN_UPLOAD_KEY:": "Crie uma chave de envio em Chaves de API e depois envie o zip com ela. O envio é revisado como qualquer outro. Em uma GitHub Action, guarde a chave como um secret chamado DINGN_UPLOAD_KEY:"
   }
 }

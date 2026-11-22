@@ -126,6 +126,7 @@ async function identity(token, known) {
         ? user.photoUrl
         : null,
     isAdmin: claims.admin === true,
+    isDeveloper: claims.developer === true,
   };
 }
 export async function readBody(req) {
