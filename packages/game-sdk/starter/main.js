@@ -1,6 +1,6 @@
 // A starter game for dingn. It uses every part of the dingn game SDK:
-// language, player, device storage, account progress, badges, sign-in,
-// challenges and ready().
+// language, player, device storage, account progress, badges, sign-in and
+// ready().
 // Change anything you like; keep the connect() call and dingn.ready().
 import { connect } from "https://dingn.com/sdk/v1/dingn-sdk.js";
 
@@ -12,11 +12,6 @@ const copy = {
     start: "Start",
     again: "Play again",
     signIn: "Sign in to keep your best score",
-    challenge: "Challenge anyone",
-    share: "Challenge link",
-    unpublished:
-      "This build can replay challenges in the playground. Publish it to share a link.",
-    shareError: "Could not create a challenge link. Try again.",
   },
   "zh-CN": {
     hello: (name) => (name ? `你好，${name}！` : "你好！"),
@@ -25,10 +20,6 @@ const copy = {
     start: "开始",
     again: "再玩一次",
     signIn: "登录以保存最高分",
-    challenge: "发起挑战",
-    share: "挑战链接",
-    unpublished: "这个版本可以在试玩场重玩挑战。发布后即可分享链接。",
-    shareError: "无法创建挑战链接，请重试。",
   },
 };
 
@@ -57,23 +48,15 @@ function render() {
 }
 
 $("start").textContent = text.start;
-$("challenge").textContent = text.challenge;
-$("share-label").textContent = text.share;
 $("start").onclick = () => {
   score = 0;
   $("tap").disabled = false;
   $("start").hidden = true;
-  $("challenge").hidden = true;
-  $("share").hidden = true;
-  $("share-error").hidden = true;
   render();
   setTimeout(async () => {
     $("tap").disabled = true;
-    dingn.roundEnded();
-    // Every round uses the same rules. Only report a score when the game
-    // was opened for a challenge in this mode.
-    if (dingn.challenge?.mode === "tap")
-      void dingn.challengeResult?.(score).catch(() => {});
+    $("start").hidden = false;
+    $("start").textContent = text.again;
     if (score > best) {
       best = score;
       await dingn.storage.set("best", best).catch(() => {});
@@ -85,9 +68,6 @@ $("start").onclick = () => {
     if (score >= 30 && dingn.player.signedIn)
       await dingn.rewards.unlock("taps-30").catch(() => {});
     render();
-    $("start").hidden = false;
-    $("start").textContent = text.again;
-    $("challenge").hidden = !dingn.embedded;
   }, 5000);
 };
 $("tap").onclick = () => {
@@ -95,27 +75,6 @@ $("tap").onclick = () => {
   render();
 };
 $("signin").onclick = () => dingn.requestSignIn();
-$("challenge").onclick = async () => {
-  $("challenge").disabled = true;
-  $("start").disabled = true;
-  $("share-error").hidden = true;
-  try {
-    $("share-url").value = await dingn.challengeLink({
-      mode: "tap",
-      score,
-      unit: "points",
-    });
-    $("share").hidden = false;
-    $("share-url").select();
-  } catch (error) {
-    $("share-error").textContent =
-      error?.code === "unpublished_game" ? text.unpublished : text.shareError;
-    $("share-error").hidden = false;
-  } finally {
-    $("challenge").disabled = false;
-    $("start").disabled = false;
-  }
-};
 dingn.onPlayer(async () => {
   await loadBest();
   render();

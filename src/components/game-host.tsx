@@ -53,13 +53,14 @@ import {
 import {
   challengeIdFromQuery,
   challengeText,
+  challengeUrl,
   validChallenge,
   type Challenge,
 } from "@/data/challenge.mjs";
-import { madeHere } from "@/lib/my-challenges";
+import { api } from "@/lib/api";
+import { madeHere, rememberChallenge } from "@/lib/my-challenges";
 import {
   closeChallenge,
-  createChallengeLink,
   deleteChallenge,
   fetchThread,
   keepPendingResult,
@@ -472,9 +473,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     ready: () => setLoaded(true),
     challenge,
     challengeLink: async (c) => {
-      const link = await createChallengeLink(game.id, c, locale);
+      const { id } = await api<{ id: string }>("/api/challenges", {
+        game: game.id,
+        ...c,
+      });
+      rememberChallenge(id);
       if (counted) trackGame("share", game.id);
-      return link;
+      return challengeUrl(location.origin, game.id, id, locale);
     },
     challengeResult: async (score) => {
       const cid = challengeId.current;

@@ -4,14 +4,12 @@
 // instead of the real account. Every SDK call is answered by the same
 // bridge as real games (src/lib/game-bridge) and shown in a log.
 import { LOCALES } from "@/lib/i18n";
-import type { Challenge } from "@/data/challenge.mjs";
-import { createChallengeLink } from "@/lib/challenges";
+import { challengeUrl } from "@/data/challenge.mjs";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "./locale";
-import { SANDBOX, type PublishedGame } from "./game-host";
+import { SANDBOX } from "./game-host";
 import {
-  BridgeError,
   handleGameRequest,
   isGameRequest,
   PROTOCOL,
@@ -61,29 +59,6 @@ function readSaved() {
   }
 }
 
-/** A share link opens the live game, so only that build can create it here. */
-async function liveGameId(address: string): Promise<string> {
-  const game = new URL(address);
-  const id = /^\/g\/([a-z][a-z0-9]{1,30})\//.exec(game.pathname)?.[1];
-  const unpublished = () =>
-    new BridgeError(
-      "unpublished_game",
-      "Challenge links require the live dingn build of this game.",
-    );
-  if (!id || game.origin !== location.origin) throw unpublished();
-  const response = await fetch(`/api/games/${id}`);
-  if (response.status === 404) throw unpublished();
-  if (!response.ok) throw new Error("dingn could not look up the game.");
-  const published: PublishedGame = await response.json();
-  if (
-    published.id !== id ||
-    published.preview ||
-    published.url !== game.pathname
-  )
-    throw unpublished();
-  return id;
-}
-
 export function DevPlayground() {
   const { t, locale: siteLocale, href } = useLocale();
   const [address, setAddress] = useState(DEFAULT_ADDRESS);
@@ -97,8 +72,6 @@ export function DevPlayground() {
   const [name, setName] = useState("Test player");
   const [ready, setReady] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
-  const [lastChallenge, setLastChallenge] = useState<Challenge | null>(null);
-  const [challenge, setChallenge] = useState<Challenge | null>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const counter = useRef(0);
   // The test player's saved data. It lasts until this page closes.
@@ -133,10 +106,6 @@ export function DevPlayground() {
     try {
       localStorage.setItem(ADDRESS_KEY, address.trim());
     } catch {}
-    if (next !== url) {
-      setLastChallenge(null);
-      setChallenge(null);
-    }
     setUrl(next);
     reload();
   }
@@ -149,8 +118,6 @@ export function DevPlayground() {
     storage.current.clear();
     badges.current.clear();
     progress.current = null;
-    setLastChallenge(null);
-    setChallenge(null);
     reload();
   }
 
@@ -177,25 +144,10 @@ export function DevPlayground() {
     signIn: () => setSignedIn(true),
     navigate: () => {},
     ready: () => setReady(true),
-    challenge,
-    challengeLink: async (round) => {
-      setLastChallenge(round);
-      return createChallengeLink(await liveGameId(url), round, locale);
-    },
-    // Compare against the replayed round without writing to dingn.
-    challengeResult: challenge
-      ? async (score) => {
-          const beat = score > challenge.score;
-          return {
-            beat,
-            posted: false,
-            best: score,
-            rank: signedIn ? (beat ? 1 : 2) : null,
-            players: signedIn ? 2 : 1,
-            test: true,
-          };
-        }
-      : undefined,
+    // A link shaped like dingn's (whose id names a saved challenge); the
+    // playground saves nothing, so the id is made up.
+    challengeLink: async () =>
+      challengeUrl(location.origin, "playground", "playground-1", locale),
     // The playground has no game.json, so any badge id unlocks once and any
     // item can be bought, as tests that pay, charge and save nothing.
     rewards: {
@@ -273,7 +225,7 @@ export function DevPlayground() {
       <h1>{t("Game playground")}</h1>
       <p>
         {t(
-          "Test your game with a simulated player. Only a live dingn build can create a real challenge link.",
+          "Run your game inside dingn while you build it. The playground answers every SDK call like a real game page, with a test player instead of your account. Nothing is saved to dingn.",
         )}{" "}
         <Link href={href("/developers/")}>{t("Read the developer guide")}</Link>
       </p>
@@ -351,27 +303,6 @@ export function DevPlayground() {
         <button type="button" disabled={!url} onClick={reload}>
           {t("Reload game")}
         </button>
-        <button
-          type="button"
-          disabled={!lastChallenge}
-          onClick={() => {
-            setChallenge(lastChallenge);
-            reload();
-          }}
-        >
-          {t("Replay last challenge")}
-        </button>
-        {challenge && (
-          <button
-            type="button"
-            onClick={() => {
-              setChallenge(null);
-              reload();
-            }}
-          >
-            {t("Exit challenge")}
-          </button>
-        )}
         <button type="button" disabled={!url} onClick={clearData}>
           {t("Clear saved data")}
         </button>

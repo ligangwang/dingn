@@ -166,11 +166,10 @@ export type DingnGame = {
    */
   challenge: Challenge | null;
   /**
-   * Saves the challenge on dingn and returns a shareable link to the game
-   * with a preview that shows the score. Rejects with code "invalid" for a
-   * malformed challenge, "unpublished_game" for a local or preview build in
-   * the developer playground, and "unknown_method" on a dingn website from
-   * before challenge links.
+   * A link to this game that opens `challenge` for whoever follows it, with a
+   * link preview that shows the score. Share it yourself (copy it, or
+   * navigator.share). Rejects with code "invalid" for a malformed challenge,
+   * and "unknown_method" on a dingn website from before challenge links.
    */
   challengeLink(challenge: Challenge): Promise<string>;
   /**
