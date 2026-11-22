@@ -2,7 +2,13 @@ import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { AdminRewards } from "../src/components/admin-rewards";
-import { REWARD_SYSTEMS, pinnedCommit } from "../src/data/reward-systems";
+import pkg from "../package.json";
+import kingdomPkg from "kingdom/package.json";
+import {
+  REWARD_SYSTEMS,
+  pinnedCommit,
+  pinnedRelease,
+} from "../src/data/reward-systems";
 
 const mocks = vi.hoisted(() => ({
   session: { user: { uid: "me" }, ready: true, isAdmin: true },
@@ -22,10 +28,12 @@ it("shows nothing to someone who isn't an admin", () => {
   expect(screen.queryByRole("heading", { name: "Kingdom" })).toBeNull();
 });
 
-it("lists the reward systems, kingdom first, with the commit dingn runs", () => {
+it("lists the reward systems, kingdom first, with the version dingn runs", () => {
   expect(REWARD_SYSTEMS[0].id).toBe("kingdom");
-  const commit = pinnedCommit(REWARD_SYSTEMS[0]);
-  expect(commit).toMatch(/^[0-9a-f]{40}$/);
+  // dingn installs kingdom from a published release.
+  const release = pinnedRelease(REWARD_SYSTEMS[0]);
+  expect(release).toBe(`v${kingdomPkg.version}`);
+  expect(REWARD_SYSTEMS[0].version).toBe(kingdomPkg.version);
 
   render(<AdminRewards />);
   const kingdom = screen.getByRole("region", { name: "Kingdom" });
@@ -35,9 +43,13 @@ it("lists the reward systems, kingdom first, with the commit dingn runs", () => 
   expect(repo.getAttribute("href")).toBe(
     "https://github.com/ligangwang/kingdom",
   );
-  expect(
-    within(kingdom).getByRole("link", { name: commit!.slice(0, 7) }),
-  ).toBeTruthy();
+  const version = within(kingdom).getByRole("link", {
+    name: kingdomPkg.version,
+  });
+  expect(version.getAttribute("href")).toBe(
+    `https://github.com/ligangwang/kingdom/releases/tag/${release}`,
+  );
+  expect(within(kingdom).queryByText("Not a published release")).toBeNull();
   // What it grants comes from the package's reward kinds.
   expect(within(kingdom).getByText("badge-coins")).toBeTruthy();
   expect(within(kingdom).getByText("level-ups")).toBeTruthy();
@@ -49,7 +61,12 @@ it("lists the reward systems, kingdom first, with the commit dingn runs", () => 
   expect(within(kingdom).getByText("Village elder")).toBeTruthy();
 });
 
-it("reads the commit from a pinned tarball only", () => {
+it("reads the release and commit from kingdom's install spec only", () => {
+  expect(pkg.dependencies.kingdom).toMatch(
+    /^https:\/\/github\.com\/ligangwang\/kingdom\/releases\/download\/v[^/]+\/kingdom-[^/]+\.tgz$/,
+  );
+  expect(pinnedCommit(REWARD_SYSTEMS[0])).toBeNull();
   const system = { ...REWARD_SYSTEMS[0], packageName: "react" };
+  expect(pinnedRelease(system)).toBeNull();
   expect(pinnedCommit(system)).toBeNull();
 });

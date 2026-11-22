@@ -14,8 +14,8 @@ row to the table (newest at the bottom) and note license terms and where it's us
 ## Rewards: levels, XP, honors, coins and the kingdom
 
 The reward system lives in its own repository, `ligangwang/kingdom`, and
-dingn installs it as the `kingdom` package, pinned to a commit in
-`package.json`. dingn is the platform: it runs the games, sign-in, Firestore
+dingn installs it as the `kingdom` package, from a published version (a
+GitHub release) in `package.json`. dingn is the platform: it runs the games, sign-in, Firestore
 and the API, and asks the package what a player earns. Read the kingdom
 repo's `AGENTS.md` for the levels, XP and honors design and the kingdom's
 art credits.
@@ -29,15 +29,19 @@ art credits.
   `grant()` and saves the rewards and XP documents in one transaction. A new
   reward is added in the kingdom repo as a reward kind and needs no change
   here; a new kind of event needs dingn to report it once.
-- **Shipping a change to the rewards:** merge it in kingdom, then point
-  `package.json` at the new commit with
-  `npm install https://codeload.github.com/ligangwang/kingdom/tar.gz/<commit>`.
+- **Shipping a change to the rewards:** merge it in kingdom with a new
+  version (kingdom's README, "Releasing a version"), which publishes a
+  GitHub release, then install that version with
+  `npm install https://github.com/ligangwang/kingdom/releases/download/v<version>/kingdom-<version>.tgz`.
+  Never pin a commit: the admin Rewards page flags anything that isn't a
+  published release.
 - The kingdom's models are copied from the package to
   `public/models/kingdom` before `dev` and `build`
   (`scripts/kingdom-assets.mjs`) and are not committed. The footer's Credits
   link still reaches them through `public/models/CREDITS.md`.
 - **Every reward system is listed** in `src/data/reward-systems.ts`, which
-  the admin Rewards page (`/admin/rewards/`) shows, kingdom first. A new
+  the admin Rewards page (`/admin/rewards/`) shows, kingdom first, with the
+  version dingn runs. A new
   reward system (its own repository and package) is added there too.
 - What dingn's own games score (`xpFor` in `scripts/game-core.mjs`) and the
   pages that draw the rewards (`src/components/honor.tsx`, `kingdom.tsx`,
