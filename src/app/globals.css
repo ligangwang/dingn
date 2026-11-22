@@ -1283,6 +1283,37 @@ input[type="radio"] {
   color: var(--muted);
 }
 
+/* Admin rewards: one panel per reward system */
+.reward-system {
+  margin-top: 24px;
+}
+.reward-system h3 {
+  margin: 24px 0 8px;
+}
+.reward-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 12px 0;
+}
+.reward-facts dt {
+  color: var(--muted);
+}
+.reward-facts dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.reward-rules {
+  margin-top: 24px;
+}
+.reward-rules summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
 /* Admin review keys */
 .admin-keys {
   margin-top: 40px;

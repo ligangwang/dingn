@@ -36,6 +36,9 @@ art credits.
   `public/models/kingdom` before `dev` and `build`
   (`scripts/kingdom-assets.mjs`) and are not committed. The footer's Credits
   link still reaches them through `public/models/CREDITS.md`.
+- **Every reward system is listed** in `src/data/reward-systems.ts`, which
+  the admin Rewards page (`/admin/rewards/`) shows, kingdom first. A new
+  reward system (its own repository and package) is added there too.
 - What dingn's own games score (`xpFor` in `scripts/game-core.mjs`) and the
   pages that draw the rewards (`src/components/honor.tsx`, `kingdom.tsx`,
   `kingdom-visit.tsx`, `kingdom-card.tsx`) stay here.

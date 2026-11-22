@@ -163,6 +163,7 @@ function AdminMenu({ path }: { path: string }) {
     ["/admin/users/", "Users"],
     ["/admin/players/", "Players"],
     ["/admin/funnel/", "Funnel"],
+    ["/admin/rewards/", "Rewards"],
     ["/admin/feedback/", "Feedback"],
   ] as const;
   const inside = items.some(([href]) => here(href));

@@ -161,6 +161,10 @@ export const pages = {
     index: false,
     en: { title: "Funnel admin" },
   },
+  "/admin/rewards/": {
+    index: false,
+    en: { title: "Rewards admin" },
+  },
   "/admin/feedback/": {
     index: false,
     en: { title: "Feedback inbox" },
