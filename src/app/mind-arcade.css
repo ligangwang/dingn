@@ -178,10 +178,6 @@ select {
   font: 700 20px/1.2 var(--font-display);
   color: #fff;
 }
-.hero-kingdom-card a {
-  color: #d5ff58;
-  font-weight: 600;
-}
 .hero-kingdom-bar {
   display: block;
   height: 8px;
@@ -263,11 +259,6 @@ select {
 .arena p:not(.eyebrow) {
   color: #c1c5d2;
   font-size: 14px;
-}
-.arena strong {
-  margin-top: auto;
-  padding-top: 20px;
-  font-size: 13px;
 }
 .memory-arena {
   background: linear-gradient(150deg, #283624, #171e23);

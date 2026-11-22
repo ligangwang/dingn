@@ -157,7 +157,7 @@ export function CoinCount() {
             href={href("/account/#badges")}
             onClick={() => setOpen(false)}
           >
-            {t("See everything in your account →")}
+            {t("Your account →")}
           </Link>
         </div>
       )}
