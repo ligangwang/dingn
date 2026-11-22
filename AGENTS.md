@@ -29,12 +29,14 @@ art credits.
   `grant()` and saves the rewards and XP documents in one transaction. A new
   reward is added in the kingdom repo as a reward kind and needs no change
   here; a new kind of event needs dingn to report it once.
-- **Shipping a change to the rewards:** merge it in kingdom with a new
-  version (kingdom's README, "Releasing a version"), which publishes a
-  GitHub release, then install that version with
-  `npm install https://github.com/ligangwang/kingdom/releases/download/v<version>/kingdom-<version>.tgz`.
-  Never pin a commit: the admin Rewards page flags anything that isn't a
-  published release.
+- **Shipping a change to the rewards** works like a game upload. Merge it
+  in kingdom with a new version (kingdom's README, "Releasing a version");
+  kingdom's CI publishes a GitHub release and sends the version here
+  (`/api/rewards/upload`, scripts/reward-releases.mjs). It waits on the
+  admin Rewards page until an admin approves it there or with a review key.
+  Approving starts the Website workflow, which installs it on main
+  (`scripts/install-reward.mjs`) and deploys. Never pin a commit: the
+  Rewards page flags anything that isn't a published release.
 - The kingdom's models are copied from the package to
   `public/models/kingdom` before `dev` and `build`
   (`scripts/kingdom-assets.mjs`) and are not committed. The footer's Credits

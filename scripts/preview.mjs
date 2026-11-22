@@ -28,6 +28,10 @@ import { handleGameReports, reportRoutes } from "./game-reports.mjs";
 import { handleGamePlays, startFlushing, statsRoutes } from "./game-stats.mjs";
 import { handleRewards, rewardRoutes } from "./rewards.mjs";
 import { handleKingdom, kingdomRoutes } from "./kingdom.mjs";
+import {
+  handleRewardReleases,
+  rewardReleaseRoutes,
+} from "./reward-releases.mjs";
 import { funnelRoutes, handleFunnel, startFunnelFlushing } from "./funnel.mjs";
 import {
   findChallenge,
@@ -148,6 +152,10 @@ http
     }
     if (kingdomRoutes.includes(pathname)) {
       void handleKingdom(req, res, pathname);
+      return;
+    }
+    if (rewardReleaseRoutes.includes(pathname)) {
+      void handleRewardReleases(req, res, pathname);
       return;
     }
     if (statsRoutes.includes(pathname)) {
