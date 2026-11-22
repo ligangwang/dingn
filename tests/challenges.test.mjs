@@ -39,6 +39,7 @@ function call(
     claims,
     profile = null,
     forwarded,
+    newId,
   } = {},
 ) {
   const req = Object.assign(Readable.from([JSON.stringify(body ?? {})]), {
@@ -71,6 +72,7 @@ function call(
         },
         exchange: async () => "t",
         account: async () => profile,
+        ...(newId ? { newId } : {}),
       },
     );
   });
@@ -508,4 +510,44 @@ test("an admin can close or delete anyone's challenge, and nobody a guest's", as
     (await call(`/api/challenges/${guest.body.id}/close`, admin)).status,
     200,
   );
+});
+
+test("a challenge id names one challenge across dingn, whatever the game", async () => {
+  await registry.updateRecord("other", (r) =>
+    registry.addVersion(
+      r,
+      registry.validateManifest({
+        id: "other",
+        version: "1.0.0",
+        title: { en: "Other", zh: "其他" },
+      }),
+    ),
+  );
+  registry.clearRegistryCache();
+  const first = await call("/api/challenges", {
+    body: { game: "memory", ...round, score: 77 },
+    ...ada,
+  });
+  // The next challenge, in another game, draws the same id, then a free one.
+  const drawn = [first.body.id, first.body.id, "FreshFresh01"];
+  const second = await call("/api/challenges", {
+    body: { game: "other", ...round, score: 5 },
+    ...bo,
+    newId: () => drawn.shift(),
+  });
+  assert.equal(second.body.id, "FreshFresh01");
+  // The first challenge is untouched.
+  const kept = await store.getDoc("challenges", first.body.id);
+  assert.equal(kept.game, "memory");
+  assert.equal(kept.score, 77);
+  assert.equal(kept.uid, "u-ada");
+  // A deleted challenge keeps its id: nothing new is saved under it.
+  await call(`/api/challenges/${first.body.id}/delete`, ada);
+  const third = await call("/api/challenges", {
+    body: { game: "other", ...round },
+    ...bo,
+    newId: () => first.body.id,
+  });
+  assert.equal(third.status, 503);
+  assert.equal((await store.getDoc("challenges", first.body.id)).deleted, true);
 });

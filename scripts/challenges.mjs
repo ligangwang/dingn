@@ -11,7 +11,9 @@
 //   POST /api/challenges/<id>/delete → { deleted: true }  (its maker, or an admin)
 //   GET  /api/challenges[?game=<id>] → { challenges: [ … ] }  (the open ones)
 //
-// Each one is a server-only Firestore document, `challenges/{id}`:
+// Each one is a server-only Firestore document, `challenges/{id}`. Its id is
+// unique across dingn: all games share the collection, and a new challenge
+// is saved only under an id no challenge has ever had.
 //
 //   { game, mode, seed, score, unit, rules, uid, name, createdAt, public,
 //     results, players, test? }
@@ -57,9 +59,9 @@ import {
 } from "./api.mjs";
 import { ID, cachedRecord } from "./game-registry.mjs";
 import {
+  createDoc,
   getDoc,
   listDocs,
-  mergeDoc,
   updateDoc,
   updateMany,
 } from "./platform-store.mjs";
@@ -104,6 +106,8 @@ function limit(key, max = MAX_PER_WINDOW, now = Date.now()) {
 
 /** A new challenge id: 12 random URL-safe characters (72 bits). */
 export const newChallengeId = () => randomBytes(9).toString("base64url");
+/** How many ids a new challenge tries before giving up. */
+const ID_TRIES = 5;
 
 /**
  * The nickname a challenge shows for its maker: their dingn nickname, else
@@ -408,6 +412,7 @@ export async function handleChallenges(
     exchange = refresh,
     // The player's dingn profile, where their nickname is.
     account = (uid) => getDoc("accounts", uid),
+    newId = newChallengeId,
   } = {},
 ) {
   try {
@@ -473,7 +478,6 @@ export async function handleChallenges(
       limit(guestKey(req));
       limit("guests", MAX_GUESTS_PER_WINDOW);
     }
-    const id = newChallengeId();
     const createdAt = new Date().toISOString();
     const doc = {
       game: body.game,
@@ -492,7 +496,18 @@ export async function handleChallenges(
       // Made by a test account: it brings no referral coins.
       ...(test ? { test: true } : {}),
     };
-    await mergeDoc("challenges", id, doc);
+    // One id names one challenge across all of dingn, for good: every game's
+    // challenges share this collection, and a challenge is only ever created
+    // under an id nothing holds (a deleted challenge keeps its id too). Ids
+    // are random, so a taken one is next to impossible; if it happens, the
+    // challenge gets another.
+    let id = null;
+    for (let i = 0; i < ID_TRIES && id == null; i++) {
+      const tried = newId();
+      if (!CHALLENGE_ID.test(tried)) throw new Error("bad challenge id");
+      if (await createDoc("challenges", tried, doc)) id = tried;
+    }
+    if (id == null) throw new Error("no free challenge id");
     if (doc.public) {
       // The link works without its place on the list, so a failure here
       // doesn't lose the challenge.

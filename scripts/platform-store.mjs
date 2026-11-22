@@ -46,6 +46,28 @@ export async function mergeDoc(collection, id, data) {
 }
 
 /**
+ * Saves a new document under `id`, only if no document has that id yet.
+ * Returns false, changing nothing, when one does.
+ */
+export async function createDoc(collection, id, data) {
+  if (localDir()) {
+    const all = await readLocal(collection);
+    if (Object.hasOwn(all, id)) return false;
+    all[id] = data;
+    await writeLocal(collection, all);
+    return true;
+  }
+  try {
+    await (await firestore()).collection(collection).doc(id).create(data);
+    return true;
+  } catch (error) {
+    // ALREADY_EXISTS: the id is taken.
+    if (error.code === 6) return false;
+    throw error;
+  }
+}
+
+/**
  * Replaces a document with `change(current)` (current is null when it does not
  * exist yet). In Firestore this runs in a transaction, so changes at the same
  * time cannot lose each other. Returns the new document.
