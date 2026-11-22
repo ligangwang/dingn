@@ -67,14 +67,15 @@ art credits.
 ## Roles
 
 What an account may do is its roles: `administrator`, `developer`, `player`
-and `tester`. Every account that isn't a tester is a player (never stored);
-the other three are granted and kept as the `roles` custom claim. Read and
-change them only through `scripts/roles.mjs` (`hasRole`, `rolesOf`,
-`withRole`), and in the Firestore rules through `isAdmin()`; never check or
-set `claims.admin`-style flags directly. On a page, use `roles` (or the
-`isAdmin`/`isDeveloper`/`isTester` shortcuts) from `useSession()`. A new role is added to `ROLES` in
-`scripts/roles.mjs` and to the `Role` type in `src/components/session.tsx`.
-Games see only `player.tester`, never an account's other roles.
+and `tester`, kept as the `roles` list in its custom claims; the list is
+exactly what it holds (an account with no list yet is a player). A tester is
+never a player. Read and change roles only through `scripts/roles.mjs`
+(`hasRole`, `rolesOf`, `withRole`, `withRoles`), and in the Firestore rules
+through `isAdmin()`; never check or set `claims.admin`-style flags directly.
+On a page, use `roles` (or the `isAdmin`/`isDeveloper`/`isTester` shortcuts)
+from `useSession()`. A new role is added to `ROLES` in `scripts/roles.mjs`
+and to the `Role` type in `src/components/session.tsx`. Games see only
+`player.tester`, never an account's other roles.
 
 ## Versions
 

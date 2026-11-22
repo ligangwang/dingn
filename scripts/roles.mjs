@@ -2,26 +2,27 @@
 //
 //   administrator  runs dingn: the admin pages, any account's access, reviews
 //   developer      uploads games on /developers/games/ and makes upload keys
-//   player         a real person playing: every account that isn't a tester
+//   player         a real person playing
 //   tester         a test account an administrator made
 //                  (scripts/test-accounts.mjs): kept off the leaderboard,
-//                  statistics and referrals
+//                  statistics and referrals; never a player
 //
-// administrator, developer and tester are granted, and kept as the `roles`
-// custom claim on the account's Firebase account (so they ride in its ID
-// token and Firestore rules can read them). player is never stored: every
-// account holds it unless it is a tester. An account holds any number of
-// roles; an administrator or developer is a player too. Read and change them
-// only through this file. `developerBlocked` is not a role but a restriction:
-// a developer an administrator removed can't sign up again by itself.
+// An account's roles are the `roles` list in its Firebase custom claims (so
+// they ride in its ID token and Firestore rules can read them), and that list
+// is exactly what it holds: an administrator who plays is
+// ["administrator", "player"]. An account with no list yet (a new sign-up,
+// whose roles were never changed) is a player, or a tester if an old flag
+// says so; its list is written the first time its roles change. Read and
+// change roles only through this file. `developerBlocked` is not a role but a
+// restriction: a developer an administrator removed can't sign up again by
+// itself.
 //
 // Accounts made before roles carry `admin: true`, `developer: true` or
 // `tester: true` instead. Those still count until scripts/migrate-roles.mjs
-// has moved every account to `roles`; any change made here moves the account.
+// has moved every account to a full `roles` list; any change made here moves
+// the account.
 
 export const ROLES = ["administrator", "developer", "player", "tester"];
-/** The roles kept on the account; player follows from not being a tester. */
-export const GRANTED = ["administrator", "developer", "tester"];
 /** The flags accounts carried before roles, and the role each one is. */
 export const LEGACY_FLAGS = {
   admin: "administrator",
@@ -29,63 +30,74 @@ export const LEGACY_FLAGS = {
   tester: "tester",
 };
 
-/** The account's granted roles, in ROLES order, from its claims. */
-function grantedOf(claims) {
+/** The account's roles, in ROLES order, from its claims (or decoded ID token). */
+export function rolesOf(claims) {
+  const listed = Array.isArray(claims?.roles);
   const held = new Set(
-    Array.isArray(claims?.roles)
-      ? claims.roles.filter((role) => GRANTED.includes(role))
-      : [],
+    listed ? claims.roles.filter((role) => ROLES.includes(role)) : [],
   );
   for (const [flag, role] of Object.entries(LEGACY_FLAGS))
     if (claims?.[flag] === true) held.add(role);
-  return GRANTED.filter((role) => held.has(role));
-}
-
-/** The account's roles, in ROLES order, from its claims (or decoded ID token). */
-export function rolesOf(claims) {
-  const held = grantedOf(claims);
-  if (!held.includes("tester")) held.push("player");
-  return ROLES.filter((role) => held.includes(role));
+  // No list yet: a player, unless it is a test account.
+  if (!listed) held.add("player");
+  return onlyRoles([...held]);
 }
 
 /** Whether the account holds `role`. */
 export const hasRole = (claims, role) => rolesOf(claims).includes(role);
 
 /**
- * The account's claims with `role` granted (`on`) or taken away, and every
- * granted role in the `roles` list: other claims are kept, old flags dropped.
- * player can't be granted: it follows from not being a tester.
+ * The account's claims with `role` given (`on`) or taken away, its whole list
+ * of roles written out: other claims are kept, old flags dropped.
  */
 export function withRole(claims, role, on = true) {
-  if (!GRANTED.includes(role)) throw new Error(`not a granted role: ${role}`);
-  const held = new Set(grantedOf(claims));
+  if (!ROLES.includes(role)) throw new Error(`unknown role: ${role}`);
+  const held = new Set(rolesOf(claims));
   if (on) held.add(role);
   else held.delete(role);
   return withRoles(claims, [...held]);
 }
 
-/** The account's claims granting exactly `roles`; other claims are kept. */
+/**
+ * The known roles of `roles`, in ROLES order. A tester is never a player:
+ * with both, tester wins.
+ */
+function onlyRoles(roles) {
+  const tester = roles.includes("tester");
+  return ROLES.filter(
+    (role) => roles.includes(role) && !(tester && role === "player"),
+  );
+}
+
+/**
+ * The account's claims holding exactly `roles` (a tester never a player);
+ * other claims are kept.
+ */
 export function withRoles(claims, roles) {
   const rest = { ...(claims ?? {}) };
   for (const flag of Object.keys(LEGACY_FLAGS)) delete rest[flag];
   delete rest.roles;
-  const list = GRANTED.filter((role) => roles.includes(role));
-  return list.length ? { ...rest, roles: list } : rest;
+  return { ...rest, roles: onlyRoles(roles) };
 }
 
 /**
- * The account's claims moved to roles, or null when they need no change.
- * First (`dropFlags` false, safe while websites from before roles still run)
- * the `roles` list is added and the old flags kept; then (`dropFlags` true,
- * once every website reads roles) the old flags are removed.
+ * The account's claims moved to a full list of roles, or null when they need
+ * no change. Every account that isn't a test account gets the player role.
+ * With `dropFlags` false (safe while websites from before roles still run)
+ * the old flags are kept beside the list; with it true they are removed.
  */
 export function migratedClaims(claims, { dropFlags = false } = {}) {
-  if (!claims) return null;
-  const flags = Object.keys(LEGACY_FLAGS).filter((flag) => flag in claims);
-  if (dropFlags)
-    return flags.length ? withRoles(claims, grantedOf(claims)) : null;
-  const roles = grantedOf(claims);
-  const stored = Array.isArray(claims.roles) ? claims.roles : [];
-  if (roles.every((role) => stored.includes(role))) return null;
-  return { ...claims, roles };
+  const held = new Set(rolesOf(claims));
+  if (!held.has("tester")) held.add("player");
+  const roles = ROLES.filter((role) => held.has(role));
+  const stored = Array.isArray(claims?.roles) ? claims.roles : null;
+  const listed =
+    stored !== null &&
+    stored.length === roles.length &&
+    roles.every((role) => stored.includes(role));
+  const flags = Object.keys(LEGACY_FLAGS).some(
+    (flag) => flag in (claims ?? {}),
+  );
+  if (dropFlags) return listed && !flags ? null : withRoles(claims, roles);
+  return listed ? null : { ...(claims ?? {}), roles };
 }

@@ -128,7 +128,7 @@ test("anyone with a verified email signs up by accepting the agreement", async (
   );
   const joined = await join(kim, agree);
   assert.equal(joined.status, 200);
-  assert.deepEqual(claims.kim, { roles: ["developer"] });
+  assert.deepEqual(claims.kim, { roles: ["developer", "player"] });
   const record = await store.getDoc("developers", "kim");
   assert.equal(record.agreement, uploads.AGREEMENT_VERSION);
   assert.equal(record.email, "kim@example.com");
