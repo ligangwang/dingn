@@ -231,19 +231,10 @@ time its roles change. Code reads and changes roles only through
 `roles`. `developerBlocked` is not a role but a restriction on signing up as a
 developer again.
 
-Accounts made before roles carried `admin: true`, `developer: true` or
-`tester: true` instead, which still count (`admin` as `administrator`). To
-give every account its full list (every account but a test account gets
-`player`) and remove the old flags, run this from Cloud Shell as the project
-owner after `npm ci` in the repository folder, first without `--apply` to
-see what would change:
-
-```bash
-node scripts/migrate-roles.mjs --apply --drop-flags
-```
-
-It is safe to run again. Changed claims reach each account's ID token within
-the hour.
+Every account was given its full list in November 2026. Accounts made before
+roles carried `admin: true`, `developer: true` or `tester: true` instead;
+those flags still count (`admin` as `administrator`) in case one was missed,
+and changing the account's roles removes them.
 
 ## Admin access
 
