@@ -23,7 +23,9 @@
 //     { action: "delete", uid }                     → { uid }
 //
 // A password left out is made up here and returned once, for the admin to
-// copy; dingn keeps no copy of it.
+// copy; dingn keeps no copy of it and never logs it. Only signed-in admins on
+// the website reach this (scripts/games-admin.mjs), never a review key, and
+// replies are never cached.
 import { randomBytes } from "node:crypto";
 import { ApiError } from "./api.mjs";
 
@@ -155,6 +157,8 @@ export async function testers(pathname, body, users, by) {
     const user = await testerById(users, body.uid);
     const password = passwordOf(body.password);
     await users.updateUser(user.uid, { password });
+    // Whoever had the old password is signed out everywhere.
+    await users.revokeRefreshTokens(user.uid);
     console.log("test account", "password", user.uid, "by", by);
     return { tester: tester(user), password };
   }

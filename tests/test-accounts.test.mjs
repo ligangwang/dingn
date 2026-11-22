@@ -49,6 +49,7 @@ function fakeAuth(seed = []) {
       users.get(uid).customClaims = claims;
     },
     updateUser: async (uid, props) => Object.assign(users.get(uid), props),
+    revokeRefreshTokens: async (uid) => (users.get(uid).revoked = true),
     deleteUser: async (uid) => users.delete(uid),
   };
 }
@@ -144,6 +145,8 @@ test("only test accounts are listed, given new passwords or deleted", async () =
     testers("/api/admin/testers/update", body, auth, "ada");
   const reset = await update({ action: "password", uid: "qa" });
   assert.equal(auth.users.get("qa").password, reset.password);
+  // Sessions signed in with the old password end.
+  assert.equal(auth.users.get("qa").revoked, true);
   await rejects(update({ action: "password", uid: "ada" }), "not-a-tester");
   await rejects(update({ action: "delete", uid: "ada" }), "not-a-tester");
   await rejects(update({ action: "delete", uid: "gone" }), "user-not-found");
@@ -168,4 +171,31 @@ test("test accounts and deleted accounts stay off the leaderboard", async () => 
   // If Firebase can't be asked, nobody is left out.
   const broken = { getUsers: async () => Promise.reject(new Error("down")) };
   assert.equal((await notOnBoard(broken, ["ada"])).size, 0);
+});
+
+test("passwords never reach the server's logs", async () => {
+  const lines = [];
+  const log = console.log;
+  console.log = (...args) => lines.push(args.join(" "));
+  try {
+    const auth = fakeAuth();
+    const made = await create(auth, {
+      email: "qa@example.com",
+      password: "visible-secret-1",
+    });
+    const reset = await testers(
+      "/api/admin/testers/update",
+      { action: "password", uid: made.testers[0].uid },
+      auth,
+      "admin",
+    );
+    assert.ok(lines.length >= 2);
+    for (const line of lines) {
+      assert.ok(!line.includes("visible-secret-1"), line);
+      assert.ok(!line.includes(reset.password), line);
+      assert.ok(!line.includes("qa@example.com"), line);
+    }
+  } finally {
+    console.log = log;
+  }
 });
