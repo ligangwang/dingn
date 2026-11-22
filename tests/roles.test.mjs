@@ -62,15 +62,29 @@ test("granting a role keeps other claims, drops old flags and never stores playe
   assert.throws(() => withRole({}, "owner"));
 });
 
-test("the move to roles changes only accounts with old flags, and only with --apply", async () => {
+test("the move to roles first adds roles beside the old flags, then drops the flags", () => {
   assert.equal(migratedClaims(undefined), null);
+  assert.equal(migratedClaims({}), null);
   assert.equal(migratedClaims({ roles: ["administrator"] }), null);
+  // Step 1: roles added, flags kept, so a website reading flags still works.
   assert.deepEqual(migratedClaims({ admin: true, developerBlocked: true }), {
+    admin: true,
     developerBlocked: true,
     roles: ["administrator"],
   });
-  assert.deepEqual(migratedClaims({ developer: false }), {});
+  assert.equal(migratedClaims({ admin: true, roles: ["administrator"] }), null);
+  assert.equal(migratedClaims({ developer: false }), null);
+  // Step 2: the flags go.
+  const drop = { dropFlags: true };
+  assert.deepEqual(
+    migratedClaims({ admin: true, roles: ["administrator"] }, drop),
+    { roles: ["administrator"] },
+  );
+  assert.deepEqual(migratedClaims({ developer: false }, drop), {});
+  assert.equal(migratedClaims({ roles: ["tester"] }, drop), null);
+});
 
+test("the migration changes accounts only with --apply, and is safe to rerun", async () => {
   const accounts = {
     a: { admin: true, developer: true },
     b: { roles: ["tester"] },
@@ -98,9 +112,25 @@ test("the move to roles changes only accounts with old flags, and only with --ap
   assert.deepEqual(accounts.a, { admin: true, developer: true });
 
   await migrateRoles(users, { apply: true });
-  assert.deepEqual(accounts.a, { roles: ["administrator", "developer"] });
-  assert.deepEqual(accounts.d, { developerBlocked: true, roles: ["tester"] });
+  assert.deepEqual(accounts.a, {
+    admin: true,
+    developer: true,
+    roles: ["administrator", "developer"],
+  });
+  assert.deepEqual(accounts.d, {
+    tester: true,
+    developerBlocked: true,
+    roles: ["tester"],
+  });
   assert.deepEqual(accounts.b, { roles: ["tester"] });
   // Running it again changes nothing.
   assert.deepEqual(await migrateRoles(users, { apply: true }), []);
+
+  await migrateRoles(users, { apply: true, dropFlags: true });
+  assert.deepEqual(accounts.a, { roles: ["administrator", "developer"] });
+  assert.deepEqual(accounts.d, { developerBlocked: true, roles: ["tester"] });
+  assert.deepEqual(
+    await migrateRoles(users, { apply: true, dropFlags: true }),
+    [],
+  );
 });

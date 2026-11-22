@@ -73,9 +73,19 @@ export function withRoles(claims, roles) {
   return list.length ? { ...rest, roles: list } : rest;
 }
 
-/** The account's claims on roles, or null when they need no change. */
-export function migratedClaims(claims) {
-  if (!claims || !Object.keys(LEGACY_FLAGS).some((flag) => flag in claims))
-    return null;
-  return withRoles(claims, grantedOf(claims));
+/**
+ * The account's claims moved to roles, or null when they need no change.
+ * First (`dropFlags` false, safe while websites from before roles still run)
+ * the `roles` list is added and the old flags kept; then (`dropFlags` true,
+ * once every website reads roles) the old flags are removed.
+ */
+export function migratedClaims(claims, { dropFlags = false } = {}) {
+  if (!claims) return null;
+  const flags = Object.keys(LEGACY_FLAGS).filter((flag) => flag in claims);
+  if (dropFlags)
+    return flags.length ? withRoles(claims, grantedOf(claims)) : null;
+  const roles = grantedOf(claims);
+  const stored = Array.isArray(claims.roles) ? claims.roles : [];
+  if (roles.every((role) => stored.includes(role))) return null;
+  return { ...claims, roles };
 }

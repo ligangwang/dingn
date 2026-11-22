@@ -8,12 +8,15 @@
 // Cloud Shell as the project owner (or after `gcloud auth application-default
 // login`), from the repository folder after `npm ci`:
 //
-//   node scripts/migrate-roles.mjs           # dry run: what would change
-//   node scripts/migrate-roles.mjs --apply   # change the accounts
+//   node scripts/migrate-roles.mjs                         # dry run
+//   node scripts/migrate-roles.mjs --apply                 # step 1
+//   node scripts/migrate-roles.mjs --apply --drop-flags    # step 2
 //
-// It is safe to run again: an account already on roles is left as it is.
-// The website accepts both forms meanwhile, so nobody loses access while it
-// runs. Changed claims reach an account's ID token within the hour.
+// Step 1 adds the `roles` list and keeps the old flags, so it is safe before
+// and after a website that reads roles (2.3.0) is live: the older website
+// still reads the flags. Step 2 removes the old flags; run it only once
+// 2.3.0 is live. Both are safe to run again: an account already done is left
+// as it is. Changed claims reach an account's ID token within the hour.
 import { pathToFileURL } from "node:url";
 import { migratedClaims } from "./roles.mjs";
 
@@ -25,13 +28,16 @@ const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
  * changed, as { uid, email, roles } for each; with `apply` false it only
  * reports.
  */
-export async function migrateRoles(users, { apply = false } = {}) {
+export async function migrateRoles(
+  users,
+  { apply = false, dropFlags = false } = {},
+) {
   const changed = [];
   let pageToken;
   do {
     const page = await users.listUsers(1000, pageToken);
     for (const user of page.users) {
-      const next = migratedClaims(user.customClaims);
+      const next = migratedClaims(user.customClaims, { dropFlags });
       if (!next) continue;
       if (apply) await users.setCustomUserClaims(user.uid, next);
       changed.push({
@@ -47,13 +53,17 @@ export async function migrateRoles(users, { apply = false } = {}) {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const apply = process.argv.includes("--apply");
+  const dropFlags = process.argv.includes("--drop-flags");
   const { initializeApp } = await import("firebase-admin/app");
   const { getAuth } = await import("firebase-admin/auth");
   const users = getAuth(initializeApp({ projectId: PROJECT }));
-  const changed = await migrateRoles(users, { apply });
+  const changed = await migrateRoles(users, { apply, dropFlags });
   for (const c of changed)
     console.log(`${c.email || c.uid}: roles ${c.roles.join(", ") || "(none)"}`);
+  const what = dropFlags ? "old flags removed" : "roles added, old flags kept";
   console.log(
-    `${changed.length} account(s) ${apply ? "moved to roles" : "would move to roles (dry run; add --apply)"}.`,
+    apply
+      ? `${changed.length} account(s) changed: ${what}.`
+      : `${changed.length} account(s) would change (${what}). Dry run: add --apply.`,
   );
 }

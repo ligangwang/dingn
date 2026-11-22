@@ -232,19 +232,28 @@ but a restriction on signing up as a developer again.
 
 Accounts made before roles carried `admin: true`, `developer: true` or
 `tester: true` instead. The website and the Firestore rules still accept those
-until every account is moved, once, from Cloud Shell as the project owner,
-after `npm ci` in the repository folder:
+(`admin` counts as `administrator`). Moving every account to roles takes two
+steps, run from Cloud Shell as the project owner after `npm ci` in the
+repository folder. Each lists what it would change without `--apply`, and is
+safe to run again.
 
-```bash
-node scripts/migrate-roles.mjs
-```
+Step 1 adds the `roles` list and keeps the old flags, so it works with the
+website from before roles too. Run it before releasing a website that reads
+roles, and don't change anyone's access on the admin pages until that
+release is live (the older website changes only the flags):
 
 ```bash
 node scripts/migrate-roles.mjs --apply
 ```
 
-The first is a dry run that lists what would change. Running it again changes
-nothing. Changed claims reach each account's ID token within the hour.
+Step 2 removes the old flags. Run it only once the website that reads roles
+is live:
+
+```bash
+node scripts/migrate-roles.mjs --apply --drop-flags
+```
+
+Changed claims reach each account's ID token within the hour.
 
 ## Admin access
 
