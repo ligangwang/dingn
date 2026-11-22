@@ -167,6 +167,42 @@ test("a test account's default nickname is Tester and its number", async () => {
   );
 });
 
+test("a Tester name someone chose before it was reserved stays theirs", async () => {
+  const { ensureNickname } = await import("../scripts/game-api.mjs");
+  const { db, store } = fakeDb();
+  // An old tester, still named Player<number>, whose Tester name is taken.
+  store.set("accounts/qa", {
+    player_no: "4821937065",
+    user_name: "Player4821937065",
+    name_key: "player4821937065",
+  });
+  store.set("nicknames/player4821937065", {
+    uid: "qa",
+    name: "Player4821937065",
+  });
+  store.set("nicknames/tester4821937065", {
+    uid: "early",
+    name: "Tester4821937065",
+  });
+  assert.equal(
+    await ensureNickname(db, "qa", { tester: true }),
+    "Player4821937065",
+  );
+  assert.equal(store.get("nicknames/tester4821937065")?.uid, "early");
+  assert.equal(store.get("nicknames/player4821937065")?.uid, "qa");
+  // A new tester whose Tester name is taken gets the Player one.
+  store.set("accounts/new", { player_no: "5930412876" });
+  store.set("playerNumbers/5930412876", { uid: "new" });
+  store.set("nicknames/tester5930412876", {
+    uid: "early",
+    name: "Tester5930412876",
+  });
+  assert.equal(
+    await ensureNickname(db, "new", { tester: true }),
+    "Player5930412876",
+  );
+});
+
 test("a name chosen before names were unique is registered on the next visit, first come first served", async () => {
   const { ensureNickname } = await import("../scripts/game-api.mjs");
   const { db, store } = fakeDb();

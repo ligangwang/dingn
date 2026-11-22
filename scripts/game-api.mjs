@@ -344,8 +344,8 @@ export async function ensureNickname(db, uid, { tester = false } = {}) {
         tx.get(nicknames(db).doc(key)),
         oldRef ? tx.get(oldRef) : null,
       ]);
-      if (held.exists && held.data()?.uid !== uid)
-        throw new Error("Default nickname taken");
+      // Someone chose that name before it was reserved: keep the old one.
+      if (held.exists && held.data()?.uid !== uid) return had;
       if (oldRef && oldHeld?.data()?.uid === uid) tx.delete(oldRef);
       tx.set(nicknames(db).doc(key), { uid, name });
       tx.set(accountRef, { user_name: name, name_key: key }, { merge: true });
@@ -365,10 +365,16 @@ export async function ensureNickname(db, uid, { tester = false } = {}) {
     }
     // None yet: "Player<public number>" ("Tester…" for a test account).
     // Nobody else can hold it, as names shaped like a default are reserved
-    // (claimNickname).
-    const name = defaultNickname(number, tester);
-    const key = nicknameKey(name);
-    const held = await tx.get(nicknames(db).doc(key));
+    // (claimNickname), except a Tester name someone chose before those were
+    // reserved: then the test account gets the Player one.
+    let name = defaultNickname(number, tester);
+    let key = nicknameKey(name);
+    let held = await tx.get(nicknames(db).doc(key));
+    if (tester && held.exists && held.data()?.uid !== uid) {
+      name = defaultNickname(number);
+      key = nicknameKey(name);
+      held = await tx.get(nicknames(db).doc(key));
+    }
     if (held.exists && held.data()?.uid !== uid)
       throw new Error("Default nickname taken");
     tx.set(nicknames(db).doc(key), { uid, name });
