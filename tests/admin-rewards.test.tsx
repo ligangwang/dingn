@@ -1,6 +1,12 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { AdminRewards } from "../src/components/admin-rewards";
 import pkg from "../package.json";
 import kingdomPkg from "kingdom/package.json";
@@ -12,13 +18,33 @@ import {
 
 const mocks = vi.hoisted(() => ({
   session: { user: { uid: "me" }, ready: true, isAdmin: true },
+  list: vi.fn(),
+  review: vi.fn(),
 }));
 vi.mock("../src/components/session", () => ({
   useSession: () => mocks.session,
 }));
+vi.mock("../src/lib/reward-releases", () => ({
+  listRewardReleases: mocks.list,
+  reviewRewardRelease: mocks.review,
+}));
+
+const release = (version: string, over = {}) => ({
+  version,
+  url: `https://github.com/ligangwang/kingdom/releases/download/v${version}/kingdom-${version}.tgz`,
+  notes: `https://github.com/ligangwang/kingdom/releases/tag/v${version}`,
+  uploadedAt: "2026-11-22T12:00:00.000Z",
+  approvedAt: null,
+  rejected: null,
+  ...over,
+});
 
 beforeEach(() => {
   mocks.session = { user: { uid: "me" }, ready: true, isAdmin: true };
+  mocks.list.mockReset().mockResolvedValue({
+    systems: [{ system: "kingdom", versions: [] }],
+  });
+  mocks.review.mockReset();
 });
 afterEach(cleanup);
 
@@ -69,4 +95,65 @@ it("reads the release and commit from kingdom's install spec only", () => {
   const system = { ...REWARD_SYSTEMS[0], packageName: "react" };
   expect(pinnedRelease(system)).toBeNull();
   expect(pinnedCommit(system)).toBeNull();
+});
+
+it("lists the versions sent for review, and approves one", async () => {
+  const running = kingdomPkg.version;
+  mocks.list.mockResolvedValue({
+    systems: [
+      {
+        system: "kingdom",
+        versions: [release("9.0.0"), release(running, { approvedAt: "x" })],
+      },
+    ],
+  });
+  mocks.review.mockResolvedValue({
+    system: "kingdom",
+    versions: [
+      release("9.0.0", { approvedAt: "2026-11-22T12:05:00.000Z" }),
+      release(running, { approvedAt: "x" }),
+    ],
+  });
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  render(<AdminRewards />);
+  const kingdom = screen.getByRole("region", { name: "Kingdom" });
+  const waiting = (
+    await within(kingdom).findByRole("link", { name: "9.0.0" })
+  ).closest("tr")!;
+  expect(within(waiting).getByText("Waiting for review")).toBeTruthy();
+  const current = within(kingdom)
+    .getAllByRole("link", { name: running })
+    .map((a) => a.closest("tr"))
+    .find(Boolean)!;
+  expect(within(current).getByText("Running")).toBeTruthy();
+
+  fireEvent.click(within(waiting).getByRole("button", { name: "Approve" }));
+  expect(mocks.review).toHaveBeenCalledWith("kingdom", "9.0.0", {
+    action: "approve",
+  });
+  expect(
+    await within(kingdom).findByText(
+      "Kingdom 9.0.0 is approved and deploying. It goes live in a few minutes.",
+    ),
+  ).toBeTruthy();
+  expect(within(waiting).getByText("Approved")).toBeTruthy();
+});
+
+it("says when deploying isn't set up", async () => {
+  mocks.list.mockResolvedValue({
+    systems: [{ system: "kingdom", versions: [release("9.0.0")] }],
+  });
+  mocks.review.mockRejectedValue(
+    Object.assign(new Error("deploy-unavailable"), {
+      code: "deploy-unavailable",
+    }),
+  );
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  render(<AdminRewards />);
+  fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+  expect(
+    await screen.findByText(
+      "Deploying isn't set up yet: the dingn service needs a GITHUB_DISPATCH_TOKEN.",
+    ),
+  ).toBeTruthy();
 });

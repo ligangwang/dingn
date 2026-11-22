@@ -146,6 +146,21 @@ with the webhook events listed above pointing at
 values after Stripe has activated the account (business details, identity and a
 bank account for payouts).
 
+## Reward system releases
+
+A reward system (such as kingdom) is reviewed like a game. Its CI sends each
+new version to `/api/rewards/upload` with an upload key of an account that is
+an admin (its repository secret, `DINGN_UPLOAD_KEY` for kingdom). The version
+waits on `/admin/rewards/`; an admin approves or sends it back there, or with
+a review key at `/api/admin/rewards` and `/api/admin/rewards/update`.
+
+dingn bundles reward systems when it builds, so approving starts the Website
+workflow (`workflow_dispatch` with `reward` and `reward_version`), which
+installs the version on main, checks it and deploys. For that, set
+`GITHUB_DISPATCH_TOKEN` on Cloud Run: a fine-grained GitHub token for
+`ligangwang/dingn` with **Actions: read and write**. Without it, approving
+says deploying isn't set up and the version keeps waiting.
+
 ## Hosting and cutover
 
 `dingn.com` is mapped straight to the `dingn-web` Cloud Run service in `us-central1`, which serves the whole site, including the Firebase authentication helper under `/__/auth/` (see below). Firebase Hosting is no longer used, so `firebase.json` only configures the Firestore rules and emulator. Every GitHub deployment updates `dingn.com` automatically.

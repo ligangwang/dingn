@@ -21,6 +21,12 @@ on:
       version:
         description: Version for set-live or set-beta (a rollback is set-live with an older version)
         required: false
+      reward:
+        description: Reward system to install (set by an approval on /admin/rewards/)
+        required: false
+      reward_version:
+        description: The approved version of that reward system
+        required: false
       migration:
         description: One-time data migration to run instead (dry-run only counts)
         type: choice
@@ -48,9 +54,12 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           INPUT_GAME: ${{ inputs.game }}
           MIGRATION: ${{ inputs.migration }}
+          REWARD: ${{ inputs.reward }}
         run: |
           all_games() { for d in games/*/; do [ -f "$d/game.json" ] && basename "$d"; done; }
-          if [ "$EVENT" = workflow_dispatch ] && [ -n "$MIGRATION" ] && [ "$MIGRATION" != none ]; then
+          if [ "$EVENT" = workflow_dispatch ] && [ -n "$REWARD" ]; then
+            site=true; games=""
+          elif [ "$EVENT" = workflow_dispatch ] && [ -n "$MIGRATION" ] && [ "$MIGRATION" != none ]; then
             site=false; games=""
           elif [ "$EVENT" = workflow_dispatch ]; then
             if [ -n "$INPUT_GAME" ]; then site=false; games="$INPUT_GAME"; else site=true; games=""; fi
@@ -74,14 +83,60 @@ jobs:
           echo "games=$games" >> "$GITHUB_OUTPUT"
           echo "Website: $site. Games: ${games:-none}"
 
+  # An admin approved a reward system's version on /admin/rewards/
+  # (scripts/reward-releases.mjs): install it on main, then the jobs below
+  # check and deploy that commit.
+  install-reward:
+    name: Install reward version
+    if: github.event_name == 'workflow_dispatch' && inputs.reward != '' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: dingn-install-reward
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install the approved version
+        env:
+          REWARD: ${{ inputs.reward }}
+          VERSION: ${{ inputs.reward_version }}
+        run: node scripts/install-reward.mjs "$REWARD" "$VERSION"
+      - run: npm run verify
+      - name: Commit to main
+        id: commit
+        env:
+          REWARD: ${{ inputs.reward }}
+          VERSION: ${{ inputs.reward_version }}
+        run: |
+          if ! git diff --quiet -- package.json package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Install $REWARD $VERSION (approved on /admin/rewards/)" -- package.json package-lock.json
+            git push origin HEAD:main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   validate:
     name: Validate website
-    needs: changes
-    if: needs.changes.outputs.site == 'true'
+    needs: [changes, install-reward]
+    if: ${{ !failure() && !cancelled() && needs.changes.outputs.site == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.install-reward.outputs.sha || github.sha }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
@@ -97,8 +152,8 @@ jobs:
 
   deploy:
     name: Deploy Cloud Run
-    needs: [changes, validate]
-    if: needs.changes.outputs.site == 'true' && github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [changes, install-reward, validate]
+    if: ${{ !failure() && !cancelled() && needs.changes.outputs.site == 'true' && github.repository == 'ligangwang/dingn' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
@@ -112,10 +167,14 @@ jobs:
       REGION: us-central1
       SERVICE: dingn-web
       IMAGE: us-central1-docker.pkg.dev/dingn-193716/dingn-web/website
+      # The commit to deploy: an installed reward version's, or this run's.
+      SHA: ${{ needs.install-reward.outputs.sha || github.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.SHA }}
       - name: Build production container
-        run: docker build --tag "$IMAGE:$GITHUB_SHA" .
+        run: docker build --tag "$IMAGE:$SHA" .
       - name: Authenticate with GitHub OIDC
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
@@ -131,10 +190,10 @@ jobs:
       - name: Push image
         run: |
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
-          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:$SHA"
       - name: Deploy immutable image
         run: |
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA")
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:$SHA")
           gcloud run deploy "$SERVICE" \
             --image "$digest" --project "$PROJECT" --region "$REGION" \
             --service-account "dingn-web-runtime@$PROJECT.iam.gserviceaccount.com" \
@@ -151,7 +210,7 @@ jobs:
           # Games load the SDK from other origins, which needs this header.
           headers=$(curl --fail --silent --show-error --head "$url/sdk/v1/dingn-sdk.js")
           grep -i '^access-control-allow-origin: \*' <<<"$headers" > /dev/null
-          printf 'Deployed commit `%s` to [dingn](%s).\n' "$GITHUB_SHA" "$url" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Deployed commit `%s` to [dingn](%s).\n' "$SHA" "$url" >> "$GITHUB_STEP_SUMMARY"
 
   games:
     name: Publish games

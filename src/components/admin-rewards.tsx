@@ -4,8 +4,14 @@
 // runs. Kingdom's rules are shown as the package has them, so this page
 // can't disagree with what players get. Nothing here changes them: they
 // change in the reward system's own repository.
+import { useEffect, useState } from "react";
 import { pick } from "@/lib/i18n";
 import { AdminOnly } from "./admin-games";
+import {
+  listRewardReleases,
+  reviewRewardRelease,
+  type RewardReleases,
+} from "@/lib/reward-releases";
 import { useLocale } from "./locale";
 import {
   REWARD_SYSTEMS,
@@ -125,8 +131,200 @@ function System({ system }: { system: RewardSystem }) {
           </tbody>
         </table>
       </div>
+      <Releases system={system} />
       {system.id === "kingdom" && <KingdomRules />}
     </section>
+  );
+}
+
+/**
+ * The versions the system's CI sent for review (scripts/reward-releases.mjs),
+ * newest first. Approving one installs it on main and deploys the site.
+ */
+function Releases({ system }: { system: RewardSystem }) {
+  const { t, locale } = useLocale();
+  const [releases, setReleases] = useState<RewardReleases | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    let live = true;
+    listRewardReleases()
+      .then(({ systems }) => {
+        if (!live) return;
+        setReleases(
+          systems.find((s) => s.system === system.id) ?? {
+            system: system.id,
+            versions: [],
+          },
+        );
+      })
+      .catch(() => live && setFailed(true));
+    return () => {
+      live = false;
+    };
+  }, [system.id]);
+
+  const name = t(system.title);
+  const date = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString(locale) : "";
+  async function review(
+    version: string,
+    change: { action: "approve" } | { action: "reject"; reason: string },
+    done: string,
+  ) {
+    setBusy(true);
+    setNote("");
+    try {
+      setReleases(await reviewRewardRelease(system.id, version, change));
+      setNote(done);
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      setNote(
+        code === "deploy-unavailable"
+          ? t(
+              "Deploying isn't set up yet: the dingn service needs a GITHUB_DISPATCH_TOKEN.",
+            )
+          : t("Something went wrong. Try again."),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <h3>{t("Releases")}</h3>
+      <p className="muted">
+        {t(
+          "Each new version waits here for review. Approving it installs it on main and deploys the site.",
+        )}
+      </p>
+      {failed ? (
+        <p>{t("Releases could not be loaded. Try again.")}</p>
+      ) : !releases ? (
+        <p className="muted">{t("Loading…")}</p>
+      ) : releases.versions.length === 0 ? (
+        <p>{t("No versions have been sent for review yet.")}</p>
+      ) : (
+        <div className="admin-table-scroll">
+          <table className="admin-game-versions">
+            <thead>
+              <tr>
+                <th scope="col">{t("Version")}</th>
+                <th scope="col">{t("Uploaded")}</th>
+                <th scope="col">{t("Status")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {releases.versions.map((v) => (
+                <tr key={v.version}>
+                  <th scope="row">
+                    <a href={v.notes} target="_blank" rel="noreferrer">
+                      <code>{v.version}</code>
+                    </a>
+                  </th>
+                  <td>{date(v.uploadedAt)}</td>
+                  <td className="admin-version-actions">
+                    {v.version === system.version ? (
+                      <span className="admin-tag live">{t("Running")}</span>
+                    ) : v.approvedAt ? (
+                      <>
+                        <span className="admin-tag">{t("Approved")}</span>
+                        {/* For when its install or deploy failed. */}
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={busy}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                t(
+                                  `Install and deploy ${name} ${v.version} again?`,
+                                ),
+                              )
+                            )
+                              void review(
+                                v.version,
+                                { action: "approve" },
+                                t(
+                                  `${name} ${v.version} is approved and deploying. It goes live in a few minutes.`,
+                                ),
+                              );
+                          }}
+                        >
+                          {t("Deploy again")}
+                        </button>
+                      </>
+                    ) : v.rejected ? (
+                      <span className="admin-tag review" title={v.rejected}>
+                        {t("Sent back")}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="admin-tag review">
+                          {t("Waiting for review")}
+                        </span>
+                        <button
+                          type="button"
+                          className="button small"
+                          disabled={busy}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                t(
+                                  `Approve ${name} ${v.version}? dingn installs it and deploys the site.`,
+                                ),
+                              )
+                            )
+                              void review(
+                                v.version,
+                                { action: "approve" },
+                                t(
+                                  `${name} ${v.version} is approved and deploying. It goes live in a few minutes.`,
+                                ),
+                              );
+                          }}
+                        >
+                          {t("Approve")}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={busy}
+                          onClick={() => {
+                            const reason = (
+                              window.prompt(
+                                t("Why is this version sent back?"),
+                              ) ?? ""
+                            )
+                              .trim()
+                              .slice(0, 500);
+                            if (reason)
+                              void review(
+                                v.version,
+                                { action: "reject", reason },
+                                t(`${name} ${v.version} was sent back.`),
+                              );
+                          }}
+                        >
+                          {t("Send back")}
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {note && (
+        <p className="muted" role="status">
+          {note}
+        </p>
+      )}
+    </>
   );
 }
 
