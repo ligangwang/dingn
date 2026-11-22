@@ -4,6 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { Header } from "../src/components/header";
 
 const mocks = vi.hoisted(() => ({
+  path: "/admin/users/",
   session: {
     user: null as null | { displayName: null; email: string },
     ready: true,
@@ -14,7 +15,7 @@ const mocks = vi.hoisted(() => ({
     stats: null as null | { level: number; xp: number },
   },
 }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/admin/users/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.path }));
 // The coin count fetches the wallet; not what these tests are about.
 vi.mock("../src/components/rewards", () => ({ CoinCount: () => null }));
 vi.mock("../src/components/session", () => ({
@@ -109,4 +110,20 @@ it("marks a test account's avatar with a TEST tag", () => {
   expect(screen.getByText("TEST")).toBeTruthy();
   mocks.session.isTester = false;
   mocks.session.user = null;
+});
+
+it("keeps one Games menu and one Admin menu as an admin moves between pages", () => {
+  mocks.session.isAdmin = true;
+  const view = render(<Header />);
+  for (const path of ["/challenges/", "/", "/casual/"]) {
+    mocks.path = path;
+    view.rerender(<Header />);
+  }
+  mocks.path = "/admin/users/";
+  mocks.session.isAdmin = false;
+  // The two menus sit side by side and are both remade on each page.
+  expect(view.container.querySelectorAll(".games-menu").length).toBe(1);
+  expect(
+    view.container.querySelectorAll(".admin-menu:not(.games-menu)").length,
+  ).toBe(1);
 });
