@@ -566,3 +566,75 @@ html.play-window-full body {
   color: inherit;
   text-decoration: underline;
 }
+
+/* How the player's round of a challenge ended. */
+.play-outcome {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
+.play-outcome.won {
+  background: #d5ff58;
+  color: #1c2a00;
+}
+.play-outcome.lost {
+  background: #e7e9f2;
+  color: #23273a;
+}
+.play-outcome a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+/* The results posted under a challenge, highest first. */
+.play-thread {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #2f3650;
+}
+.play-thread h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.play-thread ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.play-thread li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 0.95rem;
+}
+.play-thread li + li {
+  border-top: 1px solid #262c44;
+}
+.play-thread .rank {
+  flex: 0 0 2em;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.play-thread .name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.play-thread .name em {
+  font-style: normal;
+  opacity: 0.6;
+}
+.play-thread .pts {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.play-thread li.mine {
+  color: #d5ff58;
+}

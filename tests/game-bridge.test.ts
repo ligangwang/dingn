@@ -77,6 +77,41 @@ test("init tells the game who is playing, in which language", async () => {
   });
 });
 
+test("a game posts the result of the challenge the page opened", async () => {
+  const { ctx } = context(true);
+  const posted: number[] = [];
+  ctx.challengeResult = async (score) => {
+    posted.push(score);
+    return { beat: true, posted: true, best: score, rank: 1, players: 2 };
+  };
+  // Opened without a challenge: there is nothing to post under.
+  const none = await handleGameRequest(
+    ask("challenge.result", { score: 12 }),
+    ctx,
+  );
+  assert.equal(none && "error" in none && none.error.code, "no_challenge");
+  ctx.challenge = { mode: "ladder", score: 10, unit: "digits" };
+  for (const score of [1.5, -1, "12", 2_000_000_000]) {
+    const reply = await handleGameRequest(
+      ask("challenge.result", { score }),
+      ctx,
+    );
+    assert.equal(reply && "error" in reply && reply.error.code, "invalid");
+  }
+  const reply = await handleGameRequest(
+    ask("challenge.result", { score: 12 }),
+    ctx,
+  );
+  assert.deepEqual(reply && "result" in reply && reply.result, {
+    beat: true,
+    posted: true,
+    best: 12,
+    rank: 1,
+    players: 2,
+  });
+  assert.deepEqual(posted, [12]);
+});
+
 test("a game gets the friend's challenge and can make challenge links", async () => {
   const { ctx, calls } = context(false);
   const challenge = {

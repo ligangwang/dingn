@@ -69,18 +69,18 @@ it("wears the player's level on their avatar, in the ring of their honor", () =>
   ).toBeNull();
 });
 
-it("shows the Leaderboard in the menu to admins only", () => {
+it("links the Challenges page in the menu for everyone, in place of the Leaderboard", () => {
   mocks.session.user = null;
   mocks.session.stats = null;
   mocks.session.isAdmin = false;
   render(<Header />);
-  expect(screen.queryByRole("link", { name: "Leaderboard" })).toBeNull();
+  expect(
+    screen.getByRole("link", { name: "Challenges" }).getAttribute("href"),
+  ).toMatch(/^\/challenges\/?$/);
   cleanup();
   mocks.session.isAdmin = true;
   render(<Header />);
-  expect(
-    screen.getByRole("link", { name: "Leaderboard" }).getAttribute("href"),
-  ).toMatch(/^\/leaderboard\/?$/);
+  expect(screen.queryByRole("link", { name: "Leaderboard" })).toBeNull();
 });
 
 it("gives a developer who isn't an admin an API keys link", () => {

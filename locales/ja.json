@@ -972,6 +972,22 @@
     "As a test account": "テストアカウントとして",
     "TEST": "テスト",
     "Administrator": "管理者",
-    "Tester": "テスター"
+    "Tester": "テスター",
+    "Challenges": "チャレンジ",
+    "Open challenges": "公開中のチャレンジ",
+    "Pick one and play the same round. Sign in and your score is posted under it.": "ひとつ選んで同じラウンドをプレイしよう。ログインすると、スコアがその下に掲載されます。",
+    "No open challenges yet. Finish a round and challenge anyone.": "公開中のチャレンジはまだありません。ラウンドを終えて、誰にでも挑戦状を出そう。",
+    "Players: {0}": "プレイヤー：{0}",
+    "Top score: {0} by {1}": "最高スコア：{1} の {0}",
+    "A player": "あるプレイヤー",
+    "Take the challenge": "チャレンジする",
+    "LATEST CHALLENGE": "最新のチャレンジ",
+    "All challenges →": "すべてのチャレンジ →",
+    "You beat it with {0}!": "{0} で勝ちました！",
+    "You scored {0}. Not enough this time.": "スコアは {0}。今回は届きませんでした。",
+    "Your best is #{0} of {1} here.": "あなたのベストはここで {1} 人中 {0} 位です。",
+    "Sign in to post your score": "ログインしてスコアを掲載",
+    "Challenge results": "チャレンジの結果",
+    "you": "あなた"
   }
 }

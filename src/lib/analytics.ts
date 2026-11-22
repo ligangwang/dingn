@@ -15,6 +15,7 @@ const titles: Record<string, string> = {
   "/feedback/": "Feedback",
   "/kingdom/": "Kingdom",
   "/leaderboard/": "Leaderboard",
+  "/challenges/": "Challenges",
   "/memory/": "Memory games",
   "/opt-out/": "Opt out",
   "/privacy/": "Privacy",

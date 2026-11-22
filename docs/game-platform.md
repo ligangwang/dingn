@@ -314,14 +314,46 @@ dingn saves each challenge when the link is made (`scripts/challenges.mjs`,
 change the score by editing the address. The record is server-only Firestore
 `challenges/{id}`: the game, mode, seed, score, unit and rules, the signed-in
 player's uid and dingn nickname (null for a guest), when it was made, and
-`public: false`. The link and its preview name the player ("Ada reached 10
-digits in Memory"), or say "A friend" for a guest. Challenges are private:
-only someone with the link can open one (`GET /api/challenges/<id>`, which
-shows the nickname but never the uid), and nothing lists them. `public` is for letting players share a challenge with the dingn
-community later. Links in the old form (`?challenge=…&score=…`) open the game
+`public`. The link and its preview name the player ("Ada reached 10
+digits in Memory"), or say "A friend" for a guest. Opening one
+(`GET /api/challenges/<id>`) shows nicknames but never a uid. Links in the old form (`?challenge=…&score=…`) open the game
 without a challenge. The score is still the one the game reports: dingn can't
 tell if a game in the browser was played fairly, but a saved score can't be
 changed afterwards.
+
+### Challenge anyone: results under a challenge
+
+A challenge is open to anyone, and it is a thread: its maker's score comes
+first, and everyone who takes it posts their result under it. When the
+player finishes the round of `dingn.challenge`, tell dingn their score:
+
+```js
+if (dingn.challenge) {
+  const { beat, posted, rank, players } = await dingn.challengeResult(12);
+}
+```
+
+dingn shows the player whether they won, above the game, and lists the
+challenge's results there, highest score first (of equal scores, the one made
+first). A signed-in player's result is posted (`posted: true`); each player
+keeps their best, so playing again can only raise it. A signed-out player is
+told the outcome too and invited to sign in, and the score they made is
+posted when they come back signed in. A test account's result is checked but
+not saved (`test: true`). A game that never calls `challengeResult` still
+works as before; its challenges just get no results.
+
+A signed-in player's challenge is listed: on the Challenges page
+(`/challenges/`, grouped by game) and, the newest one, at the top of the home
+page. A guest's, a test account's and every challenge from before threads
+stay unlisted: only their link opens them. So a game's button should say
+"Challenge anyone", not "Challenge a friend".
+
+On the server (`scripts/challenges.mjs`): `POST /api/challenges/<id>/results
+{ score }` posts a result; a thread keeps its best 50 in the challenge's own
+document (`results`, with `players` counting everyone who posted). `GET
+/api/challenges[?game=<id>]` lists the open ones, read from one small
+document per game (`challengeBoards/{game}`, the newest 20). Results pay no
+coins or XP: the scores are the ones games report.
 
 ### Referral coins
 

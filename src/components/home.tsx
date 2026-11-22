@@ -14,6 +14,8 @@ import { useEffect, useState } from "react";
 import { useOptionalSession } from "@/components/session";
 import { useKingdomRules } from "@/lib/reward-plugin";
 import { fetchKingdom, type KingdomView } from "@/lib/kingdom";
+import { challengeText } from "@/data/challenge.mjs";
+import { challengePath, useOpenChallenges } from "@/components/challenges-page";
 
 /** The home page's category cards, in menu order. */
 const ARENAS: { category: Category; className: string }[] = [
@@ -24,30 +26,64 @@ const ARENAS: { category: Category; className: string }[] = [
 ];
 
 export function Home() {
-  const { t, href } = useLocale();
+  const { t, locale, href } = useLocale();
   const catalog = useCatalog();
+  // Until players have posted one, the hero says what dingn is.
+  const latest = useOpenChallenges(catalog)?.[0] ?? null;
 
   return (
     <div className="mind-home container">
       <section className="mind-hero">
-        <div>
-          <h1>
-            {t("Quick games.")}
-            <br />
-            <span>{t("One growing kingdom.")}</span>
-          </h1>
-          <p className="lede">
-            {t("Play a round, earn coins, and build your world.")}
-          </p>
-          <div className="hero-actions">
-            <a className="button" href="#games">
-              {t("Play a game")}
-            </a>
-            <Link className="secondary-button" href={href("/kingdom/")}>
-              {t("See the kingdom →")}
-            </Link>
+        {latest ? (
+          // The latest challenge a player posted: one click to take it.
+          <div className="hero-challenge">
+            <p className="eyebrow">{t("LATEST CHALLENGE")}</p>
+            <h1>
+              {
+                challengeText(
+                  latest.challenge,
+                  pick(latest.game.title, locale),
+                  locale,
+                  latest.challenge.name,
+                  t,
+                ).title
+              }
+            </h1>
+            <p className="lede">
+              {t("Play a round, earn coins, and build your world.")}
+            </p>
+            <div className="hero-actions">
+              <Link
+                className="button"
+                href={href(challengePath(latest.game.id, latest.challenge.id))}
+              >
+                {t("Take the challenge")}
+              </Link>
+              <Link className="secondary-button" href={href("/challenges/")}>
+                {t("All challenges →")}
+              </Link>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <h1>
+              {t("Quick games.")}
+              <br />
+              <span>{t("One growing kingdom.")}</span>
+            </h1>
+            <p className="lede">
+              {t("Play a round, earn coins, and build your world.")}
+            </p>
+            <div className="hero-actions">
+              <a className="button" href="#games">
+                {t("Play a game")}
+              </a>
+              <Link className="secondary-button" href={href("/kingdom/")}>
+                {t("See the kingdom →")}
+              </Link>
+            </div>
+          </div>
+        )}
         <HeroKingdom />
       </section>
       {catalog && <FeaturedGame games={catalog} />}

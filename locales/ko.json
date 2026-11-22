@@ -972,6 +972,22 @@
     "As a test account": "테스트 계정으로",
     "TEST": "테스트",
     "Administrator": "관리자",
-    "Tester": "테스터"
+    "Tester": "테스터",
+    "Challenges": "챌린지",
+    "Open challenges": "열린 챌린지",
+    "Pick one and play the same round. Sign in and your score is posted under it.": "하나를 골라 같은 라운드를 플레이하세요. 로그인하면 점수가 그 아래에 게시됩니다.",
+    "No open challenges yet. Finish a round and challenge anyone.": "아직 열린 챌린지가 없습니다. 라운드를 끝내고 누구에게나 도전해 보세요.",
+    "Players: {0}": "플레이어: {0}",
+    "Top score: {0} by {1}": "최고 점수: {1}의 {0}",
+    "A player": "플레이어",
+    "Take the challenge": "챌린지 도전",
+    "LATEST CHALLENGE": "최신 챌린지",
+    "All challenges →": "모든 챌린지 →",
+    "You beat it with {0}!": "{0}(으)로 이겼습니다!",
+    "You scored {0}. Not enough this time.": "점수는 {0}입니다. 이번에는 부족했어요.",
+    "Your best is #{0} of {1} here.": "내 최고 기록은 여기서 {1}명 중 {0}위입니다.",
+    "Sign in to post your score": "로그인하고 점수 게시하기",
+    "Challenge results": "챌린지 결과",
+    "you": "나"
   }
 }

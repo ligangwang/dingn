@@ -972,6 +972,22 @@
     "As a test account": "Sebagai akun uji",
     "TEST": "UJI",
     "Administrator": "Administrator",
-    "Tester": "Penguji"
+    "Tester": "Penguji",
+    "Challenges": "Tantangan",
+    "Open challenges": "Tantangan terbuka",
+    "Pick one and play the same round. Sign in and your score is posted under it.": "Pilih satu dan mainkan ronde yang sama. Masuk, dan skormu akan dipasang di bawahnya.",
+    "No open challenges yet. Finish a round and challenge anyone.": "Belum ada tantangan terbuka. Selesaikan satu ronde dan tantang siapa saja.",
+    "Players: {0}": "Pemain: {0}",
+    "Top score: {0} by {1}": "Skor tertinggi: {0} oleh {1}",
+    "A player": "Seorang pemain",
+    "Take the challenge": "Terima tantangan",
+    "LATEST CHALLENGE": "TANTANGAN TERBARU",
+    "All challenges →": "Semua tantangan →",
+    "You beat it with {0}!": "Kamu menang dengan {0}!",
+    "You scored {0}. Not enough this time.": "Skormu {0}. Kali ini belum cukup.",
+    "Your best is #{0} of {1} here.": "Skor terbaikmu peringkat {0} dari {1} di sini.",
+    "Sign in to post your score": "Masuk untuk memasang skormu",
+    "Challenge results": "Hasil tantangan",
+    "you": "kamu"
   }
 }

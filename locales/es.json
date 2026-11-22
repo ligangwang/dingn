@@ -972,6 +972,22 @@
     "As a test account": "Como cuenta de prueba",
     "TEST": "PRUEBA",
     "Administrator": "Administrador",
-    "Tester": "Tester"
+    "Tester": "Tester",
+    "Challenges": "Desafíos",
+    "Open challenges": "Desafíos abiertos",
+    "Pick one and play the same round. Sign in and your score is posted under it.": "Elige uno y juega la misma ronda. Inicia sesión y tu puntuación se publicará debajo.",
+    "No open challenges yet. Finish a round and challenge anyone.": "Aún no hay desafíos abiertos. Termina una ronda y desafía a quien quiera.",
+    "Players: {0}": "Jugadores: {0}",
+    "Top score: {0} by {1}": "Mejor puntuación: {0}, de {1}",
+    "A player": "Un jugador",
+    "Take the challenge": "Aceptar el desafío",
+    "LATEST CHALLENGE": "ÚLTIMO DESAFÍO",
+    "All challenges →": "Todos los desafíos →",
+    "You beat it with {0}!": "¡Lo superaste con {0}!",
+    "You scored {0}. Not enough this time.": "Lograste {0}. Esta vez no alcanzó.",
+    "Your best is #{0} of {1} here.": "Tu mejor marca es la n.º {0} de {1} aquí.",
+    "Sign in to post your score": "Inicia sesión para publicar tu puntuación",
+    "Challenge results": "Resultados del desafío",
+    "you": "tú"
   }
 }

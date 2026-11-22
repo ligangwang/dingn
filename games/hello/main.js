@@ -1,5 +1,6 @@
 // A tiny example game for the dingn game platform. It shows every part of
-// the SDK: locale, player, device storage, account progress and sign-in.
+// the SDK: locale, player, device storage, account progress, sign-in and
+// challenges (a score anyone can take on, with the results under it).
 import { connect } from "./dingn-sdk.js";
 
 const copy = {
@@ -12,6 +13,8 @@ const copy = {
     start: "Start",
     again: "Play again",
     signIn: "Sign in to keep your best score",
+    challenge: "Challenge anyone",
+    copied: "Link copied. Send it to anyone!",
   },
   "zh-CN": {
     hello: (name) => (name ? `你好，${name}！` : "你好！"),
@@ -22,6 +25,8 @@ const copy = {
     start: "开始",
     again: "再玩一次",
     signIn: "登录以保存最高分",
+    challenge: "发起挑战",
+    copied: "链接已复制，发给任何人吧！",
   },
 };
 
@@ -56,6 +61,7 @@ $("start").onclick = () => {
   score = 0;
   $("star").disabled = false;
   $("start").hidden = true;
+  $("challenge").hidden = true;
   render();
   clearTimeout(timer);
   timer = setTimeout(async () => {
@@ -69,6 +75,12 @@ $("start").onclick = () => {
         await dingn.progress.save({ best }).catch(() => {});
     }
     render();
+    // Opened from a challenge: dingn posts the score under it and shows the
+    // player whether they won. Every round here is the same, so there is no
+    // seed to replay.
+    if (dingn.challenge) await dingn.challengeResult(score).catch(() => {});
+    $("challenge").textContent = text.challenge;
+    $("challenge").hidden = !dingn.embedded || score === 0;
   }, 10000);
 };
 $("star").onclick = () => {
@@ -76,6 +88,21 @@ $("star").onclick = () => {
   render();
 };
 $("signin").onclick = () => dingn.requestSignIn();
+// "Challenge anyone": dingn saves the score and lists it for other players;
+// the link opens it directly.
+$("challenge").onclick = async () => {
+  try {
+    const url = await dingn.challengeLink({
+      mode: "tap",
+      score,
+      unit: "points",
+    });
+    await navigator.clipboard?.writeText(url).catch(() => {});
+    $("challenge").textContent = text.copied;
+  } catch {
+    // dingn could not save it: the button stays for another try.
+  }
+};
 dingn.onPlayer(async () => {
   await loadBest();
   render();

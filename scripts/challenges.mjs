@@ -4,12 +4,15 @@
 // game reported, not one typed into the address.
 //
 //   POST /api/challenges { game, mode, seed?, score, unit, rules? } → { id }
-//   GET  /api/challenges/<id> → { id, game, mode, seed?, score, unit, rules?, name, mine }
+//   GET  /api/challenges/<id> → { id, game, mode, seed?, score, unit, rules?,
+//                                 name, mine, results, players }
+//   POST /api/challenges/<id>/results { score } → { best, rank, players, improved, beat }
+//   GET  /api/challenges[?game=<id>] → { challenges: [ … ] }  (the open ones)
 //
 // Each one is a server-only Firestore document, `challenges/{id}`:
 //
-//   { game, mode, seed, score, unit, rules, uid, name, createdAt, public: false,
-//     test? }
+//   { game, mode, seed, score, unit, rules, uid, name, createdAt, public,
+//     results, players, test? }
 //
 // `test` is true when an admin's test account made it (scripts/test-accounts.mjs):
 // friends it brings earn no referral coins (scripts/referrals.mjs).
@@ -19,13 +22,22 @@
 //
 // `uid` is the signed-in player who made it and `name` their dingn nickname
 // when they made it, the one leaderboards show (both null for a guest), so a
-// link can say "Ada reached …" instead of "A friend reached …". Challenges are
-// private: only someone with the link can open one, and nothing lists them.
-// Opening one shows the nickname, never the uid, and `mine` says whether the
-// signed-in player opening it is the one who made it (their own score to
-// beat).
-// `public` is always false for now; it is there so a player can later choose
-// to share a challenge with the dingn community.
+// link can say "Ada reached …" instead of "A friend reached …". Opening one
+// shows the nickname, never the uid, and `mine` says whether the signed-in
+// player opening it is the one who made it (their own score to beat).
+//
+// A challenge is a thread: its maker's score comes first, and every signed-in
+// player who takes it and finishes posts their result under it
+// (`results`, each player's best, highest first, at most MAX_RESULTS kept;
+// `players` counts everyone who posted). Scores are the ones games report, so
+// a thread pays nothing.
+//
+// `public` says whether dingn lists it ("Challenge anyone"): true for a
+// signed-in player's challenge, false for a guest's, a test account's and
+// every challenge from before threads, which only someone with the link can
+// open. The open ones of each game are kept, newest first, in one small
+// server-only document, `challengeBoards/{game}` ({ threads: [ … ] }, at most
+// MAX_LISTED), so listing them reads no more than one document per game.
 import { randomBytes } from "node:crypto";
 import {
   ApiError,
@@ -36,8 +48,18 @@ import {
   validateOrigin,
 } from "./api.mjs";
 import { ID, cachedRecord } from "./game-registry.mjs";
-import { getDoc, mergeDoc } from "./platform-store.mjs";
-import { CHALLENGE_ID, validChallenge } from "../src/data/challenge.mjs";
+import {
+  getDoc,
+  listDocs,
+  mergeDoc,
+  updateDoc,
+  updateMany,
+} from "./platform-store.mjs";
+import {
+  CHALLENGE_ID,
+  MAX_SCORE,
+  validChallenge,
+} from "../src/data/challenge.mjs";
 import { hasRole } from "./roles.mjs";
 
 export const isChallengePath = (pathname) =>
@@ -95,12 +117,131 @@ export function nickname(userName, tokenName) {
   return pick ? [...pick].slice(0, 24).join("") : null;
 }
 
+/** Results a thread keeps and shows: each player's best, highest first. */
+export const MAX_RESULTS = 50;
+/** Open challenges kept for each game's list. */
+export const MAX_LISTED = 20;
+
+/** Highest score first; of equal scores, the one made first. */
+const byScore = (a, b) => b.score - a.score || (a.at < b.at ? -1 : 1);
+
+/**
+ * A saved challenge's results: the ones posted under it, or, for a challenge
+ * from before threads, just its maker's score.
+ */
+export function resultsOf(doc) {
+  if (Array.isArray(doc?.results)) return doc.results;
+  return [
+    {
+      uid: doc.uid ?? null,
+      name: doc.name ?? null,
+      score: doc.score,
+      at: doc.createdAt ?? "",
+    },
+  ];
+}
+
+/**
+ * The thread after `uid` posts `score`: a player keeps only their best, so a
+ * lower score changes nothing. Returns the next document and what to tell
+ * the player.
+ */
+export function postResult(doc, { uid, name, score, now }) {
+  const before = resultsOf(doc);
+  const mine = before.find((r) => r.uid === uid);
+  const improved = !mine || score > mine.score;
+  const results = improved
+    ? [...before.filter((r) => r.uid !== uid), { uid, name, score, at: now }]
+        .sort(byScore)
+        .slice(0, MAX_RESULTS)
+    : before;
+  const best = improved ? score : mine.score;
+  const at = results.findIndex((r) => r.uid === uid);
+  const players =
+    (typeof doc.players === "number" ? doc.players : before.length) +
+    (mine ? 0 : 1);
+  return {
+    next: improved ? { ...doc, results, players, activeAt: now } : doc,
+    outcome: {
+      best,
+      // Null for a score below every result the thread keeps.
+      rank: at < 0 ? null : at + 1,
+      players,
+      improved,
+      beat: score > doc.score,
+    },
+  };
+}
+
+/** What a game's list of open challenges shows of one. */
+function listed(id, doc) {
+  const results = resultsOf(doc);
+  const top = results[0];
+  return {
+    id,
+    mode: doc.mode,
+    score: doc.score,
+    unit: doc.unit,
+    name: nickname(doc.name),
+    players: typeof doc.players === "number" ? doc.players : results.length,
+    top: top ? { name: nickname(top.name), score: top.score } : null,
+    createdAt: doc.createdAt,
+  };
+}
+
+/** A game's list with the challenge `id` added or brought up to date, newest first. */
+export function boardWith(board, id, doc) {
+  const threads = [
+    listed(id, doc),
+    ...(board?.threads ?? []).filter((t) => t.id !== id),
+  ]
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, MAX_LISTED);
+  return { threads };
+}
+
 /** What anyone with the link may see of a saved challenge. */
 export function shownChallenge(id, doc) {
   if (!doc || typeof doc.game !== "string") return null;
   const challenge = validChallenge(doc);
   if (!challenge) return null;
   return { id, game: doc.game, ...challenge, name: nickname(doc.name) };
+}
+
+/** A thread's results as anyone may see them: nicknames, never uids. */
+const shownResults = (doc, viewer) =>
+  resultsOf(doc).map((r) => ({
+    name: nickname(r.name),
+    score: r.score,
+    ...(viewer && r.uid === viewer ? { mine: true } : {}),
+  }));
+
+// The lists of open challenges, kept for half a minute.
+const lists = new Map();
+const LIST_TTL_MS = 30_000;
+/** Forgets the kept lists (after a change, and between tests). */
+export const forgetLists = () => lists.clear();
+
+/** The open challenges of one game, or of every game, newest first. */
+export async function openChallenges(game = null, now = Date.now()) {
+  const key = game ?? "";
+  const kept = lists.get(key);
+  if (kept && now - kept.at < LIST_TTL_MS) return kept.list;
+  const boards = game
+    ? [{ id: game, ...(await getDoc("challengeBoards", game)) }]
+    : await listDocs("challengeBoards");
+  const list = [];
+  for (const board of boards) {
+    // Only games in the catalog: one that is unlisted or was taken down
+    // lists nothing.
+    const record = await cachedRecord(board.id);
+    if (!record?.live || record.status !== "listed") continue;
+    for (const thread of board.threads ?? [])
+      list.push({ game: board.id, ...thread });
+  }
+  list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  lists.set(key, { at: now, list });
+  return list;
 }
 
 /** The saved challenge `id` (checked, with its maker's nickname but not their uid), or null. */
@@ -142,6 +283,53 @@ async function maker(req, res, verify, exchange, account) {
   };
 }
 
+/**
+ * Posts the signed-in player's result under the challenge `id`. A test
+ * account's is checked but not saved ({ test: true }), as its play stays off
+ * every board.
+ */
+async function addResult(req, res, id, { verify, exchange, account }) {
+  if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
+  validateOrigin(req);
+  throttle(req);
+  const { score } = await readBody(req);
+  if (
+    !CHALLENGE_ID.test(id) ||
+    typeof score !== "number" ||
+    !Number.isInteger(score) ||
+    score < 0 ||
+    score > MAX_SCORE
+  )
+    throw new ApiError(400, "invalid-request");
+  const { uid, name, test } = await maker(req, res, verify, exchange, account);
+  if (!uid) throw new ApiError(401, "signed-out");
+  limit(uid);
+  const saved = await getDoc("challenges", id);
+  if (!shownChallenge(id, saved)) throw new ApiError(404, "not-found");
+  const now = new Date().toISOString();
+  const post = (doc) => postResult(doc, { uid, name, score, now });
+  if (test) return { ...post(saved).outcome, test: true };
+  // The thread and its line on the game's list change together.
+  let outcome;
+  await updateMany(
+    [
+      ["challenges", id],
+      ["challengeBoards", saved.game],
+    ],
+    ([doc, board]) => {
+      const posted = post(doc ?? saved);
+      outcome = posted.outcome;
+      if (!outcome.improved) return [undefined, undefined];
+      return [
+        posted.next,
+        posted.next.public ? boardWith(board, id, posted.next) : undefined,
+      ];
+    },
+  );
+  if (outcome.improved && saved.public) forgetLists();
+  return outcome;
+}
+
 const send = (res, status, body, cache = "no-store") => {
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
@@ -163,22 +351,39 @@ export async function handleChallenges(
 ) {
   try {
     if (pathname !== "/api/challenges") {
+      const [id, part, ...more] = pathname
+        .slice("/api/challenges/".length)
+        .split("/");
+      if (part === "results" && !more.length)
+        return send(
+          res,
+          200,
+          await addResult(req, res, id, { verify, exchange, account }),
+        );
+      if (part !== undefined) throw new ApiError(404, "not-found");
       if (req.method !== "GET") throw new ApiError(405, "method-not-allowed");
       throttle(req);
-      const id = pathname.slice("/api/challenges/".length);
       const doc = CHALLENGE_ID.test(id) ? await getDoc("challenges", id) : null;
       const found = shownChallenge(id, doc);
       if (!found) throw new ApiError(404, "not-found");
       // Whether the player opening it made it: then it's their own score to
       // beat. Only a yes or no; the uid itself is never sent. The answer
       // depends on who asks, so nothing may cache it.
-      const viewer = doc.uid
-        ? await signedIn(req, res, verify, exchange)
-        : null;
+      const viewer = await signedIn(req, res, verify, exchange);
       return send(res, 200, {
         ...found,
-        mine: !!viewer && viewer.uid === doc.uid,
+        mine: !!viewer && !!doc.uid && viewer.uid === doc.uid,
+        results: shownResults(doc, viewer?.uid),
+        players:
+          typeof doc.players === "number" ? doc.players : resultsOf(doc).length,
       });
+    }
+    if (req.method === "GET") {
+      throttle(req);
+      const game = new URL(req.url, "http://x").searchParams.get("game");
+      if (game != null && !ID.test(game))
+        throw new ApiError(400, "invalid-request");
+      return send(res, 200, { challenges: await openChallenges(game) });
     }
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
     validateOrigin(req);
@@ -202,18 +407,33 @@ export async function handleChallenges(
       limit("guests", MAX_GUESTS_PER_WINDOW);
     }
     const id = newChallengeId();
-    await mergeDoc("challenges", id, {
+    const createdAt = new Date().toISOString();
+    const doc = {
       game: body.game,
       ...challenge,
       seed: challenge.seed ?? null,
       rules: challenge.rules ?? null,
       uid,
       name,
-      createdAt: new Date().toISOString(),
-      public: false,
+      createdAt,
+      // "Challenge anyone": a signed-in player's challenge is listed. A
+      // guest's has nobody behind it, so only its link opens it.
+      public: !!uid && !test,
+      // The thread starts with its maker's score.
+      results: [{ uid, name, score: challenge.score, at: createdAt }],
+      players: 1,
       // Made by a test account: it brings no referral coins.
       ...(test ? { test: true } : {}),
-    });
+    };
+    await mergeDoc("challenges", id, doc);
+    if (doc.public) {
+      // The link works without its place on the list, so a failure here
+      // doesn't lose the challenge.
+      await updateDoc("challengeBoards", body.game, (board) =>
+        boardWith(board, id, doc),
+      ).catch((error) => console.error("challenges: list", error));
+      forgetLists();
+    }
     return send(res, 200, { id });
   } catch (error) {
     if (error instanceof ApiError)

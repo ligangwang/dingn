@@ -73,7 +73,7 @@ export type Earning = {
 export type ChallengeUnit =
   "points" | "digits" | "cards" | "levels" | "stars" | "words" | "coins";
 /**
- * A score for a friend to beat. `mode` (1-24 lowercase letters, digits or
+ * A score for anyone to beat. `mode` (1-24 lowercase letters, digits or
  * dashes) and `seed` (1-32 letters, digits or dashes, such as a day) tell the
  * game which round to replay, so the friend plays the same one.
  */
@@ -96,6 +96,20 @@ export type Challenge = {
    * Then it is their own score to beat, not a friend's.
    */
   mine?: boolean;
+};
+/** How a challenge round ended, from `dingn.challengeResult`. */
+export type ChallengeOutcome = {
+  /** True when the score is higher than the challenge's. */
+  beat: boolean;
+  /** False for a signed-out player, and in a test: nothing was posted. */
+  posted: boolean;
+  /** The player's best score under this challenge. */
+  best: number;
+  /** Its place among the results, or null below the ones dingn keeps. */
+  rank: number | null;
+  /** How many players have posted a result. */
+  players: number;
+  test?: boolean;
 };
 export type DingnGame = {
   gameId: string;
@@ -158,6 +172,16 @@ export type DingnGame = {
    * and "unknown_method" on a dingn website from before challenge links.
    */
   challengeLink(challenge: Challenge): Promise<string>;
+  /**
+   * Call it when the player finishes the round of `dingn.challenge`, with
+   * their score. A challenge is open to anyone: dingn posts a signed-in
+   * player's result under it, where every result is ranked, and tells the
+   * player whether they won; a signed-out player is told too and invited to
+   * sign in. Each player keeps their best score. Rejects with code
+   * "no_challenge" when the page was not opened from a challenge, and
+   * "unknown_method" on a dingn website from before challenge results.
+   */
+  challengeResult(score: number): Promise<ChallengeOutcome>;
   /**
    * Tells dingn a round was played to the end (won or lost), for the
    * website's play statistics. Call it once per finished round.

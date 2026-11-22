@@ -3,7 +3,11 @@
 // Everything a game sends is untrusted: keys, sizes and methods are checked
 // here, and a game can only reach its own storage and progress.
 import type { Locale } from "./i18n";
-import { validChallenge, type Challenge } from "@/data/challenge.mjs";
+import {
+  MAX_SCORE,
+  validChallenge,
+  type Challenge,
+} from "@/data/challenge.mjs";
 
 export const PROTOCOL = 1;
 /** Largest stored value or progress save, as JSON. */
@@ -71,6 +75,11 @@ export type BridgeContext = {
    * opens it.
    */
   challengeLink?: (challenge: Challenge) => Promise<string>;
+  /**
+   * The player finished the round of the challenge the page opened, with
+   * this score: dingn posts it under the challenge and shows who won.
+   */
+  challengeResult?: (score: number) => Promise<ChallengeOutcome>;
   /** The game finished a round (for the play statistics). */
   roundEnded?: () => void;
   /**
@@ -87,6 +96,18 @@ export type BridgeContext = {
     /** Pays the player a few coins for play, within a daily allowance. */
     earn: (coins: number) => Promise<EarnResult>;
   };
+};
+export type ChallengeOutcome = {
+  /** True when the score is higher than the challenge's. */
+  beat: boolean;
+  /** False for a signed-out player (and in a test): nothing was posted. */
+  posted: boolean;
+  /** The player's best score under the challenge, and its place there. */
+  best: number;
+  rank: number | null;
+  /** How many players have posted a result. */
+  players: number;
+  test?: boolean;
 };
 export type EarnResult = { coins: number; left: number | null; test?: boolean };
 export type SpendResult = { new: boolean; coins: number; test?: boolean };
@@ -303,6 +324,25 @@ async function answer(
           "Challenge links are not available here.",
         );
       return ctx.challengeLink(challenge);
+    }
+    case "challenge.result": {
+      const score = request.params?.score;
+      if (
+        typeof score !== "number" ||
+        !Number.isInteger(score) ||
+        score < 0 ||
+        score > MAX_SCORE
+      )
+        throw new BridgeError(
+          "invalid",
+          "A score is a whole number, 0 or more.",
+        );
+      if (!ctx.challenge || !ctx.challengeResult)
+        throw new BridgeError(
+          "no_challenge",
+          "This page was not opened from a challenge.",
+        );
+      return ctx.challengeResult(score);
     }
     case "roundEnded":
       ctx.roundEnded?.();

@@ -47,17 +47,15 @@ export function Header() {
           <CastleIcon className="nav-icon" size={18} />
           <span className="nav-label">{t("Kingdom")}</span>
         </Link>
-        {ready && isAdmin && (
-          // Only admins see the leaderboard in the menu.
-          <Link
-            href={to("/leaderboard/")}
-            aria-label={t("Leaderboard")}
-            aria-current={here("/leaderboard/") ? "page" : undefined}
-          >
-            <TrophyIcon className="nav-icon" size={18} />
-            <span className="nav-label">{t("Leaderboard")}</span>
-          </Link>
-        )}
+        {/* The open challenges, with the top players under them. */}
+        <Link
+          href={to("/challenges/")}
+          aria-label={t("Challenges")}
+          aria-current={here("/challenges/") ? "page" : undefined}
+        >
+          <TrophyIcon className="nav-icon" size={18} />
+          <span className="nav-label">{t("Challenges")}</span>
+        </Link>
         {ready && isAdmin && <AdminMenu key={path} path={path} />}
         {ready && isDeveloper && !isAdmin && (
           // Developers reach their upload keys here; admins in the Admin menu.
