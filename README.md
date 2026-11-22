@@ -221,6 +221,23 @@ After deployment, authorize the exact returned `run.app` hostname in Firebase Au
 
 In authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (or `--revoke`) for an explicitly approved existing account. This uses the project-owner credentials, preserves other custom claims, and verifies the change. The script is excluded from the website container. Never store admin access in editable account documents. After a change, sign out and back in; existing tokens can retain their claims until expiry (up to an hour). The admin navigation link appears only after the token claim is confirmed; Firestore independently enforces access.
 
+## Test accounts
+
+Admins make accounts for testing under "Test accounts" on `/admin/users/`,
+without the sign-up form or an inbox (`scripts/test-accounts.mjs`). Each is an
+email-and-password account whose address is already confirmed, so Firebase
+sends no activation email and it signs in on `/signin/` at once. Leave the
+password empty and dingn makes one up, shown once. Firebase allows one
+password account per address, so making several numbers the address:
+`you+qa@gmail.com` makes `you+qa1@gmail.com`, `you+qa2@gmail.com`, and so on.
+
+Test accounts carry the `tester: true` claim. They play like anyone else, but
+never appear on the leaderboard and never earn referral coins as a friend
+brought in. The Players page labels them. Only accounts with that claim can
+be given a new password or deleted from this page. Deleting one removes its
+sign-in; its saved data stays in Firestore but no longer shows on the
+leaderboard. This uses the runtime account's existing `roles/firebaseauth.admin`.
+
 ## Mind arcade and authentication domain
 
 dingn has four game categories, in this order on the menu: Casual (Crowd Rush, from `ligangwang/crowdrush`), Memory (the Memory game: Number Ladder, Card Ladder and the Major System labs, from `ligangwang/memory`), Puzzle (Rubik's Cube at `/play/rubikscube/`, from `ligangwang/rubikscube`) and Adventure (Mythbound at `/play/mythbound/`, from `ligangwang/mythbound`). The Logic Lab and Decision Room games were retired; their old addresses (`/logic/`, `/decisions/` and the `/zh/` copies) redirect to the home page.

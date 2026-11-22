@@ -97,3 +97,24 @@ test("the leaderboard shows each player's own nickname and links every one, givi
   // Ada kept hers.
   assert.equal(store.get("accounts/ada").player_no, "7302518846");
 });
+
+test("the leaderboard leaves out the accounts it is told to, and fills the ten from below", async () => {
+  const seed = {};
+  for (let i = 0; i < 12; i++)
+    seed[`players/p${String(i).padStart(2, "0")}`] = {
+      xp: 1000 - i,
+      level: 5,
+      name: `P${i}`,
+    };
+  const { db } = fakeDb(seed);
+  let asked = [];
+  const entries = await topPlayers(db, async (uids) => {
+    asked = uids;
+    return new Set(["p00", "p03"]);
+  });
+  assert.equal(asked.length, 12);
+  assert.deepEqual(
+    entries.map((e) => e.uid),
+    ["p01", "p02", "p04", "p05", "p06", "p07", "p08", "p09", "p10", "p11"],
+  );
+});

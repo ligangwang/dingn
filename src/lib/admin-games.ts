@@ -105,6 +105,51 @@ export async function changeAdmin(email: string, action: "add" | "remove") {
   ).admin;
 }
 
+/** A test account (scripts/test-accounts.mjs). */
+export type Tester = {
+  uid: string;
+  email: string;
+  name: string;
+  disabled: boolean;
+  admin: boolean;
+  createdAt: string | null;
+  lastActive: string | null;
+};
+export type NewTesters = {
+  email: string;
+  count: number;
+  name?: string;
+  /** Left out: dingn makes one up and returns it once. */
+  password?: string;
+};
+
+export async function listTesters() {
+  return (await api<{ testers: Tester[] }>("/api/admin/testers")).testers;
+}
+
+/** Makes test accounts, all with one password, which comes back once. */
+export async function createTesters(request: NewTesters) {
+  return api<{ testers: Tester[]; password: string }>(
+    "/api/admin/testers/update",
+    { action: "create", ...request },
+  );
+}
+
+/** Gives a test account a new password (made up when left out). */
+export async function resetTesterPassword(uid: string, password?: string) {
+  return api<{ tester: Tester; password: string }>(
+    "/api/admin/testers/update",
+    { action: "password", uid, ...(password ? { password } : {}) },
+  );
+}
+
+export async function deleteTester(uid: string) {
+  await api<{ uid: string }>("/api/admin/testers/update", {
+    action: "delete",
+    uid,
+  });
+}
+
 export type Player = {
   uid: string;
   email: string;
@@ -113,6 +158,8 @@ export type Player = {
   admin: boolean;
   developer: boolean;
   developerBlocked: boolean;
+  /** A test account, kept off the leaderboard and referrals. */
+  tester?: boolean;
   disabled: boolean;
   createdAt: string | null;
   lastSignIn: string | null;

@@ -97,6 +97,7 @@ function PlayerList() {
       p.admin && t("Admin"),
       p.developer && t("Developer"),
       p.developerBlocked && t("Uploads blocked"),
+      p.tester && t("Test account"),
       p.disabled && t("Disabled"),
     ]
       .filter(Boolean)

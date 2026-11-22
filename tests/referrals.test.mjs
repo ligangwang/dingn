@@ -41,6 +41,7 @@ function claim(
     now = "2026-11-20T12:00:00.000Z",
     signedIn = true,
     verified = true,
+    tester = false,
   } = {},
 ) {
   const req = Object.assign(
@@ -74,7 +75,7 @@ function claim(
           }
           return "t";
         },
-        verify: async () => ({ uid }),
+        verify: async () => (tester ? { uid, tester: true } : { uid }),
         account: async () => ({ created: new Date(made), verified }),
         now: () => now,
       },
@@ -129,6 +130,11 @@ test("existing members, guests' challenges and your own links earn nothing", asy
     (await claim("jo", "ChallengeCy1", { verified: false })).body.state,
     "none",
   );
+  // An admin's test account.
+  assert.equal(
+    (await claim("ko", "ChallengeCy1", { tester: true })).body.state,
+    "none",
+  );
   // Your own challenge.
   assert.equal((await claim("cy", "ChallengeCy1")).body.state, "none");
   // A guest's challenge has nobody to pay.
@@ -142,7 +148,7 @@ test("existing members, guests' challenges and your own links earn nothing", asy
   );
   assert.equal((await claim("gu", "NoSuchChalle")).body.state, "none");
   assert.equal((await claim("gu", "../x")).body.state, "none");
-  for (const uid of ["cy", "di", "ed", "fy", "gu", "jo"])
+  for (const uid of ["cy", "di", "ed", "fy", "gu", "jo", "ko"])
     assert.equal(await coins(uid), 0, uid);
   // Signed out: nothing to pay.
   assert.equal(

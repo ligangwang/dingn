@@ -362,6 +362,9 @@ test("a review key can list games and approve or reject, and nothing else", asyn
     ["/api/admin/keys", { action: "create", name: "more" }],
     ["/api/admin/admins/update", { action: "add", email: "a@b.c" }],
     ["/api/admin/settings/update", { leaderboardPublic: true }],
+    ["/api/admin/testers", {}],
+    ["/api/admin/testers/update", { action: "create", email: "a@b.c" }],
+    ["/api/admin/testers/update", { action: "password", uid: "boss" }],
   ]) {
     const refused = await keyed(pathname, body);
     assert.equal(refused.status, 403, `${pathname} ${body.action ?? ""}`);
@@ -404,4 +407,98 @@ test("a review key can list games and approve or reject, and nothing else", asyn
   );
   assert.deepEqual(revoked.body.keys, []);
   assert.equal((await keyed("/api/admin/games")).status, 401);
+});
+
+test("only a signed-in admin on the website reaches the test accounts API", async () => {
+  // Firebase Auth must never be touched by a refused request.
+  const users = new Proxy(
+    {},
+    {
+      get: () => () => {
+        throw new Error("refused requests must not reach Firebase Auth");
+      },
+    },
+  );
+  const request = (
+    pathname,
+    body,
+    {
+      claims = { admin: true, uid: "boss" },
+      headers = {},
+      method = "POST",
+      signedIn = true,
+    } = {},
+  ) => {
+    const req = Object.assign(Readable.from([JSON.stringify(body)]), {
+      method,
+      url: pathname,
+      headers: {
+        origin,
+        "x-dingn-request": "1",
+        "content-type": "application/json",
+        ...headers,
+      },
+    });
+    return new Promise((resolve) => {
+      let status = 0;
+      let cache = "";
+      const res = {
+        setHeader() {},
+        getHeader() {},
+        writeHead: (s, h) => {
+          status = s;
+          cache = h?.["Cache-Control"] ?? "";
+        },
+        end: (b) => resolve({ status, cache, body: b ? JSON.parse(b) : null }),
+      };
+      void admin.handleAdminGames(req, res, pathname, {
+        verify: async () => claims,
+        exchange: async () => {
+          if (!signedIn) {
+            const { ApiError } = await import("../scripts/api.mjs");
+            throw new ApiError(401, "sign-in-required");
+          }
+          return "id-token";
+        },
+        users,
+      });
+    });
+  };
+  const create = { action: "create", email: "qa@example.com", count: 5 };
+  for (const pathname of ["/api/admin/testers", "/api/admin/testers/update"]) {
+    // Signed out.
+    assert.equal(
+      (await request(pathname, create, { signedIn: false })).status,
+      401,
+    );
+    // Signed in, not an admin (a test account included).
+    for (const claims of [{ uid: "u" }, { uid: "qa", tester: true }]) {
+      const refused = await request(pathname, create, { claims });
+      assert.equal(refused.status, 403);
+      assert.equal(refused.body.error, "admin-required");
+    }
+    // Another site, a missing header, or not a POST.
+    assert.equal(
+      (
+        await request(pathname, create, {
+          headers: { origin: "https://evil.example" },
+        })
+      ).status,
+      403,
+    );
+    assert.equal(
+      (await request(pathname, create, { headers: { "x-dingn-request": "" } }))
+        .status,
+      403,
+    );
+    assert.equal(
+      (await request(pathname, create, { method: "GET" })).status,
+      405,
+    );
+  }
+  // An admin gets through to Firebase Auth (which this stand-in refuses),
+  // and the reply is never cached.
+  const allowed = await request("/api/admin/testers", {});
+  assert.equal(allowed.status, 503);
+  assert.equal(allowed.cache, "no-store");
 });
