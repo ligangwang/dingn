@@ -58,6 +58,18 @@ const REFERENCE: [string, string][] = [
     'Pays the signed-in player 1 to 10 dingn coins for play itself, such as a failed level that still got somewhere. Each game can pay a player up to 500 coins a day this way, on top of its badges; past that, earn() pays 0. dingn shows the coins over the game. It fails with the code "signed_out" when no one is signed in.',
   ],
   [
+    "dingn.challengeLink(challenge)\ndingn.challenge",
+    "Makes a link that challenges anyone to beat a score on the same round: { mode, seed, score, unit }, with unit one of points, digits, cards, levels, stars, words or coins. dingn saves the challenge, lists a signed-in player's one for other players, and gives you the link to share. When a player opens a challenge, dingn.challenge holds it (null otherwise): start that round.",
+  ],
+  [
+    "dingn.challengeResult(score)",
+    'Call it when the player finishes the round of dingn.challenge, with their score. dingn shows whether they won and posts a signed-in player\'s score under the challenge, where every result is ranked and each player keeps their best. It gives { beat, posted, best, rank, players }, and fails with the code "no_challenge" when the page was not opened from a challenge.',
+  ],
+  [
+    "dingn.roundEnded()",
+    "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.",
+  ],
+  [
     "dingn.requestSignIn()",
     "Sends the player to sign in. They come back to your game afterwards.",
   ],

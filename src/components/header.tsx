@@ -4,13 +4,7 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import {
-  CastleIcon,
-  CrowdIcon,
-  KeyIcon,
-  ShieldIcon,
-  TrophyIcon,
-} from "./icons";
+import { CrowdIcon, KeyIcon, ShieldIcon, TrophyIcon } from "./icons";
 import { CATEGORY_INFO, playPath, useCatalog } from "./catalog";
 import { CATEGORIES, gamesIn, type CatalogGame } from "@/lib/catalog";
 import { HonorAvatar } from "./honor";
@@ -33,14 +27,6 @@ export function Header() {
       <nav aria-label={t("Main navigation")}>
         {/* One menu for all the games, so the header stays short. */}
         <GamesMenu key={path} path={path} games={catalog} />
-        <Link
-          href={to("/kingdom/")}
-          aria-label={t("Kingdom")}
-          aria-current={here("/kingdom/") ? "page" : undefined}
-        >
-          <CastleIcon className="nav-icon" size={18} />
-          <span className="nav-label">{t("Kingdom")}</span>
-        </Link>
         {/* The open challenges, with the top players under them. */}
         <Link
           href={to("/challenges/")}
