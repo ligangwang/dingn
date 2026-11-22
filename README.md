@@ -231,19 +231,10 @@ time its roles change. Code reads and changes roles only through
 `roles`. `developerBlocked` is not a role but a restriction on signing up as a
 developer again.
 
-Accounts made before roles carried `admin: true`, `developer: true` or
-`tester: true` instead, which still count (`admin` as `administrator`). To
-give every account its full list (every account but a test account gets
-`player`) and remove the old flags, run this from Cloud Shell as the project
-owner after `npm ci` in the repository folder, first without `--apply` to
-see what would change:
-
-```bash
-node scripts/migrate-roles.mjs --apply --drop-flags
-```
-
-It is safe to run again. Changed claims reach each account's ID token within
-the hour.
+Every account was given its full list in November 2026. Accounts made before
+roles carried `admin: true`, `developer: true` or `tester: true` instead;
+those flags still count (`admin` as `administrator`) in case one was missed,
+and changing the account's roles removes them.
 
 ## Admin access
 
@@ -259,7 +250,8 @@ password empty and dingn makes one up, shown once. Firebase allows one
 password account per address, so making several numbers the address:
 `you+qa@gmail.com` makes `you+qa1@gmail.com`, `you+qa2@gmail.com`, and so on.
 
-Test accounts hold the `tester` role. They play like anyone else, but
+Test accounts hold the `tester` role, and their default nickname is
+`Tester<public number>` instead of `Player<public number>`. They play like anyone else, but
 never appear on the leaderboard and never earn referral coins as a friend
 brought in. The Players page labels them. Only accounts with that claim can
 be given a new password or deleted from this page. Deleting one removes its

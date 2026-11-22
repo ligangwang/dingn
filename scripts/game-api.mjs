@@ -306,16 +306,24 @@ const nicknames = (db) => db.collection("nicknames");
 
 /**
  * The player's nickname, giving one first to a player who has none:
- * "Player<their public number>", unique because the number is. A player who
+ * "Player<their public number>", or "Tester<their public number>" for a test
+ * account (`tester`), unique because the number is. A test account still
+ * named by the player default is renamed to the tester one. A player who
  * chose a name before names were unique has it registered on their next
  * visit, if no one holds it yet.
  */
-export async function ensureNickname(db, uid) {
+export async function ensureNickname(db, uid, { tester = false } = {}) {
   const accountRef = db.collection("accounts").doc(uid);
   const account = (await accountRef.get()).data() ?? {};
   const current = cleanNickname(account.user_name);
+  // A test account still showing a player's default name.
+  const misnamed = (data, name) =>
+    tester &&
+    isPlayerNumber(data.player_no) &&
+    name === defaultNickname(data.player_no);
   // Most players are named and registered already: no transaction.
-  if (current && account.name_key !== undefined) return current;
+  if (current && account.name_key !== undefined && !misnamed(account, current))
+    return current;
   // A default nickname is the player's own public number: one number for
   // their name and their page.
   const number = await ensurePlayerNumber(db, uid);
@@ -327,6 +335,23 @@ export async function ensureNickname(db, uid) {
     ]);
     const data = now.data() ?? {};
     const had = cleanNickname(data.user_name);
+    if (had && misnamed(data, had)) {
+      // "Player<number>" becomes "Tester<number>", and the old name is freed.
+      const name = defaultNickname(number, true);
+      const key = nicknameKey(name);
+      const oldRef = data.name_key ? nicknames(db).doc(data.name_key) : null;
+      const [held, oldHeld] = await Promise.all([
+        tx.get(nicknames(db).doc(key)),
+        oldRef ? tx.get(oldRef) : null,
+      ]);
+      // Someone chose that name before it was reserved: keep the old one.
+      if (held.exists && held.data()?.uid !== uid) return had;
+      if (oldRef && oldHeld?.data()?.uid === uid) tx.delete(oldRef);
+      tx.set(nicknames(db).doc(key), { uid, name });
+      tx.set(accountRef, { user_name: name, name_key: key }, { merge: true });
+      if (player.exists) tx.set(playerRef, { name }, { merge: true });
+      return name;
+    }
     if (had) {
       if (data.name_key !== undefined) return had;
       // Register a name chosen before names were unique, if it is free.
@@ -338,11 +363,18 @@ export async function ensureNickname(db, uid) {
       tx.set(accountRef, { name_key: mine ? key : "" }, { merge: true });
       return had;
     }
-    // None yet: "Player<public number>". Nobody else can hold it, as names
-    // shaped like a default are reserved (claimNickname).
-    const name = defaultNickname(number);
-    const key = nicknameKey(name);
-    const held = await tx.get(nicknames(db).doc(key));
+    // None yet: "Player<public number>" ("Tester…" for a test account).
+    // Nobody else can hold it, as names shaped like a default are reserved
+    // (claimNickname), except a Tester name someone chose before those were
+    // reserved: then the test account gets the Player one.
+    let name = defaultNickname(number, tester);
+    let key = nicknameKey(name);
+    let held = await tx.get(nicknames(db).doc(key));
+    if (tester && held.exists && held.data()?.uid !== uid) {
+      name = defaultNickname(number);
+      key = nicknameKey(name);
+      held = await tx.get(nicknames(db).doc(key));
+    }
     if (held.exists && held.data()?.uid !== uid)
       throw new Error("Default nickname taken");
     tx.set(nicknames(db).doc(key), { uid, name });
@@ -353,8 +385,12 @@ export async function ensureNickname(db, uid) {
   });
 }
 
-/** A player's default nickname: "Player" and their public number. */
-export const defaultNickname = (number) => `Player${number}`;
+/**
+ * A player's default nickname: "Player" and their public number, or
+ * "Tester" and it for a test account.
+ */
+export const defaultNickname = (number, tester = false) =>
+  `${tester ? "Tester" : "Player"}${number}`;
 
 /**
  * Changes a player's nickname to `wanted`, if no other player holds it, and
@@ -380,12 +416,10 @@ export async function claimNickname(db, uid, wanted) {
     ]);
     if (held.exists && held.data()?.uid !== uid)
       throw new GameError(409, "nickname_taken", "That nickname is taken.");
-    // "Player" and a number is how default nicknames look: only a player's
-    // own default (Player<their public number>) may be chosen.
-    if (
-      /^player\d+$/i.test(name) &&
-      name.toLowerCase() !== `player${account.data()?.player_no}`
-    )
+    // "Player" or "Tester" and a number is how default nicknames look: only
+    // a player's own default (with their public number) may be chosen.
+    const shape = /^(player|tester)(\d+)$/i.exec(name);
+    if (shape && shape[2] !== account.data()?.player_no)
       throw new GameError(409, "nickname_taken", "That nickname is taken.");
     const old = account.data()?.name_key;
     const oldRef = old && old !== key ? nicknames(db).doc(old) : null;
@@ -499,7 +533,7 @@ async function me(req, res) {
     // A new player gets their default nickname here, on their first visit.
     // Then their public number, for their page (one transaction at a time
     // on the account).
-    ensureNickname(db, token.uid)
+    ensureNickname(db, token.uid, { tester: hasRole(token, "tester") })
       .catch(() => null)
       .then(async (name) => ({
         name,

@@ -17,10 +17,9 @@
 // restriction: a developer an administrator removed can't sign up again by
 // itself.
 //
-// Accounts made before roles carry `admin: true`, `developer: true` or
-// `tester: true` instead. Those still count until scripts/migrate-roles.mjs
-// has moved every account to a full `roles` list; any change made here moves
-// the account.
+// Accounts were moved to role lists in November 2026. Before that they
+// carried `admin: true`, `developer: true` or `tester: true`; those flags
+// still count, in case one was missed, and any change made here drops them.
 
 export const ROLES = ["administrator", "developer", "player", "tester"];
 /** The flags accounts carried before roles, and the role each one is. */
@@ -78,26 +77,4 @@ export function withRoles(claims, roles) {
   for (const flag of Object.keys(LEGACY_FLAGS)) delete rest[flag];
   delete rest.roles;
   return { ...rest, roles: onlyRoles(roles) };
-}
-
-/**
- * The account's claims moved to a full list of roles, or null when they need
- * no change. Every account that isn't a test account gets the player role.
- * With `dropFlags` false (safe while websites from before roles still run)
- * the old flags are kept beside the list; with it true they are removed.
- */
-export function migratedClaims(claims, { dropFlags = false } = {}) {
-  const held = new Set(rolesOf(claims));
-  if (!held.has("tester")) held.add("player");
-  const roles = ROLES.filter((role) => held.has(role));
-  const stored = Array.isArray(claims?.roles) ? claims.roles : null;
-  const listed =
-    stored !== null &&
-    stored.length === roles.length &&
-    roles.every((role) => stored.includes(role));
-  const flags = Object.keys(LEGACY_FLAGS).some(
-    (flag) => flag in (claims ?? {}),
-  );
-  if (dropFlags) return listed && !flags ? null : withRoles(claims, roles);
-  return listed ? null : { ...(claims ?? {}), roles };
 }
