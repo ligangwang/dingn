@@ -8,7 +8,7 @@
 //   const dingn = await connect();
 //   dingn.locale;                         // the player's language, one your game.json lists ("en" if none fits)
 //   dingn.onLanguage((locale) => …);      // the player switched language
-//   dingn.player;                         // { signedIn, name, avatar }
+//   dingn.player;                         // { signedIn, name, avatar, tester }
 //   dingn.onPlayer((player) => …);        // sign-in or sign-out
 //   await dingn.storage.set("best", 12);  // this device only
 //   await dingn.progress.save({ level }); // follows a signed-in player
@@ -156,7 +156,7 @@ function standalone() {
     gameId: "",
     version: "",
     locale: lang.toLowerCase().startsWith("zh") ? "zh-CN" : "en",
-    player: { signedIn: false, name: "", avatar: "" },
+    player: { signedIn: false, name: "", avatar: "", tester: false },
     embedded: false,
     challenge: null,
     onPlayer: () => () => {},

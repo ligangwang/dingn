@@ -127,6 +127,8 @@ async function identity(token, known) {
         : null,
     isAdmin: claims.admin === true,
     isDeveloper: claims.developer === true,
+    // A test account an admin made (scripts/test-accounts.mjs).
+    isTester: claims.tester === true,
   };
 }
 export async function readBody(req) {

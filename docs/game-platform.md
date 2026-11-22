@@ -245,7 +245,7 @@ import { connect } from "./dingn-sdk.js";
 const dingn = await connect();
 dingn.locale; // the player's language, one your game.json lists
 dingn.onLanguage((locale) => {}); // the player switched language
-dingn.player; // { signedIn, name, avatar }
+dingn.player; // { signedIn, name, avatar, tester }: tester is an admin's test account
 await dingn.storage.set("best", 12); // this device
 await dingn.progress.save({ level: 3 }); // the player's account (signed in only)
 await dingn.rewards.unlock("level-10"); // a badge from game.json
@@ -361,8 +361,12 @@ The website's text in every language but English is a pack in `locales/`,
 one file per language:
 
 ```json
-{ "name": "Español", "lang": "es", "path": "/es",
-  "strings": { "Play": "Jugar", "Level {0}": "Nivel {0}" } }
+{
+  "name": "Español",
+  "lang": "es",
+  "path": "/es",
+  "strings": { "Play": "Jugar", "Level {0}": "Nivel {0}" }
+}
 ```
 
 Keys are the English text; `{0}`-style placeholders carry numbers and

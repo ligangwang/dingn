@@ -286,7 +286,7 @@
     "Call": "调用",
     "What it does": "作用",
     "The player's language, \"en\" or \"zh-CN\". Show your game in it.": "玩家的语言，\"en\" 或 \"zh-CN\"。请用这种语言显示游戏。",
-    "{ signedIn, name, avatar }. Never an email address or account id.": "{ signedIn, name, avatar }。不会包含邮箱或账号 ID。",
+    "{ signedIn, name, avatar, tester }. tester is true for a test account dingn's admins made: show test tools only to it. Never an email address or account id.": "{ signedIn, name, avatar, tester }。tester 为 true 表示 dingn 管理员创建的测试账号：测试工具只对它显示。不会包含邮箱或账号 ID。",
     "Called when the player signs in or out. Returns a function that stops listening.": "玩家登录或退出时调用。返回一个用于停止监听的函数。",
     "Saves JSON on this device only. Keys are up to 64 letters, digits, dots, dashes or underscores. Values are up to 16 KB.": "只在本设备上保存 JSON。键名最多 64 个字母、数字、点、短横线或下划线，值最大 16 KB。",
     "Saves JSON to the signed-in player's account, so it follows them to any device. Up to 16 KB. save() fails with the code \"signed_out\" when no one is signed in.": "把 JSON 保存到已登录玩家的账号，换设备也能继续。最大 16 KB。没有玩家登录时，save() 会以代码 \"signed_out\" 失败。",
@@ -968,6 +968,8 @@
     "New password": "新密码",
     "Delete the test account {0}? This can't be undone.": "要删除测试账号 {0} 吗？此操作无法撤销。",
     "Delete": "删除",
-    "Test account": "测试账号"
+    "Test account": "测试账号",
+    "As a test account": "以测试账号身份",
+    "TEST": "测试"
   }
 }

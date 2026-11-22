@@ -14,7 +14,13 @@ const BADGE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 /** The most coins one rewards.earn call may ask for (scripts/game-registry.mjs). */
 export const MAX_EARN = 10;
 
-export type Player = { signedIn: boolean; name: string; avatar: string };
+export type Player = {
+  signedIn: boolean;
+  name: string;
+  avatar: string;
+  /** A test account an admin made: the game may show test tools. */
+  tester: boolean;
+};
 export type GameRequest = {
   dingn: "game";
   v: number;

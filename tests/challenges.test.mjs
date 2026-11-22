@@ -251,3 +251,21 @@ test("each guest has their own quota, and all guests one together", async () => 
     200,
   );
 });
+
+test("a test account's challenge is marked as a test", async () => {
+  const made = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    cookie: "dingn-session=x",
+    claims: { uid: "qa", name: "QA", tester: true },
+  });
+  assert.equal((await store.getDoc("challenges", made.body.id)).test, true);
+  const player = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    cookie: "dingn-session=x",
+    claims: { uid: "ada", name: "Ada" },
+  });
+  assert.equal(
+    (await store.getDoc("challenges", player.body.id)).test,
+    undefined,
+  );
+});

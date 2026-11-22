@@ -2158,3 +2158,27 @@ nav a.account-link:hover .header-avatar {
 .player-kingdom-panel > .muted {
   margin: 10px 0 0;
 }
+
+/* A test account (made on the admin Users page): a striped ring and a TEST
+   tag, so it is never mistaken for a real player. */
+.profile-avatar.is-tester {
+  background: repeating-linear-gradient(45deg, #ff8a3d 0 6px, #1b1f2c 6px 12px);
+  box-shadow: 0 0 18px #ff8a3d55;
+}
+.tester-tag {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: #ff8a3d;
+  color: #10131c;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 4px #0008;
+}

@@ -18,12 +18,16 @@ type Account = {
   isAdmin: boolean;
   /** Has the developer role: uploads games and makes upload keys. */
   isDeveloper?: boolean;
+  /** A test account an admin made on the Users page. */
+  isTester?: boolean;
 };
 type Session = {
   user: Account | null;
   ready: boolean;
   isAdmin: boolean;
   isDeveloper: boolean;
+  /** Signed in with a test account: kept out of statistics, marked TEST. */
+  isTester: boolean;
   profile: Profile;
   profileError: string;
   stats: PlayerStats | null;
@@ -110,6 +114,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         ready,
         isAdmin: user?.isAdmin === true,
         isDeveloper: user?.isDeveloper === true,
+        isTester: user?.isTester === true,
         profile,
         profileError,
         stats,

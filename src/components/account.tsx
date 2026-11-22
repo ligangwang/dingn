@@ -63,7 +63,7 @@ function tabFromLocation(): Tab {
 /** Who the player is, and their level, coins, badges and streak at a glance. */
 function ProfileHead({ onEdit }: { onEdit: () => void }) {
   const { t, locale, href } = useLocale();
-  const { user, profile, stats } = useSession();
+  const { user, profile, stats, isTester } = useSession();
   useKingdomRules();
   const wallet = useWallet();
   const name = profile.userName || user?.email?.split("@")[0] || "";
@@ -74,6 +74,7 @@ function ProfileHead({ onEdit }: { onEdit: () => void }) {
     <header className="profile-head">
       <div className="profile-who">
         <HonorAvatar
+          tester={isTester}
           level={stats?.level}
           choice={profile.avatar}
           name={name}

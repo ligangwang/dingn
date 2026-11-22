@@ -31,7 +31,7 @@ const REFERENCE: [string, string][] = [
   ],
   [
     "dingn.player",
-    "{ signedIn, name, avatar }. Never an email address or account id.",
+    "{ signedIn, name, avatar, tester }. tester is true for a test account dingn's admins made: show test tools only to it. Never an email address or account id.",
   ],
   [
     "dingn.onPlayer(fn)",

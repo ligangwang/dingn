@@ -8,7 +8,11 @@
 //
 // Each one is a server-only Firestore document, `challenges/{id}`:
 //
-//   { game, mode, seed, score, unit, rules, uid, name, createdAt, public: false }
+//   { game, mode, seed, score, unit, rules, uid, name, createdAt, public: false,
+//     test? }
+//
+// `test` is true when an admin's test account made it (scripts/test-accounts.mjs):
+// friends it brings earn no referral coins (scripts/referrals.mjs).
 //
 // `rules` is the game's own note of the rules the round was played with
 // (upgrades, helpers allowed), so the friend plays under the same ones.
@@ -124,13 +128,17 @@ async function signedIn(req, res, verify, exchange) {
 
 /**
  * The signed-in player's uid and nickname, or nulls for a guest (or a stale
- * session).
+ * session), and whether they are a test account.
  */
 async function maker(req, res, verify, exchange, account) {
   const claims = await signedIn(req, res, verify, exchange);
-  if (!claims) return { uid: null, name: null };
+  if (!claims) return { uid: null, name: null, test: false };
   const profile = await account(claims.uid).catch(() => null);
-  return { uid: claims.uid, name: nickname(profile?.user_name, claims.name) };
+  return {
+    uid: claims.uid,
+    name: nickname(profile?.user_name, claims.name),
+    test: claims.tester === true,
+  };
 }
 
 const send = (res, status, body, cache = "no-store") => {
@@ -180,7 +188,13 @@ export async function handleChallenges(
       throw new ApiError(400, "invalid-request");
     // Only games on dingn, so made-up ids can't fill the store.
     if (!(await cachedRecord(body.game))) throw new ApiError(404, "not-found");
-    const { uid, name } = await maker(req, res, verify, exchange, account);
+    const { uid, name, test } = await maker(
+      req,
+      res,
+      verify,
+      exchange,
+      account,
+    );
     if (uid) limit(uid);
     else {
       limit(guestKey(req));
@@ -196,6 +210,8 @@ export async function handleChallenges(
       name,
       createdAt: new Date().toISOString(),
       public: false,
+      // Made by a test account: it brings no referral coins.
+      ...(test ? { test: true } : {}),
     });
     return send(res, 200, { id });
   } catch (error) {

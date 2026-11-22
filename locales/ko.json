@@ -286,7 +286,7 @@
     "Call": "호출",
     "What it does": "기능",
     "The player's language, \"en\" or \"zh-CN\". Show your game in it.": "플레이어의 언어로, \"en\" 또는 \"zh-CN\"이에요. 게임을 이 언어로 보여 주세요.",
-    "{ signedIn, name, avatar }. Never an email address or account id.": "{ signedIn, name, avatar }. 이메일 주소나 계정 ID는 절대 포함되지 않아요.",
+    "{ signedIn, name, avatar, tester }. tester is true for a test account dingn's admins made: show test tools only to it. Never an email address or account id.": "{ signedIn, name, avatar, tester }. tester는 dingn 관리자가 만든 테스트 계정이면 true입니다. 테스트 도구는 이 계정에만 보여 주세요. 이메일 주소나 계정 ID는 절대 포함되지 않습니다.",
     "Called when the player signs in or out. Returns a function that stops listening.": "플레이어가 로그인하거나 로그아웃할 때 호출돼요. 수신을 중지하는 함수를 반환해요.",
     "Saves JSON on this device only. Keys are up to 64 letters, digits, dots, dashes or underscores. Values are up to 16 KB.": "JSON을 이 기기에만 저장해요. 키는 최대 64자의 영문자, 숫자, 점, 대시, 밑줄로 구성돼요. 값은 최대 16KB예요.",
     "Saves JSON to the signed-in player's account, so it follows them to any device. Up to 16 KB. save() fails with the code \"signed_out\" when no one is signed in.": "JSON을 로그인한 플레이어의 계정에 저장해서 어느 기기에서든 이어져요. 최대 16KB예요. 로그인한 사람이 없으면 save()는 \"signed_out\" 코드로 실패해요.",
@@ -968,6 +968,8 @@
     "New password": "새 비밀번호",
     "Delete the test account {0}? This can't be undone.": "테스트 계정 {0}을(를) 삭제할까요? 되돌릴 수 없습니다.",
     "Delete": "삭제",
-    "Test account": "테스트 계정"
+    "Test account": "테스트 계정",
+    "As a test account": "테스트 계정으로",
+    "TEST": "테스트"
   }
 }
