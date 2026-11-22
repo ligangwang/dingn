@@ -1,7 +1,7 @@
 # dingn starter game
 
-A complete game for [dingn](https://dingn.com) in three files. It uses the
-dingn game SDK for the player's language, name, saved scores and sign-in.
+A complete game for [dingn](https://dingn.com). It uses the dingn game SDK
+for the player's language, name, saved scores, sign-in and challenges.
 
 ## Try it
 
@@ -18,6 +18,10 @@ dingn game SDK for the player's language, name, saved scores and sign-in.
    enter `http://localhost:5173/` and press **Load**. The playground runs your
    game the way dingn will, and lets you switch language and sign a test
    player in or out.
+3. Finish a round and click **Challenge anyone**. Click **Replay last
+   challenge** in the playground, then finish another round. Local games
+   can rehearse the round. Shareable links are created by the dingn API
+   for live games, and playground results are simulated.
 
 Opened directly at `http://localhost:5173/`, the game also works on its own:
 signed out, and scores last until the page closes.
