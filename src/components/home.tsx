@@ -194,7 +194,12 @@ function HeroKingdom() {
         )
       : 1;
   return (
-    <div className="hero-kingdom">
+    // The way to the kingdom from the home page (the menu has no link to it).
+    <Link
+      className="hero-kingdom"
+      href={href("/kingdom/")}
+      aria-label={t("Kingdom")}
+    >
       <img
         src="/home/kingdom-capital.jpg"
         alt={t(
@@ -248,6 +253,6 @@ function HeroKingdom() {
           </>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

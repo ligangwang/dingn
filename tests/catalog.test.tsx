@@ -93,9 +93,8 @@ it("one Games menu lists every category, and marks the one a game is in", async 
     ["Puzzle", "/puzzle"],
     ["Adventure", "/adventure"],
   ]);
-  expect(
-    screen.getByRole("link", { name: "Kingdom" }).getAttribute("href"),
-  ).toBe("/kingdom");
+  // The kingdom is reached from the player's account, not the menu.
+  expect(screen.queryByRole("link", { name: "Kingdom" })).toBeNull();
   // On a game's page, its category is the current one, and so is the menu.
   await waitFor(() =>
     expect(links[0].getAttribute("aria-current")).toBe("page"),
