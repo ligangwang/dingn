@@ -342,6 +342,15 @@ posted when they come back signed in. A test account's result is checked but
 not saved (`test: true`). A game that never calls `challengeResult` still
 works as before; its challenges just get no results.
 
+To test this flow in the developer playground, call `challengeLink` after a
+round, then choose **Replay last challenge** to reload the same game with
+that round in `dingn.challenge`. Finish the replay and check `challenge.result`
+in the SDK log. The playground simulates results. To create a share link
+there, load the live game's entry URL (`/g/<game>/<version>/<entry>` on the
+same origin). The playground calls `POST /api/challenges` with your current
+dingn session. A local or preview build can rehearse the round and receives
+`unpublished_game` instead of a share link.
+
 A signed-in player's challenge is listed: on the Challenges page
 (`/challenges/`, grouped by game) and, the newest one, at the top of the home
 page. A guest's, a test account's and every challenge from before threads

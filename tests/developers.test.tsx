@@ -41,6 +41,7 @@ it("links the guide to the starter, the type definitions and the playground", ()
   expect(
     screen.getByText(/https:\/\/dingn\.com\/sdk\/v1\/dingn-sdk\.js/),
   ).toBeTruthy();
+  expect(screen.getByText(/dingn\.challengeResult\(score\)/)).toBeTruthy();
 });
 
 it("is translated into Simplified Chinese", () => {
@@ -95,6 +96,19 @@ async function ask(
     expect(reply).toBeTruthy();
   });
   return reply as { result?: unknown; error?: { code: string } };
+}
+
+function currentFrame() {
+  const frame = screen.getByTitle("Your game") as HTMLIFrameElement;
+  const replies: unknown[] = [];
+  vi.spyOn(frame.contentWindow!, "postMessage").mockImplementation(
+    (message: unknown) => void replies.push(message),
+  );
+  return {
+    frame,
+    request: (method: string, params?: Record<string, unknown>) =>
+      ask(frame, replies, method, params),
+  };
 }
 
 it("runs a game with a test player and logs every SDK call", async () => {
@@ -152,4 +166,107 @@ it("runs a game with a test player and logs every SDK call", async () => {
   const log = within(screen.getByRole("region", { name: "SDK calls" }));
   expect(log.getByText('storage.set("best", 7)')).toBeTruthy();
   expect(log.getByText(/^signed_out:/)).toBeTruthy();
+});
+
+it("replays a challenge through the SDK bridge without posting to dingn", async () => {
+  const user = userEvent.setup();
+  const fetch = vi.spyOn(globalThis, "fetch");
+  render(<DevPlayground />);
+  const replay = screen.getByRole("button", { name: "Replay last challenge" });
+  expect((replay as HTMLButtonElement).disabled).toBe(true);
+  await user.click(screen.getByRole("button", { name: "Load" }));
+
+  const original = currentFrame();
+  expect(
+    (await original.request("challenge.result", { score: 5 })).error?.code,
+  ).toBe("no_challenge");
+  const round = {
+    mode: "tap",
+    seed: "day-1",
+    rules: "standard",
+    score: 5,
+    unit: "points",
+  };
+  expect((await original.request("challenge.link", round)).error?.code).toBe(
+    "unpublished_game",
+  );
+
+  await user.click(replay);
+  const played = currentFrame();
+  expect(played.frame).not.toBe(original.frame);
+  expect((await played.request("init")).result).toMatchObject({
+    challenge: round,
+  });
+  expect((await played.request("challenge.result", { score: 5 })).result).toEqual({
+    beat: false,
+    posted: false,
+    best: 5,
+    rank: null,
+    players: 1,
+    test: true,
+  });
+
+  await user.click(screen.getByLabelText("Test player signed in"));
+  expect((await played.request("challenge.result", { score: 6 })).result).toEqual({
+    beat: true,
+    posted: false,
+    best: 6,
+    rank: 1,
+    players: 2,
+    test: true,
+  });
+
+  await user.click(screen.getByRole("button", { name: "Exit challenge" }));
+  expect((await currentFrame().request("init")).result).toMatchObject({
+    challenge: null,
+  });
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it("creates a live game's share link with the ID from the challenge API", async () => {
+  const entry = "/g/skyhop/1.0.0/index.html";
+  const fetch = vi.spyOn(globalThis, "fetch");
+  const game = () => Response.json({ id: "skyhop", url: entry });
+  fetch
+    .mockResolvedValueOnce(game())
+    .mockResolvedValueOnce(Response.json({ id: "Xq3v9TzK1bWm" }))
+    .mockResolvedValueOnce(game())
+    .mockResolvedValueOnce(
+      Response.json({ error: "unavailable" }, { status: 503 }),
+    )
+    .mockResolvedValueOnce(game())
+    .mockResolvedValueOnce(Response.json({ id: "invalid-id" }))
+    .mockResolvedValueOnce(
+      Response.json({ id: "skyhop", url: "/g/skyhop/1.1.0/index.html" }),
+    );
+
+  localStorage.setItem(
+    "dingn.playground.address",
+    `${location.origin}${entry}`,
+  );
+  render(<DevPlayground />);
+  await userEvent.click(screen.getByRole("button", { name: "Load" }));
+  const { request } = currentFrame();
+  const round = {
+    mode: "run",
+    seed: "day-1",
+    score: 42,
+    unit: "points",
+    rules: "standard",
+  };
+
+  expect((await request("challenge.link", round)).result).toBe(
+    `${location.origin}/play/skyhop/?c=Xq3v9TzK1bWm`,
+  );
+  expect(fetch).toHaveBeenNthCalledWith(1, "/api/games/skyhop");
+  expect(fetch).toHaveBeenNthCalledWith(2, "/api/challenges", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-Dingn-Request": "1" },
+    body: JSON.stringify({ ...round, game: "skyhop" }),
+  });
+  for (const code of ["unavailable", "unavailable", "unpublished_game"]) {
+    expect((await request("challenge.link", round)).error?.code).toBe(code);
+  }
+  expect(fetch).toHaveBeenCalledTimes(7);
 });
