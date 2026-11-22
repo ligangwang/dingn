@@ -1,17 +1,17 @@
 // Coins for bringing friends to dingn through challenge links.
 //
 // A friend who opens someone's challenge link, makes a new dingn account and
-// finishes a round "joins": they get JOIN_COINS, and the player whose
+// opens a game "joins": they get JOIN_COINS, and the player whose
 // challenge brought them gets JOIN_COINS too. When the friend comes back and
-// finishes a round on another UTC day, the inviter gets RETURN_COINS more,
+// opens a game on another UTC day, the inviter gets RETURN_COINS more,
 // so most of the reward goes to friends who stay. Every friend counts: the
 // inviter's badges at 3, 10, 25 and 50 friends pay bonus coins on top.
 //
-//   POST /api/referrals { challenge }   (the signed-in friend, after a round)
+//   POST /api/referrals { challenge }   (the signed-in friend, with a game open)
 //   → { state: "joined", coins } | { state: "returned" | "waiting" | "none" }
 //
-// The player page calls it after a finished round while this browser holds a
-// challenge it arrived through (src/lib/referral.ts). The friend's account
+// The player page calls it, without waiting on the game, as soon as a signed-in
+// player has a game open while this browser holds a challenge it arrived through (src/lib/referral.ts). The friend's account
 // must be new (made after the challenge) with a confirmed email address, and
 // they can't be its maker, so existing members swapping links, accounts
 // made with made-up addresses, or admins' test accounts, earn nothing. Each friend is recorded once,
@@ -201,7 +201,7 @@ export const returnWrites =
       ? [undefined, undefined]
       : [{ ...referral, returnedAt: now }, pay(inviter, RETURN_COINS)];
 
-/** A friend's first finished round: records them and pays both, or says why not. */
+/** A friend's first claim: records them and pays both, or says why not. */
 async function join(claims, challengeId, account, now) {
   const uid = claims.uid;
   if (typeof challengeId !== "string" || !CHALLENGE_ID.test(challengeId))

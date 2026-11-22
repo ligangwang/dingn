@@ -1,5 +1,5 @@
 // The friend's challenge this browser arrived through, so that when the
-// visitor makes a new dingn account and finishes a round, they and the friend
+// visitor makes a new dingn account and opens a game, they and the friend
 // who challenged them both get coins (scripts/referrals.mjs). The first
 // challenge a browser arrives through counts. The state moves from "pending"
 // (not yet claimed) to "joined" (paid; the friend gets more if the visitor
@@ -44,7 +44,7 @@ export const referralOpen = () => {
 };
 
 /**
- * Asks dingn to pay for the noted referral, after a signed-in round. Returns
+ * Asks dingn to pay for the noted referral, for a signed-in player. Returns
  * dingn's answer, or null when there is nothing to claim or it failed.
  */
 export async function claimReferral(): Promise<ReferralResult | null> {

@@ -366,15 +366,15 @@ coins or XP: the scores are the ones games report.
 ### Referral coins
 
 A visitor who opens a signed-in player's challenge link, makes a new dingn
-account (email confirmed) and finishes a round gets 100 coins, and so does
+account (email confirmed) and opens a game gets 100 coins, and so does
 the player who sent the challenge. When the new player comes back and
-finishes a round on another day, the sender gets 100 more. Every friend
+opens a game on another day, the sender gets 100 more. Every friend
 counts, with dingn badges and bonus coins at 3, 10, 25 and 50 friends (100,
 300, 750 and 1,500). Existing members swapping links earn nothing, and a
 sender is paid for at most 10 new friends a day (more still count toward
 the badges). Games need do nothing: the player page notes the challenge a
-visitor arrived through and claims after a finished round
-(`dingn.roundEnded()`); `scripts/referrals.mjs` checks and pays.
+visitor arrived through and claims as soon as they are signed in with a game
+open, without waiting on the game; `scripts/referrals.mjs` checks and pays.
 
 ### The funnel
 
