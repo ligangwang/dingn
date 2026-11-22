@@ -26,7 +26,7 @@ export function Header() {
       </Link>
       <nav aria-label={t("Main navigation")}>
         {/* One menu for all the games, so the header stays short. */}
-        <GamesMenu key={path} path={path} games={catalog} />
+        <GamesMenu key={`games:${path}`} path={path} games={catalog} />
         {/* The open challenges, with the top players under them. */}
         <Link
           href={to("/challenges/")}
@@ -36,7 +36,7 @@ export function Header() {
           <TrophyIcon className="nav-icon" size={18} />
           <span className="nav-label">{t("Challenges")}</span>
         </Link>
-        {ready && isAdmin && <AdminMenu key={path} path={path} />}
+        {ready && isAdmin && <AdminMenu key={`admin:${path}`} path={path} />}
         {ready && isDeveloper && !isAdmin && (
           // Developers reach their upload keys here; admins in the Admin menu.
           <Link
