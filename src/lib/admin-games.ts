@@ -1,5 +1,6 @@
 // The Games admin page's calls to the dingn server (scripts/games-admin.mjs).
 import { api } from "./api";
+import type { Role } from "@/components/session";
 
 export type AdminVersion = {
   version: string;
@@ -111,7 +112,8 @@ export type Tester = {
   email: string;
   name: string;
   disabled: boolean;
-  admin: boolean;
+  /** Its roles: tester, and any other an admin gave it. */
+  roles: Role[];
   createdAt: string | null;
   lastActive: string | null;
 };
@@ -155,11 +157,10 @@ export type Player = {
   email: string;
   name: string;
   providers: string[];
-  admin: boolean;
-  developer: boolean;
+  /** What the account may do: admin, developer, tester (none for a player). */
+  roles: Role[];
+  /** A developer removed by an admin, who can't sign up again by themselves. */
   developerBlocked: boolean;
-  /** A test account, kept off the leaderboard and referrals. */
-  tester?: boolean;
   disabled: boolean;
   createdAt: string | null;
   lastSignIn: string | null;

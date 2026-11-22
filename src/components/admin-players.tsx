@@ -94,10 +94,10 @@ function PlayerList() {
       : t("Never");
   const roles = (p: Player) =>
     [
-      p.admin && t("Admin"),
-      p.developer && t("Developer"),
+      p.roles.includes("admin") && t("Admin"),
+      p.roles.includes("developer") && t("Developer"),
       p.developerBlocked && t("Uploads blocked"),
-      p.tester && t("Test account"),
+      p.roles.includes("tester") && t("Test account"),
       p.disabled && t("Disabled"),
     ]
       .filter(Boolean)

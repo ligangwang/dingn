@@ -1,5 +1,15 @@
 service cloud.firestore {
   match /databases/{database}/documents {
+    // The admin role (scripts/roles.mjs), from the account's ID token.
+    // Accounts not yet moved to `roles` (scripts/migrate-roles.mjs) still
+    // carry `admin: true`.
+    function isAdmin() {
+      return request.auth != null
+        && ((request.auth.token.get('roles', []) is list
+              && 'admin' in request.auth.token.get('roles', []))
+          || request.auth.token.get('admin', false) == true);
+    }
+
     // Nothing is open unless a rule below opens it: a collection with no rule
     // (billing records, the old Stripe extension's customers and products, or
     // anything new) is server-only. The dingn server uses the Admin SDK, which
@@ -15,7 +25,7 @@ service cloud.firestore {
     // scripts/game-api.mjs). Listing every account is for admins only.
     match /accounts/{uid} {
       allow get: if request.auth != null;
-      allow list: if request.auth != null && request.auth.token.admin == true;
+      allow list: if isAdmin();
       allow create: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.keys().hasAny(['user_name', 'name_key', 'player_no']);
       allow update: if request.auth != null && request.auth.uid == uid
@@ -111,7 +121,7 @@ service cloud.firestore {
         && request.resource.data.message.matches('(?s).*[^\\s].*')
         && request.resource.data.createdAt == request.time
         && request.resource.data.status == 'new';
-      allow read: if request.auth != null && request.auth.token.admin == true;
+      allow read: if isAdmin();
       allow update, delete: if false;
     }
   }

@@ -14,6 +14,7 @@ import {
 } from "./game-core.mjs";
 import { readSettings } from "./site-settings.mjs";
 import { rules } from "./reward-plugin.mjs";
+import { hasRole } from "./roles.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 let adminPromise;
@@ -96,7 +97,7 @@ let board = { at: 0, entries: null };
 async function isAdmin(req, res) {
   if (!hasSession(req)) return false;
   try {
-    return (await verify(req, res)).admin === true;
+    return hasRole(await verify(req, res), "admin");
   } catch {
     return false;
   }
@@ -156,7 +157,7 @@ export async function topPlayers(db, hidden) {
 
 /**
  * Which of these accounts stay off the leaderboard: test accounts (the
- * `tester` claim, scripts/test-accounts.mjs) and accounts that were deleted.
+ * tester role, scripts/test-accounts.mjs) and accounts that were deleted.
  * If Firebase can't be asked, none are left out.
  */
 export async function notOnBoard(auth, uids) {
@@ -168,7 +169,7 @@ export async function notOnBoard(auth, uids) {
         ids.map((uid) => ({ uid })),
       );
       for (const user of users)
-        if (user.customClaims?.tester === true) hidden.add(user.uid);
+        if (hasRole(user.customClaims, "tester")) hidden.add(user.uid);
       for (const missing of notFound) hidden.add(missing.uid);
     }
   } catch (e) {

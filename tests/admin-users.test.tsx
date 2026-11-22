@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdminUsers } from "../src/components/admin-users";
+import type { Tester } from "../src/lib/admin-games";
 
 const mocks = vi.hoisted(() => ({
   session: {
@@ -107,7 +108,7 @@ const qa = (n: number) => ({
   email: `qa${n}@example.com`,
   name: "",
   disabled: false,
-  admin: false,
+  roles: ["tester"] as Tester["roles"],
   createdAt: "2026-11-22T10:00:00.000Z",
   lastActive: null,
 });

@@ -22,6 +22,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { ApiError } from "./api.mjs";
 import { getDoc, updateDoc } from "./platform-store.mjs";
+import { hasRole, rolesOf } from "./roles.mjs";
 
 /** How many keys of each kind one account can have at a time. */
 export const MAX_KEYS = 5;
@@ -152,12 +153,7 @@ export async function keyClaims(req, users, now = new Date().toISOString()) {
     },
     now,
   );
-  return {
-    uid,
-    email,
-    developer: claims.developer === true,
-    admin: claims.admin === true,
-  };
+  return { uid, email, roles: rolesOf(claims) };
 }
 
 /** The admin's review keys, newest first. */
@@ -183,9 +179,9 @@ export async function adminKeyClaims(
     req,
     users,
     (claims) => {
-      if (claims.admin !== true) throw new ApiError(403, "admin-required");
+      if (!hasRole(claims, "admin")) throw new ApiError(403, "admin-required");
     },
     now,
   );
-  return { uid, email, admin: true };
+  return { uid, email, roles: ["admin"] };
 }

@@ -431,19 +431,20 @@ test("admins grant and remove developer access by email", async () => {
     action: "add",
   });
   assert.equal(added.status, 200);
-  assert.deepEqual(claims.u2, { developer: true });
+  assert.deepEqual(claims.u2, { roles: ["developer"] });
   assert.deepEqual(
     (await adminCall("/api/admin/developers", {})).body.developers,
     [{ uid: "u2", email: "u2@example.com" }],
   );
-  // Removing keeps the account's other claims.
+  // Removing keeps the account's other claims and roles, including an old
+  // `admin: true` flag, which moves into its roles.
   claims.u2.admin = true;
   await adminCall("/api/admin/developers/update", {
     email: "u2@example.com",
     action: "remove",
   });
   // It also stops the account from signing up again by itself.
-  assert.deepEqual(claims.u2, { admin: true, developerBlocked: true });
+  assert.deepEqual(claims.u2, { roles: ["admin"], developerBlocked: true });
   assert.equal(
     (
       await adminCall("/api/admin/developers/update", {
@@ -462,7 +463,7 @@ test("admins grant and remove developer access by email", async () => {
     action: "add",
   });
   assert.equal(granted.status, 200);
-  assert.deepEqual(claims.u3, { developer: true, admin: true });
+  assert.deepEqual(claims.u3, { roles: ["admin", "developer"] });
   assert.deepEqual(
     (await adminCall("/api/admin/admins", {})).body.admins.map((a) => a.uid),
     ["u1", "u2", "u3"],
@@ -477,14 +478,17 @@ test("admins grant and remove developer access by email", async () => {
     email: "u3@example.com",
     action: "remove",
   });
-  assert.deepEqual(claims.u3, { developer: true });
+  assert.deepEqual(claims.u3, { roles: ["developer"] });
 
   // Players: every account, most recently active first, a page at a time.
   const listed = await adminCall("/api/admin/players", {});
   assert.equal(listed.status, 200);
   const u1 = listed.body.players.find((p) => p.uid === "u1");
-  assert.equal(u1.admin, true);
-  assert.equal(u1.developer, false);
+  // u1 still has the old `admin: true` flag: it shows as the admin role.
+  assert.deepEqual(u1.roles, ["admin"]);
+  assert.deepEqual(listed.body.players.find((p) => p.uid === "u3").roles, [
+    "developer",
+  ]);
   assert.equal(listed.body.pages, 1);
   assert.equal(
     (await adminCall("/api/admin/players", { page: 0 })).status,

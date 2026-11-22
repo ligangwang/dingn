@@ -38,6 +38,7 @@ import {
 import { ID, cachedRecord } from "./game-registry.mjs";
 import { getDoc, mergeDoc } from "./platform-store.mjs";
 import { CHALLENGE_ID, validChallenge } from "../src/data/challenge.mjs";
+import { hasRole } from "./roles.mjs";
 
 export const isChallengePath = (pathname) =>
   pathname === "/api/challenges" || pathname.startsWith("/api/challenges/");
@@ -137,7 +138,7 @@ async function maker(req, res, verify, exchange, account) {
   return {
     uid: claims.uid,
     name: nickname(profile?.user_name, claims.name),
-    test: claims.tester === true,
+    test: hasRole(claims, "tester"),
   };
 }
 

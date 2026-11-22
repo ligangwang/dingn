@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hasRole, rolesOf } from "./roles.mjs";
 const key =
   process.env.FIREBASE_API_KEY || "AIzaSyDzWk1JfjsMi9o_yPBz69XSQmWBXfC8dWs";
 const project = "dingn-193716";
@@ -125,10 +126,12 @@ async function identity(token, known) {
       typeof user.photoUrl === "string" && user.photoUrl.startsWith("https://")
         ? user.photoUrl
         : null,
-    isAdmin: claims.admin === true,
-    isDeveloper: claims.developer === true,
+    // What the account may do (scripts/roles.mjs), and a shortcut for each.
+    roles: rolesOf(claims),
+    isAdmin: hasRole(claims, "admin"),
+    isDeveloper: hasRole(claims, "developer"),
     // A test account an admin made (scripts/test-accounts.mjs).
-    isTester: claims.tester === true,
+    isTester: hasRole(claims, "tester"),
   };
 }
 export async function readBody(req) {

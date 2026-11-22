@@ -27,8 +27,7 @@ const player = (uid: string, extra: Partial<Player> = {}): Player => ({
   email: `${uid}@x.com`,
   name: "",
   providers: ["google.com"],
-  admin: false,
-  developer: false,
+  roles: [],
   developerBlocked: false,
   disabled: false,
   createdAt: "2026-11-01T10:00:00Z",
@@ -56,8 +55,7 @@ it("lists players with their roles and pages forward and back", async () => {
       : {
           players: [
             player("ada", {
-              admin: true,
-              developer: true,
+              roles: ["admin", "developer"],
               name: "Ada Lovelace",
               nickname: "Star Gazer",
               number: "7302518846",

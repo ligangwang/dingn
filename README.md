@@ -24,7 +24,7 @@ npm run preview
 
 ## Existing behavior and data
 
-The homepage feedback link opens `/feedback/`. Signed-in users can submit up to 5,000 characters to the `feedback` Firestore collection. Each record contains the authenticated `uid`, message, server `createdAt`, and `status: new`. Ordinary users can create submissions but cannot read, edit, or delete them. The read-only inbox at `/admin/feedback/` requires a boolean `admin: true` Firebase custom token claim. Administrators can also review submissions in Firebase Console using Google Cloud IAM.
+The homepage feedback link opens `/feedback/`. Signed-in users can submit up to 5,000 characters to the `feedback` Firestore collection. Each record contains the authenticated `uid`, message, server `createdAt`, and `status: new`. Ordinary users can create submissions but cannot read, edit, or delete them. The read-only inbox at `/admin/feedback/` requires the admin role (see "Roles" below). Administrators can also review submissions in Firebase Console using Google Cloud IAM.
 
 Deploy `firestore.rules` with `firebase deploy --only firestore:rules --project dingn-193716` before releasing the form. These rules preserve legacy collection access but exclude feedback from the old catch-all permission. Test with `npm run test:rules` in an environment with Firebase CLI and Java 21; the tests use only the `demo-dingn-feedback` emulator project.
 
@@ -217,9 +217,35 @@ Default service: `dingn-web`, region: `us-central1`, request-based billing, mini
 
 After deployment, authorize the exact returned `run.app` hostname in Firebase Authentication and verify Google sign-in and data access. `dingn.com` is mapped straight to this service.
 
+## Roles
+
+What an account may do is its roles, kept as the `roles` custom claim on its
+Firebase account (so they ride in its ID token and the Firestore rules can
+read them): `admin` (runs dingn), `developer` (uploads games) and `tester`
+(a test account). An account holds any number of them; a player holds none.
+Code reads and changes them only through `scripts/roles.mjs`, and the session
+(`/api/auth/session`) returns them as `roles`. `developerBlocked` is not a role
+but a restriction on signing up as a developer again.
+
+Accounts made before roles carried `admin: true`, `developer: true` or
+`tester: true` instead. The website and the Firestore rules still accept those
+until every account is moved, once, from Cloud Shell as the project owner,
+after `npm ci` in the repository folder:
+
+```bash
+node scripts/migrate-roles.mjs
+```
+
+```bash
+node scripts/migrate-roles.mjs --apply
+```
+
+The first is a dry run that lists what would change. Running it again changes
+nothing. Changed claims reach each account's ID token within the hour.
+
 ## Admin access
 
-In authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (or `--revoke`) for an explicitly approved existing account. This uses the project-owner credentials, preserves other custom claims, and verifies the change. The script is excluded from the website container. Never store admin access in editable account documents. After a change, sign out and back in; existing tokens can retain their claims until expiry (up to an hour). The admin navigation link appears only after the token claim is confirmed; Firestore independently enforces access.
+Admins add or remove other admins on `/admin/users/`. For the first admin, in authenticated Cloud Shell, run `python3 scripts/set-admin.py EMAIL --grant` (or `--revoke`) for an explicitly approved existing account. This uses the project-owner credentials, preserves other custom claims and roles, and verifies the change. The script is excluded from the website container. Never store admin access in editable account documents. After a change, sign out and back in; existing tokens can retain their claims until expiry (up to an hour). The admin navigation link appears only after the token claim is confirmed; Firestore independently enforces access.
 
 ## Test accounts
 
@@ -231,7 +257,7 @@ password empty and dingn makes one up, shown once. Firebase allows one
 password account per address, so making several numbers the address:
 `you+qa@gmail.com` makes `you+qa1@gmail.com`, `you+qa2@gmail.com`, and so on.
 
-Test accounts carry the `tester: true` claim. They play like anyone else, but
+Test accounts hold the `tester` role. They play like anyone else, but
 never appear on the leaderboard and never earn referral coins as a friend
 brought in. The Players page labels them. Only accounts with that claim can
 be given a new password or deleted from this page. Deleting one removes its

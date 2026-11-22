@@ -30,13 +30,20 @@ if len(users) != 1 or users[0].get("email", "").lower() != args.email.lower():
 user = users[0]
 if user.get("disabled") or not user.get("emailVerified"):
     raise SystemExit("The account must be enabled and have a verified email.")
+ROLES = ["admin", "developer", "tester"]  # as in scripts/roles.mjs
 claims = json.loads(user.get("customAttributes", "{}"))
+# The account's roles, including old `admin: true`-style flags, as one list.
+held = {r for r in claims.get("roles", []) if r in ROLES} if isinstance(claims.get("roles"), list) else set()
+held |= {r for r in ROLES if claims.pop(r, None) is True}
 if args.grant:
-    claims["admin"] = True
+    held.add("admin")
 else:
-    claims.pop("admin", None)
+    held.discard("admin")
+claims.pop("roles", None)
+if held:
+    claims["roles"] = [r for r in ROLES if r in held]
 call("update", {"localId": user["localId"], "customAttributes": json.dumps(claims)})
 verified = call("lookup", {"localId": [user["localId"]]})["users"][0]
-assert (json.loads(verified.get("customAttributes", "{}")).get("admin") is True) == args.grant
-print("Admin claim", "granted" if args.grant else "removed", "for", args.email)
+assert ("admin" in json.loads(verified.get("customAttributes", "{}")).get("roles", [])) == args.grant
+print("Admin role", "granted" if args.grant else "removed", "for", args.email)
 print("Sign out and back in to refresh the ID token. Existing tokens may remain valid for up to an hour.")

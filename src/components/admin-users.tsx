@@ -498,7 +498,7 @@ function TestAccounts() {
                 {tester.lastActive
                   ? t(`Last active ${date(tester.lastActive)}`)
                   : t("Never signed in")}
-                {tester.admin && ` · ${t("Admin")}`}
+                {tester.roles.includes("admin") && ` · ${t("Admin")}`}
               </span>{" "}
               <button
                 type="button"

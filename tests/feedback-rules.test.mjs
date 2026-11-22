@@ -33,11 +33,16 @@ const data = () => ({
   createdAt: serverTimestamp(),
   status: "new",
 });
-it("allows only a boolean admin token claim to read and list feedback", async () => {
+it("allows only the admin role to read and list feedback", async () => {
   const admin = env
-    .authenticatedContext("admin-user", { admin: true })
+    .authenticatedContext("admin-user", { roles: ["developer", "admin"] })
     .firestore();
   await assertSucceeds(getDocs(collection(admin, "feedback")));
+  // An account not yet moved to roles.
+  const legacy = env
+    .authenticatedContext("legacy-admin", { admin: true })
+    .firestore();
+  await assertSucceeds(getDocs(collection(legacy, "feedback")));
   await assertSucceeds(getDoc(doc(admin, "feedback", "valid")));
   await assertFails(
     setDoc(doc(admin, "feedback", "fake"), {
@@ -49,11 +54,18 @@ it("allows only a boolean admin token claim to read and list feedback", async ()
   const ordinary = env.authenticatedContext("ordinary").firestore();
   await setDoc(doc(ordinary, "accounts", "ordinary"), { admin: true });
   await assertFails(getDocs(collection(ordinary, "feedback")));
-  for (const value of [false, "true", 1]) {
+  for (const claims of [
+    { admin: false },
+    { admin: "true" },
+    { admin: 1 },
+    { roles: ["developer", "tester"] },
+    { roles: "admin" },
+    { roles: [] },
+  ]) {
     await assertFails(
       getDocs(
         collection(
-          env.authenticatedContext("not-admin", { admin: value }).firestore(),
+          env.authenticatedContext("not-admin", claims).firestore(),
           "feedback",
         ),
       ),

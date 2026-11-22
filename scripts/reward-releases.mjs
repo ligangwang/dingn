@@ -28,6 +28,7 @@ import {
 } from "./upload-keys.mjs";
 import { queueMail, reviewers } from "./mail.mjs";
 import { RELEASE_SYSTEMS, releaseUrl } from "./reward-systems.mjs";
+import { hasRole } from "./roles.mjs";
 import { ZipError, unzip } from "./zip.mjs";
 import {
   BundleError,
@@ -147,7 +148,7 @@ async function signedInAdmin(req, res, verify, exchange) {
   } catch {
     throw new ApiError(401, "invalid-credential");
   }
-  if (decoded.admin !== true) throw new ApiError(403, "admin-required");
+  if (!hasRole(decoded, "admin")) throw new ApiError(403, "admin-required");
   return { uid: decoded.uid };
 }
 
@@ -189,7 +190,7 @@ export async function handleRewardReleases(
       // dingn's servers once approved, so a developer's key can't send one.
       if (!hasUploadKey(req)) throw new ApiError(401, "upload-key-required");
       const account = await keyClaims(req, users ?? (await firebaseAuth()));
-      if (!account.admin) throw new ApiError(403, "admin-required");
+      if (!hasRole(account, "admin")) throw new ApiError(403, "admin-required");
       const files = unzip(
         await readZip(req, BUNDLE_LIMITS.maxZip),
         BUNDLE_LIMITS,
