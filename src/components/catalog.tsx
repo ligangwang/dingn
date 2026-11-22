@@ -297,7 +297,6 @@ export function CategoryPage({ category }: { category: Category }) {
       <header className="category-head">
         <info.Icon className="category-symbol" size={44} />
         <div>
-          <p className="eyebrow">{t("GAMES")}</p>
           <h1>{t(`${info.label} games`)}</h1>
           <p className="lede">{t(info.tagline)}</p>
         </div>

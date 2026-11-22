@@ -219,7 +219,7 @@ function PlayerView({ player }: { player: PublicPlayer }) {
         </section>
         {!mine && (
           <Link className="button" href={href("/#games")}>
-            {t("Play games and rise too →")}
+            {t("Play games →")}
           </Link>
         )}
       </div>

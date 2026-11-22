@@ -375,9 +375,7 @@ export function Kingdom() {
               <span style={{ width: `${progress * 100}%` }} />
             </div>
             <p className="kingdom-small">
-              {t(
-                `${xpToNext.toLocaleString(locale)} XP to go. Play a brain game or earn a badge in any game.`,
-              )}
+              {t(`${xpToNext.toLocaleString(locale)} XP to go`)}
             </p>
             <Link className="button" href={href("/play/memory/")}>
               {t("Play a game")}
@@ -396,7 +394,7 @@ export function Kingdom() {
                 </div>
                 <p className="kingdom-small">
                   {t(
-                    `Level ${nextStage.level}: your land grows into a ${name(nextStage.title).toLowerCase()}, with a new hall and free buildings. ${xpToNext.toLocaleString(locale)} XP to go.`,
+                    `${xpToNext.toLocaleString(locale)} XP to a ${name(nextStage.title).toLowerCase()}`,
                   )}
                 </p>
               </>

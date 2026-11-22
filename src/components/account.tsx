@@ -363,9 +363,6 @@ function Profile() {
               <LevelCard />
               <HonorPath stats={stats} />
               <KingdomCard />
-              <Link className="button" href={href("/#games")}>
-                {t("Play games →")}
-              </Link>
             </>
           )}
           {tab === "wallet" && <BadgeShelf />}
