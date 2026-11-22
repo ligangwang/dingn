@@ -59,6 +59,17 @@ import {
 } from "@/data/challenge.mjs";
 import { api } from "@/lib/api";
 import { madeHere, rememberChallenge } from "@/lib/my-challenges";
+import {
+  closeChallenge,
+  deleteChallenge,
+  fetchThread,
+  keepPendingResult,
+  postChallengeResult,
+  takePendingResult,
+  threadOf,
+  type Thread,
+} from "@/lib/challenges";
+import { scoreText } from "@/data/challenge.mjs";
 import { claimReferral, noteArrival, referralOpen } from "@/lib/referral";
 import { trackGame } from "@/lib/funnel";
 
@@ -154,6 +165,17 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   // The nickname of the player who made it, or null for "A friend".
   const [challenger, setChallenger] = useState<string | null>(null);
+  // Its id, and the results posted under it, highest first.
+  const challengeId = useRef<string | null>(null);
+  const [thread, setThread] = useState<Thread | null>(null);
+  // How this player's round of it ended, once the game reports it.
+  const [outcome, setOutcome] = useState<{
+    score: number;
+    beat: boolean;
+    posted: boolean;
+    rank: number | null;
+    players: number;
+  } | null>(null);
   const lastRound = useRef(0);
   const referralAsked = useRef(false);
   // A visitor without an account who came through a friend's challenge,
@@ -288,7 +310,11 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     const cid = challengeIdFromQuery(location.search);
     // A visitor who joins dingn from a friend's challenge earns them both coins.
     if (cid) noteArrival(cid);
-    const saved: Promise<{ c: Challenge; name: string | null } | null> = cid
+    const saved: Promise<{
+      c: Challenge;
+      name: string | null;
+      thread: Thread | null;
+    } | null> = cid
       ? fetch(`/api/challenges/${cid}`)
           .then((r) => (r.ok ? r.json() : null))
           .then((found) => {
@@ -297,7 +323,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             // The player's own link (by their account, or made in this
             // browser): their own score to beat.
             const mine = found?.mine === true || madeHere(cid);
-            return c && { c: { ...c, mine }, name };
+            return c && { c: { ...c, mine }, name, thread: threadOf(found) };
           })
           .catch(() => null)
       : Promise.resolve(null);
@@ -312,6 +338,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         if (!active) return;
         setChallenge(friend?.c ?? null);
         setChallenger(friend?.name ?? null);
+        challengeId.current = friend ? cid : null;
+        setThread(friend?.thread ?? null);
         setState({
           status: "ready",
           game,
@@ -326,6 +354,52 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
 
   const game = state.status === "ready" ? state.game : null;
   const title = game ? pick(game.title, locale) : "";
+  const uid = session?.user?.uid ?? null;
+  /** Posts the signed-in player's score under the challenge and shows the thread again. */
+  async function postResult(cid: string, score: number) {
+    let posted;
+    try {
+      posted = await postChallengeResult(cid, score);
+    } catch {
+      throw new BridgeError(
+        "unavailable",
+        "dingn could not post that result right now.",
+      );
+    }
+    const { test, improved: _improved, ...result } = posted;
+    setOutcome({ score, ...result, posted: !test });
+    if (!test) void fetchThread(cid).then((next) => next && setThread(next));
+    return { ...result, posted: !test, ...(test ? { test } : {}) };
+  }
+  /** The maker closes their challenge, or deletes it and stays on the game. */
+  async function endChallenge(how: "close" | "delete") {
+    const cid = challengeId.current;
+    if (!cid) return;
+    if (
+      how === "delete" &&
+      !window.confirm(t("Delete this challenge? Its link will stop working."))
+    )
+      return;
+    try {
+      if (how === "close") {
+        await closeChallenge(cid);
+        setThread((was) => was && { ...was, closed: true });
+      } else {
+        await deleteChallenge(cid);
+        // The game page itself, without the challenge that is gone.
+        location.href = location.pathname;
+      }
+    } catch {
+      // Nothing changed: the buttons stay for another try.
+    }
+  }
+  useEffect(() => {
+    // Back from signing in: the round finished before is posted now.
+    const cid = challengeId.current;
+    if (!uid || !cid || !challenge) return;
+    const score = takePendingResult(cid);
+    if (score != null) void postResult(cid, score).catch(() => {});
+  }, [uid, challenge]);
   useEffect(() => {
     // As the server titles the page (gameTitle in scripts/game-seo.mjs).
     if (title) document.title = `${t(`${title} – Play free online`)} · dingn`;
@@ -387,6 +461,24 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       rememberChallenge(id);
       if (counted) trackGame("share", game.id);
       return challengeUrl(location.origin, game.id, id, locale);
+    },
+    challengeResult: async (score) => {
+      const cid = challengeId.current;
+      if (!cid || !challenge)
+        throw new BridgeError(
+          "no_challenge",
+          "This page was not opened from a challenge.",
+        );
+      const beat = score > challenge.score;
+      // A closed challenge can still be played, but takes no more results.
+      if (!user || thread?.closed) {
+        // Kept while they sign in, and posted when they come back.
+        if (!thread?.closed) keepPendingResult(cid, score);
+        const players = thread?.players ?? 1;
+        setOutcome({ score, beat, posted: false, rank: null, players });
+        return { beat, posted: false, best: score, rank: null, players };
+      }
+      return postResult(cid, score);
     },
     roundEnded: () => {
       // A few seconds apart at most, so a game calling it in a loop can't
@@ -657,12 +749,40 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               ? t("Play the same round again and beat your own score.")
               : t("You play the same round. Beat that score to win.")}
           </span>
-          {!challenge.mine && !user && (
+          {!challenge.mine && !user && !outcome && (
             <span className="play-challenge-join">
               {t(
                 "New to dingn? Sign up free from this challenge and you and your friend both get 100 coins.",
               )}{" "}
               <a href={signUpHref()}>{t("Create free account")}</a>
+            </span>
+          )}
+        </p>
+      )}
+      {challenge && outcome && (
+        <p
+          className={`play-outcome ${outcome.beat ? "won" : "lost"}`}
+          role="status"
+        >
+          <strong>
+            {(outcome.beat
+              ? t("You beat it with {0}!")
+              : t("You scored {0}. Not enough this time.")
+            ).replace(
+              "{0}",
+              scoreText({ ...challenge, score: outcome.score }, locale, t),
+            )}
+          </strong>{" "}
+          {outcome.posted && outcome.rank != null && (
+            <span>
+              {t("Your best is #{0} of {1} here.")
+                .replace("{0}", String(outcome.rank))
+                .replace("{1}", String(outcome.players))}
+            </span>
+          )}
+          {!user && !thread?.closed && (
+            <span>
+              <a href={signUpHref()}>{t("Sign in to post your score")}</a>
             </span>
           )}
         </p>
@@ -721,6 +841,52 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             {t("Not now")}
           </button>
         </div>
+      )}
+      {/* Under the game, so the game stays where the player looks. */}
+      {challenge && thread && thread.results.length > 0 && (
+        <section className="play-thread" aria-label={t("Challenge results")}>
+          <h2>{t("Challenge results")}</h2>
+          {thread.closed && (
+            <p className="play-thread-closed">
+              {t("This challenge is closed. It takes no more results.")}
+            </p>
+          )}
+          <ol>
+            {thread.results.map((r, i) => (
+              <li key={i} className={r.mine ? "mine" : undefined}>
+                <span className="rank">{i + 1}</span>
+                <span className="name">
+                  {r.name ?? t("A player")}
+                  {r.mine && <em> · {t("you")}</em>}
+                </span>
+                <span className="pts">
+                  {scoreText({ ...challenge, score: r.score }, locale, t)}
+                </span>
+              </li>
+            ))}
+          </ol>
+          {thread.owner && (
+            // Its maker can stop it taking results, or take it off dingn.
+            <p className="play-thread-actions">
+              {!thread.closed && (
+                <button
+                  type="button"
+                  className="quiet-link"
+                  onClick={() => void endChallenge("close")}
+                >
+                  {t("Close challenge")}
+                </button>
+              )}
+              <button
+                type="button"
+                className="quiet-link"
+                onClick={() => void endChallenge("delete")}
+              >
+                {t("Delete challenge")}
+              </button>
+            </p>
+          )}
+        </section>
       )}
       <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
       <GameAbout game={state.game} />

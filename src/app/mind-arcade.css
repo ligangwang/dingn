@@ -2182,3 +2182,78 @@ nav a.account-link:hover .header-avatar {
   pointer-events: none;
   box-shadow: 0 2px 4px #0008;
 }
+
+/* The home page's top spot: the latest challenge a player posted. */
+.mind-hero .hero-challenge h1 {
+  font-size: clamp(30px, 3.6vw, 50px);
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+/* The Challenges page: open challenges, one card each. */
+.challenges-page .panel {
+  margin-top: 40px;
+}
+.challenge-game {
+  margin-top: 28px;
+}
+.challenge-game h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.challenge-game h2 a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+.challenge-game h2 .game-cover {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.challenge-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.challenge-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border: 1px solid #40485d;
+  border-radius: 18px;
+  background: #161b28;
+  color: inherit;
+  text-decoration: none;
+}
+.challenge-card:hover {
+  border-color: #d5ff58;
+}
+.challenge-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.challenge-card .button {
+  flex: 0 0 auto;
+}
+@media (max-width: 600px) {
+  .challenge-card {
+    flex-wrap: wrap;
+  }
+}
+/* A small cover has no room for the title a drawn cover shows. */
+.challenge-game h2 .game-cover .cover-title {
+  display: none;
+}
+.challenge-game h2 .game-cover .cover-icon {
+  width: 28px;
+  height: 28px;
+}

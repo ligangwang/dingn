@@ -972,6 +972,26 @@
     "As a test account": "以测试账号身份",
     "TEST": "测试",
     "Administrator": "管理员",
-    "Tester": "测试员"
+    "Tester": "测试员",
+    "Challenges": "挑战",
+    "Open challenges": "公开挑战",
+    "Pick one and play the same round. Sign in and your score is posted under it.": "选一个，玩同一局。登录后，你的成绩会发布在它下面。",
+    "No open challenges yet. Finish a round and challenge anyone.": "还没有公开挑战。完成一局，向所有人发起挑战吧。",
+    "Players: {0}": "参与玩家：{0}",
+    "Top score: {0} by {1}": "最高成绩：{1} 的 {0}",
+    "A player": "一位玩家",
+    "Take the challenge": "接受挑战",
+    "LATEST CHALLENGE": "最新挑战",
+    "All challenges →": "全部挑战 →",
+    "You beat it with {0}!": "你以 {0} 获胜！",
+    "You scored {0}. Not enough this time.": "你的成绩是 {0}，这次还差一点。",
+    "Your best is #{0} of {1} here.": "你的最好成绩在这里排第 {0} 名，共 {1} 人。",
+    "Sign in to post your score": "登录以发布你的成绩",
+    "Challenge results": "挑战成绩",
+    "you": "你",
+    "This challenge is closed. It takes no more results.": "这个挑战已关闭，不再接收新成绩。",
+    "Close challenge": "关闭挑战",
+    "Delete challenge": "删除挑战",
+    "Delete this challenge? Its link will stop working.": "要删除这个挑战吗？它的链接将会失效。"
   }
 }

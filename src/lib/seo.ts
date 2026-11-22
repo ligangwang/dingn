@@ -68,6 +68,11 @@ export const pages = {
     index: false,
     en: { title: "Sign in" },
   },
+  "/challenges/": {
+    // Players' nicknames and scores: nothing for a search engine.
+    index: false,
+    en: { title: "Challenges" },
+  },
   "/leaderboard/": {
     // Admins only for now (Players admin page makes it public).
     index: false,

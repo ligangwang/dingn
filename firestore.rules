@@ -87,6 +87,10 @@ service cloud.firestore {
     match /challenges/{document=**} {
       allow read, write: if false;
     }
+    // The open challenges of each game (scripts/challenges.mjs): server-only.
+    match /challengeBoards/{document=**} {
+      allow read, write: if false;
+    }
     // Friends brought through challenge links (scripts/referrals.mjs):
     // server-only, so nobody can pay themselves for a friend.
     match /referrals/{document=**} {
