@@ -74,6 +74,10 @@ const REFERENCE: [string, string][] = [
     "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.",
   ],
   [
+    "dingn.showSignIn(reasons)\ndingn.hideSignIn()",
+    'Shows dingn\'s sign-in box over your game, or takes it away. Draw no sign-in text or buttons of your own: only decide when the box shows, such as on the result of a round. reasons lists what the player would gain: "score", "rewards" (coins and badges) or "progress". Nothing shows for a signed-in player.',
+  ],
+  [
     "dingn.requestSignIn()",
     "Sends the player to sign in. They come back to your game afterwards.",
   ],

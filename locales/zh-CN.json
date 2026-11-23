@@ -1002,7 +1002,14 @@
     "{0} already has a challenge.": "{0}已经有挑战了。",
     "This round already has a challenge.": "这一局已经有挑战了。",
     "Your score is posted there: you are #{0} of {1}.": "你的成绩已发布在那里：你排第 {0}，共 {1} 人。",
-    "Your score is posted there.": "你的成绩已发布在那里。"
+    "Your score is posted there.": "你的成绩已发布在那里。",
+    "Sign in free": "免费登录",
+    "Keep what you earn in this game.": "留住你在这个游戏里获得的一切。",
+    "Post your score under this challenge": "把成绩发布到这个挑战下",
+    "Save your score and see your rank": "保存成绩并查看排名",
+    "Earn coins and badges": "赚取金币和徽章",
+    "Save your progress": "保存进度",
+    "Shows dingn's sign-in box over your game, or takes it away. Draw no sign-in text or buttons of your own: only decide when the box shows, such as on the result of a round. reasons lists what the player would gain: \"score\", \"rewards\" (coins and badges) or \"progress\". Nothing shows for a signed-in player.": "在你的游戏上显示 dingn 的登录框，或把它收起。不要自己绘制登录文字或按钮：只需决定何时显示登录框，例如在一局的结果画面。reasons 列出玩家能得到什么：\"score\"、\"rewards\"（金币和徽章）或 \"progress\"。已登录的玩家不会看到任何内容。"
   },
   "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "在不记分的情况下，查询 { mode, seed, score, unit } 这一关是否已有进行中的挑战。没有时返回 null，否则返回 { name, score, mine, rank, players }：挑战属于谁、要超过的分数，以及这个分数能排第几。在一局结束时调用：没有挑战就显示“发起挑战”，已有挑战就让玩家加入。两种情况下都由 challengeLink() 记分。",
   "100 more coins when they play on another day": "对方改天再来玩时，你再得 100 金币",

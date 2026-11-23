@@ -65,6 +65,12 @@ export type BridgeContext = {
   loadProgress: () => Promise<string | null>;
   saveProgress: (json: string) => Promise<void>;
   signIn: () => void;
+  /**
+   * The game asks for dingn's sign-in box over it, with what signing in
+   * would bring the player, or asks for it to be taken away again.
+   */
+  showSignIn?: (reasons: SignInReason[]) => void;
+  hideSignIn?: () => void;
   /** Opens a dingn page (an already checked site path such as "/"). */
   navigate: (path: string) => void;
   ready: () => void;
@@ -104,6 +110,9 @@ export type BridgeContext = {
     earn: (coins: number) => Promise<EarnResult>;
   };
 };
+/** What signing in would bring the player, as the sign-in box words it. */
+export const SIGN_IN_REASONS = ["score", "rewards", "progress"] as const;
+export type SignInReason = (typeof SIGN_IN_REASONS)[number];
 export type ChallengeStanding = {
   /** The owner's nickname and their score to beat. */
   name: string;
@@ -314,6 +323,19 @@ async function answer(
     }
     case "signIn":
       ctx.signIn();
+      return null;
+    case "signIn.show": {
+      // Unknown reasons are left out, so a newer game works on this website.
+      const asked = request.params?.reasons;
+      ctx.showSignIn?.(
+        SIGN_IN_REASONS.filter(
+          (reason) => Array.isArray(asked) && asked.includes(reason),
+        ),
+      );
+      return null;
+    }
+    case "signIn.hide":
+      ctx.hideSignIn?.();
       return null;
     case "navigate": {
       const path = request.params?.path;

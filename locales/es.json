@@ -1002,7 +1002,14 @@
     "{0} already has a challenge.": "{0} ya tiene un desafío.",
     "This round already has a challenge.": "Esta ronda ya tiene un desafío.",
     "Your score is posted there: you are #{0} of {1}.": "Tu puntuación está publicada allí: eres el n.º {0} de {1}.",
-    "Your score is posted there.": "Tu puntuación está publicada allí."
+    "Your score is posted there.": "Tu puntuación está publicada allí.",
+    "Sign in free": "Inicia sesión gratis",
+    "Keep what you earn in this game.": "Conserva lo que ganes en este juego.",
+    "Post your score under this challenge": "Publica tu puntuación en este desafío",
+    "Save your score and see your rank": "Guarda tu puntuación y mira tu puesto",
+    "Earn coins and badges": "Gana monedas e insignias",
+    "Save your progress": "Guarda tu progreso",
+    "Shows dingn's sign-in box over your game, or takes it away. Draw no sign-in text or buttons of your own: only decide when the box shows, such as on the result of a round. reasons lists what the player would gain: \"score\", \"rewards\" (coins and badges) or \"progress\". Nothing shows for a signed-in player.": "Muestra el cuadro de inicio de sesión de dingn sobre tu juego, o lo quita. No dibujes textos ni botones de inicio de sesión propios: solo decide cuándo se muestra el cuadro, por ejemplo en el resultado de una ronda. reasons indica lo que ganaría el jugador: \"score\", \"rewards\" (monedas e insignias) o \"progress\". No se muestra nada a un jugador que ya inició sesión."
   },
   "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "Pregunta, sin publicar nada, si el nivel de { mode, seed, score, unit } ya tiene un reto abierto. Devuelve null si no lo tiene; si lo tiene, { name, score, mine, rank, players }: de quién es el reto, su puntuación a superar y el puesto que ocuparía esta puntuación. Llámalo al final de una ronda: sin reto, ofrece “Retar a cualquiera”; con uno, ofrece unirse a él. En ambos casos challengeLink() publica después la puntuación.",
   "100 more coins when they play on another day": "100 monedas más cuando juegue otro día",

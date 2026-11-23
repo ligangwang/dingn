@@ -12,7 +12,9 @@
 //   dingn.onPlayer((player) => …);        // sign-in or sign-out
 //   await dingn.storage.set("best", 12);  // this device only
 //   await dingn.progress.save({ level }); // follows a signed-in player
-//   dingn.requestSignIn();
+//   dingn.requestSignIn();                // straight to the sign-in page
+//   dingn.showSignIn(["score", "rewards"]); // dingn's sign-in box over the game; draw none of your own
+//   dingn.hideSignIn();                   // take it away (the next round started)
 //   await dingn.rewards.unlock("level-10"); // a badge from game.json, once
 //   await dingn.rewards.list();           // the game's badges, and which are earned
 //   await dingn.rewards.spend("power-1"); // buy an upgrade from game.json's shop
@@ -136,6 +138,8 @@ function connectToHost(host, timeout) {
         earn: (coins) => request("rewards.earn", { coins }),
       },
       requestSignIn: () => notify("signIn"),
+      showSignIn: (reasons = []) => notify("signIn.show", { reasons }),
+      hideSignIn: () => notify("signIn.hide"),
       navigate: (path) => notify("navigate", { path }),
       ready: () => notify("ready"),
       challengeLink: (challenge) => request("challenge.link", challenge),
@@ -180,6 +184,8 @@ function standalone() {
       earn: signedOut,
     },
     requestSignIn() {},
+    showSignIn() {},
+    hideSignIn() {},
     navigate(path) {
       location.href = path;
     },

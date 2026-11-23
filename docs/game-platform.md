@@ -254,6 +254,33 @@ dingn.ready(); // hides the loading screen
 dingn.roundEnded(); // a round was played to the end (play statistics)
 ```
 
+### Asking the player to sign in
+
+Every sign-in prompt over a game is dingn's. A game draws no "Sign in to
+save your score" text, link or button of its own: it only decides when the
+prompt shows.
+
+```js
+// On the result of a round, for a signed-out player:
+if (!dingn.player.signedIn) dingn.showSignIn(["score", "rewards"]);
+// When the next round starts:
+dingn.hideSignIn();
+```
+
+`showSignIn(reasons)` puts dingn's sign-in box along the bottom of the game,
+in the player's language: one line for each reason, a "Sign in free" button
+and a button that puts the box away. The reasons say what this player would
+gain: `"score"` (their score saved and ranked), `"rewards"` (coins and
+badges) and `"progress"` (their progress saved); with none, the box says so
+in general words. After `challengeResult` for a signed-out player, dingn
+adds that the score will be posted under the challenge, so one box covers
+everything. Nothing shows for a signed-in player. Keep the bottom of your
+result screen clear of buttons, since the box lies over it.
+
+`requestSignIn()` is still there for a button of the game's own that needs an
+account to work (a shop, a "join this challenge"): it sends the player
+straight to the sign-in page.
+
 ### Languages
 
 dingn speaks English (its own language, at the original URLs) and every
