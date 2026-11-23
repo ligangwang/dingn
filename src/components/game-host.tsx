@@ -791,6 +791,53 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           )}
         </p>
       )}
+      {/* Above the game, beside the score to beat, so the players already
+          there are seen without scrolling; a few rows show, the rest scroll. */}
+      {challenge && thread && thread.results.length > 0 && (
+        <section className="play-thread" aria-label={t("Challenge results")}>
+          <h2>{t("Challenge results")}</h2>
+          {thread.closed && (
+            <p className="play-thread-closed">
+              {t("This challenge is closed. It takes no more results.")}
+            </p>
+          )}
+          <ol>
+            {thread.results.map((r, i) => (
+              <li key={i} className={r.mine ? "mine" : undefined}>
+                <span className="rank">{i + 1}</span>
+                <span className="name">
+                  {r.name ?? t("A player")}
+                  {r.mine && <em> · {t("you")}</em>}
+                </span>
+                <span className="pts">
+                  {scoreText({ ...challenge, score: r.score }, locale, t)}
+                </span>
+              </li>
+            ))}
+          </ol>
+          {thread.owner && (
+            // Its maker can stop it taking results, or take it off dingn.
+            <p className="play-thread-actions">
+              {!thread.closed && (
+                <button
+                  type="button"
+                  className="quiet-link"
+                  onClick={() => void endChallenge("close")}
+                >
+                  {t("Close challenge")}
+                </button>
+              )}
+              <button
+                type="button"
+                className="quiet-link"
+                onClick={() => void endChallenge("delete")}
+              >
+                {t("Delete challenge")}
+              </button>
+            </p>
+          )}
+        </section>
+      )}
       {state.game.preview && (
         <p className="play-preview" role="note">
           {t(
@@ -845,52 +892,6 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             {t("Not now")}
           </button>
         </div>
-      )}
-      {/* Under the game, so the game stays where the player looks. */}
-      {challenge && thread && thread.results.length > 0 && (
-        <section className="play-thread" aria-label={t("Challenge results")}>
-          <h2>{t("Challenge results")}</h2>
-          {thread.closed && (
-            <p className="play-thread-closed">
-              {t("This challenge is closed. It takes no more results.")}
-            </p>
-          )}
-          <ol>
-            {thread.results.map((r, i) => (
-              <li key={i} className={r.mine ? "mine" : undefined}>
-                <span className="rank">{i + 1}</span>
-                <span className="name">
-                  {r.name ?? t("A player")}
-                  {r.mine && <em> · {t("you")}</em>}
-                </span>
-                <span className="pts">
-                  {scoreText({ ...challenge, score: r.score }, locale, t)}
-                </span>
-              </li>
-            ))}
-          </ol>
-          {thread.owner && (
-            // Its maker can stop it taking results, or take it off dingn.
-            <p className="play-thread-actions">
-              {!thread.closed && (
-                <button
-                  type="button"
-                  className="quiet-link"
-                  onClick={() => void endChallenge("close")}
-                >
-                  {t("Close challenge")}
-                </button>
-              )}
-              <button
-                type="button"
-                className="quiet-link"
-                onClick={() => void endChallenge("delete")}
-              >
-                {t("Delete challenge")}
-              </button>
-            </p>
-          )}
-        </section>
       )}
       <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
       <GameAbout game={state.game} />
