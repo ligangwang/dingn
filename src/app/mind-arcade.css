@@ -2272,6 +2272,12 @@ nav a.account-link:hover .header-avatar {
   font-family: var(--font-body, inherit);
   letter-spacing: 0;
 }
+/* Initials keep their dark ink on the green circle (the home page's heading
+   would otherwise colour them green on green). */
+.challenge-title .challenge-name .avatar-initials,
+.mind-hero h1 .challenge-title .challenge-name .avatar-initials {
+  color: #10131c;
+}
 /* The game is named in the sentence's own colour (the home page's heading
    would otherwise colour every span). */
 .challenge-title .challenge-game,
