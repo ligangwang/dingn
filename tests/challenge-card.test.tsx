@@ -27,8 +27,8 @@ const challenge = {
   players: 3,
   top: { name: "Ada", score: 2940 },
   results: [
-    { name: "Ada", score: 2940, number: "1234567890" },
-    { name: "Bo", score: 2900, number: "2345678901" },
+    { name: "Ada", score: 2940, number: "1234567890", avatar: "fox" },
+    { name: "Bo", score: 2900, number: "2345678901", avatar: "" },
     { name: null, score: 100 },
   ],
   createdAt: "2026-11-22T23:41:09.270Z",
@@ -43,18 +43,25 @@ it("shows the challenge, its results in order and each player's page", () => {
       })
       .getAttribute("href"),
   ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
+  // The title is the only way in: there is no separate button.
+  expect(screen.queryByRole("link", { name: "Take the challenge" })).toBeNull();
+  // The rows are the players: there is no separate count.
+  expect(screen.queryByText("Players: 3")).toBeNull();
+  const rows = screen.getAllByRole("listitem");
   expect(
-    screen
-      .getByRole("link", { name: "Take the challenge" })
-      .getAttribute("href"),
-  ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
-  expect(screen.getByText("Players: 3")).toBeTruthy();
-  const rows = screen.getAllByRole("listitem").map((li) => li.textContent);
-  expect(rows).toEqual([
-    "1Ada2,940 points",
-    "2Bo2,900 points",
-    "3A player100 points",
+    rows.map((li) => [
+      li.querySelector(".rank")!.textContent,
+      li.querySelector(".who")!.textContent,
+      li.querySelector(".pts")!.textContent,
+    ]),
+  ).toEqual([
+    ["1", "Ada", "2,940 points"],
+    ["2", "Bo", "2,900 points"],
+    ["3", "A player", "100 points"],
   ]);
+  // Each player's avatar: the one they chose, otherwise their initials.
+  expect(rows[0].querySelector(".avatar-preset")!.textContent).toBe("🦊");
+  expect(rows[1].querySelector(".avatar")!.textContent).toBe("BO");
   expect(
     screen.getByRole("link", { name: "Ada" }).getAttribute("href"),
   ).toMatch(/^\/player\/1234567890\/?$/);
@@ -94,5 +101,12 @@ it("is the home page's heading when it is the latest challenge", () => {
       name: "Ada reached 2,110 points in Gem Surge. Can you beat it?",
     }),
   ).toBeTruthy();
+  expect(
+    screen
+      .getByRole("link", {
+        name: "Ada reached 2,110 points in Gem Surge. Can you beat it?",
+      })
+      .getAttribute("href"),
+  ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
   expect(screen.getByRole("link", { name: "Ada" })).toBeTruthy();
 });

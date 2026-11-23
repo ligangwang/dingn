@@ -165,7 +165,7 @@ export function resultsOf(doc) {
  */
 export function postResult(
   doc,
-  { uid, name, score, now, number = null },
+  { uid, name, score, now, number = null, avatar = null },
   own = null,
 ) {
   const before = resultsOf(doc);
@@ -174,7 +174,14 @@ export function postResult(
   const results = improved
     ? [
         ...before.filter((r) => r.uid !== uid),
-        { uid, name, score, at: now, ...(number ? { number } : {}) },
+        {
+          uid,
+          name,
+          score,
+          at: now,
+          ...(number ? { number } : {}),
+          ...(typeof avatar === "string" ? { avatar } : {}),
+        },
       ]
         .sort(byScore)
         .slice(0, MAX_RESULTS)
@@ -204,6 +211,10 @@ export const LISTED_RESULTS = 5;
 export const playerNumber = (value) =>
   typeof value === "string" && /^[1-9]\d{9}$/.test(value) ? value : null;
 
+/** A player's chosen avatar (a short word such as "fox"), or null. */
+export const playerAvatar = (value) =>
+  typeof value === "string" && /^[a-z0-9-]{1,32}$/.test(value) ? value : null;
+
 /** A thread's first results, as its line on a game's list keeps them. */
 const firstResults = (doc) =>
   resultsOf(doc)
@@ -213,13 +224,14 @@ const firstResults = (doc) =>
       name: r.name ?? null,
       score: r.score,
       ...(playerNumber(r.number) ? { number: r.number } : {}),
+      ...(typeof r.avatar === "string" ? { avatar: r.avatar } : {}),
     }));
 
 /**
- * Results as anyone may see them: each with the player's nickname, score and
- * public number (which links their page), never their uid. A result saved
- * before numbers were kept gets its player's from their account. `viewer`
- * marks the signed-in player's own.
+ * Results as anyone may see them: each with the player's nickname, score,
+ * public number (which links their page) and chosen avatar, never their uid.
+ * A result saved before numbers and avatars were kept gets its player's from
+ * their account. `viewer` marks the signed-in player's own.
  */
 export async function shownResults(
   results,
@@ -228,18 +240,19 @@ export async function shownResults(
 ) {
   return Promise.all(
     results.map(async (r) => {
-      const number =
-        playerNumber(r.number) ??
-        (r.uid
-          ? playerNumber(
-              (await Promise.resolve(account(r.uid)).catch(() => null))
-                ?.player_no,
-            )
-          : null);
+      let number = playerNumber(r.number);
+      let avatar = playerAvatar(r.avatar);
+      // (An avatar kept as "" is a player who chose none, not one to look up.)
+      if (r.uid && (!number || typeof r.avatar !== "string")) {
+        const profile = await Promise.resolve(account(r.uid)).catch(() => null);
+        number ??= playerNumber(profile?.player_no);
+        avatar ??= playerAvatar(profile?.avatar);
+      }
       return {
         name: nickname(r.name),
         score: r.score,
         ...(number ? { number } : {}),
+        ...(avatar ? { avatar } : {}),
         ...(viewer && r.uid === viewer ? { mine: true } : {}),
       };
     }),
@@ -364,13 +377,16 @@ async function signedIn(req, res, verify, exchange) {
  */
 async function maker(req, res, verify, exchange, account) {
   const claims = await signedIn(req, res, verify, exchange);
-  if (!claims) return { uid: null, name: null, number: null, test: false };
+  if (!claims)
+    return { uid: null, name: null, number: null, avatar: null, test: false };
   const profile = await account(claims.uid).catch(() => null);
   return {
     uid: claims.uid,
     name: nickname(profile?.user_name, claims.name),
     // Their public number, which names their page (/player/<number>/).
     number: playerNumber(profile?.player_no),
+    // The avatar they chose, or "" for none (their initials are shown).
+    avatar: playerAvatar(profile?.avatar) ?? "",
     test: hasRole(claims, "tester"),
   };
 }
@@ -393,7 +409,7 @@ async function addResult(req, res, id, { verify, exchange, account }) {
     score > MAX_SCORE
   )
     throw new ApiError(400, "invalid-request");
-  const { uid, name, number, test } = await maker(
+  const { uid, name, number, avatar, test } = await maker(
     req,
     res,
     verify,
@@ -407,7 +423,7 @@ async function addResult(req, res, id, { verify, exchange, account }) {
   if (saved.closed === true) throw new ApiError(409, "closed");
   const now = new Date().toISOString();
   const post = (doc, own = null) =>
-    postResult(doc, { uid, name, score, now, number }, own);
+    postResult(doc, { uid, name, score, now, number, avatar }, own);
   if (test) return { ...post(saved).outcome, test: true };
   // The thread, its line on the game's list and the player's own best
   // change together.
@@ -545,7 +561,7 @@ export async function handleChallenges(
       throw new ApiError(400, "invalid-request");
     // Only games on dingn, so made-up ids can't fill the store.
     if (!(await cachedRecord(body.game))) throw new ApiError(404, "not-found");
-    const { uid, name, number, test } = await maker(
+    const { uid, name, number, avatar, test } = await maker(
       req,
       res,
       verify,
@@ -577,6 +593,7 @@ export async function handleChallenges(
           score: challenge.score,
           at: createdAt,
           ...(number ? { number } : {}),
+          ...(typeof avatar === "string" ? { avatar } : {}),
         },
       ],
       players: 1,

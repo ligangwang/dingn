@@ -19,6 +19,7 @@ import {
   type ThreadResult,
 } from "@/lib/challenges";
 import type { CatalogGame } from "@/lib/catalog";
+import { Avatar } from "./avatar";
 import { playPath } from "./catalog";
 import { useLocale } from "./locale";
 
@@ -65,14 +66,22 @@ export function ChallengeResults({
         <li key={i} className={r.mine ? "mine" : undefined}>
           <span className="rank">{i + 1}</span>
           <span className="name">
-            {r.number ? (
-              <Link href={href(`/player/${r.number}/`)}>
-                {r.name ?? t("A player")}
-              </Link>
-            ) : (
-              (r.name ?? t("A player"))
-            )}
-            {r.mine && <em> · {t("you")}</em>}
+            <Avatar
+              choice={r.avatar ?? ""}
+              name={r.name ?? "?"}
+              user={null}
+              size={26}
+            />
+            <span className="who">
+              {r.number ? (
+                <Link href={href(`/player/${r.number}/`)}>
+                  {r.name ?? t("A player")}
+                </Link>
+              ) : (
+                (r.name ?? t("A player"))
+              )}
+              {r.mine && <em> · {t("you")}</em>}
+            </span>
           </span>
           <span className="pts">
             {scoreText({ ...challenge, score: r.score }, locale, t)}
@@ -127,9 +136,9 @@ export function ShareChallenge({ game, id }: { game: string; id: string }) {
 }
 
 /**
- * An open challenge: its title, how many players took it, its results and
- * the button that opens the game on it. `hero` is the home page's large one,
- * whose title is the page's heading.
+ * An open challenge: its title, which opens the game on it, the ways to pass
+ * it on and its results. `hero` is the home page's
+ * large one, whose title is the page's heading.
  */
 export function ChallengeCard({
   challenge,
@@ -154,23 +163,22 @@ export function ChallengeCard({
   return (
     <article className={hero ? "challenge-card hero" : "challenge-card"}>
       <div className="challenge-card-head">
+        {/* The title is the way in: it opens the game on this challenge. */}
         {hero ? (
-          <h1>{title}</h1>
+          <h1>
+            <Link className="challenge-title" href={to}>
+              {title}
+            </Link>
+          </h1>
         ) : (
           <Link className="challenge-title" href={to}>
             {title}
           </Link>
         )}
         <span className="challenge-actions">
-          <Link className={hero ? "button" : "button small"} href={to}>
-            {t("Take the challenge")}
-          </Link>
           <ShareChallenge game={game.id} id={challenge.id} />
         </span>
       </div>
-      <p className="muted challenge-players">
-        {t("Players: {0}").replace("{0}", String(challenge.players))}
-      </p>
       <ChallengeResults challenge={challenge} results={results} />
     </article>
   );
