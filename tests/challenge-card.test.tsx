@@ -27,8 +27,8 @@ const challenge = {
   players: 3,
   top: { name: "Ada", score: 2940 },
   results: [
-    { name: "Ada", score: 2940, number: "1234567890" },
-    { name: "Bo", score: 2900, number: "2345678901" },
+    { name: "Ada", score: 2940, number: "1234567890", avatar: "fox" },
+    { name: "Bo", score: 2900, number: "2345678901", avatar: "" },
     { name: null, score: 100 },
   ],
   createdAt: "2026-11-22T23:41:09.270Z",
@@ -46,12 +46,21 @@ it("shows the challenge, its results in order and each player's page", () => {
   // The title is the only way in: there is no separate button.
   expect(screen.queryByRole("link", { name: "Take the challenge" })).toBeNull();
   expect(screen.getByText("Players: 3")).toBeTruthy();
-  const rows = screen.getAllByRole("listitem").map((li) => li.textContent);
-  expect(rows).toEqual([
-    "1Ada2,940 points",
-    "2Bo2,900 points",
-    "3A player100 points",
+  const rows = screen.getAllByRole("listitem");
+  expect(
+    rows.map((li) => [
+      li.querySelector(".rank")!.textContent,
+      li.querySelector(".who")!.textContent,
+      li.querySelector(".pts")!.textContent,
+    ]),
+  ).toEqual([
+    ["1", "Ada", "2,940 points"],
+    ["2", "Bo", "2,900 points"],
+    ["3", "A player", "100 points"],
   ]);
+  // Each player's avatar: the one they chose, otherwise their initials.
+  expect(rows[0].querySelector(".avatar-preset")!.textContent).toBe("🦊");
+  expect(rows[1].querySelector(".avatar")!.textContent).toBe("BO");
   expect(
     screen.getByRole("link", { name: "Ada" }).getAttribute("href"),
   ).toMatch(/^\/player\/1234567890\/?$/);

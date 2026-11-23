@@ -2224,25 +2224,36 @@ nav a.account-link:hover .header-avatar {
   display: grid;
   gap: 12px;
 }
-/* A challenge card (challenge-card.tsx): title and actions, then results. */
+/* A challenge card (challenge-card.tsx): its title, which opens the game,
+   the ways to pass it on, then how many took it and their results. */
 .challenge-card {
-  padding: 14px 16px;
-  border: 1px solid #40485d;
+  padding: 16px 18px 12px;
+  border: 1px solid #333b52;
   border-radius: 18px;
-  background: #161b28;
+  background: linear-gradient(180deg, #1a2031, #151a28);
+  transition: border-color 0.15s;
+}
+.challenge-card:hover {
+  border-color: #59627a;
 }
 .challenge-card-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 6px 18px;
 }
 .challenge-title {
   flex: 1 1 260px;
   min-width: 0;
   color: inherit;
-  font-weight: 700;
+  font: 700 1.08rem/1.35 var(--font-display);
   text-decoration: none;
+}
+/* An arrow says the title is the way in. */
+.challenge-title::after {
+  content: " →";
+  color: #d5ff58;
+  white-space: nowrap;
 }
 .challenge-title:hover {
   color: #d5ff58;
@@ -2258,16 +2269,22 @@ nav a.account-link:hover .header-avatar {
   padding: 0;
   border: 0;
   background: none;
+  color: #9aa1b5;
   cursor: pointer;
   font-size: 13px;
   text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.challenge-share:hover {
+  color: #d5ff58;
 }
 .challenge-players {
-  margin: 6px 0 4px;
-  font-size: 0.9rem;
+  margin: 4px 0 8px;
+  font-size: 0.85rem;
 }
 /* The home page's latest challenge: the same card, large and unframed. */
-.challenge-card.hero {
+.challenge-card.hero,
+.challenge-card.hero:hover {
   padding: 0;
   border: 0;
   background: none;
@@ -2279,7 +2296,7 @@ nav a.account-link:hover .header-avatar {
   margin-top: 14px;
 }
 .challenge-card.hero h1 .challenge-title {
-  font-weight: inherit;
+  font: inherit;
 }
 .challenge-card.hero .challenge-rows {
   max-width: 520px;
@@ -2297,38 +2314,55 @@ nav a.account-link:hover .header-avatar {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 0;
+  padding: 6px 0;
   font-size: 0.95rem;
 }
 .challenge-rows li + li {
   border-top: 1px solid #262c44;
 }
 .challenge-rows .rank {
-  flex: 0 0 2em;
-  opacity: 0.6;
+  flex: 0 0 1.6em;
+  color: #8e95ab;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+/* The leader's rank in the site's green. */
+.challenge-rows li:first-child .rank {
+  color: #d5ff58;
 }
 .challenge-rows .name {
   flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.challenge-rows .avatar {
+  flex: 0 0 auto;
+}
+.challenge-rows .who {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.challenge-rows .name a {
+.challenge-rows .who a {
   color: inherit;
   text-decoration: none;
 }
-.challenge-rows .name a:hover {
+.challenge-rows .who a:hover {
+  color: #d5ff58;
   text-decoration: underline;
 }
-.challenge-rows .name em {
+.challenge-rows .who em {
   font-style: normal;
   opacity: 0.6;
 }
 .challenge-rows .pts {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .challenge-rows li.mine {
   color: #d5ff58;

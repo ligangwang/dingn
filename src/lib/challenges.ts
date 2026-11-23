@@ -9,6 +9,8 @@ export type ThreadResult = {
   score: number;
   /** The player's public number, which names their page (/player/<number>/). */
   number?: string;
+  /** The avatar they chose (a preset's id); without one, their initials show. */
+  avatar?: string;
   mine?: boolean;
 };
 export type Thread = {

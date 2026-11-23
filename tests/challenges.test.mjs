@@ -589,21 +589,22 @@ test("a challenge id names one challenge across dingn, whatever the game", async
 });
 
 test("a result carries its player's public number, which links their page", async () => {
-  const numbered = (uid, name, player_no) => ({
+  const numbered = (uid, name, player_no, avatar) => ({
     claims: { uid, name },
     cookie: "dingn-session=x",
-    profile: { user_name: name, player_no },
+    profile: { user_name: name, player_no, ...(avatar ? { avatar } : {}) },
   });
   const { body } = await call("/api/challenges", {
     body: { game: "memory", ...round },
     ...numbered("u-cy", "Cy", "1234567890"),
   });
-  await post(body.id, 15, numbered("u-di", "Di", "2345678901"));
+  // With the avatar they chose.
+  await post(body.id, 15, numbered("u-di", "Di", "2345678901", "fox"));
   // A player whose account has no number yet has no link.
   await post(body.id, 12, bo);
   const thread = (await open(body.id)).body;
   assert.deepEqual(thread.results, [
-    { name: "Di", score: 15, number: "2345678901" },
+    { name: "Di", score: 15, number: "2345678901", avatar: "fox" },
     { name: "Bo", score: 12 },
     { name: "Cy", score: 10, number: "1234567890" },
   ]);
@@ -617,7 +618,10 @@ test("a result carries its player's public number, which links their page", asyn
   const old = await challenges.shownResults(
     [{ uid: "u-old", name: "Old", score: 3 }],
     null,
-    async (uid) => (uid === "u-old" ? { player_no: "3456789012" } : null),
+    async (uid) =>
+      uid === "u-old" ? { player_no: "3456789012", avatar: "owl" } : null,
   );
-  assert.deepEqual(old, [{ name: "Old", score: 3, number: "3456789012" }]);
+  assert.deepEqual(old, [
+    { name: "Old", score: 3, number: "3456789012", avatar: "owl" },
+  ]);
 });

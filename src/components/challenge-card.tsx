@@ -19,6 +19,7 @@ import {
   type ThreadResult,
 } from "@/lib/challenges";
 import type { CatalogGame } from "@/lib/catalog";
+import { Avatar } from "./avatar";
 import { playPath } from "./catalog";
 import { useLocale } from "./locale";
 
@@ -65,14 +66,22 @@ export function ChallengeResults({
         <li key={i} className={r.mine ? "mine" : undefined}>
           <span className="rank">{i + 1}</span>
           <span className="name">
-            {r.number ? (
-              <Link href={href(`/player/${r.number}/`)}>
-                {r.name ?? t("A player")}
-              </Link>
-            ) : (
-              (r.name ?? t("A player"))
-            )}
-            {r.mine && <em> · {t("you")}</em>}
+            <Avatar
+              choice={r.avatar ?? ""}
+              name={r.name ?? "?"}
+              user={null}
+              size={26}
+            />
+            <span className="who">
+              {r.number ? (
+                <Link href={href(`/player/${r.number}/`)}>
+                  {r.name ?? t("A player")}
+                </Link>
+              ) : (
+                (r.name ?? t("A player"))
+              )}
+              {r.mine && <em> · {t("you")}</em>}
+            </span>
           </span>
           <span className="pts">
             {scoreText({ ...challenge, score: r.score }, locale, t)}
