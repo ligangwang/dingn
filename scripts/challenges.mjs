@@ -15,8 +15,8 @@
 // unique across dingn: all games share the collection, and a new challenge
 // is saved only under an id no challenge has ever had.
 //
-//   { game, mode, seed, score, unit, rules, uid, name, createdAt, public,
-//     results, players, test? }
+//   { game, mode, seed, score, unit, rules, uid, createdAt, public, results,
+//     players, test? }
 //
 // `test` is true when an admin's test account made it (scripts/test-accounts.mjs):
 // friends it brings earn no referral coins (scripts/referrals.mjs).
@@ -24,18 +24,20 @@
 // `rules` is the game's own note of the rules the round was played with
 // (upgrades, helpers allowed), so the friend plays under the same ones.
 //
-// `uid` is the signed-in player who made it and `name` their dingn nickname
-// when they made it, the one leaderboards show (both null for a guest), so a
-// link can say "Ada reached …" instead of "A friend reached …". Opening one
-// shows the nickname, never the uid, and `mine` says whether the signed-in
-// player opening it is the one who made it (their own score to beat). The
-// name kept with a challenge or a result is the nickname at the time; what is
-// shown is the player's nickname now, read from their account.
+// `uid` is the signed-in player who made it (null for a guest). A player is
+// kept only as their uid, on the challenge and on each result: their
+// nickname, public number and avatar are read from their account whenever a
+// challenge is shown, so a link can say "Ada reached …" instead of "A friend
+// reached …" and a player who changes their nickname is renamed everywhere.
+// Opening one shows the nickname, never the uid, and `mine` says whether the
+// signed-in player opening it is the one who made it (their own score to
+// beat). (Challenges and results from before this also hold the `name`,
+// `number` and `avatar` of the time, used only if the account can't be read.)
 //
 // A challenge is a thread: its maker's score comes first, and every signed-in
 // player who takes it and finishes posts their result under it
 // (`results`, each player's best, highest first, at most MAX_RESULTS kept;
-// `players` counts everyone who posted). Each player's own best under a
+// `players` counts everyone who posted; a result is { uid, score, at }). Each player's own best under a
 // challenge is also kept on its own, server-only, in
 // `challengeResults/{id}_{uid}`, so a player below the kept results is still
 // counted once and keeps their best. Scores are the ones games report, so a
@@ -165,26 +167,12 @@ export function resultsOf(doc) {
  * result; a thread keeps only its top results, so a player below them is
  * known only by it. Returns the next document and what to tell the player.
  */
-export function postResult(
-  doc,
-  { uid, name, score, now, number = null, avatar = null },
-  own = null,
-) {
+export function postResult(doc, { uid, score, now }, own = null) {
   const before = resultsOf(doc);
   const mine = own ?? before.find((r) => r.uid === uid);
   const improved = !mine || score > mine.score;
   const results = improved
-    ? [
-        ...before.filter((r) => r.uid !== uid),
-        {
-          uid,
-          name,
-          score,
-          at: now,
-          ...(number ? { number } : {}),
-          ...(typeof avatar === "string" ? { avatar } : {}),
-        },
-      ]
+    ? [...before.filter((r) => r.uid !== uid), { uid, score, at: now }]
         .sort(byScore)
         .slice(0, MAX_RESULTS)
     : before;
@@ -223,8 +211,9 @@ const firstResults = (doc) =>
     .slice(0, LISTED_RESULTS)
     .map((r) => ({
       uid: r.uid ?? null,
-      name: r.name ?? null,
       score: r.score,
+      // Only on results from before players were kept by uid alone.
+      ...(typeof r.name === "string" ? { name: r.name } : {}),
       ...(playerNumber(r.number) ? { number: r.number } : {}),
       ...(typeof r.avatar === "string" ? { avatar: r.avatar } : {}),
     }));
@@ -289,24 +278,54 @@ async function makerName(doc, account = profileOf) {
   return maker.name;
 }
 
-/** What a game's list of open challenges shows of one. */
-function listed(id, doc) {
+/**
+ * A challenge's line on its game's list of open challenges: what the list
+ * needs of it, with players kept by uid like the challenge itself.
+ */
+export function listed(id, doc) {
   const results = resultsOf(doc);
-  const top = results[0];
   return {
     id,
     mode: doc.mode,
     score: doc.score,
     unit: doc.unit,
-    name: nickname(doc.name),
-    // Who made it (never sent): their page and avatar go with their name.
+    // Who made it (never sent): their name, page and avatar are read from
+    // their account.
     uid: doc.uid ?? null,
+    // Only on a challenge from before players were kept by uid alone.
+    ...(typeof doc.name === "string" ? { name: nickname(doc.name) } : {}),
     players: typeof doc.players === "number" ? doc.players : results.length,
-    top: top ? { name: nickname(top.name), score: top.score } : null,
     // Its first results, highest first, to show on the list itself.
     results: firstResults(doc),
     createdAt: doc.createdAt,
   };
+}
+
+/**
+ * Whether two challenges are the same round with the same score to beat: the
+ * same mode, seed, rules, unit and score.
+ */
+export const sameRound = (a, b) =>
+  a.mode === b.mode &&
+  (a.seed ?? null) === (b.seed ?? null) &&
+  (a.rules ?? null) === (b.rules ?? null) &&
+  a.unit === b.unit &&
+  a.score === b.score;
+
+/**
+ * The open challenge on a game's list that `uid` already made for this same
+ * round and score, or null: sending it again gives the same challenge back,
+ * so one score isn't listed over and over.
+ */
+async function openTwin(game, uid, challenge) {
+  const board = await getDoc("challengeBoards", game);
+  for (const thread of board?.threads ?? []) {
+    if (thread.uid !== uid || thread.score !== challenge.score) continue;
+    const doc = await getDoc("challenges", thread.id);
+    if (doc && !doc.deleted && !doc.closed && sameRound(doc, challenge))
+      return thread.id;
+  }
+  return null;
 }
 
 /** A game's list with the challenge `id` added or brought up to date, newest first. */
@@ -346,7 +365,11 @@ const LIST_TTL_MS = 30_000;
 export const forgetLists = () => lists.clear();
 
 /** The open challenges of one game, or of every game, newest first. */
-export async function openChallenges(game = null, now = Date.now()) {
+export async function openChallenges(
+  game = null,
+  now = Date.now(),
+  account = profileOf,
+) {
   const key = game ?? "";
   const kept = lists.get(key);
   if (kept && now - kept.at < LIST_TTL_MS) return kept.list;
@@ -369,18 +392,26 @@ export async function openChallenges(game = null, now = Date.now()) {
           .catch(() => []));
       // Its maker as they are now: nickname, public number and avatar.
       // (A line saved before it kept who made it finds them in its results.)
-      const { uid: makerUid, ...line } = thread;
+      // (`top` was kept on lines from before results were.)
+      const { uid: makerUid, top: _top, ...line } = thread;
       const makerRow = makerUid
         ? (kept.find((r) => r.uid === makerUid) ?? { uid: makerUid })
         : kept.find((r) => r.uid && nickname(r.name) === thread.name);
-      const [maker] = makerRow ? await shownResults([makerRow]) : [];
+      const [maker] = makerRow
+        ? await shownResults([makerRow], null, account)
+        : [];
+      const results = await shownResults(kept, null, account);
       list.push({
         game: board.id,
         ...line,
-        ...(maker ? { name: maker.name } : {}),
+        name: maker?.name ?? line.name ?? null,
         ...(maker?.number ? { number: maker.number } : {}),
         ...(maker?.avatar ? { avatar: maker.avatar } : {}),
-        results: await shownResults(kept),
+        // The leader, for pages from before lists carried every result.
+        top: results[0]
+          ? { name: results[0].name, score: results[0].score }
+          : null,
+        results,
       });
     }
   }
@@ -416,23 +447,14 @@ async function signedIn(req, res, verify, exchange) {
 }
 
 /**
- * The signed-in player's uid and nickname, or nulls for a guest (or a stale
- * session), and whether they are a test account.
+ * The signed-in player's uid, or null for a guest (or a stale session), and
+ * whether they are a test account.
  */
-async function maker(req, res, verify, exchange, account) {
+async function maker(req, res, verify, exchange) {
   const claims = await signedIn(req, res, verify, exchange);
-  if (!claims)
-    return { uid: null, name: null, number: null, avatar: null, test: false };
-  const profile = await account(claims.uid).catch(() => null);
-  return {
-    uid: claims.uid,
-    name: nickname(profile?.user_name, claims.name),
-    // Their public number, which names their page (/player/<number>/).
-    number: playerNumber(profile?.player_no),
-    // The avatar they chose, or "" for none (their initials are shown).
-    avatar: playerAvatar(profile?.avatar) ?? "",
-    test: hasRole(claims, "tester"),
-  };
+  return claims
+    ? { uid: claims.uid, test: hasRole(claims, "tester") }
+    : { uid: null, test: false };
 }
 
 /**
@@ -440,7 +462,7 @@ async function maker(req, res, verify, exchange, account) {
  * account's is checked but not saved ({ test: true }), as its play stays off
  * every board.
  */
-async function addResult(req, res, id, { verify, exchange, account }) {
+async function addResult(req, res, id, { verify, exchange }) {
   if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
   validateOrigin(req);
   throttle(req);
@@ -453,21 +475,14 @@ async function addResult(req, res, id, { verify, exchange, account }) {
     score > MAX_SCORE
   )
     throw new ApiError(400, "invalid-request");
-  const { uid, name, number, avatar, test } = await maker(
-    req,
-    res,
-    verify,
-    exchange,
-    account,
-  );
+  const { uid, test } = await maker(req, res, verify, exchange);
   if (!uid) throw new ApiError(401, "signed-out");
   limit(uid);
   const saved = await getDoc("challenges", id);
   if (!shownChallenge(id, saved)) throw new ApiError(404, "not-found");
   if (saved.closed === true) throw new ApiError(409, "closed");
   const now = new Date().toISOString();
-  const post = (doc, own = null) =>
-    postResult(doc, { uid, name, score, now, number, avatar }, own);
+  const post = (doc, own = null) => postResult(doc, { uid, score, now }, own);
   if (test) return { ...post(saved).outcome, test: true };
   // The thread, its line on the game's list and the player's own best
   // change together.
@@ -563,7 +578,7 @@ export async function handleChallenges(
         return send(
           res,
           200,
-          await addResult(req, res, id, { verify, exchange, account }),
+          await addResult(req, res, id, { verify, exchange }),
         );
       if ((part === "close" || part === "delete") && !more.length)
         return send(
@@ -595,7 +610,9 @@ export async function handleChallenges(
       const game = new URL(req.url, "http://x").searchParams.get("game");
       if (game != null && !ID.test(game))
         throw new ApiError(400, "invalid-request");
-      return send(res, 200, { challenges: await openChallenges(game) });
+      return send(res, 200, {
+        challenges: await openChallenges(game, Date.now(), account),
+      });
     }
     if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
     validateOrigin(req);
@@ -606,41 +623,31 @@ export async function handleChallenges(
       throw new ApiError(400, "invalid-request");
     // Only games on dingn, so made-up ids can't fill the store.
     if (!(await cachedRecord(body.game))) throw new ApiError(404, "not-found");
-    const { uid, name, number, avatar, test } = await maker(
-      req,
-      res,
-      verify,
-      exchange,
-      account,
-    );
+    const { uid, test } = await maker(req, res, verify, exchange);
     if (uid) limit(uid);
     else {
       limit(guestKey(req));
       limit("guests", MAX_GUESTS_PER_WINDOW);
     }
+    // The same challenge sent again (a second press of the button, or the
+    // same score shared later) is the one already open, not a new one.
+    const twin =
+      uid && !test ? await openTwin(body.game, uid, challenge) : null;
+    if (twin) return send(res, 200, { id: twin });
     const createdAt = new Date().toISOString();
     const doc = {
       game: body.game,
       ...challenge,
       seed: challenge.seed ?? null,
       rules: challenge.rules ?? null,
+      // Who made it: their uid only. Their name is read from their account.
       uid,
-      name,
       createdAt,
       // "Challenge anyone": a signed-in player's challenge is listed. A
       // guest's has nobody behind it, so only its link opens it.
       public: !!uid && !test,
       // The thread starts with its maker's score.
-      results: [
-        {
-          uid,
-          name,
-          score: challenge.score,
-          at: createdAt,
-          ...(number ? { number } : {}),
-          ...(typeof avatar === "string" ? { avatar } : {}),
-        },
-      ],
+      results: [{ uid, score: challenge.score, at: createdAt }],
       players: 1,
       // Made by a test account: it brings no referral coins.
       ...(test ? { test: true } : {}),
