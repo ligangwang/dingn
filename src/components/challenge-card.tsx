@@ -1,5 +1,6 @@
 "use client";
-// A challenge as dingn shows it everywhere: who made it and the score to
+// A challenge as dingn shows it: one line on the Challenges page
+// (ChallengeRow) and a card with its title elsewhere (ChallengeCard): who made it and the score to
 // beat, its results ranked highest first (each player's name opens their
 // page), and the way in. One implementation for the Challenges page
 // (challenges-page.tsx), the home page's latest challenge (home.tsx) and the
@@ -10,6 +11,7 @@ import { pick } from "@/lib/i18n";
 import {
   challengeParts,
   challengeUrl,
+  roundText,
   scoreText,
   type Challenge,
 } from "@/data/challenge.mjs";
@@ -105,7 +107,16 @@ export function ChallengeResults({
  * Two ways to pass a challenge on to anyone: copy its link, or open the
  * device's share sheet (only where the browser has one).
  */
-export function ShareChallenge({ game, id }: { game: string; id: string }) {
+export function ShareChallenge({
+  game,
+  id,
+  compact = false,
+}: {
+  game: string;
+  id: string;
+  /** One small button: the share sheet where there is one, else a copy. */
+  compact?: boolean;
+}) {
   const { t, locale } = useLocale();
   // The link names the signed-in player sharing it, so a friend who joins
   // dingn through it is theirs.
@@ -124,6 +135,22 @@ export function ShareChallenge({ game, id }: { game: string; id: string }) {
       // The browser refused the clipboard: nothing was copied.
     }
   }
+  if (compact)
+    return (
+      <button
+        type="button"
+        className="challenge-share-icon"
+        aria-label={copied ? t("Link copied") : t("Share")}
+        title={copied ? t("Link copied") : t("Share")}
+        onClick={() =>
+          canShare
+            ? void navigator.share({ url: url() }).catch(() => {})
+            : void copy()
+        }
+      >
+        <span aria-hidden="true">{copied ? "✓" : "⤴"}</span>
+      </button>
+    );
   return (
     <>
       <button
@@ -144,6 +171,82 @@ export function ShareChallenge({ game, id }: { game: string; id: string }) {
         </button>
       )}
     </>
+  );
+}
+
+/**
+ * An open challenge as one line of its game's list on the Challenges page:
+ * which round, who made it, the score to beat, how many played (which opens
+ * the results in place), the way in and a way to pass it on. The game is the
+ * list's heading, so the line does not name it.
+ */
+export function ChallengeRow({
+  challenge,
+  game,
+}: {
+  challenge: OpenChallenge;
+  game: CatalogGame;
+}) {
+  const { t, locale, href } = useLocale();
+  const [open, setOpen] = useState(false);
+  const round = roundText(challenge, t);
+  const results = challenge.results ?? (challenge.top ? [challenge.top] : []);
+  const players = Math.max(challenge.players ?? 0, results.length, 1);
+  const count =
+    players === 1
+      ? t("1 player")
+      : t("{0} players").replace("{0}", players.toLocaleString(locale));
+  const name = challenge.name ?? t("A player");
+  const rows = `challenge-rows-${challenge.id}`;
+  return (
+    <div className="challenge-row">
+      <div className="challenge-row-main">
+        <span className="challenge-round">{round}</span>
+        <span className="challenge-maker">
+          <Avatar
+            choice={challenge.avatar ?? ""}
+            name={name}
+            user={photoUser(challenge.photo)}
+            size={28}
+          />
+          {challenge.number ? (
+            <Link href={href(`/player/${challenge.number}/`)}>{name}</Link>
+          ) : (
+            <span>{name}</span>
+          )}
+        </span>
+        <strong className="challenge-points">
+          {scoreText(challenge, locale, t)}
+        </strong>
+        {/* Someone besides its maker played: their results open in place. */}
+        {results.length > 1 ? (
+          <button
+            type="button"
+            className="challenge-players"
+            aria-expanded={open}
+            aria-controls={rows}
+            onClick={() => setOpen(!open)}
+          >
+            {count} <span aria-hidden="true">{open ? "▴" : "▾"}</span>
+          </button>
+        ) : (
+          <span className="challenge-players">{count}</span>
+        )}
+        <Link
+          className="button small challenge-play"
+          href={href(challengePath(game.id, challenge.id))}
+          aria-label={`${t("Play")}: ${round ? `${round}, ` : ""}${name}, ${scoreText(challenge, locale, t)}`}
+        >
+          {t("Play")}
+        </Link>
+        <ShareChallenge game={game.id} id={challenge.id} compact />
+      </div>
+      {open && (
+        <div id={rows} className="challenge-row-results">
+          <ChallengeResults challenge={challenge} results={results} />
+        </div>
+      )}
+    </div>
   );
 }
 

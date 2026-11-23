@@ -1,14 +1,51 @@
 "use client";
 // The Challenges page (/challenges/): the challenges players have open,
-// grouped by game, each shown as a challenge card (challenge-card.tsx): a
-// round anyone can take in one click, with its results.
+// grouped by game, each one line (ChallengeRow in challenge-card.tsx): a
+// round anyone can take in one click, with its results a click away. A game
+// with many shows its newest first and the rest on request.
 import Link from "next/link";
 import { pick } from "@/lib/i18n";
 import type { OpenChallenge } from "@/lib/challenges";
 import type { CatalogGame } from "@/lib/catalog";
 import { GameCover, playPath, useCatalog } from "./catalog";
-import { ChallengeCard, useOpenChallenges } from "./challenge-card";
+import { useState } from "react";
+import { ChallengeRow, useOpenChallenges } from "./challenge-card";
 import { useLocale } from "./locale";
+
+/** Challenges a game's list shows at first, and adds with each "Show more". */
+const PAGE = 8;
+
+/** One game's open challenges, a page at a time. */
+function ChallengeList({
+  game,
+  challenges,
+}: {
+  game: CatalogGame;
+  challenges: OpenChallenge[];
+}) {
+  const { t } = useLocale();
+  const [shown, setShown] = useState(PAGE);
+  return (
+    <>
+      <ul className="challenge-list">
+        {challenges.slice(0, shown).map((challenge) => (
+          <li key={challenge.id}>
+            <ChallengeRow challenge={challenge} game={game} />
+          </li>
+        ))}
+      </ul>
+      {challenges.length > shown && (
+        <button
+          type="button"
+          className="challenge-more"
+          onClick={() => setShown(shown + PAGE)}
+        >
+          {t("Show more")}
+        </button>
+      )}
+    </>
+  );
+}
 
 export function ChallengesPage() {
   const { t, locale, href } = useLocale();
@@ -50,13 +87,7 @@ export function ChallengesPage() {
                   {title}
                 </Link>
               </h2>
-              <ul className="challenge-list">
-                {challenges.map((challenge) => (
-                  <li key={challenge.id}>
-                    <ChallengeCard challenge={challenge} game={game} />
-                  </li>
-                ))}
-              </ul>
+              <ChallengeList game={game} challenges={challenges} />
             </section>
           );
         })}
