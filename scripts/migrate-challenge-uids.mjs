@@ -10,8 +10,8 @@
 //   - drops the kept name, number and avatar from every challenge and result
 //     whose player has a uid (a player whose uid can't be found keeps their
 //     name, so nothing is lost);
-//   - merges the open challenges of one level (a game's round under its
-//     rules) into the first one made, whose maker owns the level's
+//   - merges the open challenges of one level (a game's round, whatever
+//     rules it was played with) into the first one made, whose maker owns the level's
 //     challenge: every player keeps their best score under it, and the
 //     others are deleted as a player would delete them (kept, but shown
 //     nowhere) with `mergedInto` naming the one they went into, so their

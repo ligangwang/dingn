@@ -321,9 +321,10 @@ and its preview name the player ("Ada reached 10 digits in Memory"), or say
 "A friend" for a guest. Opening one (`GET /api/challenges/<id>`) shows
 nicknames but never a uid.
 
-A level has one challenge. A level is a game's round under its rules: the
-game, `mode`, `seed`, `rules` and unit (`challengeRounds/{key}` names the
-challenge open for it). The first signed-in player to challenge a level owns
+A level has one challenge. A level is a game's round: the game, `mode`,
+`seed` and unit (`challengeRounds/{key}` names the challenge open for it),
+whatever `rules` it was played with. Rules are the challenger's own, so the
+level's challenge keeps its owner's, and whoever opens it plays under them. The first signed-in player to challenge a level owns
 its challenge and can close or delete it. A player who challenges a level
 that already has one joins it: their score is posted under it, the link they
 get is that challenge's, and dingn tells them their place above the game.

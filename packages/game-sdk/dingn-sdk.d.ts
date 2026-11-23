@@ -168,8 +168,8 @@ export type DingnGame = {
   /**
    * A link to this game that opens the challenge of `challenge`'s level for
    * whoever follows it, with a link preview that shows the score. Share it
-   * yourself (copy it, or navigator.share). A level (the game's `mode`, `seed`
-   * and `rules`) has one challenge: the first signed-in player to challenge
+   * yourself (copy it, or navigator.share). A level (the game's `mode` and
+   * `seed`, whatever its `rules`) has one challenge: the first signed-in player to challenge
    * it owns it, and a player who challenges a level that already has one
    * has their score posted under it instead, dingn tells them their place,
    * and the link is that challenge's. With `mode` "level" and the level's
