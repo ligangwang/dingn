@@ -234,13 +234,62 @@ test("challenges move to uids, each level's challenges merge into its first, and
     { uid: "u-sci", score: 2940 },
     { uid: "u-kn", score: 2290 },
   ]);
+  // A level whose challenges had all dropped off a full list is listed by
+  // the one kept, and a player below a challenge's kept results is merged
+  // by their own best.
+  const level = { ...round, seed: "30" };
+  const pair = [
+    {
+      id: "BBBBBBBBBBB1",
+      ...level,
+      uid: "u-sci",
+      createdAt: at(1),
+      public: true,
+      players: 1,
+      results: [{ uid: "u-sci", score: 10, at: at(1) }],
+    },
+    {
+      id: "BBBBBBBBBBB2",
+      ...level,
+      uid: "u-kn",
+      createdAt: at(8),
+      public: true,
+      players: 2,
+      results: [{ uid: "u-kn", score: 20, at: at(8) }],
+    },
+  ];
+  const [one] = migration.merged(pair, [
+    { challenge: "BBBBBBBBBBB2", uid: "u-rain", score: 5, at: at(8) },
+    { challenge: "ZZZZZZZZZZZZ", uid: "u-else", score: 99, at: at(8) },
+  ]);
+  assert.equal(one.keep.id, "BBBBBBBBBBB1");
+  assert.deepEqual(one.gone, ["BBBBBBBBBBB2"]);
+  assert.equal(one.keep.players, 3);
+  assert.deepEqual(
+    one.keep.results.map((r) => [r.uid, r.score]),
+    [
+      ["u-kn", 20],
+      ["u-sci", 10],
+      ["u-rain", 5],
+    ],
+  );
+  for (const { id, ...doc } of pair)
+    await store.mergeDoc("challenges", id, doc);
+  // (Neither is on the list: both had dropped off it.)
+  await migration.migrate({ apply: true, log: () => {}, now: at(9) });
+  assert.deepEqual(
+    (await store.getDoc("challengeBoards", "gemsurge")).threads.map(
+      (t) => t.id,
+    ),
+    ["AAAAAAAAAAA7", "BBBBBBBBBBB1", "AAAAAAAAAAA1"],
+  );
   // Running it again changes nothing.
   assert.deepEqual(await migration.migrate({ apply: true, log: () => {} }), {
-    challenges: 7,
+    challenges: 9,
     changed: 0,
     found: 0,
     lost: 1,
-    levels: 2,
+    levels: 3,
     merged: 0,
     lists: 0,
   });

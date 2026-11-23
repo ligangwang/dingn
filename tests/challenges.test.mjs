@@ -736,10 +736,18 @@ test("one level has one challenge: its first challenger owns it, the next ones j
     ).length,
     1,
   );
-  // Another level, other rules, or another game is a challenge of its own.
+  // The rules a player played with (their own upgrades) don't make it
+  // another level: they join the level's challenge all the same.
+  const upgraded = await call("/api/challenges", {
+    body: { ...level, rules: "u3-1-0", score: 40 },
+    claims: { uid: "u-cy", name: "Cy" },
+    cookie: "dingn-session=x",
+  });
+  assert.equal(upgraded.body.id, first.body.id);
+  assert.equal(upgraded.body.rank, 3);
+  // Another level or another mode is a challenge of its own.
   for (const body of [
     { ...level, seed: seed(), score: 55 },
-    { ...level, rules: "u1", score: 55 },
     { ...level, mode: "cards", score: 55 },
   ]) {
     const other = await call("/api/challenges", { body, ...bo });
