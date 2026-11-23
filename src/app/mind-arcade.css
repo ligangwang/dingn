@@ -2314,7 +2314,14 @@ button.challenge-players {
 button.challenge-players:hover {
   color: #d5ff58;
 }
+.challenge-row-actions {
+  display: flex;
+  gap: 6px;
+}
 .challenge-share-icon {
+  display: grid;
+  place-items: center;
+  padding: 0;
   width: 32px;
   height: 32px;
   border: 0;
@@ -2323,6 +2330,15 @@ button.challenge-players:hover {
   color: #cdd2e0;
   font-size: 15px;
   cursor: pointer;
+}
+.challenge-share-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .challenge-share-icon:hover {
   background: #ffffff24;
@@ -2350,10 +2366,10 @@ button.challenge-players:hover {
 /* A phone: who and what to beat on one line, the rest under it. */
 @media (max-width: 640px) {
   .challenge-row-main {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
-      "maker maker points"
-      "round players play";
+      "maker maker points points"
+      "round players actions play";
   }
   .challenge-maker {
     grid-area: maker;
@@ -2366,13 +2382,19 @@ button.challenge-players:hover {
   }
   .challenge-players {
     grid-area: players;
-    justify-self: end;
   }
   .challenge-play {
     grid-area: play;
   }
-  .challenge-share-icon {
+  .challenge-row-actions {
+    grid-area: actions;
+  }
+  /* Room for one: the share sheet, which can copy too, where there is one. */
+  .challenge-row-actions button:first-child:not(:only-child) {
     display: none;
+  }
+  .challenge-row-main {
+    column-gap: 8px;
   }
   .challenge-row-results {
     padding-left: 16px;

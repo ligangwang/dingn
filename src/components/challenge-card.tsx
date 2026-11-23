@@ -114,7 +114,7 @@ export function ShareChallenge({
 }: {
   game: string;
   id: string;
-  /** One small button: the share sheet where there is one, else a copy. */
+  /** Small icon buttons, for a line of a list: copy, and share where it works. */
   compact?: boolean;
 }) {
   const { t, locale } = useLocale();
@@ -137,19 +137,40 @@ export function ShareChallenge({
   }
   if (compact)
     return (
-      <button
-        type="button"
-        className="challenge-share-icon"
-        aria-label={copied ? t("Link copied") : t("Share")}
-        title={copied ? t("Link copied") : t("Share")}
-        onClick={() =>
-          canShare
-            ? void navigator.share({ url: url() }).catch(() => {})
-            : void copy()
-        }
-      >
-        <span aria-hidden="true">{copied ? "✓" : "⤴"}</span>
-      </button>
+      <span className="challenge-row-actions">
+        <button
+          type="button"
+          className="challenge-share-icon"
+          aria-label={copied ? t("Link copied") : t("Copy link")}
+          title={copied ? t("Link copied") : t("Copy link")}
+          onClick={() => void copy()}
+        >
+          {copied ? (
+            <span aria-hidden="true">✓</span>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7" />
+              <path d="M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7" />
+            </svg>
+          )}
+        </button>
+        {canShare && (
+          <button
+            type="button"
+            className="challenge-share-icon"
+            aria-label={t("Share")}
+            title={t("Share")}
+            // Closing the share sheet rejects; there is nothing to do then.
+            onClick={() => void navigator.share({ url: url() }).catch(() => {})}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15V3" />
+              <path d="m7 8 5-5 5 5" />
+              <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+            </svg>
+          </button>
+        )}
+      </span>
     );
   return (
     <>
