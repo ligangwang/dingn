@@ -137,8 +137,7 @@ export function ShareChallenge({ game, id }: { game: string; id: string }) {
 
 /**
  * An open challenge: its title, which opens the game on it, the ways to pass
- * it on, its results, and how many players took it when that is more than
- * the results shown. `hero` is the home page's
+ * it on and its results. `hero` is the home page's
  * large one, whose title is the page's heading.
  */
 export function ChallengeCard({
@@ -181,12 +180,6 @@ export function ChallengeCard({
         </span>
       </div>
       <ChallengeResults challenge={challenge} results={results} />
-      {challenge.players > results.length && (
-        // Only when more took it than the rows above show.
-        <p className="muted challenge-players">
-          {t("Players: {0}").replace("{0}", String(challenge.players))}
-        </p>
-      )}
     </article>
   );
 }

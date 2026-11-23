@@ -2278,10 +2278,6 @@ nav a.account-link:hover .header-avatar {
 .challenge-share:hover {
   color: #d5ff58;
 }
-.challenge-players {
-  margin: 6px 0 0;
-  font-size: 0.85rem;
-}
 .challenge-card-head + .challenge-rows {
   margin-top: 8px;
 }
