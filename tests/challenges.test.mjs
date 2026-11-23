@@ -296,6 +296,32 @@ const post = (id, score, who = {}) =>
 const open = (id, who = {}) =>
   call(`/api/challenges/${id}`, { method: "GET", ...who });
 
+test("a list names the maker's best even below the results it keeps", async () => {
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round, seed: seed() },
+    ...ada,
+  });
+  // Enough players beat the maker that the list's line no longer keeps them.
+  for (let n = 1; n <= challenges.LISTED_RESULTS; n++)
+    await post(body.id, 30 + n, {
+      claims: { uid: `u-p${n}`, name: `P${n}` },
+      cookie: "dingn-session=x",
+    });
+  // A better score of the maker's from before it raised the challenge's own:
+  // only their saved result has it.
+  await store.mergeDoc("challengeResults", `${body.id}_u-ada`, {
+    challenge: body.id,
+    uid: "u-ada",
+    score: 18,
+  });
+  challenges.forgetLists();
+  const { body: list } = await call("/api/challenges", { method: "GET" });
+  const line = list.challenges.find((c) => c.id === body.id);
+  assert.equal(line.results.length, challenges.LISTED_RESULTS);
+  assert.equal(line.score, 18);
+  assert.equal(line.name, "Ada");
+});
+
 test("a signed-in player's challenge is a thread anyone can post a result under", async () => {
   const { body } = await call("/api/challenges", {
     body: { game: "memory", ...round, seed: seed() },

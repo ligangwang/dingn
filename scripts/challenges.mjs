@@ -435,7 +435,18 @@ export async function openChallenges(
       // (`top` was kept on lines from before results were.)
       const { uid: makerUid, top: _top, ...line } = thread;
       const makerRow = makerUid
-        ? (kept.find((r) => r.uid === makerUid) ?? { uid: makerUid })
+        ? (kept.find((r) => r.uid === makerUid) ??
+          // Below the results the line keeps: their best is their own
+          // saved result (none for a maker who never played it again).
+          (kept.length >= LISTED_RESULTS
+            ? {
+                uid: makerUid,
+                score:
+                  (await getDoc("challengeResults", `${thread.id}_${makerUid}`)
+                    .then((own) => own?.score)
+                    .catch(() => null)) ?? 0,
+              }
+            : { uid: makerUid }))
         : kept.find((r) => r.uid && nickname(r.name) === thread.name);
       const [maker] = makerRow
         ? await shownResults([makerRow], null, account)
