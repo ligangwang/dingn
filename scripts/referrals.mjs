@@ -7,12 +7,17 @@
 // so most of the reward goes to friends who stay. Every friend counts: the
 // inviter's badges at 3, 10, 25 and 50 friends pay bonus coins on top.
 //
-//   POST /api/referrals { challenge }   (the signed-in friend, with a game open)
+//   POST /api/referrals { challenge, ref }   (the signed-in friend, with a game open)
 //   → { state: "joined", coins } | { state: "returned" | "waiting" | "none" }
+//   POST /api/referrals/friends   (the signed-in inviter, on their account page)
+//   → { friends: [{ name, number, avatar, joinedAt, returned, coins }] }
 //
 // The player page calls it, without waiting on the game, as soon as a signed-in
 // player has a game open while this browser holds a challenge it arrived through (src/lib/referral.ts). The friend's account
-// must be new (made after the challenge) with a confirmed email address, and
+// belongs to whoever shared the link: `ref` is the public number of the
+// player whose copied or shared link they came through (the link's `r`), and
+// a link that names nobody is its challenge maker's. The friend's account
+// must be new (made after the challenge when its maker brought them) with a confirmed email address, and
 // they can't be its maker, so existing members swapping links, accounts
 // made with made-up addresses, or admins' test accounts, earn nothing. Each friend is recorded once,
 // in server-only Firestore `referrals/{friend uid}`:
@@ -30,11 +35,14 @@ import {
   throttle,
   validateOrigin,
 } from "./api.mjs";
-import { getDoc, updateMany } from "./platform-store.mjs";
-import { CHALLENGE_ID } from "../src/data/challenge.mjs";
+import { getDoc, listDocs, updateMany } from "./platform-store.mjs";
+import { nickname, playerAvatar, playerNumber } from "./challenges.mjs";
+import { CHALLENGE_ID, REFERRER } from "../src/data/challenge.mjs";
 import { hasRole } from "./roles.mjs";
 
-export const referralRoutes = ["/api/referrals"];
+export const referralRoutes = ["/api/referrals", "/api/referrals/friends"];
+/** Friends shown on the inviter's account page, newest first. */
+export const MAX_FRIENDS_SHOWN = 100;
 export const JOIN_COINS = 100;
 export const RETURN_COINS = 100;
 export const PAID_JOINS_PER_DAY = 10;
@@ -155,6 +163,12 @@ async function accountOf(uid) {
   };
 }
 
+/** Whether the account `uid` is a test account, whose links bring nobody. */
+async function testerUid(uid) {
+  const auth = await (await import("./games-admin.mjs")).firebaseAuth();
+  return hasRole((await auth.getUser(uid)).customClaims ?? {}, "tester");
+}
+
 const send = (res, status, body) => {
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
@@ -170,7 +184,7 @@ const send = (res, status, body) => {
  * runs it again on a retry decides afresh.
  */
 export const joinWrites =
-  (challengeId, challenge, now) =>
+  (challengeId, challenge, now, ref = null) =>
   ([referral, friend, inviter]) => {
     if (referral) return [undefined, undefined, undefined];
     const joined = inviterJoined(inviter, now);
@@ -178,6 +192,8 @@ export const joinWrites =
       {
         referrer: challenge.uid,
         challenge: challengeId,
+        // The public number of the player whose shared link it was, if the link named one.
+        ...(ref ? { ref } : {}),
         game: challenge.game,
         joinedAt: now,
         joinDay: day(now),
@@ -202,39 +218,51 @@ export const returnWrites =
       : [{ ...referral, returnedAt: now }, pay(inviter, RETURN_COINS)];
 
 /** A friend's first claim: records them and pays both, or says why not. */
-async function join(claims, challengeId, account, now) {
+async function join(claims, { challenge: cid, ref }, account, isTester, now) {
   const uid = claims.uid;
-  if (typeof challengeId !== "string" || !CHALLENGE_ID.test(challengeId))
-    return { state: "none" };
   // A test account (scripts/test-accounts.mjs) is never a friend brought.
   if (hasRole(claims, "tester")) return { state: "none" };
-  const challenge = await getDoc("challenges", challengeId);
-  // Only a signed-in player's challenge can bring a friend, never their own,
-  // and never a test account's.
-  if (!challenge?.uid || challenge.uid === uid || challenge.test === true)
-    return { state: "none" };
+  const challengeId =
+    typeof cid === "string" && CHALLENGE_ID.test(cid) ? cid : null;
+  const saved = challengeId ? await getDoc("challenges", challengeId) : null;
+  // The friend belongs to whoever shared the link they came through (its
+  // `r`, that player's public number): anyone can pass a challenge on, not
+  // only its maker. A link that names nobody is its challenge maker's.
+  const shared =
+    typeof ref === "string" && REFERRER.test(ref)
+      ? ((await getDoc("playerNumbers", ref))?.uid ?? null)
+      : null;
+  const sharer = shared && shared !== uid && !(await isTester(shared));
+  const challenge = sharer
+    ? { uid: shared, game: saved?.game ?? null }
+    : saved?.test === true
+      ? null
+      : saved;
+  // Only a signed-in player brings a friend, never themselves, and never a
+  // test account.
+  if (!challenge?.uid || challenge.uid === uid) return { state: "none" };
   const { created: made, verified } = await account(uid);
   const age = Date.parse(now) - made.getTime();
-  // A new account with a real address: made after the challenge, recently,
-  // and its email confirmed.
+  // A new account with a real address: made recently (after the challenge,
+  // when its maker is the one who brought them) and its email confirmed.
   if (
     !verified ||
-    !(made.getTime() >= Date.parse(challenge.createdAt)) ||
+    (!sharer && !(made.getTime() >= Date.parse(saved.createdAt))) ||
     age > NEW_ACCOUNT_DAYS * 86_400_000
   )
     return { state: "none" };
   // The record and both payments are saved together, or not at all, and
   // a friend already recorded (by another request, even at the same time)
   // is never paid twice.
-  const [saved] = await updateMany(
+  const [recorded] = await updateMany(
     [
       ["referrals", uid],
       ["rewards", uid],
       ["rewards", challenge.uid],
     ],
-    joinWrites(challengeId, challenge, now),
+    joinWrites(challengeId, challenge, now, sharer ? ref : null),
   );
-  if (!saved) return { state: "waiting" };
+  if (!recorded) return { state: "waiting" };
   console.log("referral", challenge.uid, uid, challenge.game);
   return { state: "joined", coins: JOIN_COINS };
 }
@@ -253,6 +281,35 @@ async function comeBack(uid, referral, now) {
   return { state: "returned" };
 }
 
+/**
+ * The friends `uid` brought, newest first, for their own account page: each
+ * friend's nickname, public number and avatar as they are now (never a uid
+ * or an email), the day they joined, and the coins they earned the inviter
+ * (the join coins, when that day's paid joins weren't used up, and the coins
+ * for coming back another day).
+ */
+export async function friendsOf(uid) {
+  const brought = (await listDocs("referrals", ["referrer", uid]))
+    .sort((a, b) => (a.joinedAt < b.joinedAt ? 1 : -1))
+    .slice(0, MAX_FRIENDS_SHOWN);
+  return Promise.all(
+    brought.map(async (r) => {
+      const profile = await getDoc("accounts", r.id).catch(() => null);
+      const number = playerNumber(profile?.player_no);
+      const avatar = playerAvatar(profile?.avatar);
+      return {
+        name: nickname(profile?.user_name),
+        ...(number ? { number } : {}),
+        ...(avatar ? { avatar } : {}),
+        joinedAt: r.joinedAt,
+        returned: !!r.returnedAt,
+        coins:
+          (r.paidReferrer ? JOIN_COINS : 0) + (r.returnedAt ? RETURN_COINS : 0),
+      };
+    }),
+  );
+}
+
 export async function handleReferrals(
   req,
   res,
@@ -261,6 +318,7 @@ export async function handleReferrals(
     verify,
     exchange = refresh,
     account = accountOf,
+    isTester = testerUid,
     now = () => new Date().toISOString(),
   } = {},
 ) {
@@ -270,6 +328,8 @@ export async function handleReferrals(
     throttle(req);
     const body = await readBody(req);
     const claims = await signedInClaims(req, res, verify, exchange);
+    if (pathname === "/api/referrals/friends")
+      return send(res, 200, { friends: await friendsOf(claims.uid) });
     const at = now();
     const referral = await getDoc("referrals", claims.uid);
     return send(
@@ -277,7 +337,7 @@ export async function handleReferrals(
       200,
       referral
         ? await comeBack(claims.uid, referral, at)
-        : await join(claims, body.challenge, account, at),
+        : await join(claims, body, account, isTester, at),
     );
   } catch (error) {
     if (error instanceof ApiError)

@@ -777,3 +777,48 @@ test("one level has one challenge: its first challenger owns it, the next ones j
   assert.notEqual(tester.body.id, fresh.body.id);
   assert.equal(tester.body.joined, undefined);
 });
+
+test("a game can ask where a score would stand in a level's challenge, without posting it", async () => {
+  const level = { game: "memory", ...round, seed: seed() };
+  const ask = (score, who = {}) =>
+    call("/api/challenges/standing", { body: { ...level, score }, ...who });
+  // A level nobody challenged has none.
+  assert.deepEqual((await ask(70, bo)).body, { challenge: null });
+  const made = await call("/api/challenges", {
+    body: { ...level, score: 55 },
+    ...ada,
+  });
+  // Bo would lead it; nothing is posted by asking.
+  assert.deepEqual((await ask(70, bo)).body, {
+    challenge: { name: "Ada", score: 55, mine: false, rank: 1, players: 2 },
+  });
+  assert.deepEqual((await ask(40, bo)).body.challenge.rank, 2);
+  assert.deepEqual((await open(made.body.id)).body.results, [
+    { name: "Ada", score: 55 },
+  ]);
+  // Its owner is told it is theirs, and a visitor is placed like a new player.
+  assert.deepEqual((await ask(60, ada)).body.challenge, {
+    name: "Ada",
+    score: 55,
+    mine: true,
+    rank: 1,
+    players: 1,
+  });
+  assert.deepEqual((await ask(10)).body.challenge, {
+    name: "Ada",
+    score: 55,
+    mine: false,
+    rank: 2,
+    players: 2,
+  });
+  // A player who already posted a better score keeps its place.
+  await post(made.body.id, 90, bo);
+  assert.deepEqual((await ask(20, bo)).body.challenge.rank, 1);
+  // A closed challenge is no longer the level's.
+  await call(`/api/challenges/${made.body.id}/close`, { body: {}, ...ada });
+  assert.deepEqual((await ask(70, bo)).body, { challenge: null });
+  assert.equal(
+    (await call("/api/challenges/standing", { method: "GET" })).status,
+    405,
+  );
+});

@@ -97,6 +97,19 @@ export type Challenge = {
    */
   mine?: boolean;
 };
+/** A level's open challenge and where a score would stand in it, from `dingn.challengeStanding`. */
+export type ChallengeStanding = {
+  /** The nickname of the player who owns the challenge. */
+  name: string;
+  /** Their score to beat. */
+  score: number;
+  /** True when the challenge is the signed-in player's own. */
+  mine: boolean;
+  /** The place the score would take (the player's best counts if it is higher), or null below the results dingn keeps. */
+  rank: number | null;
+  /** How many players there would be, this one included. */
+  players: number;
+};
 /** How a challenge round ended, from `dingn.challengeResult`. */
 export type ChallengeOutcome = {
   /** True when the score is higher than the challenge's. */
@@ -178,6 +191,20 @@ export type DingnGame = {
    * "unknown_method" on a dingn website from before challenge links.
    */
   challengeLink(challenge: Challenge): Promise<string>;
+  /**
+   * Asks, without posting anything, whether `challenge`'s level already has
+   * an open challenge, and where this score would stand in it. Null when the
+   * level has none (and for a test account, whose challenges stay its own).
+   * Call it at the end of a round played outside a challenge: with none,
+   * offer "Challenge anyone"; with one, name its owner and the place and
+   * offer to join it. Either button then calls `challengeLink`, which posts
+   * the score. Only a signed-in player joins: a visitor gets the standing
+   * as what signing in would bring (offer `requestSignIn()`), since a
+   * visitor's `challengeLink` makes an unlisted challenge of their own.
+   * Rejects with "invalid" for a malformed challenge, and
+   * "unknown_method" on a dingn website from before this call.
+   */
+  challengeStanding(challenge: Challenge): Promise<ChallengeStanding | null>;
   /**
    * Call it when the player finishes the round of `dingn.challenge`, with
    * their score. A challenge is open to anyone: dingn posts a signed-in

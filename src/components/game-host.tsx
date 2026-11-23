@@ -48,11 +48,13 @@ import {
   progressField,
   PROTOCOL,
   type BridgeContext,
+  type ChallengeStanding,
   type Player,
 } from "@/lib/game-bridge";
 import {
   CHALLENGE_ID,
   challengeIdFromQuery,
+  referrerFromQuery,
   challengeText,
   challengeUrl,
   validChallenge,
@@ -318,7 +320,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     // can't be read just opens the game.
     const cid = challengeIdFromQuery(location.search);
     // A visitor who joins dingn from a friend's challenge earns them both coins.
-    if (cid) noteArrival(cid);
+    // The friend is whoever shared the link, when it names them (`r`).
+    const sharer = referrerFromQuery(location.search);
+    if (cid || sharer) noteArrival(cid, sharer);
     const saved: Promise<{
       c: Challenge;
       name: string | null;
@@ -510,8 +514,23 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       // Theirs to open as their own: one they made, or own already.
       if (!made.joined || made.owner) rememberChallenge(made.id);
       if (counted) trackGame("share", game.id);
-      return challengeUrl(location.origin, game.id, made.id, locale);
+      // The link names the player sharing it: a friend who joins dingn
+      // through it is theirs, whoever made the challenge.
+      return challengeUrl(
+        location.origin,
+        game.id,
+        made.id,
+        locale,
+        session?.stats?.number,
+      );
     },
+    challengeStanding: async (c) =>
+      (
+        await api<{ challenge: ChallengeStanding | null }>(
+          "/api/challenges/standing",
+          { game: game.id, ...c },
+        )
+      ).challenge,
     challengeResult: async (score) => {
       const cid = challengeId.current;
       if (!cid || !challenge)

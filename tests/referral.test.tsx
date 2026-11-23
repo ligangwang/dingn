@@ -1,9 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import {
-  claimReferral,
-  noteArrival,
-  referralOpen,
-} from "../src/lib/referral";
+import { claimReferral, noteArrival, referralOpen } from "../src/lib/referral";
 import { rememberChallenge } from "../src/lib/my-challenges";
 
 afterEach(() => {
@@ -47,4 +43,26 @@ it("stops asking once dingn says the account doesn't qualify", async () => {
   answer({ state: "none" });
   await claimReferral();
   expect(referralOpen()).toBe(false);
+});
+
+it("notes who shared the link, even for a challenge made in this browser", async () => {
+  rememberChallenge("MineMineMine");
+  noteArrival("MineMineMine", "1234567890");
+  const fetch = answer({ state: "joined", coins: 100 });
+  await claimReferral();
+  expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({
+    challenge: "MineMineMine",
+    ref: "1234567890",
+  });
+});
+
+it("notes a sharer's link that opens no challenge", async () => {
+  noteArrival(null);
+  expect(referralOpen()).toBe(false);
+  noteArrival(null, "1234567890");
+  const fetch = answer({ state: "none" });
+  await claimReferral();
+  expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({
+    ref: "1234567890",
+  });
 });

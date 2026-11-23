@@ -22,6 +22,7 @@
 //   dingn.ready();                        // hide the website's loading screen
 //   dingn.challenge;                      // the friend's challenge this page opened, or null
 //   await dingn.challengeLink({ mode: "daily", seed: "2026-11-16", score: 10, unit: "points" });
+//   await dingn.challengeStanding({ mode: "level", seed: "28", score: 10, unit: "points" }); // the level's open challenge and the place this score would take, or null
 //   if (dingn.challenge) await dingn.challengeResult(12); // posts the result under the challenge
 //   dingn.roundEnded();                   // a round was played to the end
 //
@@ -138,6 +139,8 @@ function connectToHost(host, timeout) {
       navigate: (path) => notify("navigate", { path }),
       ready: () => notify("ready"),
       challengeLink: (challenge) => request("challenge.link", challenge),
+      challengeStanding: (challenge) =>
+        request("challenge.standing", challenge),
       challengeResult: (score) => request("challenge.result", { score }),
       roundEnded: () => notify("roundEnded"),
     };
@@ -187,6 +190,7 @@ function standalone() {
           code: "unavailable",
         }),
       ),
+    challengeStanding: async () => null,
     challengeResult: () =>
       Promise.reject(
         Object.assign(new Error("This page was not opened from a challenge."), {

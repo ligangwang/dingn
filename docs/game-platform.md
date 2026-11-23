@@ -329,7 +329,29 @@ its challenge and can close or delete it. A player who challenges a level
 that already has one joins it: their score is posted under it, the link they
 get is that challenge's, and dingn tells them their place above the game.
 Once it is closed or deleted, the next challenge of the level starts a new
-one. A game that uses `mode: "level"` with the level's number as `seed` gets
+one.
+
+A game can find out first, without posting anything
+(`POST /api/challenges/standing`):
+
+```js
+const open = await dingn.challengeStanding({ mode, seed, score, unit });
+// null, or { name, score, mine, rank, players }
+```
+
+It is null when the level has no open challenge (and for a test account,
+whose challenges stay its own). Otherwise it names the challenge's owner and
+their score to beat, and gives the place this score would take (the
+player's best there counts if it is higher) and how many players there would
+be. Ask at the end of a round played outside a challenge: with none, offer
+"Challenge anyone"; with one, say whose it is and the place, and offer to
+join it. Either button calls `challengeLink`, which is what posts the score.
+Only a signed-in player joins a level's challenge: a visitor is told the
+standing too, as what signing in would bring, but a visitor's
+`challengeLink` makes an unlisted challenge of their own. Offer a visitor
+`requestSignIn()` there, not "join".
+
+A game that uses `mode: "level"` with the level's number as `seed` gets
 the level named ("Level 28") on its challenge cards; a `seed` that is a date
 is shown as that day. Links in the old form (`?challenge=…&score=…`) open the game
 without a challenge. The score is still the one the game reports: dingn can't
@@ -390,6 +412,20 @@ sender is paid for at most 10 new friends a day (more still count toward
 the badges). Games need do nothing: the player page notes the challenge a
 visitor arrived through and claims as soon as they are signed in with a game
 open, without waiting on the game; `scripts/referrals.mjs` checks and pays.
+
+The friend belongs to whoever shared the link, not only the challenge's
+maker. Every challenge link a signed-in player copies or shares (from a
+game's `challengeLink`, or a challenge card's "Copy link" and "Share") ends
+with `&r=` and their public player number, the one in their page's address,
+never their uid:
+
+```
+https://dingn.com/zh/play/gemsurge/?c=855EEFGoPtxQ&r=1234567890
+```
+
+Whoever joins dingn through it is that player's friend. A link without `r`
+(a guest's, or an older one) is its challenge maker's, as before. A link
+with `r` works for any game page, with or without a challenge.
 
 ### The funnel
 

@@ -17,11 +17,14 @@ export const RULES: RegExp;
 export function validChallenge(raw: unknown): Challenge | null;
 export const CHALLENGE_ID: RegExp;
 export function challengeIdFromQuery(search: string): string | null;
+export const REFERRER: RegExp;
+export function referrerFromQuery(search: string): string | null;
 export function challengeUrl(
   origin: string,
   gameId: string,
   id: string,
   locale: string,
+  referrer?: string | null,
 ): string;
 export function scoreText(
   challenge: Challenge,

@@ -94,6 +94,8 @@ export const isChallengePath = (pathname) =>
 
 /** Challenges one player (or guest) may save in 10 minutes. */
 export const MAX_PER_WINDOW = 30;
+/** Times one player (or guest) may ask where a score would stand in 10 minutes. */
+export const MAX_STANDINGS_PER_WINDOW = 120;
 /** Challenges all guests together may save on one server in 10 minutes. */
 export const MAX_GUESTS_PER_WINDOW = 600;
 const WINDOW_MS = 600_000;
@@ -547,6 +549,48 @@ async function postUnder(id, saved, { uid, score, test = false }) {
 }
 
 /**
+ * Where a score would stand in its level's open challenge, without posting
+ * it: whose challenge it is and its score to beat, the place the score would
+ * take (counting the player's own best, if they already posted a better
+ * one) and how many players there would be. Null for a level with no open
+ * challenge. A game asks at the end of a round, to offer "join the
+ * challenge" instead of "challenge anyone".
+ */
+async function standing(req, res, { verify, exchange, account }) {
+  if (req.method !== "POST") throw new ApiError(405, "method-not-allowed");
+  validateOrigin(req);
+  throttle(req);
+  const body = await readBody(req);
+  const challenge = validChallenge(body);
+  if (!challenge || typeof body.game !== "string" || !ID.test(body.game))
+    throw new ApiError(400, "invalid-request");
+  const { uid, test } = await maker(req, res, verify, exchange);
+  // Asked after every round, so it has a quota of its own.
+  limit(`standing:${uid ?? guestKey(req)}`, MAX_STANDINGS_PER_WINDOW);
+  // A test account's challenge stays its own, so it has none to join.
+  const open = test ? null : await openRound(body.game, challenge);
+  if (!open) return { challenge: null };
+  const { id, doc } = open;
+  const own = uid ? await getDoc("challengeResults", `${id}_${uid}`) : null;
+  // A visitor is placed as a player nobody has seen yet: what signing in
+  // would bring, since only a signed-in player joins a level's challenge.
+  const { outcome } = postResult(
+    doc,
+    { uid: uid ?? "", score: challenge.score, now: new Date().toISOString() },
+    own,
+  );
+  return {
+    challenge: {
+      name: await makerName(doc, account),
+      score: doc.score,
+      mine: !!uid && doc.uid === uid,
+      rank: outcome.rank,
+      players: outcome.players,
+    },
+  };
+}
+
+/**
  * Closes or deletes the challenge `id` for its maker, or for an admin (who
  * can take any challenge off dingn). Either way it leaves its game's list.
  * Doing it twice changes nothing.
@@ -607,6 +651,13 @@ export async function handleChallenges(
       const [id, part, ...more] = pathname
         .slice("/api/challenges/".length)
         .split("/");
+      // (No challenge's id is this short, so the word can't hide one.)
+      if (id === "standing" && part === undefined)
+        return send(
+          res,
+          200,
+          await standing(req, res, { verify, exchange, account }),
+        );
       if (part === "results" && !more.length)
         return send(
           res,
