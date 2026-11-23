@@ -1,8 +1,7 @@
 "use client";
-// The Leaderboard page (/leaderboard/): the top players. The menu links the
-// Challenges page (challenges-page.tsx), which shows the same board; only
-// admins can open either board until an admin makes it public on the Players
-// admin page.
+// The Leaderboard page (/leaderboard/): the top players. Only admins see it in
+// the menu (header.tsx), and only they can open it until an admin makes it
+// public on the Players admin page.
 import { useLocale } from "./locale";
 import { Leaderboard } from "./xp";
 

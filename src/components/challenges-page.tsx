@@ -1,7 +1,6 @@
 "use client";
 // The Challenges page (/challenges/): the challenges players have open,
-// grouped by game, each a round anyone can take in one click, and the top
-// players under them. A challenge's own page is the game, opened on it
+// grouped by game, each a round anyone can take in one click. A challenge's own page is the game, opened on it
 // (/play/<game>/?c=<id>), where its results are (game-host.tsx).
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -11,7 +10,6 @@ import { fetchOpenChallenges, type OpenChallenge } from "@/lib/challenges";
 import type { CatalogGame } from "@/lib/catalog";
 import { GameCover, playPath, useCatalog } from "./catalog";
 import { useLocale } from "./locale";
-import { Leaderboard } from "./xp";
 
 /** The open challenges of games in the catalog, newest first; null while loading. */
 export function useOpenChallenges(games: CatalogGame[] | null) {
@@ -128,7 +126,6 @@ export function ChallengesPage() {
           );
         })}
       </section>
-      <Leaderboard />
     </div>
   );
 }
