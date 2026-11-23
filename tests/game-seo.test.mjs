@@ -238,6 +238,49 @@ test("the home page fills each category's top games", () => {
   assert.equal(fillSlot("<p>hi</p>", "games", "x"), "<p>hi</p>");
 });
 
+test("the home page arrives with the latest challenge in its top spot", () => {
+  const slot = '<div class="hero-challenge" data-fill="hero-challenge"></div>';
+  const challenges = [
+    // A game that is not in the catalog lists nothing.
+    { id: "aaaaaaaaaaaa", game: "gone", mode: "run", score: 9, unit: "points" },
+    {
+      id: "Xq3v9TzK1bWm",
+      game: "gemsurge",
+      mode: "level",
+      seed: "28",
+      score: 2110,
+      unit: "points",
+      name: "Ada <b>",
+      avatar: "fox",
+      results: [
+        { name: "Ada <b>", score: 2110, number: "1234567890", avatar: "fox" },
+        { name: null, score: 900, photo: "https://example.com/p.jpg" },
+      ],
+    },
+  ];
+  const html = homePageHtml(slot, games, "en", challenges);
+  assert.match(html, /LATEST CHALLENGE/);
+  assert.match(html, /<p class="challenge-round">Level 28<\/p>/);
+  assert.match(
+    html,
+    /<h1><a class="challenge-title" href="\/play\/gemsurge\/\?c=Xq3v9TzK1bWm">/,
+  );
+  // A player's name is text, never markup.
+  assert.match(html, /🦊<\/span>Ada &lt;b&gt;<\/span>/);
+  assert.doesNotMatch(html, /<b>/);
+  assert.match(html, /<span class="challenge-score">2,110 points<\/span>/);
+  assert.match(html, /<a href="\/player\/1234567890\/">Ada &lt;b&gt;<\/a>/);
+  assert.match(html, /src="https:\/\/example.com\/p.jpg"/);
+  assert.match(html, /A player<\/span><\/span><span class="pts">900 points/);
+  // In the page's language, under its prefix.
+  const zh = homePageHtml(slot, games, "zh-CN", challenges);
+  assert.match(zh, /href="\/zh\/play\/gemsurge\/\?c=Xq3v9TzK1bWm"/);
+  assert.match(zh, /href="\/zh\/challenges\/"/);
+  // No open challenge: the slot stays empty and the page says what dingn is.
+  assert.equal(homePageHtml(slot, games, "en", []), slot);
+  assert.equal(homePageHtml(slot, games, "en", challenges.slice(0, 1)), slot);
+});
+
 test("a challenge link's preview shows the saved score to beat", () => {
   const saved = {
     id: "Xq3v9TzK1bWm",

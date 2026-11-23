@@ -44,6 +44,7 @@ import {
   findChallenge,
   handleChallenges,
   isChallengePath,
+  openChallenges,
 } from "./challenges.mjs";
 import { challengeIdFromQuery } from "../src/data/challenge.mjs";
 import { PREFIXES, localeOfPrefix } from "./i18n.mjs";
@@ -318,7 +319,18 @@ http
         async (html) =>
           category
             ? categoryPageHtml(html, await liveCatalog(), category, locale)
-            : homePageHtml(html, await liveCatalog(), locale),
+            : homePageHtml(
+                html,
+                await liveCatalog(),
+                locale,
+                // The latest challenge takes the top spot. Without the
+                // list (or when it is slow to read), the page still gets
+                // its games and says what dingn is.
+                await Promise.race([
+                  openChallenges().catch(() => []),
+                  new Promise((done) => setTimeout(done, 1000, []).unref()),
+                ]),
+              ),
       ).catch(() => {
         res.writeHead(500);
         res.end();
