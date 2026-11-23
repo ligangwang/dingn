@@ -411,6 +411,30 @@ it("invites a visitor from a friend's challenge to sign up after their first rou
   ).toBeTruthy();
   await userEvent.click(screen.getByRole("button", { name: "Not now" }));
   expect(screen.queryByText(/^Nice round!/)).toBeNull();
+  // The game posts the round's score: dingn shows the sign-in link and tells
+  // the game, which then draws none of its own.
+  const replies = vi.spyOn(frame.contentWindow!, "postMessage");
+  await act(async () => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          dingn: "game",
+          v: 1,
+          id: 7,
+          method: "challenge.result",
+          params: { score: 50 },
+        },
+        source: frame.contentWindow,
+      }),
+    );
+  });
+  expect(
+    await screen.findByRole("link", { name: "Sign in to post your score" }),
+  ).toBeTruthy();
+  expect(replies.mock.calls.at(-1)?.[0]).toMatchObject({
+    id: 7,
+    result: { beat: true, posted: false, signInShown: true },
+  });
   localStorage.clear();
   history.replaceState({}, "", "/");
 });

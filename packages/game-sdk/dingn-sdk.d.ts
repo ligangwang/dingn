@@ -123,6 +123,12 @@ export type ChallengeOutcome = {
   /** How many players have posted a result. */
   players: number;
   test?: boolean;
+  /**
+   * True when dingn is showing a signed-out player the link to sign in and
+   * post this score. Show no sign-in link of your own on this result: the
+   * player would see the same link twice.
+   */
+  signInShown?: boolean;
 };
 export type DingnGame = {
   gameId: string;

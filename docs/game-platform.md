@@ -375,7 +375,11 @@ challenge's results there, highest score first (of equal scores, the one made
 first). A signed-in player's result is posted (`posted: true`); each player
 keeps their best, so playing again can only raise it. A signed-out player is
 told the outcome too and invited to sign in, and the score they made is
-posted when they come back signed in. A test account's result is checked but
+posted when they come back signed in. For that player the result carries
+`signInShown: true`: dingn's link to sign in is already on the page, so leave
+your own sign-in links ("Sign in to save your score", "Sign in to earn
+coins") off the result you draw, or the player sees the same link several
+times. A test account's result is checked but
 not saved (`test: true`). A game that never calls `challengeResult` still
 works as before; its challenges just get no results.
 

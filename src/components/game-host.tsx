@@ -550,7 +550,16 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         const players = thread?.players ?? 1;
         setOutcome({ score, beat, posted: false, rank: null, players });
         setThreadOpen(true);
-        return { beat, posted: false, best: score, rank: null, players };
+        return {
+          beat,
+          posted: false,
+          best: score,
+          rank: null,
+          players,
+          // The panel that just opened carries the sign-in link, so the game
+          // leaves its own out.
+          ...(!user && !thread?.closed ? { signInShown: true } : {}),
+        };
       }
       return postResult(cid, score);
     },

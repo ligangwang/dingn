@@ -125,6 +125,11 @@ export type ChallengeOutcome = {
   /** How many players have posted a result. */
   players: number;
   test?: boolean;
+  /**
+   * True when dingn is showing a signed-out player the link to sign in and
+   * post this score: the game shows no sign-in link of its own.
+   */
+  signInShown?: boolean;
 };
 export type EarnResult = { coins: number; left: number | null; test?: boolean };
 export type SpendResult = { new: boolean; coins: number; test?: boolean };
