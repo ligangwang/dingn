@@ -11,6 +11,8 @@ export type ThreadResult = {
   number?: string;
   /** The avatar they chose (a preset's id); without one, their initials show. */
   avatar?: string;
+  /** Their sign-in photo, sent when they chose no avatar. */
+  photo?: string;
   mine?: boolean;
 };
 export type Thread = {
@@ -35,6 +37,8 @@ export type OpenChallenge = {
   /** Its maker's public number and chosen avatar, when dingn knows them. */
   number?: string;
   avatar?: string;
+  /** Their sign-in photo, sent when they chose no avatar. */
+  photo?: string;
   players: number;
   top: { name: string | null; score: number } | null;
   /** Its first results, highest first (a website from before lists carried them sends none). */

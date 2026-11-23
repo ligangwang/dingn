@@ -1005,5 +1005,6 @@
     "Your score is posted there.": "Skormu dipasang di sana."
   },
   "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "Menanyakan, tanpa memposting apa pun, apakah level dari { mode, seed, score, unit } sudah punya tantangan terbuka. Hasilnya null jika belum ada, selain itu { name, score, mine, rank, players }: siapa pemilik tantangan, skor yang harus dikalahkan, dan peringkat yang akan didapat skor ini. Panggil di akhir ronde: jika belum ada, tawarkan “Tantang siapa saja”; jika sudah ada, tawarkan untuk bergabung. Dalam kedua kasus challengeLink() yang memposting skornya.",
-  "100 more coins when they play on another day": "100 koin lagi saat dia bermain di hari lain"
+  "100 more coins when they play on another day": "100 koin lagi saat dia bermain di hari lain",
+  "Other players see your avatar. To keep your sign-in photo to yourself, pick your initials or a picture.": "Pemain lain melihat avatarmu. Agar foto masukmu tidak terlihat, pilih inisial atau sebuah gambar."
 }

@@ -15,6 +15,7 @@ import {
 import { readSettings } from "./site-settings.mjs";
 import { rules } from "./reward-plugin.mjs";
 import { hasRole } from "./roles.mjs";
+import { photoOf } from "./player-photos.mjs";
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID || "dingn-193716";
 let adminPromise;
@@ -140,6 +141,10 @@ export async function topPlayers(db, hidden) {
       return { name, number };
     }),
   );
+  // Without a chosen avatar, a player's sign-in photo, as on their own page.
+  const photos = await Promise.all(
+    snap.docs.map((d, i) => photoOf(d.id, accounts[i]?.data()?.avatar)),
+  );
   const entries = snap.docs.map((d, i) => {
     const p = d.data();
     const account = accounts[i]?.data() ?? {};
@@ -150,6 +155,7 @@ export async function topPlayers(db, hidden) {
       level: p.level || 1,
       ...(who[i].number ? { number: who[i].number } : {}),
       avatar: typeof account.avatar === "string" ? account.avatar : "",
+      ...(photos[i] ? { photo: photos[i] } : {}),
     };
   });
   return entries;
@@ -489,6 +495,7 @@ export async function publicPlayer(db, number) {
     ),
   );
   const progress = levelProgress(player.xp || 0);
+  const photo = await photoOf(uid, account.avatar);
   return {
     number,
     // Their nickname; one who has none yet gets their default now.
@@ -496,6 +503,8 @@ export async function publicPlayer(db, number) {
       () => cleanNickname(account.user_name) ?? "Player",
     ),
     avatar: typeof account.avatar === "string" ? account.avatar : "",
+    // Their sign-in photo, unless they chose an avatar or their initials.
+    ...(photo ? { photo } : {}),
     ...progress,
     streak: player.streak || 0,
     badges: rules().ledger.publicBadges(rewards),

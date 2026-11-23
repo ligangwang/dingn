@@ -266,6 +266,13 @@ function Settings() {
               </button>
             ))}
           </div>
+          {user?.photoURL && (
+            <p className="muted">
+              {t(
+                "Other players see your avatar. To keep your sign-in photo to yourself, pick your initials or a picture.",
+              )}
+            </p>
+          )}
         </fieldset>
         <button className="button" disabled={busy || !!profileError}>
           {t(busy ? "Please wait…" : "Save profile")}

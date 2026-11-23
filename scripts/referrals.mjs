@@ -37,6 +37,7 @@ import {
 } from "./api.mjs";
 import { getDoc, listDocs, updateMany } from "./platform-store.mjs";
 import { nickname, playerAvatar, playerNumber } from "./challenges.mjs";
+import { photoOf } from "./player-photos.mjs";
 import { CHALLENGE_ID, REFERRER } from "../src/data/challenge.mjs";
 import { hasRole } from "./roles.mjs";
 
@@ -297,10 +298,12 @@ export async function friendsOf(uid) {
       const profile = await getDoc("accounts", r.id).catch(() => null);
       const number = playerNumber(profile?.player_no);
       const avatar = playerAvatar(profile?.avatar);
+      const photo = profile ? await photoOf(r.id, profile.avatar) : null;
       return {
         name: nickname(profile?.user_name),
         ...(number ? { number } : {}),
         ...(avatar ? { avatar } : {}),
+        ...(photo ? { photo } : {}),
         joinedAt: r.joinedAt,
         returned: !!r.returnedAt,
         coins:

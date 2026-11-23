@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { BadgeMedal, Coin } from "./rewards-art";
-import { Avatar } from "./avatar";
+import { Avatar, photoUser } from "./avatar";
 import { api } from "@/lib/api";
 import {
   currentWallet,
@@ -210,6 +210,7 @@ type Friend = {
   name: string | null;
   number?: string;
   avatar?: string;
+  photo?: string;
   joinedAt: string;
   returned: boolean;
   coins: number;
@@ -245,7 +246,7 @@ function BroughtFriends() {
             <Avatar
               choice={f.avatar ?? ""}
               name={f.name ?? "?"}
-              user={null}
+              user={photoUser(f.photo)}
               size={26}
             />
             <span className="who">

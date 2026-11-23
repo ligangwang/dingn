@@ -20,7 +20,7 @@ import {
   type ThreadResult,
 } from "@/lib/challenges";
 import type { CatalogGame } from "@/lib/catalog";
-import { Avatar } from "./avatar";
+import { Avatar, photoUser } from "./avatar";
 import { playPath } from "./catalog";
 import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
@@ -71,7 +71,7 @@ export function ChallengeResults({
             <Avatar
               choice={r.avatar ?? ""}
               name={r.name ?? "?"}
-              user={null}
+              user={photoUser(r.photo)}
               size={26}
             />
             <span className="who">
@@ -174,7 +174,7 @@ export function ChallengeCard({
           <Avatar
             choice={challenge.avatar ?? ""}
             name={part.text}
-            user={null}
+            user={photoUser(challenge.photo)}
             size={hero ? 46 : 22}
           />
         )}

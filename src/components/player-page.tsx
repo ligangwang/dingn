@@ -11,6 +11,7 @@ import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { BadgeMedal } from "./rewards-art";
 import { titleOf, useGameTitles } from "./rewards";
+import { photoUser } from "./avatar";
 import {
   HonorAvatar,
   HonorPath,
@@ -94,7 +95,7 @@ function PlayerView({ player }: { player: PublicPlayer }) {
             level={player.level}
             choice={player.avatar}
             name={player.name}
-            user={null}
+            user={photoUser(player.photo)}
             size={84}
             medal={40}
           />
