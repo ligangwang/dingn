@@ -629,3 +629,51 @@ test("a result carries its player's public number, which links their page", asyn
     { name: "Old", score: 3, number: "3456789012", avatar: "owl" },
   ]);
 });
+
+test("a player who changes their nickname is renamed on their challenges and results", async () => {
+  const eve = {
+    claims: { uid: "u-eve", name: "Eve" },
+    cookie: "dingn-session=x",
+    profile: { user_name: "Player1006173077", player_no: "1006173077" },
+  };
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round, score: 77 },
+    ...eve,
+  });
+  // The name kept with the challenge is the one from when it was made.
+  assert.equal(
+    (await store.getDoc("challenges", body.id)).name,
+    "Player1006173077",
+  );
+  // She picks a nickname and an avatar on her account.
+  await store.mergeDoc("accounts", "u-eve", {
+    user_name: "Evie",
+    player_no: "1006173077",
+    avatar: "owl",
+  });
+  challenges.forgetProfiles();
+  challenges.forgetLists();
+  const listed = await call("/api/challenges?game=memory", { method: "GET" });
+  const line = listed.body.challenges.find((c) => c.id === body.id);
+  assert.equal(line.name, "Evie");
+  assert.equal(line.avatar, "owl");
+  assert.deepEqual(line.results, [
+    { name: "Evie", score: 77, number: "1006173077", avatar: "owl" },
+  ]);
+  // The link's preview names her as she is now, too.
+  assert.equal((await challenges.findChallenge(body.id)).name, "Evie");
+  // Opened by its link, read through the server's own account lookup.
+  const results = await challenges.shownResults(
+    challenges.resultsOf(await store.getDoc("challenges", body.id)),
+  );
+  assert.equal(results[0].name, "Evie");
+  // An account that can't be read leaves the name kept with the result.
+  const kept = await challenges.shownResults(
+    [{ uid: "u-gone", name: "Old Name", score: 1 }],
+    null,
+    async () => {
+      throw new Error("down");
+    },
+  );
+  assert.deepEqual(kept, [{ name: "Old Name", score: 1 }]);
+});

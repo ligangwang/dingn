@@ -28,7 +28,9 @@
 // when they made it, the one leaderboards show (both null for a guest), so a
 // link can say "Ada reached …" instead of "A friend reached …". Opening one
 // shows the nickname, never the uid, and `mine` says whether the signed-in
-// player opening it is the one who made it (their own score to beat).
+// player opening it is the one who made it (their own score to beat). The
+// name kept with a challenge or a result is the nickname at the time; what is
+// shown is the player's nickname now, read from their account.
 //
 // A challenge is a thread: its maker's score comes first, and every signed-in
 // player who takes it and finishes posts their result under it
@@ -227,29 +229,46 @@ const firstResults = (doc) =>
       ...(typeof r.avatar === "string" ? { avatar: r.avatar } : {}),
     }));
 
+// Players' profiles (nickname, public number, avatar), kept for half a minute so
+// a list of challenges reads each account once.
+const profiles = new Map();
+const PROFILE_TTL_MS = 30_000;
+/** Forgets the kept profiles (between tests). */
+export const forgetProfiles = () => profiles.clear();
+
+/** A player's dingn profile as it is now, from the short cache. */
+async function profileOf(uid, now = Date.now()) {
+  const kept = profiles.get(uid);
+  if (kept && now - kept.at < PROFILE_TTL_MS) return kept.profile;
+  const profile = await getDoc("accounts", uid);
+  profiles.set(uid, { at: now, profile });
+  return profile;
+}
+
 /**
  * Results as anyone may see them: each with the player's nickname, score,
  * public number (which links their page) and chosen avatar, never their uid.
- * A result saved before numbers and avatars were kept gets its player's from
- * their account. `viewer` marks the signed-in player's own.
+ * The nickname, number and avatar are the player's own as they are now, read
+ * from their account, so a player who changes their nickname is renamed
+ * everywhere; what was kept with the result stands in if the account can't
+ * be read. `viewer` marks the signed-in player's own.
  */
 export async function shownResults(
   results,
   viewer = null,
-  account = (uid) => getDoc("accounts", uid),
+  account = profileOf,
 ) {
   return Promise.all(
     results.map(async (r) => {
-      let number = playerNumber(r.number);
-      let avatar = playerAvatar(r.avatar);
-      // (An avatar kept as "" is a player who chose none, not one to look up.)
-      if (r.uid && (!number || typeof r.avatar !== "string")) {
-        const profile = await Promise.resolve(account(r.uid)).catch(() => null);
-        number ??= playerNumber(profile?.player_no);
-        avatar ??= playerAvatar(profile?.avatar);
-      }
+      const profile = r.uid
+        ? await Promise.resolve(account(r.uid)).catch(() => null)
+        : null;
+      const number = playerNumber(profile?.player_no) ?? playerNumber(r.number);
+      const avatar = profile
+        ? playerAvatar(profile.avatar)
+        : playerAvatar(r.avatar);
       return {
-        name: nickname(r.name),
+        name: nickname(profile?.user_name) ?? nickname(r.name),
         score: r.score,
         ...(number ? { number } : {}),
         ...(avatar ? { avatar } : {}),
@@ -257,6 +276,17 @@ export async function shownResults(
       };
     }),
   );
+}
+
+/** The nickname a challenge's maker goes by now (the one kept with it if their account can't be read). */
+async function makerName(doc, account = profileOf) {
+  if (!doc?.uid) return nickname(doc?.name);
+  const [maker] = await shownResults(
+    [{ uid: doc.uid, name: doc.name, score: doc.score }],
+    null,
+    account,
+  );
+  return maker.name;
 }
 
 /** What a game's list of open challenges shows of one. */
@@ -337,7 +367,7 @@ export async function openChallenges(game = null, now = Date.now()) {
         (await getDoc("challenges", thread.id)
           .then((doc) => (doc ? firstResults(doc) : []))
           .catch(() => []));
-      // Its maker's public number and avatar, for their name in its title.
+      // Its maker as they are now: nickname, public number and avatar.
       // (A line saved before it kept who made it finds them in its results.)
       const { uid: makerUid, ...line } = thread;
       const makerRow = makerUid
@@ -347,6 +377,7 @@ export async function openChallenges(game = null, now = Date.now()) {
       list.push({
         game: board.id,
         ...line,
+        ...(maker ? { name: maker.name } : {}),
         ...(maker?.number ? { number: maker.number } : {}),
         ...(maker?.avatar ? { avatar: maker.avatar } : {}),
         results: await shownResults(kept),
@@ -361,7 +392,9 @@ export async function openChallenges(game = null, now = Date.now()) {
 /** The saved challenge `id` (checked, with its maker's nickname but not their uid), or null. */
 export async function findChallenge(id) {
   if (typeof id !== "string" || !CHALLENGE_ID.test(id)) return null;
-  return shownChallenge(id, await getDoc("challenges", id));
+  const doc = await getDoc("challenges", id);
+  const found = shownChallenge(id, doc);
+  return found && { ...found, name: await makerName(doc) };
 }
 
 /** The signed-in player's token claims, or null for a guest (or a stale session). */
@@ -516,8 +549,8 @@ export async function handleChallenges(
   {
     verify,
     exchange = refresh,
-    // The player's dingn profile, where their nickname is.
-    account = (uid) => getDoc("accounts", uid),
+    // A player's dingn profile, where their nickname is.
+    account = profileOf,
     newId = newChallengeId,
   } = {},
 ) {
@@ -550,6 +583,7 @@ export async function handleChallenges(
       const viewer = await signedIn(req, res, verify, exchange);
       return send(res, 200, {
         ...found,
+        name: await makerName(doc, account),
         mine: !!viewer && !!doc.uid && viewer.uid === doc.uid,
         results: await shownResults(resultsOf(doc), viewer?.uid, account),
         players:
