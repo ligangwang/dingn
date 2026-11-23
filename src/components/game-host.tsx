@@ -901,7 +901,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               {!challenge.mine && !user && !outcome && (
                 <span className="play-challenge-join">
                   {t(
-                    "New to dingn? Sign up free from this challenge and you and your friend both get 100 coins.",
+                    "New to dingn? Sign up free from this challenge and get 100 coins.",
                   )}{" "}
                   <a href={signUpHref()}>{t("Create free account")}</a>
                 </span>
@@ -983,9 +983,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       {invite === "shown" && !user && (
         <div className="play-invite" role="note">
           <p>
-            {t(
-              "Nice round! Create a free dingn account and you and your friend both get 100 coins.",
-            )}
+            {t("Nice round! Create a free dingn account and get 100 coins.")}
           </p>
           <a className="button" href={signUpHref()}>
             {t("Create free account")}
