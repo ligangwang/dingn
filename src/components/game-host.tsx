@@ -776,6 +776,11 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     );
 
   const hasResults = !!thread && thread.results.length > 0;
+  /** Closes the challenge panel and gives the keyboard back to the game. */
+  const closeThread = () => {
+    setThreadOpen(false);
+    frame.current?.focus();
+  };
   const testing = state.pinned
     ? state.pinned === "beta"
       ? t("Beta")
@@ -799,7 +804,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             aria-expanded={threadOpen}
             aria-controls="play-thread"
             title={t("Challenge results")}
-            onClick={() => setThreadOpen((open) => !open)}
+            onClick={() => (threadOpen ? closeThread() : setThreadOpen(true))}
           >
             <span aria-hidden="true">⚔</span> {scoreText(challenge, locale, t)}{" "}
             <span aria-hidden="true">{threadOpen ? "▴" : "▾"}</span>
@@ -877,7 +882,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               <button
                 type="button"
                 className="play-thread-close"
-                onClick={() => setThreadOpen(false)}
+                onClick={closeThread}
                 aria-label={t("Close")}
                 title={t("Close")}
               >
