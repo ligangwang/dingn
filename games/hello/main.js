@@ -12,7 +12,6 @@ const copy = {
     device: "this device",
     start: "Start",
     again: "Play again",
-    signIn: "Sign in to keep your best score",
     challenge: "Challenge anyone",
     copied: "Link copied. Send it to anyone!",
   },
@@ -24,7 +23,6 @@ const copy = {
     device: "本设备",
     start: "开始",
     again: "再玩一次",
-    signIn: "登录以保存最高分",
     challenge: "发起挑战",
     copied: "链接已复制，发给任何人吧！",
   },
@@ -51,8 +49,6 @@ function render() {
     best,
     dingn.player.signedIn ? text.account : text.device,
   );
-  $("signin").hidden = dingn.player.signedIn || !dingn.embedded;
-  $("signin").textContent = text.signIn;
 }
 
 $("star").disabled = true;
@@ -90,7 +86,6 @@ $("star").onclick = () => {
   score++;
   render();
 };
-$("signin").onclick = () => dingn.requestSignIn();
 // "Challenge anyone": dingn saves the score and lists it for other players;
 // the link opens it directly.
 $("challenge").onclick = async () => {
