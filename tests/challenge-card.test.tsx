@@ -24,6 +24,8 @@ const challenge = {
   score: 2110,
   unit: "points" as const,
   name: "Ada",
+  number: "1234567890",
+  avatar: "fox",
   players: 3,
   top: { name: "Ada", score: 2940 },
   results: [

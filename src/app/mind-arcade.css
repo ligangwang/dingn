@@ -2255,8 +2255,34 @@ nav a.account-link:hover .header-avatar {
   color: #d5ff58;
   white-space: nowrap;
 }
-.challenge-title:hover {
+/* Who set it and the score to beat stand out from the sentence. */
+.challenge-title .challenge-name,
+.challenge-title .challenge-score {
   color: #d5ff58;
+}
+.challenge-title .challenge-score {
+  white-space: nowrap;
+}
+/* The challenger's avatar sits in the line, before their name. */
+.challenge-title .challenge-name .avatar {
+  position: relative;
+  top: -0.08em;
+  margin-right: 0.3em;
+  vertical-align: middle;
+  font-family: var(--font-body, inherit);
+  letter-spacing: 0;
+}
+/* The game is named in the sentence's own colour (the home page's heading
+   would otherwise colour every span). */
+.challenge-title .challenge-game,
+.mind-hero h1 .challenge-title .challenge-game {
+  color: inherit;
+}
+.challenge-title:hover {
+  text-decoration: underline;
+  text-decoration-color: #d5ff58;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
 }
 .challenge-actions {
   display: flex;

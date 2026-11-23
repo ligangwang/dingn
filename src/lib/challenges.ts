@@ -30,6 +30,9 @@ export type OpenChallenge = {
   score: number;
   unit: ChallengeUnit;
   name: string | null;
+  /** Its maker's public number and chosen avatar, when dingn knows them. */
+  number?: string;
+  avatar?: string;
   players: number;
   top: { name: string | null; score: number } | null;
   /** Its first results, highest first (a website from before lists carried them sends none). */

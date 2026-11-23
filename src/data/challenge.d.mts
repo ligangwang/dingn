@@ -35,3 +35,10 @@ export function challengeText(
   name?: string | null,
   translate?: (text: string) => string,
 ): { title: string; description: string };
+export function challengeParts(
+  challenge: Challenge,
+  gameTitle: string,
+  locale?: string,
+  name?: string | null,
+  translate?: (text: string) => string,
+): { kind: "text" | "name" | "score" | "game"; text: string }[];

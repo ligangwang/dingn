@@ -269,6 +269,8 @@ function listed(id, doc) {
     score: doc.score,
     unit: doc.unit,
     name: nickname(doc.name),
+    // Who made it (never sent): their page and avatar go with their name.
+    uid: doc.uid ?? null,
     players: typeof doc.players === "number" ? doc.players : results.length,
     top: top ? { name: nickname(top.name), score: top.score } : null,
     // Its first results, highest first, to show on the list itself.
@@ -335,9 +337,18 @@ export async function openChallenges(game = null, now = Date.now()) {
         (await getDoc("challenges", thread.id)
           .then((doc) => (doc ? firstResults(doc) : []))
           .catch(() => []));
+      // Its maker's public number and avatar, for their name in its title.
+      // (A line saved before it kept who made it finds them in its results.)
+      const { uid: makerUid, ...line } = thread;
+      const makerRow = makerUid
+        ? (kept.find((r) => r.uid === makerUid) ?? { uid: makerUid })
+        : kept.find((r) => r.uid && nickname(r.name) === thread.name);
+      const [maker] = makerRow ? await shownResults([makerRow]) : [];
       list.push({
         game: board.id,
-        ...thread,
+        ...line,
+        ...(maker?.number ? { number: maker.number } : {}),
+        ...(maker?.avatar ? { avatar: maker.avatar } : {}),
         results: await shownResults(kept),
       });
     }
