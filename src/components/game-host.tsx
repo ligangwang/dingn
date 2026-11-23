@@ -173,6 +173,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   const challengeId = useRef<string | null>(null);
   const [thread, setThread] = useState<Thread | null>(null);
   // How this player's round of it ended, once the game reports it.
+  // The challenge's results over the game: closed until the player opens them.
+  const [threadOpen, setThreadOpen] = useState(false);
   const [outcome, setOutcome] = useState<{
     score: number;
     beat: boolean;
@@ -390,6 +392,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     }
     const { test, improved: _improved, ...result } = posted;
     setOutcome({ score, ...result, posted: !test });
+    // How the round went shows in the panel, so it opens.
+    setThreadOpen(true);
     if (!test) void fetchThread(cid).then((next) => next && setThread(next));
     return { ...result, posted: !test, ...(test ? { test } : {}) };
   }
@@ -545,6 +549,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         if (!thread?.closed) keepPendingResult(cid, score);
         const players = thread?.players ?? 1;
         setOutcome({ score, beat, posted: false, rank: null, players });
+        setThreadOpen(true);
         return { beat, posted: false, best: score, rank: null, players };
       }
       return postResult(cid, score);
@@ -770,6 +775,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       </div>
     );
 
+  const hasResults = !!thread && thread.results.length > 0;
   const testing = state.pinned
     ? state.pinned === "beta"
       ? t("Beta")
@@ -784,6 +790,21 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             {testing} · {state.game.version}
           </span>
         )}
+        {challenge && (
+          // The challenge (its score to beat, how the round went and
+          // everyone's results) opens over the game, and closes again.
+          <button
+            type="button"
+            className="play-thread-toggle"
+            aria-expanded={threadOpen}
+            aria-controls="play-thread"
+            title={t("Challenge results")}
+            onClick={() => setThreadOpen((open) => !open)}
+          >
+            <span aria-hidden="true">⚔</span> {scoreText(challenge, locale, t)}{" "}
+            <span aria-hidden="true">{threadOpen ? "▴" : "▾"}</span>
+          </button>
+        )}
         <button
           type="button"
           className="play-fullscreen"
@@ -793,26 +814,6 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           {t("Full screen")}
         </button>
       </div>
-      {challenge && (
-        <p className="play-challenge" role="note">
-          <strong>
-            {challengeText(challenge, title, locale, challenger, t).title}
-          </strong>{" "}
-          <span>
-            {challenge.mine
-              ? t("Play the same round again and beat your own score.")
-              : t("You play the same round. Beat that score to win.")}
-          </span>
-          {!challenge.mine && !user && !outcome && (
-            <span className="play-challenge-join">
-              {t(
-                "New to dingn? Sign up free from this challenge and you and your friend both get 100 coins.",
-              )}{" "}
-              <a href={signUpHref()}>{t("Create free account")}</a>
-            </span>
-          )}
-        </p>
-      )}
       {joined && (
         <p className="play-outcome joined" role="status">
           <strong>
@@ -829,71 +830,6 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               : t("Your score is posted there.")}
           </span>
         </p>
-      )}
-      {challenge && outcome && (
-        <p
-          className={`play-outcome ${outcome.beat ? "won" : "lost"}`}
-          role="status"
-        >
-          <strong>
-            {(outcome.beat
-              ? t("You beat it with {0}!")
-              : t("You scored {0}. Not enough this time.")
-            ).replace(
-              "{0}",
-              scoreText({ ...challenge, score: outcome.score }, locale, t),
-            )}
-          </strong>{" "}
-          {outcome.posted && outcome.rank != null && (
-            <span>
-              {t("Your best is #{0} of {1} here.")
-                .replace("{0}", String(outcome.rank))
-                .replace("{1}", String(outcome.players))}
-            </span>
-          )}
-          {!user && !thread?.closed && (
-            <span>
-              <a href={signUpHref()}>{t("Sign in to post your score")}</a>
-            </span>
-          )}
-        </p>
-      )}
-      {/* Above the game, beside the score to beat, so the players already
-          there are seen without scrolling; a few rows show, the rest scroll. */}
-      {challenge && thread && thread.results.length > 0 && (
-        <section className="play-thread" aria-label={t("Challenge results")}>
-          <h2>{t("Challenge results")}</h2>
-          {thread.closed && (
-            <p className="play-thread-closed">
-              {t("This challenge is closed. It takes no more results.")}
-            </p>
-          )}
-          <ChallengeResults challenge={challenge} results={thread.results} />
-          <p className="play-thread-actions">
-            {challengeId.current && (
-              <ShareChallenge game={state.game.id} id={challengeId.current} />
-            )}
-            {thread.owner && !thread.closed && (
-              // Its maker can stop it taking results, or take it off dingn.
-              <button
-                type="button"
-                className="quiet-link"
-                onClick={() => void endChallenge("close")}
-              >
-                {t("Close challenge")}
-              </button>
-            )}
-            {thread.owner && (
-              <button
-                type="button"
-                className="quiet-link"
-                onClick={() => void endChallenge("delete")}
-              >
-                {t("Delete challenge")}
-              </button>
-            )}
-          </p>
-        </section>
       )}
       {state.game.preview && (
         <p className="play-preview" role="note">
@@ -927,6 +863,114 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           allowFullScreen
           onLoad={() => setTimeout(() => setLoaded(true), 4000)}
         />
+        {/* The challenge's results lie over the game, see-through, only
+            while the player has them open: the game keeps the whole page. */}
+        {challenge && (
+          <section
+            id="play-thread"
+            className="play-thread"
+            aria-label={t("Challenge results")}
+            hidden={!threadOpen}
+          >
+            <header>
+              <h2>{t("Challenge results")}</h2>
+              <button
+                type="button"
+                className="play-thread-close"
+                onClick={() => setThreadOpen(false)}
+                aria-label={t("Close")}
+                title={t("Close")}
+              >
+                ✕
+              </button>
+            </header>
+            <p className="play-challenge" role="note">
+              <strong>
+                {challengeText(challenge, title, locale, challenger, t).title}
+              </strong>{" "}
+              <span>
+                {challenge.mine
+                  ? t("Play the same round again and beat your own score.")
+                  : t("You play the same round. Beat that score to win.")}
+              </span>
+              {!challenge.mine && !user && !outcome && (
+                <span className="play-challenge-join">
+                  {t(
+                    "New to dingn? Sign up free from this challenge and you and your friend both get 100 coins.",
+                  )}{" "}
+                  <a href={signUpHref()}>{t("Create free account")}</a>
+                </span>
+              )}
+            </p>
+            {outcome && (
+              <p
+                className={`play-outcome ${outcome.beat ? "won" : "lost"}`}
+                role="status"
+              >
+                <strong>
+                  {(outcome.beat
+                    ? t("You beat it with {0}!")
+                    : t("You scored {0}. Not enough this time.")
+                  ).replace(
+                    "{0}",
+                    scoreText(
+                      { ...challenge, score: outcome.score },
+                      locale,
+                      t,
+                    ),
+                  )}
+                </strong>{" "}
+                {outcome.posted && outcome.rank != null && (
+                  <span>
+                    {t("Your best is #{0} of {1} here.")
+                      .replace("{0}", String(outcome.rank))
+                      .replace("{1}", String(outcome.players))}
+                  </span>
+                )}
+                {!user && !thread?.closed && (
+                  <span>
+                    <a href={signUpHref()}>{t("Sign in to post your score")}</a>
+                  </span>
+                )}
+              </p>
+            )}
+            {thread?.closed && (
+              <p className="play-thread-closed">
+                {t("This challenge is closed. It takes no more results.")}
+              </p>
+            )}
+            {hasResults && (
+              <ChallengeResults
+                challenge={challenge}
+                results={thread.results}
+              />
+            )}
+            <p className="play-thread-actions">
+              {challengeId.current && (
+                <ShareChallenge game={state.game.id} id={challengeId.current} />
+              )}
+              {thread?.owner && !thread.closed && (
+                // Its maker can stop it taking results, or take it off dingn.
+                <button
+                  type="button"
+                  className="quiet-link"
+                  onClick={() => void endChallenge("close")}
+                >
+                  {t("Close challenge")}
+                </button>
+              )}
+              {thread?.owner && (
+                <button
+                  type="button"
+                  className="quiet-link"
+                  onClick={() => void endChallenge("delete")}
+                >
+                  {t("Delete challenge")}
+                </button>
+              )}
+            </p>
+          </section>
+        )}
         <BadgeToast toast={toast} gameTitle={title} onDone={nextToast} />
         <CoinToast toast={coinToast} onDone={() => setCoinToast(null)} />
         {ask && <SpendConfirm ask={ask} gameTitle={title} />}
