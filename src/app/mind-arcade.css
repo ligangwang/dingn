@@ -2239,8 +2239,144 @@ nav a.account-link:hover .header-avatar {
   list-style: none;
   margin: 12px 0 0;
   padding: 0;
+  border: 1px solid #333b52;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1a2031, #151a28);
+  overflow: hidden;
+}
+.challenge-list > li + li {
+  border-top: 1px solid #262c44;
+}
+/* One challenge, one line (ChallengeRow): round, maker, the score to beat,
+   players, the way in. The columns line up down a game's list. */
+.challenge-row-main {
   display: grid;
-  gap: 12px;
+  grid-template-columns: 6.5em minmax(0, 1fr) auto 7.5em auto auto;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 14px 10px 16px;
+}
+.challenge-row:hover {
+  background: #ffffff08;
+}
+.challenge-round {
+  justify-self: start;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: #d5ff5822;
+  color: #d5ff58;
+  font: 700 12px/1.6 var(--font-display);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.challenge-round:empty {
+  visibility: hidden;
+}
+.challenge-maker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.challenge-maker a,
+.challenge-maker > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+}
+.challenge-maker a:hover {
+  color: #d5ff58;
+  text-decoration: underline;
+}
+.challenge-points {
+  justify-self: end;
+  font: 700 1.05rem/1.2 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.challenge-players {
+  justify-self: start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9aa1b5;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+}
+button.challenge-players {
+  cursor: pointer;
+}
+button.challenge-players:hover {
+  color: #d5ff58;
+}
+.challenge-share-icon {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff12;
+  color: #cdd2e0;
+  font-size: 15px;
+  cursor: pointer;
+}
+.challenge-share-icon:hover {
+  background: #ffffff24;
+  color: #d5ff58;
+}
+.challenge-row-results {
+  padding: 0 16px 8px calc(6.5em + 32px);
+}
+.challenge-more {
+  display: block;
+  margin: 12px auto 0;
+  padding: 8px 18px;
+  border: 1px solid #333b52;
+  border-radius: 20px;
+  background: none;
+  color: #cdd2e0;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.challenge-more:hover {
+  border-color: #d5ff58;
+  color: #d5ff58;
+}
+/* A phone: who and what to beat on one line, the rest under it. */
+@media (max-width: 640px) {
+  .challenge-row-main {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "maker maker points"
+      "round players play";
+  }
+  .challenge-maker {
+    grid-area: maker;
+  }
+  .challenge-points {
+    grid-area: points;
+  }
+  .challenge-round {
+    grid-area: round;
+  }
+  .challenge-players {
+    grid-area: players;
+    justify-self: end;
+  }
+  .challenge-play {
+    grid-area: play;
+  }
+  .challenge-share-icon {
+    display: none;
+  }
+  .challenge-row-results {
+    padding-left: 16px;
+  }
 }
 /* A challenge card (challenge-card.tsx): its title, which opens the game,
    the ways to pass it on, then how many took it and their results. */
@@ -2253,17 +2389,6 @@ nav a.account-link:hover .header-avatar {
 }
 .challenge-card:hover {
   border-color: #59627a;
-}
-/* Which level the challenge is, as a small tag above its title. */
-.challenge-round {
-  display: inline-block;
-  margin: 0 0 8px;
-  padding: 2px 10px;
-  border-radius: 20px;
-  background: #d5ff5822;
-  color: #d5ff58;
-  font: 700 12px/1.6 var(--font-display);
-  letter-spacing: 0.04em;
 }
 .challenge-card-head {
   display: flex;

@@ -110,6 +110,16 @@ export function scoreText(challenge, locale = "en", translate = same) {
 }
 
 /**
+ * The game as a challenge's title names it: with the round when dingn can
+ * tell which it is ("Gem Surge (Level 28)"), so the title says what to beat
+ * the score on.
+ */
+function gameAndRound(challenge, gameTitle, translate) {
+  const round = roundText(challenge, translate);
+  return round ? `${gameTitle} (${round})` : gameTitle;
+}
+
+/**
  * What a challenge link says, for its link preview (title, description) and
  * the banner above the game (the same title). `name` is the nickname of the
  * player who made it, or null for "A friend". A challenge with `mine` set
@@ -123,6 +133,7 @@ export function challengeText(
   translate = same,
 ) {
   const score = scoreText(challenge, locale, translate);
+  gameTitle = gameAndRound(challenge, gameTitle, translate);
   // The player's own challenge, opened by them: their own score to beat.
   if (challenge.mine === true)
     return {
@@ -179,7 +190,11 @@ export function challengeParts(
             translate("A friend reached {0} in {1}. Can you beat it?"),
             ["score", "game"],
           ];
-  const values = { name, score, game: gameTitle };
+  const values = {
+    name,
+    score,
+    game: gameAndRound(challenge, gameTitle, translate),
+  };
   return template
     .split(/(\{\d+\})/)
     .filter(Boolean)

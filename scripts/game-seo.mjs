@@ -15,7 +15,6 @@ import {
   challengeParts,
   challengeText,
   challengeUrl,
-  roundText,
   scoreText,
 } from "../src/data/challenge.mjs";
 import { avatarPresets } from "../src/data/avatars.mjs";
@@ -385,7 +384,6 @@ export function heroChallengeHtml(games, challenges, locale) {
           }${escape(part.text)}</span>`,
     )
     .join("");
-  const round = roundText(latest, t);
   const results = latest.results ?? (latest.top ? [latest.top] : []);
   const rows = results
     .map((r, i) => {
@@ -400,7 +398,6 @@ export function heroChallengeHtml(games, challenges, locale) {
   return (
     `<p class="eyebrow">${escape(t("LATEST CHALLENGE"))}</p>` +
     `<article class="challenge-card hero">` +
-    (round ? `<p class="challenge-round">${escape(round)}</p>` : "") +
     `<div class="challenge-card-head"><h1><a class="challenge-title" href="${escape(to)}">${title}</a></h1>` +
     // The page's own button takes over once its scripts run.
     `<span class="challenge-actions"><button type="button" class="quiet-link challenge-share">${escape(t("Copy link"))}</button></span></div>` +

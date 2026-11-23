@@ -396,6 +396,14 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     }
     const { test, improved: _improved, ...result } = posted;
     setOutcome({ score, ...result, posted: !test });
+    // The maker's better score is the one to beat from now on (scoreToBeat
+    // in scripts/challenges.mjs), so the panel's title names it too.
+    if (!test)
+      setChallenge((was) =>
+        was?.mine && result.best > was.score
+          ? { ...was, score: result.best }
+          : was,
+      );
     // How the round went shows in the panel, so it opens.
     setThreadOpen(true);
     if (!test) void fetchThread(cid).then((next) => next && setThread(next));

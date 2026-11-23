@@ -4,7 +4,7 @@ import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ChallengeCard } from "../src/components/challenge-card";
+import { ChallengeCard, ChallengeRow } from "../src/components/challenge-card";
 import type { CatalogGame } from "../src/lib/catalog";
 
 afterEach(() => {
@@ -42,14 +42,14 @@ it("shows the challenge, its results in order and each player's page", () => {
   expect(
     screen
       .getByRole("link", {
-        name: "Ada reached 2,110 points in Gem Surge. Can you beat it?",
+        name: "Ada reached 2,110 points in Gem Surge (Level 28). Can you beat it?",
       })
       .getAttribute("href"),
   ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
   // The title is the only way in: there is no separate button.
   expect(screen.queryByRole("link", { name: "Take the challenge" })).toBeNull();
-  // Which level it is.
-  expect(screen.getByText("Level 28")).toBeTruthy();
+  // The title says which level it is; there is no separate label.
+  expect(screen.queryByText("Level 28")).toBeNull();
   // The rows are the players: there is no separate count.
   expect(screen.queryByText("Players: 3")).toBeNull();
   const rows = screen.getAllByRole("listitem");
@@ -103,15 +103,56 @@ it("is the home page's heading when it is the latest challenge", () => {
   expect(
     screen.getByRole("heading", {
       level: 1,
-      name: "Ada reached 2,110 points in Gem Surge. Can you beat it?",
+      name: "Ada reached 2,110 points in Gem Surge (Level 28). Can you beat it?",
     }),
   ).toBeTruthy();
   expect(
     screen
       .getByRole("link", {
-        name: "Ada reached 2,110 points in Gem Surge. Can you beat it?",
+        name: "Ada reached 2,110 points in Gem Surge (Level 28). Can you beat it?",
       })
       .getAttribute("href"),
   ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
   expect(screen.getByRole("link", { name: "Ada" })).toBeTruthy();
+});
+
+it("is one line on the Challenges page: round, maker, score, players, a way in", async () => {
+  const { container } = render(
+    <ChallengeRow challenge={challenge} game={game} />,
+  );
+  // The game is the list's heading, so the line does not name it.
+  expect(container.textContent).not.toMatch(/Gem Surge|reached|beat it/);
+  expect(container.querySelector(".challenge-round")!.textContent).toBe(
+    "Level 28",
+  );
+  expect(container.querySelector(".challenge-points")!.textContent).toBe(
+    "2,110 points",
+  );
+  expect(
+    screen.getByRole("link", { name: "Ada" }).getAttribute("href"),
+  ).toMatch(/^\/player\/1234567890\/?$/);
+  expect(
+    screen.getByRole("link", { name: /^Play/ }).getAttribute("href"),
+  ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
+  // The results stay closed until the player count is pressed.
+  expect(screen.queryByRole("list")).toBeNull();
+  const players = screen.getByRole("button", { name: /3 players/ });
+  expect(players.getAttribute("aria-expanded")).toBe("false");
+  await userEvent.click(players);
+  expect(players.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  cleanup();
+  // Only its maker played: there is nothing to open.
+  render(
+    <ChallengeRow
+      challenge={{
+        ...challenge,
+        players: 1,
+        results: challenge.results.slice(0, 1),
+      }}
+      game={game}
+    />,
+  );
+  expect(screen.getByText("1 player")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /player/ })).toBeNull();
 });

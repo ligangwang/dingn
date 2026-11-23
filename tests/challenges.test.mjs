@@ -296,6 +296,32 @@ const post = (id, score, who = {}) =>
 const open = (id, who = {}) =>
   call(`/api/challenges/${id}`, { method: "GET", ...who });
 
+test("a list names the maker's best even below the results it keeps", async () => {
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round, seed: seed() },
+    ...ada,
+  });
+  // Enough players beat the maker that the list's line no longer keeps them.
+  for (let n = 1; n <= challenges.LISTED_RESULTS; n++)
+    await post(body.id, 30 + n, {
+      claims: { uid: `u-p${n}`, name: `P${n}` },
+      cookie: "dingn-session=x",
+    });
+  // A better score of the maker's from before it raised the challenge's own:
+  // only their saved result has it.
+  await store.mergeDoc("challengeResults", `${body.id}_u-ada`, {
+    challenge: body.id,
+    uid: "u-ada",
+    score: 18,
+  });
+  challenges.forgetLists();
+  const { body: list } = await call("/api/challenges", { method: "GET" });
+  const line = list.challenges.find((c) => c.id === body.id);
+  assert.equal(line.results.length, challenges.LISTED_RESULTS);
+  assert.equal(line.score, 18);
+  assert.equal(line.name, "Ada");
+});
+
 test("a signed-in player's challenge is a thread anyone can post a result under", async () => {
   const { body } = await call("/api/challenges", {
     body: { game: "memory", ...round, seed: seed() },
@@ -339,8 +365,16 @@ test("a signed-in player's challenge is a thread anyone can post a result under"
     [20, 12],
   );
   assert.equal(thread.players, 2);
-  // The score to beat stays the one the challenge was made with.
-  assert.equal(thread.score, 10);
+  // The maker's better score is now the one to beat, here and on the list.
+  assert.equal(thread.score, 20);
+  challenges.forgetLists();
+  const { body: list } = await call("/api/challenges", { method: "GET" });
+  assert.equal(list.challenges.find((c) => c.id === body.id).score, 20);
+  // Someone who beats the old score but not the new one has not beaten it.
+  assert.equal((await post(body.id, 15, bo)).body.beat, false);
+  // A lower score from the maker changes nothing.
+  await post(body.id, 5, ada);
+  assert.equal((await open(body.id)).body.score, 20);
 });
 
 test("only a signed-in player posts a result, and only a whole score", async () => {
@@ -722,8 +756,8 @@ test("one level has one challenge: its first challenger owns it, the next ones j
     players: 2,
   });
   const thread = (await open(first.body.id)).body;
-  // The score to beat is still the owner's first one.
-  assert.equal(thread.score, 55);
+  // The owner's better score is the one to beat now.
+  assert.equal(thread.score, 60);
   assert.deepEqual(thread.results, [
     { name: "Bo", score: 70 },
     { name: "Ada", score: 60 },
