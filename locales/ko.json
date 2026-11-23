@@ -998,6 +998,10 @@
     "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.": "라운드를 끝까지 플레이했음을(승패와 관계없이) dingn에 알려 플레이 통계에 반영합니다. 라운드가 끝날 때마다 한 번 호출하세요.",
     "Link copied": "링크를 복사했습니다",
     "Copy link": "링크 복사",
-    "Share": "공유"
+    "Share": "공유",
+    "{0} already has a challenge.": "{0}에는 이미 챌린지가 있습니다.",
+    "This round already has a challenge.": "이 라운드에는 이미 챌린지가 있습니다.",
+    "Your score is posted there: you are #{0} of {1}.": "점수가 거기에 게시되었습니다: {1}명 중 {0}위입니다.",
+    "Your score is posted there.": "점수가 거기에 게시되었습니다."
   }
 }

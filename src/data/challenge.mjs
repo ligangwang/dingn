@@ -176,3 +176,17 @@ export function challengeParts(
         : { kind: "text", text: piece };
     });
 }
+
+/**
+ * Which round a challenge is, in words, when dingn can tell: "Level 28" for
+ * a game whose `mode` is "level" and whose `seed` is the level's number, or
+ * the day for a `seed` that is a date ("2026-11-16"). Otherwise null: a seed
+ * is the game's own, and dingn does not guess at what it means.
+ */
+export function roundText(challenge, translate = same) {
+  const seed = challenge?.seed;
+  if (typeof seed !== "string") return null;
+  if (challenge.mode === "level" && /^[1-9]\d{0,4}$/.test(seed))
+    return fill(translate("Level {0}"), seed);
+  return /^\d{4}-\d{2}-\d{2}$/.test(seed) ? seed : null;
+}

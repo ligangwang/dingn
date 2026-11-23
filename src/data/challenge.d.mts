@@ -42,3 +42,7 @@ export function challengeParts(
   name?: string | null,
   translate?: (text: string) => string,
 ): { kind: "text" | "name" | "score" | "game"; text: string }[];
+export function roundText(
+  challenge: Pick<Challenge, "mode" | "seed">,
+  translate?: (text: string) => string,
+): string | null;

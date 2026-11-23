@@ -91,6 +91,10 @@ service cloud.firestore {
     match /challengeBoards/{document=**} {
       allow read, write: if false;
     }
+    // Which challenge is open for each level (scripts/challenges.mjs): server-only.
+    match /challengeRounds/{document=**} {
+      allow read, write: if false;
+    }
     // Each player's best under a challenge (scripts/challenges.mjs): server-only.
     match /challengeResults/{document=**} {
       allow read, write: if false;

@@ -216,3 +216,20 @@ test("a challenge's title comes in parts, in the language's own order", async ()
     ["text", "score", "text", "game", "text"],
   );
 });
+
+test("a challenge's round is named when dingn can tell which it is", async () => {
+  const { roundText } = await import("../src/data/challenge.mjs");
+  assert.equal(roundText({ mode: "level", seed: "28" }), "Level 28");
+  assert.equal(
+    roundText({ mode: "level", seed: "28" }, (text: string) =>
+      text === "Level {0}" ? "第 {0} 关" : text,
+    ),
+    "第 28 关",
+  );
+  // A day's round is named by its day.
+  assert.equal(roundText({ mode: "ladder", seed: "2026-11-16" }), "2026-11-16");
+  // Any other seed is the game's own business.
+  assert.equal(roundText({ mode: "classic", seed: "839201" }), null);
+  assert.equal(roundText({ mode: "level", seed: "boss" }), null);
+  assert.equal(roundText({ mode: "level" }), null);
+});

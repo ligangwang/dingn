@@ -998,6 +998,10 @@
     "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.": "Informa ao dingn que uma rodada foi jogada até o fim, com vitória ou derrota, para as estatísticas de jogo. Chame uma vez por rodada concluída.",
     "Link copied": "Link copiado",
     "Copy link": "Copiar link",
-    "Share": "Compartilhar"
+    "Share": "Compartilhar",
+    "{0} already has a challenge.": "{0} já tem um desafio.",
+    "This round already has a challenge.": "Esta rodada já tem um desafio.",
+    "Your score is posted there: you are #{0} of {1}.": "Sua pontuação foi publicada lá: você é o nº {0} de {1}.",
+    "Your score is posted there.": "Sua pontuação foi publicada lá."
   }
 }

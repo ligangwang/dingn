@@ -51,6 +51,7 @@ import {
   type Player,
 } from "@/lib/game-bridge";
 import {
+  CHALLENGE_ID,
   challengeIdFromQuery,
   challengeText,
   challengeUrl,
@@ -69,7 +70,7 @@ import {
   threadOf,
   type Thread,
 } from "@/lib/challenges";
-import { scoreText } from "@/data/challenge.mjs";
+import { roundText, scoreText } from "@/data/challenge.mjs";
 import { ChallengeResults, ShareChallenge } from "./challenge-card";
 import { claimReferral, noteArrival, referralOpen } from "@/lib/referral";
 import { trackGame } from "@/lib/funnel";
@@ -174,6 +175,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     score: number;
     beat: boolean;
     posted: boolean;
+    rank: number | null;
+    players: number;
+  } | null>(null);
+  // The player challenged a level that already had a challenge: where their
+  // score stands under it.
+  const [joined, setJoined] = useState<{
+    challenge: Challenge;
     rank: number | null;
     players: number;
   } | null>(null);
@@ -315,6 +323,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       c: Challenge;
       name: string | null;
       thread: Thread | null;
+      id: string;
     } | null> = cid
       ? fetch(`/api/challenges/${cid}`)
           .then((r) => (r.ok ? r.json() : null))
@@ -324,7 +333,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             // The player's own link (by their account, or made in this
             // browser): their own score to beat.
             const mine = found?.mine === true || madeHere(cid);
-            return c && { c: { ...c, mine }, name, thread: threadOf(found) };
+            const at =
+              typeof found?.id === "string" && CHALLENGE_ID.test(found.id)
+                ? (found.id as string)
+                : cid;
+            return (
+              c && { c: { ...c, mine }, name, thread: threadOf(found), id: at }
+            );
           })
           .catch(() => null)
       : Promise.resolve(null);
@@ -339,7 +354,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         if (!active) return;
         setChallenge(friend?.c ?? null);
         setChallenger(friend?.name ?? null);
-        challengeId.current = friend ? cid : null;
+        // (The id dingn answered with: a challenge merged into its level's
+        // one opens that one.)
+        challengeId.current = friend ? friend.id : null;
         setThread(friend?.thread ?? null);
         setState({
           status: "ready",
@@ -474,13 +491,26 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     ready: () => setLoaded(true),
     challenge,
     challengeLink: async (c) => {
-      const { id } = await api<{ id: string }>("/api/challenges", {
-        game: game.id,
-        ...c,
-      });
-      rememberChallenge(id);
+      const made = await api<{
+        id: string;
+        joined?: boolean;
+        owner?: boolean;
+        rank?: number | null;
+        players?: number;
+      }>("/api/challenges", { game: game.id, ...c });
+      // A level has one challenge: when it already had one, the player's
+      // score went under it, and they are told their place there.
+      if (made.joined)
+        setJoined({
+          challenge: c,
+          rank: made.rank ?? null,
+          players: made.players ?? 1,
+        });
+      else setJoined(null);
+      // Theirs to open as their own: one they made, or own already.
+      if (!made.joined || made.owner) rememberChallenge(made.id);
       if (counted) trackGame("share", game.id);
-      return challengeUrl(location.origin, game.id, id, locale);
+      return challengeUrl(location.origin, game.id, made.id, locale);
     },
     challengeResult: async (score) => {
       const cid = challengeId.current;
@@ -762,6 +792,23 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               <a href={signUpHref()}>{t("Create free account")}</a>
             </span>
           )}
+        </p>
+      )}
+      {joined && (
+        <p className="play-outcome joined" role="status">
+          <strong>
+            {(roundText(joined.challenge, t)
+              ? t("{0} already has a challenge.")
+              : t("This round already has a challenge.")
+            ).replace("{0}", roundText(joined.challenge, t) ?? "")}
+          </strong>{" "}
+          <span>
+            {joined.rank != null
+              ? t("Your score is posted there: you are #{0} of {1}.")
+                  .replace("{0}", String(joined.rank))
+                  .replace("{1}", String(joined.players))
+              : t("Your score is posted there.")}
+          </span>
         </p>
       )}
       {challenge && outcome && (

@@ -49,13 +49,23 @@
 // opens the game without a challenge (`deleted`, `deletedAt`). A guest's
 // challenge has no maker to do either.
 //
+// One level has one open challenge. A level is a game's round under its
+// rules: the game, mode, seed, rules and unit (`roundKey`), and
+// `challengeRounds/{key}` ({ id }) names the challenge open for it. The first
+// signed-in player to challenge a level owns its challenge and can close or
+// delete it; a player who challenges a level that already has one joins it
+// instead: their score is posted under it and they are told their place.
+// Once it is closed or deleted, the next challenge of that level starts a new
+// one, with a new owner. (A guest's and a test account's challenges stay
+// their own, by their link only.)
+//
 // `public` says whether dingn lists it ("Challenge anyone"): true for a
 // signed-in player's challenge, false for a guest's, a test account's and
 // every challenge from before threads, which only someone with the link can
 // open. The open ones of each game are kept, newest first, in one small
 // server-only document, `challengeBoards/{game}` ({ threads: [ … ] }, at most
 // MAX_LISTED), so listing them reads no more than one document per game.
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   ApiError,
   hasSession,
@@ -69,6 +79,7 @@ import {
   createDoc,
   getDoc,
   listDocs,
+  mergeDoc,
   updateDoc,
   updateMany,
 } from "./platform-store.mjs";
@@ -142,7 +153,7 @@ export const MAX_RESULTS = 50;
 export const MAX_LISTED = 20;
 
 /** Highest score first; of equal scores, the one made first. */
-const byScore = (a, b) => b.score - a.score || (a.at < b.at ? -1 : 1);
+export const byScore = (a, b) => b.score - a.score || (a.at < b.at ? -1 : 1);
 
 /**
  * A saved challenge's results: the ones posted under it, or, for a challenge
@@ -287,6 +298,8 @@ export function listed(id, doc) {
   return {
     id,
     mode: doc.mode,
+    // Which round it is, so the list can say "Level 28".
+    ...(typeof doc.seed === "string" ? { seed: doc.seed } : {}),
     score: doc.score,
     unit: doc.unit,
     // Who made it (never sent): their name, page and avatar are read from
@@ -302,30 +315,31 @@ export function listed(id, doc) {
 }
 
 /**
- * Whether two challenges are the same round with the same score to beat: the
- * same mode, seed, rules, unit and score.
+ * The key of a level: a game's round under its rules (mode, seed, rules and
+ * unit). Every challenge of one level has the same key, whatever its score.
  */
-export const sameRound = (a, b) =>
-  a.mode === b.mode &&
-  (a.seed ?? null) === (b.seed ?? null) &&
-  (a.rules ?? null) === (b.rules ?? null) &&
-  a.unit === b.unit &&
-  a.score === b.score;
+export const roundKey = (game, round) =>
+  createHash("sha256")
+    .update(
+      JSON.stringify([
+        game,
+        round.mode,
+        round.seed ?? null,
+        round.rules ?? null,
+        round.unit,
+      ]),
+    )
+    .digest("hex");
 
-/**
- * The open challenge on a game's list that `uid` already made for this same
- * round and score, or null: sending it again gives the same challenge back,
- * so one score isn't listed over and over.
- */
-async function openTwin(game, uid, challenge) {
-  const board = await getDoc("challengeBoards", game);
-  for (const thread of board?.threads ?? []) {
-    if (thread.uid !== uid || thread.score !== challenge.score) continue;
-    const doc = await getDoc("challenges", thread.id);
-    if (doc && !doc.deleted && !doc.closed && sameRound(doc, challenge))
-      return thread.id;
-  }
-  return null;
+/** Whether a saved challenge still takes results: neither closed nor deleted. */
+const isOpen = (doc) => !!doc && doc.closed !== true && doc.deleted !== true;
+
+/** The open challenge of a level, as { id, doc }, or null when it has none. */
+export async function openRound(game, round) {
+  const held = await getDoc("challengeRounds", roundKey(game, round));
+  if (typeof held?.id !== "string") return null;
+  const doc = await getDoc("challenges", held.id);
+  return isOpen(doc) ? { id: held.id, doc } : null;
 }
 
 /** A game's list with the challenge `id` added or brought up to date, newest first. */
@@ -422,10 +436,25 @@ export async function openChallenges(
 
 /** The saved challenge `id` (checked, with its maker's nickname but not their uid), or null. */
 export async function findChallenge(id) {
-  if (typeof id !== "string" || !CHALLENGE_ID.test(id)) return null;
-  const doc = await getDoc("challenges", id);
-  const found = shownChallenge(id, doc);
+  const { id: at, doc } = await savedChallenge(id);
+  const found = shownChallenge(at, doc);
   return found && { ...found, name: await makerName(doc) };
+}
+
+/**
+ * The saved challenge an id names, as { id, doc }. A challenge that was
+ * merged into its level's one (`mergedInto`, when levels came to have a
+ * single challenge) names that one, so its old link still opens the level's
+ * challenge.
+ */
+async function savedChallenge(id) {
+  if (typeof id !== "string" || !CHALLENGE_ID.test(id))
+    return { id, doc: null };
+  const doc = await getDoc("challenges", id);
+  const into = doc?.deleted === true ? doc.mergedInto : null;
+  return typeof into === "string" && CHALLENGE_ID.test(into)
+    ? { id: into, doc: await getDoc("challenges", into) }
+    : { id, doc };
 }
 
 /** The signed-in player's token claims, or null for a guest (or a stale session). */
@@ -481,6 +510,16 @@ async function addResult(req, res, id, { verify, exchange }) {
   const saved = await getDoc("challenges", id);
   if (!shownChallenge(id, saved)) throw new ApiError(404, "not-found");
   if (saved.closed === true) throw new ApiError(409, "closed");
+  return postUnder(id, saved, { uid, score, test });
+}
+
+/**
+ * Posts `uid`'s score under the open challenge `id` (whose document is
+ * `saved`) and returns what to tell them: their best, their place, how many
+ * played, whether this improved their best and whether it beats the
+ * challenge's score. A test account's is worked out but not saved.
+ */
+async function postUnder(id, saved, { uid, score, test = false }) {
   const now = new Date().toISOString();
   const post = (doc, own = null) => postResult(doc, { uid, score, now }, own);
   if (test) return { ...post(saved).outcome, test: true };
@@ -589,8 +628,8 @@ export async function handleChallenges(
       if (part !== undefined) throw new ApiError(404, "not-found");
       if (req.method !== "GET") throw new ApiError(405, "method-not-allowed");
       throttle(req);
-      const doc = CHALLENGE_ID.test(id) ? await getDoc("challenges", id) : null;
-      const found = shownChallenge(id, doc);
+      const { id: at, doc } = await savedChallenge(id);
+      const found = shownChallenge(at, doc);
       if (!found) throw new ApiError(404, "not-found");
       // Whether the player opening it made it: then it's their own score to
       // beat. Only a yes or no; the uid itself is never sent. The answer
@@ -629,11 +668,29 @@ export async function handleChallenges(
       limit(guestKey(req));
       limit("guests", MAX_GUESTS_PER_WINDOW);
     }
-    // The same challenge sent again (a second press of the button, or the
-    // same score shared later) is the one already open, not a new one.
-    const twin =
-      uid && !test ? await openTwin(body.game, uid, challenge) : null;
-    if (twin) return send(res, 200, { id: twin });
+    // One level, one challenge: a level that already has an open one is
+    // joined, not challenged again. The player's score goes under it and
+    // they are told their place.
+    const shared = !!uid && !test;
+    const joined = async ({ id, doc }) => {
+      const outcome = await postUnder(id, doc, {
+        uid,
+        score: challenge.score,
+      });
+      return send(res, 200, {
+        id,
+        joined: true,
+        // Their own level, challenged again: still theirs to close or delete.
+        owner: doc.uid === uid,
+        best: outcome.best,
+        rank: outcome.rank,
+        players: outcome.players,
+      });
+    };
+    if (shared) {
+      const open = await openRound(body.game, challenge);
+      if (open) return joined(open);
+    }
     const createdAt = new Date().toISOString();
     const doc = {
       game: body.game,
@@ -664,6 +721,35 @@ export async function handleChallenges(
       if (await createDoc("challenges", tried, doc)) id = tried;
     }
     if (id == null) throw new Error("no free challenge id");
+    if (shared) {
+      // This player owns the level's challenge, unless another player made
+      // one at the same moment: the first to be named for the level keeps
+      // it, and this one is withdrawn and joins theirs.
+      const made = id;
+      const held = await updateDoc(
+        "challengeRounds",
+        roundKey(body.game, challenge),
+        // (Pure: Firestore may run it again. An id named here that no longer
+        // names an open challenge is checked just below.)
+        (now) => now ?? { id: made },
+      );
+      if (held.id !== made) {
+        const theirs = await getDoc("challenges", held.id);
+        if (isOpen(theirs)) {
+          await updateDoc("challenges", made, (mine) => ({
+            ...mine,
+            deleted: true,
+            deletedAt: createdAt,
+          }));
+          return joined({ id: held.id, doc: theirs });
+        }
+        // The level's last challenge was closed or deleted: this one takes
+        // its place.
+        await mergeDoc("challengeRounds", roundKey(body.game, challenge), {
+          id: made,
+        });
+      }
+    }
     if (doc.public) {
       // The link works without its place on the list, so a failure here
       // doesn't lose the challenge.

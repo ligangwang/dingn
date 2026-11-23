@@ -319,9 +319,18 @@ public number and avatar are read from their account when a challenge is
 shown, so a player who changes their nickname is renamed everywhere. The link
 and its preview name the player ("Ada reached 10 digits in Memory"), or say
 "A friend" for a guest. Opening one (`GET /api/challenges/<id>`) shows
-nicknames but never a uid. A signed-in player who sends the same round and
-score again while their challenge for it is open gets that same challenge
-back, so one score is not listed twice. Links in the old form (`?challenge=…&score=…`) open the game
+nicknames but never a uid.
+
+A level has one challenge. A level is a game's round under its rules: the
+game, `mode`, `seed`, `rules` and unit (`challengeRounds/{key}` names the
+challenge open for it). The first signed-in player to challenge a level owns
+its challenge and can close or delete it. A player who challenges a level
+that already has one joins it: their score is posted under it, the link they
+get is that challenge's, and dingn tells them their place above the game.
+Once it is closed or deleted, the next challenge of the level starts a new
+one. A game that uses `mode: "level"` with the level's number as `seed` gets
+the level named ("Level 28") on its challenge cards; a `seed` that is a date
+is shown as that day. Links in the old form (`?challenge=…&score=…`) open the game
 without a challenge. The score is still the one the game reports: dingn can't
 tell if a game in the browser was played fairly, but a saved score can't be
 changed afterwards.
