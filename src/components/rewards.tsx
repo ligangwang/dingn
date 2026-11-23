@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useLocale } from "./locale";
 import { useOptionalSession } from "./session";
 import { BadgeMedal, Coin } from "./rewards-art";
+import { Avatar } from "./avatar";
+import { api } from "@/lib/api";
 import {
   currentWallet,
   loadWallet,
@@ -203,6 +205,75 @@ export function useGameTitles(ids: string[]) {
   return (id: string) => titles[id] ?? id;
 }
 
+/** A friend the player brought to dingn, as /api/referrals/friends lists them. */
+type Friend = {
+  name: string | null;
+  number?: string;
+  avatar?: string;
+  joinedAt: string;
+  returned: boolean;
+  coins: number;
+};
+
+/**
+ * The friends who joined dingn through the player's links: who they are,
+ * the day they joined and the coins each has earned the player. Reuses the
+ * challenge results' rows.
+ */
+function BroughtFriends() {
+  const { t, locale, href } = useLocale();
+  const [friends, setFriends] = useState<Friend[]>([]);
+  useEffect(() => {
+    let active = true;
+    api<{ friends: Friend[] }>("/api/referrals/friends")
+      .then((got) => {
+        if (active && Array.isArray(got.friends)) setFriends(got.friends);
+      })
+      // The count above still shows; the list is extra.
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+  if (!friends.length) return null;
+  const day = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+  return (
+    <ol className="challenge-rows wallet-friend-rows">
+      {friends.map((f, i) => (
+        <li key={i}>
+          <span className="name">
+            <Avatar
+              choice={f.avatar ?? ""}
+              name={f.name ?? "?"}
+              user={null}
+              size={26}
+            />
+            <span className="who">
+              {f.number ? (
+                <Link href={href(`/player/${f.number}/`)}>
+                  {f.name ?? t("A player")}
+                </Link>
+              ) : (
+                (f.name ?? t("A player"))
+              )}
+              <small> · {day.format(new Date(f.joinedAt))}</small>
+              {!f.returned && (
+                <small>
+                  {" "}
+                  · {t("100 more coins when they play on another day")}
+                </small>
+              )}
+            </span>
+          </span>
+          <span className="pts">
+            +{t("{0} coins").replace("{0}", f.coins.toLocaleString(locale))}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /** What is in a player's wallet: coins, badges and the upgrades they own. */
 export function WalletSummary({
   wallet,
@@ -262,6 +333,7 @@ export function WalletSummary({
           )}
         </p>
       )}
+      {!compact && (wallet.friends ?? 0) > 0 && <BroughtFriends />}
       <h3>
         {t("Upgrades")} <small>{wallet.items.length}</small>
       </h3>

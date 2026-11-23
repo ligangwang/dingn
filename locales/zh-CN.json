@@ -1004,5 +1004,6 @@
     "Your score is posted there: you are #{0} of {1}.": "你的成绩已发布在那里：你排第 {0}，共 {1} 人。",
     "Your score is posted there.": "你的成绩已发布在那里。"
   },
-  "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "在不记分的情况下，查询 { mode, seed, score, unit } 这一关是否已有进行中的挑战。没有时返回 null，否则返回 { name, score, mine, rank, players }：挑战属于谁、要超过的分数，以及这个分数能排第几。在一局结束时调用：没有挑战就显示“发起挑战”，已有挑战就让玩家加入。两种情况下都由 challengeLink() 记分。"
+  "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "在不记分的情况下，查询 { mode, seed, score, unit } 这一关是否已有进行中的挑战。没有时返回 null，否则返回 { name, score, mine, rank, players }：挑战属于谁、要超过的分数，以及这个分数能排第几。在一局结束时调用：没有挑战就显示“发起挑战”，已有挑战就让玩家加入。两种情况下都由 challengeLink() 记分。",
+  "100 more coins when they play on another day": "对方改天再来玩时，你再得 100 金币"
 }

@@ -9,6 +9,8 @@
 //
 //   POST /api/referrals { challenge, ref }   (the signed-in friend, with a game open)
 //   → { state: "joined", coins } | { state: "returned" | "waiting" | "none" }
+//   POST /api/referrals/friends   (the signed-in inviter, on their account page)
+//   → { friends: [{ name, number, avatar, joinedAt, returned, coins }] }
 //
 // The player page calls it, without waiting on the game, as soon as a signed-in
 // player has a game open while this browser holds a challenge it arrived through (src/lib/referral.ts). The friend's account
@@ -33,11 +35,14 @@ import {
   throttle,
   validateOrigin,
 } from "./api.mjs";
-import { getDoc, updateMany } from "./platform-store.mjs";
+import { getDoc, listDocs, updateMany } from "./platform-store.mjs";
+import { nickname, playerAvatar, playerNumber } from "./challenges.mjs";
 import { CHALLENGE_ID, REFERRER } from "../src/data/challenge.mjs";
 import { hasRole } from "./roles.mjs";
 
-export const referralRoutes = ["/api/referrals"];
+export const referralRoutes = ["/api/referrals", "/api/referrals/friends"];
+/** Friends shown on the inviter's account page, newest first. */
+export const MAX_FRIENDS_SHOWN = 100;
 export const JOIN_COINS = 100;
 export const RETURN_COINS = 100;
 export const PAID_JOINS_PER_DAY = 10;
@@ -276,6 +281,35 @@ async function comeBack(uid, referral, now) {
   return { state: "returned" };
 }
 
+/**
+ * The friends `uid` brought, newest first, for their own account page: each
+ * friend's nickname, public number and avatar as they are now (never a uid
+ * or an email), the day they joined, and the coins they earned the inviter
+ * (the join coins, when that day's paid joins weren't used up, and the coins
+ * for coming back another day).
+ */
+export async function friendsOf(uid) {
+  const brought = (await listDocs("referrals", ["referrer", uid]))
+    .sort((a, b) => (a.joinedAt < b.joinedAt ? 1 : -1))
+    .slice(0, MAX_FRIENDS_SHOWN);
+  return Promise.all(
+    brought.map(async (r) => {
+      const profile = await getDoc("accounts", r.id).catch(() => null);
+      const number = playerNumber(profile?.player_no);
+      const avatar = playerAvatar(profile?.avatar);
+      return {
+        name: nickname(profile?.user_name),
+        ...(number ? { number } : {}),
+        ...(avatar ? { avatar } : {}),
+        joinedAt: r.joinedAt,
+        returned: !!r.returnedAt,
+        coins:
+          (r.paidReferrer ? JOIN_COINS : 0) + (r.returnedAt ? RETURN_COINS : 0),
+      };
+    }),
+  );
+}
+
 export async function handleReferrals(
   req,
   res,
@@ -294,6 +328,8 @@ export async function handleReferrals(
     throttle(req);
     const body = await readBody(req);
     const claims = await signedInClaims(req, res, verify, exchange);
+    if (pathname === "/api/referrals/friends")
+      return send(res, 200, { friends: await friendsOf(claims.uid) });
     const at = now();
     const referral = await getDoc("referrals", claims.uid);
     return send(

@@ -276,3 +276,30 @@ test("a friend belongs to whoever shared the link they came through, not the cha
   );
   assert.equal((await claim("kim", null, { ref: "nope" })).body.state, "none");
 });
+
+test("an inviter sees the friends they brought and the coins each earned them", async () => {
+  await challenge("ChallengeLou", "lou");
+  await store.mergeDoc("accounts", "max", {
+    user_name: "Max",
+    player_no: "3234567890",
+  });
+  await claim("max", "ChallengeLou", { now: "2026-11-20T12:00:00.000Z" });
+  await claim("ned", "ChallengeLou", { now: "2026-11-20T13:00:00.000Z" });
+  await claim("max", "ChallengeLou", { now: "2026-11-21T09:00:00.000Z" });
+  assert.deepEqual(await referrals.friendsOf("lou"), [
+    {
+      name: null,
+      joinedAt: "2026-11-20T13:00:00.000Z",
+      returned: false,
+      coins: 100,
+    },
+    {
+      name: "Max",
+      number: "3234567890",
+      joinedAt: "2026-11-20T12:00:00.000Z",
+      returned: true,
+      coins: 200,
+    },
+  ]);
+  assert.deepEqual(await referrals.friendsOf("nobody"), []);
+});

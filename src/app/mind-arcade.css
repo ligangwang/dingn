@@ -1684,6 +1684,16 @@ nav a.account-link:has(.avatar-preset) {
   font-size: 0.9rem;
   color: var(--muted, #5b6270);
 }
+.wallet-friend-rows {
+  max-width: 560px;
+  margin: 0 0 16px;
+}
+.wallet-friend-rows .who {
+  white-space: normal;
+}
+.wallet-friend-rows small {
+  color: var(--muted, #8e95ab);
+}
 
 /* ---- The profile page (src/components/account.tsx) ---- */
 .profile-page {
