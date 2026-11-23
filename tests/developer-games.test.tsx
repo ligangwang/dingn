@@ -1,6 +1,13 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DeveloperGames } from "../src/components/developer-games";
 import { GameHost } from "../src/components/game-host";
@@ -374,7 +381,15 @@ it("invites a visitor from a friend's challenge to sign up after their first rou
   );
   render(<GameHost />);
   const frame = (await screen.findByTitle("Sky Hop")) as HTMLIFrameElement;
-  // The banner already offers it.
+  // The challenge lies over the game, closed until its button is pressed;
+  // opened, it already offers the account.
+  const toggle = screen.getByRole("button", { name: /42 points/ });
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(
+    screen.queryByRole("link", { name: "Create free account" }),
+  ).toBeNull();
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
   const join = screen.getAllByRole("link", { name: "Create free account" });
   expect(join[0].getAttribute("href")).toBe(
     `/signin/?create=1&next=${encodeURIComponent("/play/skyhop/?c=Xq3v9TzK1bWm")}`,
