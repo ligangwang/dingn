@@ -2279,8 +2279,11 @@ nav a.account-link:hover .header-avatar {
   color: #d5ff58;
 }
 .challenge-players {
-  margin: 4px 0 8px;
+  margin: 6px 0 0;
   font-size: 0.85rem;
+}
+.challenge-card-head + .challenge-rows {
+  margin-top: 8px;
 }
 /* The home page's latest challenge: the same card, large and unframed. */
 .challenge-card.hero,

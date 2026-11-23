@@ -45,7 +45,8 @@ it("shows the challenge, its results in order and each player's page", () => {
   ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
   // The title is the only way in: there is no separate button.
   expect(screen.queryByRole("link", { name: "Take the challenge" })).toBeNull();
-  expect(screen.getByText("Players: 3")).toBeTruthy();
+  // Every player is in the rows, so there is no count to add.
+  expect(screen.queryByText("Players: 3")).toBeNull();
   const rows = screen.getAllByRole("listitem");
   expect(
     rows.map((li) => [
@@ -69,6 +70,13 @@ it("shows the challenge, its results in order and each player's page", () => {
   );
   // A player dingn has no number for is named without a link.
   expect(screen.queryByRole("link", { name: "A player" })).toBeNull();
+});
+
+it("says how many players took it only when that is more than the rows shown", () => {
+  render(
+    <ChallengeCard challenge={{ ...challenge, players: 12 }} game={game} />,
+  );
+  expect(screen.getByText("Players: 12")).toBeTruthy();
 });
 
 it("copies the challenge's link, and offers Share only where the browser can", async () => {
