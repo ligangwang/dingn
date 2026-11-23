@@ -4,7 +4,7 @@ import { LanguageSwitcher, useLocale } from "@/components/locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session";
-import { CrowdIcon, KeyIcon, ShieldIcon, TrophyIcon } from "./icons";
+import { CrowdIcon, KeyIcon, ShieldIcon, SparkIcon, TrophyIcon } from "./icons";
 import { CATEGORY_INFO, playPath, useCatalog } from "./catalog";
 import { CATEGORIES, gamesIn, type CatalogGame } from "@/lib/catalog";
 import { HonorAvatar } from "./honor";
@@ -27,15 +27,26 @@ export function Header() {
       <nav aria-label={t("Main navigation")}>
         {/* One menu for all the games, so the header stays short. */}
         <GamesMenu key={`games:${path}`} path={path} games={catalog} />
-        {/* The open challenges, with the top players under them. */}
+        {/* The challenges players have open. */}
         <Link
           href={to("/challenges/")}
           aria-label={t("Challenges")}
           aria-current={here("/challenges/") ? "page" : undefined}
         >
-          <TrophyIcon className="nav-icon" size={18} />
+          <SparkIcon className="nav-icon" size={18} />
           <span className="nav-label">{t("Challenges")}</span>
         </Link>
+        {ready && isAdmin && (
+          // The top players. Only admins see it in the menu for now.
+          <Link
+            href={to("/leaderboard/")}
+            aria-label={t("Leaderboard")}
+            aria-current={here("/leaderboard/") ? "page" : undefined}
+          >
+            <TrophyIcon className="nav-icon" size={18} />
+            <span className="nav-label">{t("Leaderboard")}</span>
+          </Link>
+        )}
         {ready && isAdmin && <AdminMenu key={`admin:${path}`} path={path} />}
         {ready && isDeveloper && !isAdmin && (
           // Developers reach their upload keys here; admins in the Admin menu.
