@@ -661,6 +661,48 @@ html.play-window-full body {
 .play-thread-close:hover {
   background: rgb(255 255 255 / 0.24);
 }
+/* dingn's sign-in box, along the bottom of the game when the game asks. */
+.play-signin {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 20px);
+  display: flex;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(13 15 26 / 0.86);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+  color: #fff;
+  font-size: 0.95rem;
+}
+.play-signin ul,
+.play-signin p {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.play-signin li::before {
+  content: "✓ ";
+  color: #d5ff58;
+}
+.play-signin .button {
+  flex: none;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+.play-signin .play-thread-close {
+  flex: none;
+}
 /* Every result, scrolling inside the panel when there are many. */
 .play-thread .challenge-rows {
   min-height: 0;

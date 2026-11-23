@@ -411,30 +411,36 @@ it("invites a visitor from a friend's challenge to sign up after their first rou
   ).toBeTruthy();
   await userEvent.click(screen.getByRole("button", { name: "Not now" }));
   expect(screen.queryByText(/^Nice round!/)).toBeNull();
-  // The game posts the round's score: dingn shows the sign-in link and tells
-  // the game, which then draws none of its own.
-  const replies = vi.spyOn(frame.contentWindow!, "postMessage");
-  await act(async () => {
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        data: {
-          dingn: "game",
-          v: 1,
-          id: 7,
-          method: "challenge.result",
-          params: { score: 50 },
-        },
-        source: frame.contentWindow,
-      }),
-    );
-  });
+  // The game posts the round's score and asks for dingn's sign-in box: the
+  // box says what signing in brings, and is the only sign-in link there.
+  const send = (method: string, params?: object) =>
+    act(async () => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { dingn: "game", v: 1, method, params },
+          source: frame.contentWindow,
+        }),
+      );
+    });
+  await send("challenge.result", { score: 50 });
   expect(
     await screen.findByRole("link", { name: "Sign in to post your score" }),
   ).toBeTruthy();
-  expect(replies.mock.calls.at(-1)?.[0]).toMatchObject({
-    id: 7,
-    result: { beat: true, posted: false, signInShown: true },
-  });
+  await send("signIn.show", { reasons: ["score", "rewards", "other"] });
+  expect(
+    screen.queryByRole("link", { name: "Sign in to post your score" }),
+  ).toBeNull();
+  expect(screen.getByText("Post your score under this challenge")).toBeTruthy();
+  expect(screen.getByText("Earn coins and badges")).toBeTruthy();
+  expect(screen.queryByText("Save your score and see your rank")).toBeNull();
+  expect(
+    screen.getByRole("link", { name: "Sign in free" }).getAttribute("href"),
+  ).toBe(
+    `/signin/?create=1&next=${encodeURIComponent("/play/skyhop/?c=Xq3v9TzK1bWm")}`,
+  );
+  // The game takes the box away for the next round.
+  await send("signIn.hide");
+  expect(screen.queryByRole("link", { name: "Sign in free" })).toBeNull();
   localStorage.clear();
   history.replaceState({}, "", "/");
 });

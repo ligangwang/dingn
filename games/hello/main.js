@@ -62,6 +62,7 @@ $("start").onclick = () => {
   $("star").disabled = false;
   $("start").hidden = true;
   $("challenge").hidden = true;
+  dingn.hideSignIn();
   render();
   clearTimeout(timer);
   timer = setTimeout(async () => {
@@ -79,6 +80,8 @@ $("start").onclick = () => {
     // player whether they won. Every round here is the same, so there is no
     // seed to replay.
     if (dingn.challenge) await dingn.challengeResult(score).catch(() => {});
+    // A visitor is asked to sign in by dingn's own box, never by the game.
+    if (!dingn.player.signedIn) dingn.showSignIn(["score"]);
     $("challenge").textContent = text.challenge;
     $("challenge").hidden = !dingn.embedded || score === 0;
   }, 10000);

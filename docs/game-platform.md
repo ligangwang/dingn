@@ -254,6 +254,33 @@ dingn.ready(); // hides the loading screen
 dingn.roundEnded(); // a round was played to the end (play statistics)
 ```
 
+### Asking the player to sign in
+
+Every sign-in prompt over a game is dingn's. A game draws no "Sign in to
+save your score" text, link or button of its own: it only decides when the
+prompt shows.
+
+```js
+// On the result of a round, for a signed-out player:
+if (!dingn.player.signedIn) dingn.showSignIn(["score", "rewards"]);
+// When the next round starts:
+dingn.hideSignIn();
+```
+
+`showSignIn(reasons)` puts dingn's sign-in box along the bottom of the game,
+in the player's language: one line for each reason, a "Sign in free" button
+and a button that puts the box away. The reasons say what this player would
+gain: `"score"` (their score saved and ranked), `"rewards"` (coins and
+badges) and `"progress"` (their progress saved); with none, the box says so
+in general words. After `challengeResult` for a signed-out player, dingn
+adds that the score will be posted under the challenge, so one box covers
+everything. Nothing shows for a signed-in player. Keep the bottom of your
+result screen clear of buttons, since the box lies over it.
+
+`requestSignIn()` is still there for a button of the game's own that needs an
+account to work (a shop, a "join this challenge"): it sends the player
+straight to the sign-in page.
+
 ### Languages
 
 dingn speaks English (its own language, at the original URLs) and every
@@ -375,11 +402,7 @@ challenge's results there, highest score first (of equal scores, the one made
 first). A signed-in player's result is posted (`posted: true`); each player
 keeps their best, so playing again can only raise it. A signed-out player is
 told the outcome too and invited to sign in, and the score they made is
-posted when they come back signed in. For that player the result carries
-`signInShown: true`: dingn's link to sign in is already on the page, so leave
-your own sign-in links ("Sign in to save your score", "Sign in to earn
-coins") off the result you draw, or the player sees the same link several
-times. A test account's result is checked but
+posted when they come back signed in. A test account's result is checked but
 not saved (`test: true`). A game that never calls `challengeResult` still
 works as before; its challenges just get no results.
 

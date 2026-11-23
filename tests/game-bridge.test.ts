@@ -248,6 +248,21 @@ test("notifications get no reply, unknown methods get an error", async () => {
   assert.equal(reply && "error" in reply && reply.error.code, "unknown_method");
 });
 
+test("a game asks for dingn's sign-in box and takes it away", async () => {
+  const { ctx } = context(false);
+  const shown: unknown[] = [];
+  ctx.showSignIn = (reasons) => void shown.push(reasons);
+  ctx.hideSignIn = () => void shown.push("hidden");
+  const notify = (method: string, params?: Record<string, unknown>) =>
+    handleGameRequest({ dingn: "game", v: 1, method, params }, ctx);
+  // Only the reasons dingn knows, whatever else a game sends.
+  await notify("signIn.show", { reasons: ["rewards", "score", "admin", 7] });
+  await notify("signIn.show", { reasons: "score" });
+  await notify("signIn.show");
+  await notify("signIn.hide");
+  assert.deepEqual(shown, [["score", "rewards"], [], [], "hidden"]);
+});
+
 test("a game can only send the player to a dingn page", async () => {
   const { ctx, calls } = context(false);
   await handleGameRequest(ask("navigate", { path: "/zh/word/" }), ctx);

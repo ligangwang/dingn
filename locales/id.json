@@ -1002,7 +1002,14 @@
     "{0} already has a challenge.": "{0} sudah punya tantangan.",
     "This round already has a challenge.": "Ronde ini sudah punya tantangan.",
     "Your score is posted there: you are #{0} of {1}.": "Skormu dipasang di sana: kamu peringkat {0} dari {1}.",
-    "Your score is posted there.": "Skormu dipasang di sana."
+    "Your score is posted there.": "Skormu dipasang di sana.",
+    "Sign in free": "Masuk gratis",
+    "Keep what you earn in this game.": "Simpan semua yang kamu dapatkan di game ini.",
+    "Post your score under this challenge": "Pasang skormu di tantangan ini",
+    "Save your score and see your rank": "Simpan skormu dan lihat peringkatmu",
+    "Earn coins and badges": "Dapatkan koin dan lencana",
+    "Save your progress": "Simpan progresmu",
+    "Shows dingn's sign-in box over your game, or takes it away. Draw no sign-in text or buttons of your own: only decide when the box shows, such as on the result of a round. reasons lists what the player would gain: \"score\", \"rewards\" (coins and badges) or \"progress\". Nothing shows for a signed-in player.": "Menampilkan kotak masuk dingn di atas game-mu, atau menghilangkannya. Jangan membuat teks atau tombol masuk sendiri: cukup tentukan kapan kotak itu muncul, misalnya pada hasil sebuah ronde. reasons berisi apa yang akan didapat pemain: \"score\", \"rewards\" (koin dan lencana), atau \"progress\". Tidak ada yang muncul untuk pemain yang sudah masuk."
   },
   "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "Menanyakan, tanpa memposting apa pun, apakah level dari { mode, seed, score, unit } sudah punya tantangan terbuka. Hasilnya null jika belum ada, selain itu { name, score, mine, rank, players }: siapa pemilik tantangan, skor yang harus dikalahkan, dan peringkat yang akan didapat skor ini. Panggil di akhir ronde: jika belum ada, tawarkan “Tantang siapa saja”; jika sudah ada, tawarkan untuk bergabung. Dalam kedua kasus challengeLink() yang memposting skornya.",
   "100 more coins when they play on another day": "100 koin lagi saat dia bermain di hari lain",

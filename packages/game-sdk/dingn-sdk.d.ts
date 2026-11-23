@@ -123,13 +123,9 @@ export type ChallengeOutcome = {
   /** How many players have posted a result. */
   players: number;
   test?: boolean;
-  /**
-   * True when dingn is showing a signed-out player the link to sign in and
-   * post this score. Show no sign-in link of your own on this result: the
-   * player would see the same link twice.
-   */
-  signInShown?: boolean;
 };
+/** What signing in would bring the player, for `dingn.showSignIn`. */
+export type SignInReason = "score" | "rewards" | "progress";
 export type DingnGame = {
   gameId: string;
   version: string;
@@ -226,7 +222,22 @@ export type DingnGame = {
    * website's play statistics. Call it once per finished round.
    */
   roundEnded(): void;
+  /** Sends the player to sign in at once. They come back to the game. */
   requestSignIn(): void;
+  /**
+   * Shows dingn's sign-in box over the game: what signing in brings, a
+   * "Sign in free" button and a way to put it away. Draw no sign-in text,
+   * link or button of your own; decide only when the box shows, such as on
+   * the result of a round. `reasons` says what this player would gain:
+   * "score" (their score saved and ranked), "rewards" (coins and badges),
+   * "progress" (their progress saved). After `challengeResult` for a
+   * signed-out player, dingn adds that their score will be posted under the
+   * challenge. Nothing shows for a signed-in player, or on a dingn website
+   * from before this call.
+   */
+  showSignIn(reasons?: SignInReason[]): void;
+  /** Takes the sign-in box away, such as when the next round starts. */
+  hideSignIn(): void;
   /** Leaves the game for a dingn page, such as "/" for the game list. The website keeps the player's language. */
   navigate(path: string): void;
   ready(): void;

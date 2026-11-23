@@ -50,6 +50,7 @@ import {
   type BridgeContext,
   type ChallengeStanding,
   type Player,
+  type SignInReason,
 } from "@/lib/game-bridge";
 import {
   CHALLENGE_ID,
@@ -196,6 +197,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
   const [invite, setInvite] = useState<"hidden" | "shown" | "dismissed">(
     "hidden",
   );
+  // The game asked for the sign-in box: what signing in would bring, or null
+  // while the box is away. Every sign-in prompt over a game is dingn's.
+  const [signInAsk, setSignInAsk] = useState<SignInReason[] | null>(null);
   /** The sign-up page, in create-account mode, coming back to this game. */
   const signUpHref = () =>
     `${href("/signin/")}?create=1&next=${encodeURIComponent(location.pathname + location.search)}`;
@@ -496,6 +500,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
     signIn: () => {
       location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;
     },
+    showSignIn: (reasons) => setSignInAsk(reasons),
+    hideSignIn: () => setSignInAsk(null),
     ready: () => setLoaded(true),
     challenge,
     challengeLink: async (c) => {
@@ -550,16 +556,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         const players = thread?.players ?? 1;
         setOutcome({ score, beat, posted: false, rank: null, players });
         setThreadOpen(true);
-        return {
-          beat,
-          posted: false,
-          best: score,
-          rank: null,
-          players,
-          // The panel that just opened carries the sign-in link, so the game
-          // leaves its own out.
-          ...(!user && !thread?.closed ? { signInShown: true } : {}),
-        };
+        return { beat, posted: false, best: score, rank: null, players };
       }
       return postResult(cid, score);
     },
@@ -941,7 +938,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
                       .replace("{1}", String(outcome.players))}
                   </span>
                 )}
-                {!user && !thread?.closed && (
+                {/* The sign-in box, while it shows, already says so. */}
+                {!user && !thread?.closed && !signInAsk && (
                   <span>
                     <a href={signUpHref()}>{t("Sign in to post your score")}</a>
                   </span>
@@ -987,6 +985,22 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         )}
         <BadgeToast toast={toast} gameTitle={title} onDone={nextToast} />
         <CoinToast toast={coinToast} onDone={() => setCoinToast(null)} />
+        {signInAsk && !user && (
+          <SignInBox
+            // A challenge round waiting to be posted comes first, and stands
+            // in for the score the game would have named.
+            reasons={
+              outcome && !outcome.posted && !thread?.closed
+                ? ["challenge", ...signInAsk.filter((r) => r !== "score")]
+                : signInAsk
+            }
+            href={signUpHref()}
+            onClose={() => {
+              setSignInAsk(null);
+              frame.current?.focus();
+            }}
+          />
+        )}
         {ask && <SpendConfirm ask={ask} gameTitle={title} />}
       </div>
       {invite === "shown" && !user && (
@@ -1022,6 +1036,53 @@ const REASON_TEXT: Record<ReportReason, string> = {
 };
 
 /** Lets a player tell dingn about a problem with a game. */
+/**
+ * dingn's sign-in box over a game, shown when the game asks for it: what
+ * signing in brings, one button, and a way to put it away.
+ */
+function SignInBox({
+  reasons,
+  href,
+  onClose,
+}: {
+  reasons: (SignInReason | "challenge")[];
+  href: string;
+  onClose: () => void;
+}) {
+  const { t } = useLocale();
+  const text = {
+    challenge: t("Post your score under this challenge"),
+    score: t("Save your score and see your rank"),
+    rewards: t("Earn coins and badges"),
+    progress: t("Save your progress"),
+  };
+  return (
+    <aside className="play-signin" aria-label={t("Sign in")}>
+      {reasons.length ? (
+        <ul>
+          {reasons.map((reason) => (
+            <li key={reason}>{text[reason]}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>{t("Keep what you earn in this game.")}</p>
+      )}
+      <a className="button" href={href}>
+        {t("Sign in free")}
+      </a>
+      <button
+        type="button"
+        className="play-thread-close"
+        onClick={onClose}
+        aria-label={t("Not now")}
+        title={t("Not now")}
+      >
+        ✕
+      </button>
+    </aside>
+  );
+}
+
 function ReportGame({
   game,
   signedIn,
