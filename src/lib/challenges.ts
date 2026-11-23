@@ -7,6 +7,8 @@ import type { ChallengeUnit } from "@/data/challenge.mjs";
 export type ThreadResult = {
   name: string | null;
   score: number;
+  /** The player's public number, which names their page (/player/<number>/). */
+  number?: string;
   mine?: boolean;
 };
 export type Thread = {
@@ -29,7 +31,7 @@ export type OpenChallenge = {
   players: number;
   top: { name: string | null; score: number } | null;
   /** Its first results, highest first (a website from before lists carried them sends none). */
-  results?: { name: string | null; score: number }[];
+  results?: ThreadResult[];
   createdAt: string;
 };
 

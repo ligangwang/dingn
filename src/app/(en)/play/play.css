@@ -599,46 +599,10 @@ html.play-window-full body {
   font-size: 0.9rem;
   opacity: 0.75;
 }
-.play-thread ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  /* About three results; the rest scroll, so the game stays in view. */
+/* About three results; the rest scroll, so the game stays in view. */
+.play-thread .challenge-rows {
   max-height: 104px;
   overflow-y: auto;
-}
-.play-thread li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-  font-size: 0.95rem;
-}
-.play-thread li + li {
-  border-top: 1px solid #262c44;
-}
-.play-thread .rank {
-  flex: 0 0 2em;
-  opacity: 0.6;
-  font-variant-numeric: tabular-nums;
-}
-.play-thread .name {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.play-thread .name em {
-  font-style: normal;
-  opacity: 0.6;
-}
-.play-thread .pts {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.play-thread li.mine {
-  color: #d5ff58;
 }
 .play-thread-closed {
   margin: 0 0 8px;
@@ -647,6 +611,10 @@ html.play-window-full body {
 }
 .play-thread-actions {
   display: flex;
-  gap: 16px;
-  margin: 10px 0 0;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+}
+.play-thread-actions .quiet-link {
+  margin-top: 0;
 }

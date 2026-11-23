@@ -163,12 +163,19 @@ export function resultsOf(doc) {
  * result; a thread keeps only its top results, so a player below them is
  * known only by it. Returns the next document and what to tell the player.
  */
-export function postResult(doc, { uid, name, score, now }, own = null) {
+export function postResult(
+  doc,
+  { uid, name, score, now, number = null },
+  own = null,
+) {
   const before = resultsOf(doc);
   const mine = own ?? before.find((r) => r.uid === uid);
   const improved = !mine || score > mine.score;
   const results = improved
-    ? [...before.filter((r) => r.uid !== uid), { uid, name, score, at: now }]
+    ? [
+        ...before.filter((r) => r.uid !== uid),
+        { uid, name, score, at: now, ...(number ? { number } : {}) },
+      ]
         .sort(byScore)
         .slice(0, MAX_RESULTS)
     : before;
@@ -193,11 +200,51 @@ export function postResult(doc, { uid, name, score, now }, own = null) {
 /** Results of each challenge that a game's list shows with it. */
 export const LISTED_RESULTS = 5;
 
-/** A thread's first results, as a list shows them: nicknames and scores. */
+/** A player's public number (ten digits, as scripts/game-api.mjs draws them), or null. */
+export const playerNumber = (value) =>
+  typeof value === "string" && /^[1-9]\d{9}$/.test(value) ? value : null;
+
+/** A thread's first results, as its line on a game's list keeps them. */
 const firstResults = (doc) =>
   resultsOf(doc)
     .slice(0, LISTED_RESULTS)
-    .map((r) => ({ name: nickname(r.name), score: r.score }));
+    .map((r) => ({
+      uid: r.uid ?? null,
+      name: r.name ?? null,
+      score: r.score,
+      ...(playerNumber(r.number) ? { number: r.number } : {}),
+    }));
+
+/**
+ * Results as anyone may see them: each with the player's nickname, score and
+ * public number (which links their page), never their uid. A result saved
+ * before numbers were kept gets its player's from their account. `viewer`
+ * marks the signed-in player's own.
+ */
+export async function shownResults(
+  results,
+  viewer = null,
+  account = (uid) => getDoc("accounts", uid),
+) {
+  return Promise.all(
+    results.map(async (r) => {
+      const number =
+        playerNumber(r.number) ??
+        (r.uid
+          ? playerNumber(
+              (await Promise.resolve(account(r.uid)).catch(() => null))
+                ?.player_no,
+            )
+          : null);
+      return {
+        name: nickname(r.name),
+        score: r.score,
+        ...(number ? { number } : {}),
+        ...(viewer && r.uid === viewer ? { mine: true } : {}),
+      };
+    }),
+  );
+}
 
 /** What a game's list of open challenges shows of one. */
 function listed(id, doc) {
@@ -247,14 +294,6 @@ export function shownChallenge(id, doc) {
   };
 }
 
-/** A thread's results as anyone may see them: nicknames, never uids. */
-const shownResults = (doc, viewer) =>
-  resultsOf(doc).map((r) => ({
-    name: nickname(r.name),
-    score: r.score,
-    ...(viewer && r.uid === viewer ? { mine: true } : {}),
-  }));
-
 // The lists of open challenges, kept for half a minute.
 const lists = new Map();
 const LIST_TTL_MS = 30_000;
@@ -278,12 +317,16 @@ export async function openChallenges(game = null, now = Date.now()) {
     for (const thread of board.threads ?? []) {
       // A line saved before lists carried results: read them from the
       // challenge itself, until its next result saves them on the line.
-      const results =
+      const kept =
         thread.results ??
         (await getDoc("challenges", thread.id)
           .then((doc) => (doc ? firstResults(doc) : []))
           .catch(() => []));
-      list.push({ game: board.id, ...thread, results });
+      list.push({
+        game: board.id,
+        ...thread,
+        results: await shownResults(kept),
+      });
     }
   }
   list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
@@ -321,11 +364,13 @@ async function signedIn(req, res, verify, exchange) {
  */
 async function maker(req, res, verify, exchange, account) {
   const claims = await signedIn(req, res, verify, exchange);
-  if (!claims) return { uid: null, name: null, test: false };
+  if (!claims) return { uid: null, name: null, number: null, test: false };
   const profile = await account(claims.uid).catch(() => null);
   return {
     uid: claims.uid,
     name: nickname(profile?.user_name, claims.name),
+    // Their public number, which names their page (/player/<number>/).
+    number: playerNumber(profile?.player_no),
     test: hasRole(claims, "tester"),
   };
 }
@@ -348,7 +393,13 @@ async function addResult(req, res, id, { verify, exchange, account }) {
     score > MAX_SCORE
   )
     throw new ApiError(400, "invalid-request");
-  const { uid, name, test } = await maker(req, res, verify, exchange, account);
+  const { uid, name, number, test } = await maker(
+    req,
+    res,
+    verify,
+    exchange,
+    account,
+  );
   if (!uid) throw new ApiError(401, "signed-out");
   limit(uid);
   const saved = await getDoc("challenges", id);
@@ -356,7 +407,7 @@ async function addResult(req, res, id, { verify, exchange, account }) {
   if (saved.closed === true) throw new ApiError(409, "closed");
   const now = new Date().toISOString();
   const post = (doc, own = null) =>
-    postResult(doc, { uid, name, score, now }, own);
+    postResult(doc, { uid, name, score, now, number }, own);
   if (test) return { ...post(saved).outcome, test: true };
   // The thread, its line on the game's list and the player's own best
   // change together.
@@ -473,7 +524,7 @@ export async function handleChallenges(
       return send(res, 200, {
         ...found,
         mine: !!viewer && !!doc.uid && viewer.uid === doc.uid,
-        results: shownResults(doc, viewer?.uid),
+        results: await shownResults(resultsOf(doc), viewer?.uid, account),
         players:
           typeof doc.players === "number" ? doc.players : resultsOf(doc).length,
       });
@@ -494,7 +545,7 @@ export async function handleChallenges(
       throw new ApiError(400, "invalid-request");
     // Only games on dingn, so made-up ids can't fill the store.
     if (!(await cachedRecord(body.game))) throw new ApiError(404, "not-found");
-    const { uid, name, test } = await maker(
+    const { uid, name, number, test } = await maker(
       req,
       res,
       verify,
@@ -519,7 +570,15 @@ export async function handleChallenges(
       // guest's has nobody behind it, so only its link opens it.
       public: !!uid && !test,
       // The thread starts with its maker's score.
-      results: [{ uid, name, score: challenge.score, at: createdAt }],
+      results: [
+        {
+          uid,
+          name,
+          score: challenge.score,
+          at: createdAt,
+          ...(number ? { number } : {}),
+        },
+      ],
       players: 1,
       // Made by a test account: it brings no referral coins.
       ...(test ? { test: true } : {}),

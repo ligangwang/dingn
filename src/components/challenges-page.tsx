@@ -1,38 +1,14 @@
 "use client";
 // The Challenges page (/challenges/): the challenges players have open,
-// grouped by game, each a round anyone can take in one click. A challenge's own page is the game, opened on it
-// (/play/<game>/?c=<id>), where its results are (game-host.tsx).
+// grouped by game, each shown as a challenge card (challenge-card.tsx): a
+// round anyone can take in one click, with its results.
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { pick } from "@/lib/i18n";
-import { challengeText, scoreText } from "@/data/challenge.mjs";
-import { fetchOpenChallenges, type OpenChallenge } from "@/lib/challenges";
+import type { OpenChallenge } from "@/lib/challenges";
 import type { CatalogGame } from "@/lib/catalog";
 import { GameCover, playPath, useCatalog } from "./catalog";
+import { ChallengeCard, useOpenChallenges } from "./challenge-card";
 import { useLocale } from "./locale";
-
-/** The open challenges of games in the catalog, newest first; null while loading. */
-export function useOpenChallenges(games: CatalogGame[] | null) {
-  const [list, setList] = useState<OpenChallenge[] | null>(null);
-  useEffect(() => {
-    let active = true;
-    fetchOpenChallenges()
-      .then((found) => active && setList(found))
-      .catch(() => active && setList([]));
-    return () => {
-      active = false;
-    };
-  }, []);
-  if (!list || !games) return null;
-  return list.flatMap((challenge) => {
-    const game = games.find((g) => g.id === challenge.game);
-    return game ? [{ challenge, game }] : [];
-  });
-}
-
-/** The address that opens a game on a challenge. */
-export const challengePath = (game: string, id: string) =>
-  `${playPath(game)}?c=${encodeURIComponent(id)}`;
 
 export function ChallengesPage() {
   const { t, locale, href } = useLocale();
@@ -75,61 +51,11 @@ export function ChallengesPage() {
                 </Link>
               </h2>
               <ul className="challenge-list">
-                {challenges.map((challenge) => {
-                  const results =
-                    challenge.results ?? (challenge.top ? [challenge.top] : []);
-                  return (
-                    <li key={challenge.id}>
-                      <Link
-                        className="challenge-card"
-                        href={href(challengePath(game.id, challenge.id))}
-                      >
-                        <span className="challenge-copy">
-                          <strong>
-                            {
-                              challengeText(
-                                challenge,
-                                title,
-                                locale,
-                                challenge.name,
-                                t,
-                              ).title
-                            }
-                          </strong>
-                          <span className="muted">
-                            {t("Players: {0}").replace(
-                              "{0}",
-                              String(challenge.players),
-                            )}
-                          </span>
-                          {/* Its results so far, highest first. */}
-                          {results.length > 0 && (
-                            <span className="challenge-results">
-                              {results.map((r, i) => (
-                                <span key={i} className="challenge-result">
-                                  <span className="rank">{i + 1}</span>
-                                  <span className="name">
-                                    {r.name ?? t("A player")}
-                                  </span>
-                                  <span className="pts">
-                                    {scoreText(
-                                      { ...challenge, score: r.score },
-                                      locale,
-                                      t,
-                                    )}
-                                  </span>
-                                </span>
-                              ))}
-                            </span>
-                          )}
-                        </span>
-                        <span className="button small">
-                          {t("Take the challenge")}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
+                {challenges.map((challenge) => (
+                  <li key={challenge.id}>
+                    <ChallengeCard challenge={challenge} game={game} />
+                  </li>
+                ))}
               </ul>
             </section>
           );

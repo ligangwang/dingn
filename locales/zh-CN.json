@@ -995,6 +995,9 @@
     "Delete this challenge? Its link will stop working.": "要删除这个挑战吗？它的链接将会失效。",
     "Makes a link that challenges anyone to beat a score on the same round: { mode, seed, score, unit }, with unit one of points, digits, cards, levels, stars, words or coins. dingn saves the challenge, lists a signed-in player's one for other players, and gives you the link to share. When a player opens a challenge, dingn.challenge holds it (null otherwise): start that round.": "生成一个链接，向任何人发起挑战，在同一局中超过某个成绩：{ mode, seed, score, unit }，unit 为 points、digits、cards、levels、stars、words 或 coins 之一。dingn 会保存这个挑战，把已登录玩家的挑战展示给其他玩家，并把链接交给你去分享。玩家打开挑战时，dingn.challenge 就是该挑战（否则为 null）：请开始那一局。",
     "Call it when the player finishes the round of dingn.challenge, with their score. dingn shows whether they won and posts a signed-in player's score under the challenge, where every result is ranked and each player keeps their best. It gives { beat, posted, best, rank, players }, and fails with the code \"no_challenge\" when the page was not opened from a challenge.": "玩家完成 dingn.challenge 的那一局时调用，并传入成绩。dingn 会显示玩家是否获胜，并把已登录玩家的成绩发布到该挑战下；所有成绩都会排名，每位玩家保留最好成绩。它返回 { beat, posted, best, rank, players }；如果页面不是从挑战打开的，则以代码 \"no_challenge\" 失败。",
-    "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.": "告诉 dingn 一局已经玩到结束（无论输赢），用于游玩统计。每完成一局调用一次。"
+    "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.": "告诉 dingn 一局已经玩到结束（无论输赢），用于游玩统计。每完成一局调用一次。",
+    "Link copied": "链接已复制",
+    "Copy link": "复制链接",
+    "Share": "分享"
   }
 }
