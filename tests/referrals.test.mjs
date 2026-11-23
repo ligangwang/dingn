@@ -42,10 +42,12 @@ function claim(
     signedIn = true,
     verified = true,
     tester = false,
+    ref,
+    testers = [],
   } = {},
 ) {
   const req = Object.assign(
-    Readable.from([JSON.stringify({ challenge: id })]),
+    Readable.from([JSON.stringify({ challenge: id ?? undefined, ref })]),
     {
       method: "POST",
       url: "/api/referrals",
@@ -77,6 +79,7 @@ function claim(
         },
         verify: async () => (tester ? { uid, tester: true } : { uid }),
         account: async () => ({ created: new Date(made), verified }),
+        isTester: async (who) => testers.includes(who),
         now: () => now,
       },
     );
@@ -225,4 +228,51 @@ test("a retried transaction decides afresh, so a friend is never paid twice", ()
     undefined,
     undefined,
   ]);
+});
+
+test("a friend belongs to whoever shared the link they came through, not the challenge's maker", async () => {
+  await challenge("ChallengeEve", "eve", "2026-11-20T10:00:00.000Z");
+  await store.mergeDoc("playerNumbers", "1234567890", { uid: "sharer" });
+  await store.mergeDoc("playerNumbers", "2234567890", { uid: "tess" });
+  // Joined through the sharer's copy of eve's challenge: the sharer's friend.
+  const joined = await claim("fay", "ChallengeEve", { ref: "1234567890" });
+  assert.equal(joined.body.state, "joined");
+  assert.equal(await coins("sharer"), 100);
+  assert.equal(await coins("eve"), 0);
+  const saved = await store.getDoc("referrals", "fay");
+  assert.equal(saved.referrer, "sharer");
+  assert.equal(saved.ref, "1234567890");
+  assert.equal(saved.challenge, "ChallengeEve");
+  // The sharer's link counts for a challenge older than the friend too...
+  // and with no challenge at all.
+  const bare = await claim("gil", null, { ref: "1234567890" });
+  assert.equal(bare.body.state, "joined");
+  assert.equal(await coins("sharer"), 200);
+  assert.equal((await store.getDoc("referrals", "gil")).challenge, null);
+  // A number nobody has, or a test account's, leaves the challenge's maker.
+  assert.equal(
+    (await claim("hal", "ChallengeEve", { ref: "9999999999" })).body.state,
+    "joined",
+  );
+  assert.equal((await store.getDoc("referrals", "hal")).referrer, "eve");
+  assert.equal(
+    (
+      await claim("ivy", "ChallengeEve", {
+        ref: "2234567890",
+        testers: ["tess"],
+      })
+    ).body.state,
+    "joined",
+  );
+  assert.equal((await store.getDoc("referrals", "ivy")).referrer, "eve");
+  // Nobody is their own friend, and a bare made-up number brings nobody.
+  assert.equal(
+    (await claim("sharer", null, { ref: "1234567890" })).body.state,
+    "none",
+  );
+  assert.equal(
+    (await claim("jo", null, { ref: "9999999999" })).body.state,
+    "none",
+  );
+  assert.equal((await claim("kim", null, { ref: "nope" })).body.state, "none");
 });

@@ -1,4 +1,5 @@
-// The friend's challenge this browser arrived through, so that when the
+// The friend's link this browser arrived through (a challenge, and the
+// player who shared it when the link names them with `r`), so that when the
 // visitor makes a new dingn account and opens a game, they and the friend
 // who challenged them both get coins (scripts/referrals.mjs). The first
 // challenge a browser arrives through counts. The state moves from "pending"
@@ -9,7 +10,7 @@ import { madeHere } from "@/lib/my-challenges";
 
 const KEY = "dingn.referral.v1";
 type State = "pending" | "joined" | "done";
-type Saved = { challenge: string; state: State };
+type Saved = { challenge?: string; ref?: string; state: State };
 export type ReferralResult = {
   state: "joined" | "returned" | "waiting" | "none";
   coins?: number;
@@ -18,7 +19,10 @@ export type ReferralResult = {
 function read(): Saved | null {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
-    return saved && typeof saved.challenge === "string" ? saved : null;
+    return saved &&
+      (typeof saved.challenge === "string" || typeof saved.ref === "string")
+      ? saved
+      : null;
   } catch {
     return null;
   }
@@ -31,10 +35,23 @@ function write(saved: Saved) {
   }
 }
 
-/** Notes the challenge a visitor arrived through, unless one is noted or it is their own. */
-export function noteArrival(challenge: string) {
-  if (read() || madeHere(challenge)) return;
-  write({ challenge, state: "pending" });
+/**
+ * Notes the link a visitor arrived through: its challenge and the player
+ * who shared it (`ref`, their public number, from the link's `r`), unless
+ * one is noted already. A challenge made in this browser counts only when
+ * someone else shared it.
+ */
+export function noteArrival(
+  challenge: string | null,
+  ref: string | null = null,
+) {
+  if (read()) return;
+  if (!ref && (!challenge || madeHere(challenge))) return;
+  write({
+    ...(challenge ? { challenge } : {}),
+    ...(ref ? { ref } : {}),
+    state: "pending",
+  });
 }
 
 /** Whether this browser still has a referral to claim or follow up. */
@@ -53,7 +70,8 @@ export async function claimReferral(): Promise<ReferralResult | null> {
   let result: ReferralResult;
   try {
     result = await api<ReferralResult>("/api/referrals", {
-      challenge: saved.challenge,
+      ...(saved.challenge ? { challenge: saved.challenge } : {}),
+      ...(saved.ref ? { ref: saved.ref } : {}),
     });
   } catch {
     return null;

@@ -75,9 +75,23 @@ export function challengeIdFromQuery(search) {
   return id && CHALLENGE_ID.test(id) ? id : null;
 }
 
-/** The address of a game's page, in a language, that opens the saved challenge `id`. */
-export function challengeUrl(origin, gameId, id, locale) {
-  return `${origin}${localeInfo(locale).path}/play/${gameId}/?c=${encodeURIComponent(id)}`;
+/** A player's public number, which names them as the one who shared a link (`?r=…`). */
+export const REFERRER = /^[1-9]\d{9}$/;
+
+/** The sharer's public number in a page address's query (`?r=…`), or null. */
+export function referrerFromQuery(search) {
+  const number = new URLSearchParams(search).get("r");
+  return number && REFERRER.test(number) ? number : null;
+}
+
+/**
+ * The address of a game's page, in a language, that opens the saved
+ * challenge `id`. `referrer` is the public number of the signed-in player
+ * sharing it: whoever joins dingn through the link is their friend.
+ */
+export function challengeUrl(origin, gameId, id, locale, referrer) {
+  const by = referrer && REFERRER.test(referrer) ? `&r=${referrer}` : "";
+  return `${origin}${localeInfo(locale).path}/play/${gameId}/?c=${encodeURIComponent(id)}${by}`;
 }
 
 /** "10 digits", "10 位数字", "10 dígitos": translated by `translate`. */

@@ -5,6 +5,7 @@ import {
   challengeIdFromQuery,
   challengeText,
   challengeUrl,
+  referrerFromQuery,
   validChallenge,
 } from "../src/data/challenge.mjs";
 import { cleanSource, landingSource, visitFor } from "../src/lib/funnel";
@@ -24,6 +25,26 @@ test("a challenge link carries only the saved challenge's id", () => {
   assert.equal(
     challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", "pt-BR"),
     "https://dingn.com/pt/play/memory/?c=Xq3v9TzK1bWm",
+  );
+  // Shared by a signed-in player, it names them by their public number.
+  const shared = challengeUrl(
+    "https://dingn.com",
+    "memory",
+    "Xq3v9TzK1bWm",
+    "zh-CN",
+    "1234567890",
+  );
+  assert.equal(
+    shared,
+    "https://dingn.com/zh/play/memory/?c=Xq3v9TzK1bWm&r=1234567890",
+  );
+  assert.equal(referrerFromQuery(new URL(shared).search), "1234567890");
+  assert.equal(challengeIdFromQuery(new URL(shared).search), "Xq3v9TzK1bWm");
+  for (const bad of ["", "?r=123", "?r=abc1234567", "?r=0234567890"])
+    assert.equal(referrerFromQuery(bad), null, bad);
+  assert.equal(
+    challengeUrl("https://dingn.com", "memory", "Xq3v9TzK1bWm", "en", "x"),
+    "https://dingn.com/play/memory/?c=Xq3v9TzK1bWm",
   );
   for (const query of [
     "",

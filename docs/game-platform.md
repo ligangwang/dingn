@@ -409,6 +409,20 @@ the badges). Games need do nothing: the player page notes the challenge a
 visitor arrived through and claims as soon as they are signed in with a game
 open, without waiting on the game; `scripts/referrals.mjs` checks and pays.
 
+The friend belongs to whoever shared the link, not only the challenge's
+maker. Every challenge link a signed-in player copies or shares (from a
+game's `challengeLink`, or a challenge card's "Copy link" and "Share") ends
+with `&r=` and their public player number, the one in their page's address,
+never their uid:
+
+```
+https://dingn.com/zh/play/gemsurge/?c=855EEFGoPtxQ&r=1234567890
+```
+
+Whoever joins dingn through it is that player's friend. A link without `r`
+(a guest's, or an older one) is its challenge maker's, as before. A link
+with `r` works for any game page, with or without a challenge.
+
 ### The funnel
 
 `/admin/funnel/` shows where players come from and how far they get: visits,

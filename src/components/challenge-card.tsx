@@ -23,6 +23,7 @@ import type { CatalogGame } from "@/lib/catalog";
 import { Avatar } from "./avatar";
 import { playPath } from "./catalog";
 import { useLocale } from "./locale";
+import { useOptionalSession } from "./session";
 
 /** The address that opens a game on a challenge. */
 export const challengePath = (game: string, id: string) =>
@@ -99,11 +100,14 @@ export function ChallengeResults({
  */
 export function ShareChallenge({ game, id }: { game: string; id: string }) {
   const { t, locale } = useLocale();
+  // The link names the signed-in player sharing it, so a friend who joins
+  // dingn through it is theirs.
+  const sharer = useOptionalSession()?.stats?.number;
   const [copied, setCopied] = useState(false);
   // Known only in the browser, so the server's page and the first paint agree.
   const [canShare, setCanShare] = useState(false);
   useEffect(() => setCanShare(typeof navigator.share === "function"), []);
-  const url = () => challengeUrl(location.origin, game, id, locale);
+  const url = () => challengeUrl(location.origin, game, id, locale, sharer);
   async function copy() {
     try {
       await navigator.clipboard.writeText(url());
