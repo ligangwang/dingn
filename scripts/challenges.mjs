@@ -572,7 +572,8 @@ async function standing(req, res, { verify, exchange, account }) {
   if (!open) return { challenge: null };
   const { id, doc } = open;
   const own = uid ? await getDoc("challengeResults", `${id}_${uid}`) : null;
-  // A visitor is placed as a player nobody has seen yet.
+  // A visitor is placed as a player nobody has seen yet: what signing in
+  // would bring, since only a signed-in player joins a level's challenge.
   const { outcome } = postResult(
     doc,
     { uid: uid ?? "", score: challenge.score, now: new Date().toISOString() },

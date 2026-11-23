@@ -198,7 +198,10 @@ export type DingnGame = {
    * Call it at the end of a round played outside a challenge: with none,
    * offer "Challenge anyone"; with one, name its owner and the place and
    * offer to join it. Either button then calls `challengeLink`, which posts
-   * the score. Rejects with "invalid" for a malformed challenge, and
+   * the score. Only a signed-in player joins: a visitor gets the standing
+   * as what signing in would bring (offer `requestSignIn()`), since a
+   * visitor's `challengeLink` makes an unlisted challenge of their own.
+   * Rejects with "invalid" for a malformed challenge, and
    * "unknown_method" on a dingn website from before this call.
    */
   challengeStanding(challenge: Challenge): Promise<ChallengeStanding | null>;

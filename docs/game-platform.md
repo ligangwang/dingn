@@ -346,6 +346,10 @@ player's best there counts if it is higher) and how many players there would
 be. Ask at the end of a round played outside a challenge: with none, offer
 "Challenge anyone"; with one, say whose it is and the place, and offer to
 join it. Either button calls `challengeLink`, which is what posts the score.
+Only a signed-in player joins a level's challenge: a visitor is told the
+standing too, as what signing in would bring, but a visitor's
+`challengeLink` makes an unlisted challenge of their own. Offer a visitor
+`requestSignIn()` there, not "join".
 
 A game that uses `mode: "level"` with the level's number as `seed` gets
 the level named ("Level 28") on its challenge cards; a `seed` that is a date
