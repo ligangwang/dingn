@@ -406,7 +406,7 @@ it("invites a visitor from a friend's challenge to sign up after their first rou
   });
   expect(
     await screen.findByText(
-      "Nice round! Create a free dingn account and you and your friend both get 100 coins.",
+      "Nice round! Create a free dingn account and get 100 coins.",
     ),
   ).toBeTruthy();
   await userEvent.click(screen.getByRole("button", { name: "Not now" }));
