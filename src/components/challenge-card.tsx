@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { pick } from "@/lib/i18n";
 import {
-  challengeText,
+  challengeParts,
   challengeUrl,
   scoreText,
   type Challenge,
@@ -151,13 +151,32 @@ export function ChallengeCard({
 }) {
   const { t, locale, href } = useLocale();
   const to = href(challengePath(game.id, challenge.id));
-  const title = challengeText(
+  // The title in its language's own order, with the player's name and the
+  // score set apart so they are seen first.
+  const title = challengeParts(
     challenge,
     pick(game.title, locale),
     locale,
     challenge.name,
     t,
-  ).title;
+  ).map((part, i) =>
+    part.kind === "text" ? (
+      part.text
+    ) : (
+      <span key={i} className={`challenge-${part.kind}`}>
+        {part.kind === "name" && (
+          // Who is challenging you, as they look everywhere on dingn.
+          <Avatar
+            choice={challenge.avatar ?? ""}
+            name={part.text}
+            user={null}
+            size={hero ? 46 : 22}
+          />
+        )}
+        {part.text}
+      </span>
+    ),
+  );
   // A website from before lists carried results sends only the top one.
   const results = challenge.results ?? (challenge.top ? [challenge.top] : []);
   return (

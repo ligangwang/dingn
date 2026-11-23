@@ -613,6 +613,10 @@ test("a result carries its player's public number, which links their page", asyn
   const listed = await call("/api/challenges?game=memory", { method: "GET" });
   const line = listed.body.challenges.find((c) => c.id === body.id);
   assert.deepEqual(line.results, thread.results);
+  // The line names its maker's page too (and their avatar, had they one).
+  assert.equal(line.number, "1234567890");
+  assert.equal(line.avatar, undefined);
+  assert.equal(line.uid, undefined);
   assert.equal(JSON.stringify(listed.body).includes("u-di"), false);
   // A result saved before numbers were kept gets its player's from their account.
   const old = await challenges.shownResults(

@@ -112,7 +112,11 @@ export function challengeText(
   // The player's own challenge, opened by them: their own score to beat.
   if (challenge.mine === true)
     return {
-      title: fill(translate("Your score to beat: {0} in {1}."), score, gameTitle),
+      title: fill(
+        translate("Your score to beat: {0} in {1}."),
+        score,
+        gameTitle,
+      ),
       description: "",
     };
   return {
@@ -132,4 +136,43 @@ export function challengeText(
       "Play the same challenge free on dingn. It starts right away, no sign-in needed. Earn coins and build your kingdom.",
     ),
   };
+}
+
+/**
+ * A challenge's title in parts, so a page can set the player's name, the
+ * score and the game apart: [{ kind: "text" | "name" | "score" | "game",
+ * text }]. The words and their order are the language's own (the same
+ * template as challengeText), so the parts read as that title when joined.
+ */
+export function challengeParts(
+  challenge,
+  gameTitle,
+  locale = "en",
+  name = null,
+  translate = same,
+) {
+  const score = scoreText(challenge, locale, translate);
+  // Which value each "{n}" of the template stands for.
+  const [template, kinds] =
+    challenge.mine === true
+      ? [translate("Your score to beat: {0} in {1}."), ["score", "game"]]
+      : name
+        ? [
+            translate("{0} reached {1} in {2}. Can you beat it?"),
+            ["name", "score", "game"],
+          ]
+        : [
+            translate("A friend reached {0} in {1}. Can you beat it?"),
+            ["score", "game"],
+          ];
+  const values = { name, score, game: gameTitle };
+  return template
+    .split(/(\{\d+\})/)
+    .filter(Boolean)
+    .map((piece) => {
+      const kind = kinds[Number(/^\{(\d+)\}$/.exec(piece)?.[1] ?? -1)];
+      return kind
+        ? { kind, text: values[kind] }
+        : { kind: "text", text: piece };
+    });
 }

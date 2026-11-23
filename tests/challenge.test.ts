@@ -189,3 +189,30 @@ test("a browser counts once a day, and once as back within a week", () => {
     false,
   );
 });
+
+test("a challenge's title comes in parts, in the language's own order", async () => {
+  const { challengeParts } = await import("../src/data/challenge.mjs");
+  const round = { mode: "level", score: 2110, unit: "points" as const };
+  assert.deepEqual(challengeParts(round, "Gem Surge", "en", "Ada"), [
+    { kind: "name", text: "Ada" },
+    { kind: "text", text: " reached " },
+    { kind: "score", text: "2,110 points" },
+    { kind: "text", text: " in " },
+    { kind: "game", text: "Gem Surge" },
+    { kind: "text", text: ". Can you beat it?" },
+  ]);
+  // A translation may put the game first.
+  const zh = (text: string) =>
+    text === "{0} reached {1} in {2}. Can you beat it?"
+      ? "在{2}中，{0}拿到了{1}。"
+      : text;
+  assert.deepEqual(
+    challengeParts(round, "Gem Surge", "en", "Ada", zh).map((p) => p.kind),
+    ["text", "game", "text", "name", "text", "score", "text"],
+  );
+  // Without a name there is no name part.
+  assert.deepEqual(
+    challengeParts(round, "Gem Surge").map((p) => p.kind),
+    ["text", "score", "text", "game", "text"],
+  );
+});
