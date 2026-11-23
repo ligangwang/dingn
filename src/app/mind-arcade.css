@@ -2196,7 +2196,15 @@ nav a.account-link:hover .header-avatar {
   box-shadow: 0 2px 4px #0008;
 }
 
-/* The home page's top spot: the latest challenge a player posted. */
+/* The home page's top spot: the latest challenge a player posted. While the
+   page loads it is the one the server filled in, which stands in for the
+   words about dingn (src/components/home.tsx). */
+.hero-challenge:empty {
+  display: none;
+}
+.hero-challenge:not(:empty) + .hero-intro {
+  display: none;
+}
 .mind-hero .hero-challenge h1 {
   font-size: clamp(30px, 3.6vw, 50px);
   line-height: 1.1;

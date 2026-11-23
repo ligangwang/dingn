@@ -11,7 +11,14 @@
 // page's empty `data-fill` slots (src/components/server-fill.tsx) with plain
 // links to the games, and adds schema.org data (JSON-LD) to the <head>.
 import { categoryOf, isPreview, resolveVersion } from "./game-registry.mjs";
-import { challengeText, challengeUrl } from "../src/data/challenge.mjs";
+import {
+  challengeParts,
+  challengeText,
+  challengeUrl,
+  roundText,
+  scoreText,
+} from "../src/data/challenge.mjs";
+import { avatarPresets } from "../src/data/avatars.mjs";
 import { LOCALES, localeInfo, pick, translate } from "./i18n.mjs";
 
 const SITE = "https://dingn.com";
@@ -31,8 +38,7 @@ export function indexableGame(record) {
   return live;
 }
 
-const pageUrl = (id, locale) =>
-  `${SITE}${localeInfo(locale).path}/play/${id}/`;
+const pageUrl = (id, locale) => `${SITE}${localeInfo(locale).path}/play/${id}/`;
 const sitePath = (path, locale) => localeInfo(locale).path + path;
 
 /** Each category's name: English, Chinese, and the packs for other languages. */
@@ -336,15 +342,84 @@ export function categoryPageHtml(html, games, category, locale) {
       ],
     }),
   );
-  return fillSlot(
-    page,
-    "games",
-    list.map((g) => cardHtml(g, locale)).join(""),
+  return fillSlot(page, "games", list.map((g) => cardHtml(g, locale)).join(""));
+}
+
+/** A player's avatar, like Avatar in src/components/avatar.tsx. */
+function avatarHtml(choice, name, photo, size) {
+  const box = `width:${size}px;height:${size}px`;
+  const preset = avatarPresets.find((a) => a.id === choice);
+  if (preset)
+    return `<span class="avatar avatar-preset " style="${box};font-size:${size * 0.58}px;background:${preset.color}" aria-hidden="true">${preset.emoji}</span>`;
+  if (choice !== "initials" && photo)
+    return `<img class="avatar avatar-photo " src="${escape(photo)}" width="${size}" height="${size}" alt="" referrerpolicy="no-referrer"/>`;
+  return `<span class="avatar avatar-initials " style="${box};font-size:${size * 0.4}px" aria-hidden="true">${escape((name || "Me").slice(0, 2).toUpperCase())}</span>`;
+}
+
+/**
+ * The home page's top spot when players have an open challenge: the latest
+ * one as its card, like the hero ChallengeCard in
+ * src/components/challenge-card.tsx (keep the two in step), so the page
+ * arrives showing it. `challenges` is openChallenges() in
+ * scripts/challenges.mjs, newest first; "" when no listed game has one.
+ */
+export function heroChallengeHtml(games, challenges, locale) {
+  const latest = challenges.find((c) => games.some((g) => g.id === c.game));
+  if (!latest) return "";
+  const game = games.find((g) => g.id === latest.game);
+  const t = (text) => translate(text, locale);
+  const title = challengeParts(
+    latest,
+    textOf(game, locale).title,
+    locale,
+    latest.name,
+    t,
+  )
+    .map((part) =>
+      part.kind === "text"
+        ? escape(part.text)
+        : `<span class="challenge-${part.kind}">${
+            part.kind === "name"
+              ? avatarHtml(latest.avatar ?? "", part.text, latest.photo, 46)
+              : ""
+          }${escape(part.text)}</span>`,
+    )
+    .join("");
+  const round = roundText(latest, t);
+  const results = latest.results ?? (latest.top ? [latest.top] : []);
+  const rows = results
+    .map((r, i) => {
+      const name = escape(r.name ?? t("A player"));
+      const who = r.number
+        ? `<a href="${sitePath(`/player/${r.number}/`, locale)}">${name}</a>`
+        : name;
+      return `<li><span class="rank">${i + 1}</span><span class="name">${avatarHtml(r.avatar ?? "", r.name ?? "?", r.photo, 26)}<span class="who">${who}</span></span><span class="pts">${escape(scoreText({ ...latest, score: r.score }, locale, t))}</span></li>`;
+    })
+    .join("");
+  const to = `${sitePath(`/play/${game.id}/`, locale)}?c=${encodeURIComponent(latest.id)}`;
+  return (
+    `<p class="eyebrow">${escape(t("LATEST CHALLENGE"))}</p>` +
+    `<article class="challenge-card hero">` +
+    (round ? `<p class="challenge-round">${escape(round)}</p>` : "") +
+    `<div class="challenge-card-head"><h1><a class="challenge-title" href="${escape(to)}">${title}</a></h1>` +
+    // The page's own button takes over once its scripts run.
+    `<span class="challenge-actions"><button type="button" class="quiet-link challenge-share">${escape(t("Copy link"))}</button></span></div>` +
+    (rows ? `<ol class="challenge-rows">${rows}</ol>` : "") +
+    `</article>` +
+    `<p class="hero-more"><a href="${sitePath("/challenges/", locale)}">${escape(t("All challenges →"))}</a></p>`
   );
 }
 
-/** The home page with each category card's top three games as links. */
-export function homePageHtml(html, games, locale) {
+/**
+ * The home page with each category card's top three games as links and,
+ * when players have an open challenge, the latest one in its top spot.
+ */
+export function homePageHtml(html, games, locale, challenges = []) {
+  const page = fillSlot(
+    html,
+    "hero-challenge",
+    heroChallengeHtml(games, challenges, locale),
+  );
   return Object.keys(CATEGORY_NAMES).reduce((page, category) => {
     const top = gamesOf(games, category, locale).slice(0, 3);
     return fillSlot(
@@ -360,7 +435,7 @@ export function homePageHtml(html, games, locale) {
         })
         .join(""),
     );
-  }, html);
+  }, page);
 }
 
 /** The exported sitemap with every indexable game added, in every language. */

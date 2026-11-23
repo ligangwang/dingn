@@ -15,6 +15,7 @@ import { useOptionalSession } from "@/components/session";
 import { useKingdomRules } from "@/lib/reward-plugin";
 import { fetchKingdom, type KingdomView } from "@/lib/kingdom";
 import { ChallengeCard, useOpenChallenges } from "@/components/challenge-card";
+import { ServerFill } from "@/components/server-fill";
 
 /** The home page's category cards, in menu order. */
 const ARENAS: { category: Category; className: string }[] = [
@@ -28,15 +29,27 @@ export function Home() {
   const { t, href } = useLocale();
   const catalog = useCatalog();
   // Until players have posted one, the hero says what dingn is.
-  const latest = useOpenChallenges(catalog)?.[0] ?? null;
+  const challenges = useOpenChallenges(catalog);
+  const latest = challenges?.[0] ?? null;
 
   return (
     <div className="mind-home container">
       <section className="mind-hero">
+        {!challenges && (
+          // While the challenges load, the latest one as the server put it
+          // in the page (heroChallengeHtml in scripts/game-seo.mjs), which
+          // hides the words below: the page never shows one and then the
+          // other.
+          <ServerFill
+            key="filled"
+            name="hero-challenge"
+            className="hero-challenge"
+          />
+        )}
         {latest ? (
           // The latest challenge a player posted, as its card: one click to
           // take it, with the results so far.
-          <div className="hero-challenge">
+          <div key="latest" className="hero-challenge">
             <p className="eyebrow">{t("LATEST CHALLENGE")}</p>
             <ChallengeCard
               challenge={latest.challenge}
@@ -48,7 +61,7 @@ export function Home() {
             </p>
           </div>
         ) : (
-          <div>
+          <div className="hero-intro">
             <h1>
               {t("Quick games.")}
               <br />

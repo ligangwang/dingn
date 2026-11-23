@@ -29,13 +29,21 @@ import { useOptionalSession } from "./session";
 export const challengePath = (game: string, id: string) =>
   `${playPath(game)}?c=${encodeURIComponent(id)}`;
 
+// The list as last fetched, so coming back to a page shows it at once.
+let lastOpen: OpenChallenge[] | null = null;
+/** Forgets the kept list (between tests). */
+export const forgetOpenChallenges = () => void (lastOpen = null);
+
 /** The open challenges of games in the catalog, newest first; null while loading. */
 export function useOpenChallenges(games: CatalogGame[] | null) {
-  const [list, setList] = useState<OpenChallenge[] | null>(null);
+  const [list, setList] = useState<OpenChallenge[] | null>(lastOpen);
   useEffect(() => {
     let active = true;
     fetchOpenChallenges()
-      .then((found) => active && setList(found))
+      .then((found) => {
+        lastOpen = found;
+        if (active) setList(found);
+      })
       .catch(() => active && setList([]));
     return () => {
       active = false;
