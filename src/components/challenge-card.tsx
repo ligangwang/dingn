@@ -10,7 +10,6 @@ import { pick } from "@/lib/i18n";
 import {
   challengeParts,
   challengeUrl,
-  roundText,
   scoreText,
   type Challenge,
 } from "@/data/challenge.mjs";
@@ -190,13 +189,10 @@ export function ChallengeCard({
       </span>
     ),
   );
-  // Which level it is, when dingn can tell ("Level 28").
-  const round = roundText(challenge, t);
   // A website from before lists carried results sends only the top one.
   const results = challenge.results ?? (challenge.top ? [challenge.top] : []);
   return (
     <article className={hero ? "challenge-card hero" : "challenge-card"}>
-      {round && <p className="challenge-round">{round}</p>}
       <div className="challenge-card-head">
         {/* The title is the way in: it opens the game on this challenge. */}
         {hero ? (

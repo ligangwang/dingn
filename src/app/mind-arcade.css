@@ -2254,17 +2254,6 @@ nav a.account-link:hover .header-avatar {
 .challenge-card:hover {
   border-color: #59627a;
 }
-/* Which level the challenge is, as a small tag above its title. */
-.challenge-round {
-  display: inline-block;
-  margin: 0 0 8px;
-  padding: 2px 10px;
-  border-radius: 20px;
-  background: #d5ff5822;
-  color: #d5ff58;
-  font: 700 12px/1.6 var(--font-display);
-  letter-spacing: 0.04em;
-}
 .challenge-card-head {
   display: flex;
   align-items: baseline;

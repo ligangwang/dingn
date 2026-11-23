@@ -174,6 +174,20 @@ export function resultsOf(doc) {
 }
 
 /**
+ * The score to beat: the maker's best under their own challenge. A maker who
+ * plays it again and scores higher raises it, so the challenge's title names
+ * the score that leads their name in its results. (Raised on the challenge
+ * itself from then on; one raised before that is read from its results.)
+ */
+export function scoreToBeat(doc) {
+  const own =
+    doc?.uid && Array.isArray(doc.results)
+      ? doc.results.find((r) => r.uid === doc.uid)
+      : null;
+  return Math.max(doc.score, own?.score ?? 0);
+}
+
+/**
  * The thread after `uid` posts `score`: a player keeps only their best, so a
  * lower score changes nothing. `own` is the player's best so far under this
  * challenge ({ score }, kept in `challengeResults`), or null for their first
@@ -195,14 +209,25 @@ export function postResult(doc, { uid, score, now }, own = null) {
     (typeof doc.players === "number" ? doc.players : before.length) +
     (mine ? 0 : 1);
   return {
-    next: improved ? { ...doc, results, players, activeAt: now } : doc,
+    next: improved
+      ? {
+          ...doc,
+          // The maker's better score is the new one to beat.
+          ...(uid && uid === doc.uid
+            ? { score: Math.max(score, scoreToBeat(doc)) }
+            : {}),
+          results,
+          players,
+          activeAt: now,
+        }
+      : doc,
     outcome: {
       best,
       // Null for a score below every result the thread keeps.
       rank: at < 0 ? null : at + 1,
       players,
       improved,
-      beat: score > doc.score,
+      beat: score > scoreToBeat(doc),
     },
   };
 }
@@ -305,7 +330,7 @@ export function listed(id, doc) {
     mode: doc.mode,
     // Which round it is, so the list can say "Level 28".
     ...(typeof doc.seed === "string" ? { seed: doc.seed } : {}),
-    score: doc.score,
+    score: scoreToBeat(doc),
     unit: doc.unit,
     // Who made it (never sent): their name, page and avatar are read from
     // their account.
@@ -367,6 +392,7 @@ export function shownChallenge(id, doc) {
     id,
     game: doc.game,
     ...challenge,
+    score: scoreToBeat(doc),
     name: nickname(doc.name),
     ...(doc.closed === true ? { closed: true } : {}),
   };
@@ -418,6 +444,9 @@ export async function openChallenges(
       list.push({
         game: board.id,
         ...line,
+        // The maker's best is the score to beat (scoreToBeat), also on a
+        // line saved before a better one raised it.
+        score: Math.max(line.score, makerRow?.score ?? 0),
         name: maker?.name ?? line.name ?? null,
         ...(maker?.number ? { number: maker.number } : {}),
         ...(maker?.avatar ? { avatar: maker.avatar } : {}),
@@ -587,7 +616,7 @@ async function standing(req, res, { verify, exchange, account }) {
   return {
     challenge: {
       name: await makerName(doc, account),
-      score: doc.score,
+      score: scoreToBeat(doc),
       mine: !!uid && doc.uid === uid,
       rank: outcome.rank,
       players: outcome.players,

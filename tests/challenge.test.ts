@@ -211,6 +211,28 @@ test("a browser counts once a day, and once as back within a week", () => {
   );
 });
 
+test("a challenge's title names the round when dingn can tell which it is", () => {
+  const level = {
+    mode: "level",
+    seed: "28",
+    score: 2110,
+    unit: "points" as const,
+  };
+  assert.equal(
+    challengeText(level, "Gem Surge", "en", "Ada").title,
+    "Ada reached 2,110 points in Gem Surge (Level 28). Can you beat it?",
+  );
+  assert.equal(
+    challengeText({ ...level, mine: true }, "Gem Surge").title,
+    "Your score to beat: 2,110 points in Gem Surge (Level 28).",
+  );
+  // A seed that is the game's own names nothing.
+  assert.equal(
+    challengeText({ ...level, seed: "abc" }, "Gem Surge", "en", "Ada").title,
+    "Ada reached 2,110 points in Gem Surge. Can you beat it?",
+  );
+});
+
 test("a challenge's title comes in parts, in the language's own order", async () => {
   const { challengeParts } = await import("../src/data/challenge.mjs");
   const round = { mode: "level", score: 2110, unit: "points" as const };

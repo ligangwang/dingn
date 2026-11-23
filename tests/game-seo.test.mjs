@@ -260,7 +260,9 @@ test("the home page arrives with the latest challenge in its top spot", () => {
   ];
   const html = homePageHtml(slot, games, "en", challenges);
   assert.match(html, /LATEST CHALLENGE/);
-  assert.match(html, /<p class="challenge-round">Level 28<\/p>/);
+  // The title names the level.
+  assert.match(html, / \(Level 28\)<\/span>\. Can you beat it\?<\/a>/);
+  assert.doesNotMatch(html, /challenge-round/);
   assert.match(
     html,
     /<h1><a class="challenge-title" href="\/play\/gemsurge\/\?c=Xq3v9TzK1bWm">/,
@@ -293,7 +295,7 @@ test("a challenge link's preview shows the saved score to beat", () => {
   const en = gamePageHtml(page, game(), "en", [], saved);
   assert.match(
     en,
-    /og:title" content="A friend reached 42 points in Crowd Rush. Can you beat it\?"/,
+    /og:title" content="A friend reached 42 points in Crowd Rush \(2026-11-16\)\. Can you beat it\?"/,
   );
   assert.match(en, /twitter:title" content="A friend reached 42 points/);
   assert.match(
@@ -312,12 +314,12 @@ test("a challenge link's preview shows the saved score to beat", () => {
   const zh = gamePageHtml(page, game(), "zh-CN", [], saved);
   assert.match(
     zh,
-    /og:title" content="朋友在「人潮突击」中达到了 42 分，你能超过吗？"/,
+    /og:title" content="朋友在「人潮突击 \(2026-11-16\)」中达到了 42 分，你能超过吗？"/,
   );
   // With the maker's nickname when they were signed in.
   assert.match(
     gamePageHtml(page, game(), "en", [], { ...saved, name: "Ada" }),
-    /og:title" content="Ada reached 42 points in Crowd Rush/,
+    /og:title" content="Ada reached 42 points in Crowd Rush \(2026-11-16\)/,
   );
   // Another game's challenge, or none, leaves the normal preview.
   for (const other of [{ ...saved, game: "memory" }, null])
