@@ -590,19 +590,21 @@ html.play-window-full body {
 /* The results posted under a challenge, highest first. */
 .play-thread {
   margin: 0;
-  padding: 12px 14px;
+  padding: 8px 14px;
   border-radius: 12px;
   border: 1px solid #2f3650;
 }
 .play-thread h2 {
-  margin: 0 0 8px;
-  font-size: 1rem;
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  opacity: 0.75;
 }
 .play-thread ol {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 260px;
+  /* About three results; the rest scroll, so the game stays in view. */
+  max-height: 104px;
   overflow-y: auto;
 }
 .play-thread li {
