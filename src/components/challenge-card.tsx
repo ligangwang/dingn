@@ -127,9 +127,9 @@ export function ShareChallenge({ game, id }: { game: string; id: string }) {
 }
 
 /**
- * An open challenge: its title, how many players took it, its results and
- * the button that opens the game on it. `hero` is the home page's large one,
- * whose title is the page's heading.
+ * An open challenge: its title, which opens the game on it, how many players
+ * took it, its results and the ways to pass it on. `hero` is the home page's
+ * large one, whose title is the page's heading.
  */
 export function ChallengeCard({
   challenge,
@@ -154,17 +154,19 @@ export function ChallengeCard({
   return (
     <article className={hero ? "challenge-card hero" : "challenge-card"}>
       <div className="challenge-card-head">
+        {/* The title is the way in: it opens the game on this challenge. */}
         {hero ? (
-          <h1>{title}</h1>
+          <h1>
+            <Link className="challenge-title" href={to}>
+              {title}
+            </Link>
+          </h1>
         ) : (
           <Link className="challenge-title" href={to}>
             {title}
           </Link>
         )}
         <span className="challenge-actions">
-          <Link className={hero ? "button" : "button small"} href={to}>
-            {t("Take the challenge")}
-          </Link>
           <ShareChallenge game={game.id} id={challenge.id} />
         </span>
       </div>

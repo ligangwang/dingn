@@ -43,11 +43,8 @@ it("shows the challenge, its results in order and each player's page", () => {
       })
       .getAttribute("href"),
   ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
-  expect(
-    screen
-      .getByRole("link", { name: "Take the challenge" })
-      .getAttribute("href"),
-  ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
+  // The title is the only way in: there is no separate button.
+  expect(screen.queryByRole("link", { name: "Take the challenge" })).toBeNull();
   expect(screen.getByText("Players: 3")).toBeTruthy();
   const rows = screen.getAllByRole("listitem").map((li) => li.textContent);
   expect(rows).toEqual([
@@ -94,5 +91,12 @@ it("is the home page's heading when it is the latest challenge", () => {
       name: "Ada reached 2,110 points in Gem Surge. Can you beat it?",
     }),
   ).toBeTruthy();
+  expect(
+    screen
+      .getByRole("link", {
+        name: "Ada reached 2,110 points in Gem Surge. Can you beat it?",
+      })
+      .getAttribute("href"),
+  ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
   expect(screen.getByRole("link", { name: "Ada" })).toBeTruthy();
 });

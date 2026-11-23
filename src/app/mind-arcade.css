@@ -2276,7 +2276,10 @@ nav a.account-link:hover .header-avatar {
   display: block;
 }
 .challenge-card.hero .challenge-actions {
-  margin-top: 20px;
+  margin-top: 14px;
+}
+.challenge-card.hero h1 .challenge-title {
+  font-weight: inherit;
 }
 .challenge-card.hero .challenge-rows {
   max-width: 520px;
