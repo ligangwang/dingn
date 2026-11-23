@@ -313,10 +313,15 @@ dingn saves each challenge when the link is made (`scripts/challenges.mjs`,
 `POST /api/challenges`), and the link carries only its id, so nobody can
 change the score by editing the address. The record is server-only Firestore
 `challenges/{id}`: the game, mode, seed, score, unit and rules, the signed-in
-player's uid and dingn nickname (null for a guest), when it was made, and
-`public`. The link and its preview name the player ("Ada reached 10
-digits in Memory"), or say "A friend" for a guest. Opening one
-(`GET /api/challenges/<id>`) shows nicknames but never a uid. Links in the old form (`?challenge=…&score=…`) open the game
+player's uid (null for a guest), when it was made, and `public`. A player is
+kept only as their uid, on the challenge and on each result: their nickname,
+public number and avatar are read from their account when a challenge is
+shown, so a player who changes their nickname is renamed everywhere. The link
+and its preview name the player ("Ada reached 10 digits in Memory"), or say
+"A friend" for a guest. Opening one (`GET /api/challenges/<id>`) shows
+nicknames but never a uid. A signed-in player who sends the same round and
+score again while their challenge for it is open gets that same challenge
+back, so one score is not listed twice. Links in the old form (`?challenge=…&score=…`) open the game
 without a challenge. The score is still the one the game reports: dingn can't
 tell if a game in the browser was played fairly, but a saved score can't be
 changed afterwards.

@@ -24,7 +24,7 @@ on:
       migration:
         description: One-time data migration to run instead (dry-run only counts)
         type: choice
-        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game]
+        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game, challenge-uids-dry-run, challenge-uids]
         default: none
 
 permissions:
@@ -265,6 +265,12 @@ jobs:
           set -o pipefail
           if [ "${{ inputs.migration }}" = memory-favorites ]; then apply=--apply; else apply=; fi
           node scripts/migrate-memory-favorites.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Keep challenges' players by uid, and delete repeated challenges
+        if: startsWith(inputs.migration, 'challenge-uids')
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.migration }}" = challenge-uids ]; then apply=--apply; else apply=; fi
+          node scripts/migrate-challenge-uids.mjs $apply | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Remove the old crowd copy of Crowd Rush
         if: startsWith(inputs.migration, 'remove-crowd-game')
         run: |
