@@ -76,6 +76,13 @@ export type BridgeContext = {
    */
   challengeLink?: (challenge: Challenge) => Promise<string>;
   /**
+   * The open challenge of a checked challenge's level and where its score
+   * would stand there, or null when the level has none. Posts nothing.
+   */
+  challengeStanding?: (
+    challenge: Challenge,
+  ) => Promise<ChallengeStanding | null>;
+  /**
    * The player finished the round of the challenge the page opened, with
    * this score: dingn posts it under the challenge and shows who won.
    */
@@ -96,6 +103,16 @@ export type BridgeContext = {
     /** Pays the player a few coins for play, within a daily allowance. */
     earn: (coins: number) => Promise<EarnResult>;
   };
+};
+export type ChallengeStanding = {
+  /** The owner's nickname and their score to beat. */
+  name: string;
+  score: number;
+  /** True when the challenge is the player's own. */
+  mine: boolean;
+  /** The place the score would take, and how many players there would be. */
+  rank: number | null;
+  players: number;
 };
 export type ChallengeOutcome = {
   /** True when the score is higher than the challenge's. */
@@ -324,6 +341,16 @@ async function answer(
           "Challenge links are not available here.",
         );
       return ctx.challengeLink(challenge);
+    }
+    case "challenge.standing": {
+      const challenge = validChallenge(request.params);
+      if (!challenge)
+        throw new BridgeError(
+          "invalid",
+          'A challenge needs a mode, a whole score of 0 or more and a unit such as "points".',
+        );
+      // Where dingn can't say (the playground), the level has none.
+      return ctx.challengeStanding ? ctx.challengeStanding(challenge) : null;
     }
     case "challenge.result": {
       const score = request.params?.score;

@@ -1003,5 +1003,6 @@
     "This round already has a challenge.": "이 라운드에는 이미 챌린지가 있습니다.",
     "Your score is posted there: you are #{0} of {1}.": "점수가 거기에 게시되었습니다: {1}명 중 {0}위입니다.",
     "Your score is posted there.": "점수가 거기에 게시되었습니다."
-  }
+  },
+  "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "아무것도 올리지 않고 { mode, seed, score, unit } 레벨에 열려 있는 챌린지가 있는지 묻습니다. 없으면 null, 있으면 { name, score, mine, rank, players }(챌린지의 주인, 넘어야 할 점수, 이 점수가 차지할 순위)를 줍니다. 라운드가 끝날 때 호출하세요. 없으면 “누구에게나 도전”을, 있으면 참가를 제안합니다. 두 경우 모두 점수는 challengeLink()가 올립니다."
 }

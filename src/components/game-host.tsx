@@ -48,6 +48,7 @@ import {
   progressField,
   PROTOCOL,
   type BridgeContext,
+  type ChallengeStanding,
   type Player,
 } from "@/lib/game-bridge";
 import {
@@ -512,6 +513,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       if (counted) trackGame("share", game.id);
       return challengeUrl(location.origin, game.id, made.id, locale);
     },
+    challengeStanding: async (c) =>
+      (
+        await api<{ challenge: ChallengeStanding | null }>(
+          "/api/challenges/standing",
+          { game: game.id, ...c },
+        )
+      ).challenge,
     challengeResult: async (score) => {
       const cid = challengeId.current;
       if (!cid || !challenge)

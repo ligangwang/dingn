@@ -156,6 +156,24 @@ test("a game gets the friend's challenge and can make challenge links", async ()
     null,
   );
   assert.deepEqual(calls, ["roundEnded"]);
+  // Where a score would stand in its level's challenge; null with none, and
+  // where dingn can't say.
+  const standing = { name: "Ada", score: 9, mine: false, rank: 1, players: 2 };
+  const asked = ask("challenge.standing", {
+    mode: "ladder",
+    score: 12,
+    unit: "digits",
+  });
+  const unknown = await handleGameRequest(asked, ctx);
+  assert.equal(unknown && "result" in unknown && unknown.result, null);
+  ctx.challengeStanding = async () => standing;
+  const stood = await handleGameRequest(asked, ctx);
+  assert.deepEqual(stood && "result" in stood && stood.result, standing);
+  const bad = await handleGameRequest(
+    ask("challenge.standing", { score: 12, unit: "digits" }),
+    ctx,
+  );
+  assert.equal(bad && "error" in bad && bad.error.code, "invalid");
   // When dingn can't save the challenge, the game hears so.
   ctx.challengeLink = async () => {
     throw new Error("offline");

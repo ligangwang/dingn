@@ -329,7 +329,25 @@ its challenge and can close or delete it. A player who challenges a level
 that already has one joins it: their score is posted under it, the link they
 get is that challenge's, and dingn tells them their place above the game.
 Once it is closed or deleted, the next challenge of the level starts a new
-one. A game that uses `mode: "level"` with the level's number as `seed` gets
+one.
+
+A game can find out first, without posting anything
+(`POST /api/challenges/standing`):
+
+```js
+const open = await dingn.challengeStanding({ mode, seed, score, unit });
+// null, or { name, score, mine, rank, players }
+```
+
+It is null when the level has no open challenge (and for a test account,
+whose challenges stay its own). Otherwise it names the challenge's owner and
+their score to beat, and gives the place this score would take (the
+player's best there counts if it is higher) and how many players there would
+be. Ask at the end of a round played outside a challenge: with none, offer
+"Challenge anyone"; with one, say whose it is and the place, and offer to
+join it. Either button calls `challengeLink`, which is what posts the score.
+
+A game that uses `mode: "level"` with the level's number as `seed` gets
 the level named ("Level 28") on its challenge cards; a `seed` that is a date
 is shown as that day. Links in the old form (`?challenge=…&score=…`) open the game
 without a challenge. The score is still the one the game reports: dingn can't

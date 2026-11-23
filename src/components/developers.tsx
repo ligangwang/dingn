@@ -62,6 +62,10 @@ const REFERENCE: [string, string][] = [
     "Makes a link that challenges anyone to beat a score on the same round: { mode, seed, score, unit }, with unit one of points, digits, cards, levels, stars, words or coins. dingn saves the challenge, lists a signed-in player's one for other players, and gives you the link to share. When a player opens a challenge, dingn.challenge holds it (null otherwise): start that round.",
   ],
   [
+    "dingn.challengeStanding(challenge)",
+    'Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer "Challenge anyone"; with one, offer to join it. Either way challengeLink() then posts the score.',
+  ],
+  [
     "dingn.challengeResult(score)",
     'Call it when the player finishes the round of dingn.challenge, with their score. dingn shows whether they won and posts a signed-in player\'s score under the challenge, where every result is ranked and each player keeps their best. It gives { beat, posted, best, rank, players }, and fails with the code "no_challenge" when the page was not opened from a challenge.',
   ],
