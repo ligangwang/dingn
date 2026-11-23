@@ -417,14 +417,14 @@ test("open challenges list signed-in players' ones, newest first, by game", asyn
   const before = (await call("/api/challenges", { method: "GET" })).body
     .challenges.length;
   const guest = await call("/api/challenges", {
-    body: { game: "memory", ...round },
+    body: { game: "memory", ...round, seed: seed() },
   });
   const mine = await call("/api/challenges", {
-    body: { game: "memory", ...round, score: 33 },
+    body: { game: "memory", ...round, seed: seed(), score: 33 },
     ...ada,
   });
   const tester = await call("/api/challenges", {
-    body: { game: "memory", ...round },
+    body: { game: "memory", ...round, seed: seed() },
     claims: { uid: "u-test", name: "Tester1", roles: ["tester"] },
     cookie: "dingn-session=x",
   });
@@ -440,6 +440,7 @@ test("open challenges list signed-in players' ones, newest first, by game", asyn
     game: "memory",
     id: mine.body.id,
     mode: "ladder",
+    seed: body.challenges[0].seed,
     score: 33,
     unit: "digits",
     name: "Ada",
@@ -543,6 +544,7 @@ test("an admin can close or delete anyone's challenge, and nobody a guest's", as
   await store.mergeDoc("challenges", guest.body.id, {
     game: "memory",
     ...round,
+    seed: seed(),
     uid: null,
     name: null,
     createdAt: new Date().toISOString(),
@@ -571,13 +573,13 @@ test("a challenge id names one challenge across dingn, whatever the game", async
   );
   registry.clearRegistryCache();
   const first = await call("/api/challenges", {
-    body: { game: "memory", ...round, score: 77 },
+    body: { game: "memory", ...round, seed: seed(), score: 77 },
     ...ada,
   });
   // The next challenge, in another game, draws the same id, then a free one.
   const drawn = [first.body.id, first.body.id, "FreshFresh01"];
   const second = await call("/api/challenges", {
-    body: { game: "other", ...round, score: 5 },
+    body: { game: "other", ...round, seed: seed(), score: 5 },
     ...bo,
     newId: () => drawn.shift(),
   });
@@ -590,7 +592,7 @@ test("a challenge id names one challenge across dingn, whatever the game", async
   // A deleted challenge keeps its id: nothing new is saved under it.
   await call(`/api/challenges/${first.body.id}/delete`, ada);
   const third = await call("/api/challenges", {
-    body: { game: "other", ...round },
+    body: { game: "other", ...round, seed: seed() },
     ...bo,
     newId: () => first.body.id,
   });
@@ -605,7 +607,7 @@ test("a result carries its player's public number, which links their page", asyn
     profile: { user_name: name, player_no, ...(avatar ? { avatar } : {}) },
   });
   const { body } = await call("/api/challenges", {
-    body: { game: "memory", ...round },
+    body: { game: "memory", ...round, seed: seed() },
     ...numbered("u-cy", "Cy", "1234567890"),
   });
   // With the avatar they chose.
@@ -647,7 +649,7 @@ test("a player who changes their nickname is renamed on their challenges and res
     profile: { user_name: "Player1006173077", player_no: "1006173077" },
   };
   const { body } = await call("/api/challenges", {
-    body: { game: "memory", ...round, score: 77 },
+    body: { game: "memory", ...round, seed: seed(), score: 77 },
     ...eve,
   });
   const first = await call("/api/challenges?game=memory", { method: "GET" });
@@ -686,27 +688,84 @@ test("a player who changes their nickname is renamed on their challenges and res
   assert.deepEqual(kept, [{ name: "Old Name", score: 1 }]);
 });
 
-test("the same challenge sent again is the one already open, not another", async () => {
-  const mine = { game: "memory", ...round, seed: seed(), score: 55 };
-  const first = await call("/api/challenges", { body: mine, ...ada });
-  const again = await call("/api/challenges", { body: mine, ...ada });
-  assert.equal(again.status, 200);
-  assert.equal(again.body.id, first.body.id);
+test("one level has one challenge: its first challenger owns it, the next ones join it", async () => {
+  const level = { game: "memory", ...round, seed: seed() };
+  const first = await call("/api/challenges", {
+    body: { ...level, score: 55 },
+    ...ada,
+  });
+  assert.deepEqual(first.body, { id: first.body.id });
+  // Another player challenging the same level joins it, and is told their place.
+  const second = await call("/api/challenges", {
+    body: { ...level, score: 70 },
+    ...bo,
+  });
+  assert.deepEqual(second.body, {
+    id: first.body.id,
+    joined: true,
+    owner: false,
+    best: 70,
+    rank: 1,
+    players: 2,
+  });
+  // The owner sending it again, with any score, is still on their own.
+  const again = await call("/api/challenges", {
+    body: { ...level, score: 60 },
+    ...ada,
+  });
+  assert.deepEqual(again.body, {
+    id: first.body.id,
+    joined: true,
+    owner: true,
+    best: 60,
+    rank: 2,
+    players: 2,
+  });
+  const thread = (await open(first.body.id)).body;
+  // The score to beat is still the owner's first one.
+  assert.equal(thread.score, 55);
+  assert.deepEqual(thread.results, [
+    { name: "Bo", score: 70 },
+    { name: "Ada", score: 60 },
+  ]);
   challenges.forgetLists();
   const listed = await call("/api/challenges?game=memory", { method: "GET" });
-  assert.equal(listed.body.challenges.filter((c) => c.score === 55).length, 1);
-  // Another score, another round or another player is a challenge of its own.
-  for (const [body, who] of [
-    [{ ...mine, score: 56 }, ada],
-    [{ ...mine, seed: seed() }, ada],
-    [mine, bo],
-  ])
-    assert.notEqual(
-      (await call("/api/challenges", { body, ...who })).body.id,
-      first.body.id,
-    );
-  // Once it is closed, the same score starts a new one.
+  assert.equal(
+    listed.body.challenges.filter(
+      (c) => c.seed === level.seed || c.id === first.body.id,
+    ).length,
+    1,
+  );
+  // Another level, other rules, or another game is a challenge of its own.
+  for (const body of [
+    { ...level, seed: seed(), score: 55 },
+    { ...level, rules: "u1", score: 55 },
+    { ...level, mode: "cards", score: 55 },
+  ]) {
+    const other = await call("/api/challenges", { body, ...bo });
+    assert.notEqual(other.body.id, first.body.id);
+    assert.equal(other.body.joined, undefined);
+  }
+  // Only its owner can close it; then the level is free, and the next
+  // challenger owns a new one.
+  assert.equal(
+    (await call(`/api/challenges/${first.body.id}/close`, bo)).status,
+    403,
+  );
   await call(`/api/challenges/${first.body.id}/close`, ada);
-  const fresh = await call("/api/challenges", { body: mine, ...ada });
+  const fresh = await call("/api/challenges", {
+    body: { ...level, score: 10 },
+    ...bo,
+  });
   assert.notEqual(fresh.body.id, first.body.id);
+  assert.equal(fresh.body.joined, undefined);
+  assert.equal((await store.getDoc("challenges", fresh.body.id)).uid, "u-bo");
+  // A guest's and a test account's challenges stay their own.
+  const tester = await call("/api/challenges", {
+    body: { ...level, score: 99 },
+    claims: { uid: "u-test", name: "Tester1", roles: ["tester"] },
+    cookie: "dingn-session=x",
+  });
+  assert.notEqual(tester.body.id, fresh.body.id);
+  assert.equal(tester.body.joined, undefined);
 });

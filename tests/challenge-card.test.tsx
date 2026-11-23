@@ -21,6 +21,7 @@ const challenge = {
   game: "gemsurge",
   id: "5bGIRR-9qERD",
   mode: "level",
+  seed: "28",
   score: 2110,
   unit: "points" as const,
   name: "Ada",
@@ -47,6 +48,8 @@ it("shows the challenge, its results in order and each player's page", () => {
   ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
   // The title is the only way in: there is no separate button.
   expect(screen.queryByRole("link", { name: "Take the challenge" })).toBeNull();
+  // Which level it is.
+  expect(screen.getByText("Level 28")).toBeTruthy();
   // The rows are the players: there is no separate count.
   expect(screen.queryByText("Players: 3")).toBeNull();
   const rows = screen.getAllByRole("listitem");

@@ -998,6 +998,10 @@
     "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.": "ラウンドが最後までプレイされたこと（勝敗を問わず）を dingn に伝え、プレイ統計に使います。ラウンドが終わるたびに 1 回呼び出してください。",
     "Link copied": "リンクをコピーしました",
     "Copy link": "リンクをコピー",
-    "Share": "共有"
+    "Share": "共有",
+    "{0} already has a challenge.": "{0} にはすでにチャレンジがあります。",
+    "This round already has a challenge.": "このラウンドにはすでにチャレンジがあります。",
+    "Your score is posted there: you are #{0} of {1}.": "スコアはそこに掲載されました：{1} 人中 {0} 位です。",
+    "Your score is posted there.": "スコアはそこに掲載されました。"
   }
 }

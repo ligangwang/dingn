@@ -27,6 +27,8 @@ export type OpenChallenge = {
   game: string;
   id: string;
   mode: string;
+  /** Which round it is, as the game named it. */
+  seed?: string;
   score: number;
   unit: ChallengeUnit;
   name: string | null;

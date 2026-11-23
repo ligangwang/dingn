@@ -998,6 +998,10 @@
     "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.": "告诉 dingn 一局已经玩到结束（无论输赢），用于游玩统计。每完成一局调用一次。",
     "Link copied": "链接已复制",
     "Copy link": "复制链接",
-    "Share": "分享"
+    "Share": "分享",
+    "{0} already has a challenge.": "{0}已经有挑战了。",
+    "This round already has a challenge.": "这一局已经有挑战了。",
+    "Your score is posted there: you are #{0} of {1}.": "你的成绩已发布在那里：你排第 {0}，共 {1} 人。",
+    "Your score is posted there.": "你的成绩已发布在那里。"
   }
 }

@@ -166,10 +166,16 @@ export type DingnGame = {
    */
   challenge: Challenge | null;
   /**
-   * A link to this game that opens `challenge` for whoever follows it, with a
-   * link preview that shows the score. Share it yourself (copy it, or
-   * navigator.share). Rejects with code "invalid" for a malformed challenge,
-   * and "unknown_method" on a dingn website from before challenge links.
+   * A link to this game that opens the challenge of `challenge`'s level for
+   * whoever follows it, with a link preview that shows the score. Share it
+   * yourself (copy it, or navigator.share). A level (the game's `mode`, `seed`
+   * and `rules`) has one challenge: the first signed-in player to challenge
+   * it owns it, and a player who challenges a level that already has one
+   * has their score posted under it instead, dingn tells them their place,
+   * and the link is that challenge's. With `mode` "level" and the level's
+   * number as `seed`, dingn names the level ("Level 28") where it shows the
+   * challenge. Rejects with code "invalid" for a malformed challenge, and
+   * "unknown_method" on a dingn website from before challenge links.
    */
   challengeLink(challenge: Challenge): Promise<string>;
   /**

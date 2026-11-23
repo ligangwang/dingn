@@ -998,6 +998,10 @@
     "Tells dingn a round was played to the end, won or lost, for the play statistics. Call it once per finished round.": "Memberi tahu dingn bahwa satu ronde dimainkan sampai selesai, menang atau kalah, untuk statistik permainan. Panggil sekali untuk setiap ronde yang selesai.",
     "Link copied": "Tautan disalin",
     "Copy link": "Salin tautan",
-    "Share": "Bagikan"
+    "Share": "Bagikan",
+    "{0} already has a challenge.": "{0} sudah punya tantangan.",
+    "This round already has a challenge.": "Ronde ini sudah punya tantangan.",
+    "Your score is posted there: you are #{0} of {1}.": "Skormu dipasang di sana: kamu peringkat {0} dari {1}.",
+    "Your score is posted there.": "Skormu dipasang di sana."
   }
 }

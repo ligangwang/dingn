@@ -578,6 +578,10 @@ html.play-window-full body {
   background: #d5ff58;
   color: #1c2a00;
 }
+.play-outcome.joined {
+  background: #dff7c8;
+  color: #1f3b0c;
+}
 .play-outcome.lost {
   background: #e7e9f2;
   color: #23273a;
