@@ -5,6 +5,7 @@ import Link from "next/link";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "./session";
+import { photoUser } from "./avatar";
 import { HonorAvatar, honorName, honorOf, useKingdomRules } from "./honor";
 import {
   fetchLeaderboard,
@@ -248,7 +249,7 @@ export function Leaderboard({
                   level={e.level}
                   choice={e.avatar ?? ""}
                   name={e.name}
-                  user={null}
+                  user={photoUser(e.photo)}
                   size={30}
                   medal={22}
                 />

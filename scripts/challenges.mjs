@@ -88,6 +88,7 @@ import {
   validChallenge,
 } from "../src/data/challenge.mjs";
 import { hasRole } from "./roles.mjs";
+import { photoOf } from "./player-photos.mjs";
 
 export const isChallengePath = (pathname) =>
   pathname === "/api/challenges" || pathname.startsWith("/api/challenges/");
@@ -268,11 +269,14 @@ export async function shownResults(
       const avatar = profile
         ? playerAvatar(profile.avatar)
         : playerAvatar(r.avatar);
+      // Without a chosen avatar, their sign-in photo, as on their own page.
+      const photo = profile ? await photoOf(r.uid, profile.avatar) : null;
       return {
         name: nickname(profile?.user_name) ?? nickname(r.name),
         score: r.score,
         ...(number ? { number } : {}),
         ...(avatar ? { avatar } : {}),
+        ...(photo ? { photo } : {}),
         ...(viewer && r.uid === viewer ? { mine: true } : {}),
       };
     }),
@@ -417,6 +421,7 @@ export async function openChallenges(
         name: maker?.name ?? line.name ?? null,
         ...(maker?.number ? { number: maker.number } : {}),
         ...(maker?.avatar ? { avatar: maker.avatar } : {}),
+        ...(maker?.photo ? { photo: maker.photo } : {}),
         // The leader, for pages from before lists carried every result.
         top: results[0]
           ? { name: results[0].name, score: results[0].score }

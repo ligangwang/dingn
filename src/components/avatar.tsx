@@ -15,6 +15,13 @@ export function initialsFor(name: string, user: AvatarUser) {
 }
 
 /**
+ * Another player, for `Avatar`'s `user`: only their sign-in photo is known
+ * (dingn sends it when they chose no avatar), never their name or email.
+ */
+export const photoUser = (photo?: string | null): AvatarUser =>
+  photo ? { displayName: null, email: null, photoURL: photo } : null;
+
+/**
  * Shows the player's avatar: a chosen preset, otherwise the sign-in photo
  * (Google), otherwise their initials. `choice` is the saved profile value.
  */

@@ -36,12 +36,16 @@ export type LeaderboardEntry = {
   number?: string;
   /** Their avatar choice (src/lib/models.ts avatarPresets). */
   avatar?: string;
+  /** Their sign-in photo, sent when they chose no avatar. */
+  photo?: string;
 };
 /** What anyone may see of a player, on their page /player/<number>/. */
 export type PublicPlayer = {
   number: string;
   name: string;
   avatar: string;
+  /** Their sign-in photo, sent when they chose no avatar. */
+  photo?: string;
   level: number;
   xp: number;
   floor: number;
