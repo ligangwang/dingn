@@ -190,6 +190,15 @@ export function postResult(doc, { uid, name, score, now }, own = null) {
   };
 }
 
+/** Results of each challenge that a game's list shows with it. */
+export const LISTED_RESULTS = 5;
+
+/** A thread's first results, as a list shows them: nicknames and scores. */
+const firstResults = (doc) =>
+  resultsOf(doc)
+    .slice(0, LISTED_RESULTS)
+    .map((r) => ({ name: nickname(r.name), score: r.score }));
+
 /** What a game's list of open challenges shows of one. */
 function listed(id, doc) {
   const results = resultsOf(doc);
@@ -202,6 +211,8 @@ function listed(id, doc) {
     name: nickname(doc.name),
     players: typeof doc.players === "number" ? doc.players : results.length,
     top: top ? { name: nickname(top.name), score: top.score } : null,
+    // Its first results, highest first, to show on the list itself.
+    results: firstResults(doc),
     createdAt: doc.createdAt,
   };
 }
@@ -264,8 +275,16 @@ export async function openChallenges(game = null, now = Date.now()) {
     // lists nothing.
     const record = await cachedRecord(board.id);
     if (!record?.live || record.status !== "listed") continue;
-    for (const thread of board.threads ?? [])
-      list.push({ game: board.id, ...thread });
+    for (const thread of board.threads ?? []) {
+      // A line saved before lists carried results: read them from the
+      // challenge itself, until its next result saves them on the line.
+      const results =
+        thread.results ??
+        (await getDoc("challenges", thread.id)
+          .then((doc) => (doc ? firstResults(doc) : []))
+          .catch(() => []));
+      list.push({ game: board.id, ...thread, results });
+    }
   }
   list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   lists.set(key, { at: now, list });

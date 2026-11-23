@@ -435,6 +435,10 @@ test("open challenges list signed-in players' ones, newest first, by game", asyn
     name: "Ada",
     players: 2,
     top: { name: "Bo", score: 40 },
+    results: [
+      { name: "Bo", score: 40 },
+      { name: "Ada", score: 33 },
+    ],
     createdAt: body.challenges[0].createdAt,
   });
   const all = (await call("/api/challenges", { method: "GET" })).body;
@@ -450,6 +454,16 @@ test("open challenges list signed-in players' ones, newest first, by game", asyn
   await registry.updateRecord("memory", (r) => ({ ...r, status: "listed" }));
   registry.clearRegistryCache();
   assert.ok(body.challenges.length <= challenges.MAX_LISTED);
+  // A line saved before lists carried results still shows them.
+  await store.updateDoc("challengeBoards", "memory", (board) => ({
+    threads: board.threads.map(({ results: _results, ...thread }) => thread),
+  }));
+  challenges.forgetLists();
+  const old = await call("/api/challenges?game=memory", { method: "GET" });
+  assert.deepEqual(old.body.challenges[0].results, [
+    { name: "Bo", score: 40 },
+    { name: "Ada", score: 33 },
+  ]);
 });
 
 test("its maker closes a challenge: it stays readable, takes no results and leaves the list", async () => {

@@ -76,7 +76,8 @@ export function ChallengesPage() {
               </h2>
               <ul className="challenge-list">
                 {challenges.map((challenge) => {
-                  const top = challenge.top;
+                  const results =
+                    challenge.results ?? (challenge.top ? [challenge.top] : []);
                   return (
                     <li key={challenge.id}>
                       <Link
@@ -100,19 +101,27 @@ export function ChallengesPage() {
                               "{0}",
                               String(challenge.players),
                             )}
-                            {top &&
-                              top.score > challenge.score &&
-                              ` · ${t("Top score: {0} by {1}")
-                                .replace(
-                                  "{0}",
-                                  scoreText(
-                                    { ...challenge, score: top.score },
-                                    locale,
-                                    t,
-                                  ),
-                                )
-                                .replace("{1}", top.name ?? t("A player"))}`}
                           </span>
+                          {/* Its results so far, highest first. */}
+                          {results.length > 0 && (
+                            <span className="challenge-results">
+                              {results.map((r, i) => (
+                                <span key={i} className="challenge-result">
+                                  <span className="rank">{i + 1}</span>
+                                  <span className="name">
+                                    {r.name ?? t("A player")}
+                                  </span>
+                                  <span className="pts">
+                                    {scoreText(
+                                      { ...challenge, score: r.score },
+                                      locale,
+                                      t,
+                                    )}
+                                  </span>
+                                </span>
+                              ))}
+                            </span>
+                          )}
                         </span>
                         <span className="button small">
                           {t("Take the challenge")}

@@ -28,6 +28,8 @@ export type OpenChallenge = {
   name: string | null;
   players: number;
   top: { name: string | null; score: number } | null;
+  /** Its first results, highest first (a website from before lists carried them sends none). */
+  results?: { name: string | null; score: number }[];
   createdAt: string;
 };
 
