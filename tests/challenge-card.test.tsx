@@ -134,6 +134,9 @@ it("is one line on the Challenges page: round, maker, score, players, a way in",
   expect(
     screen.getByRole("link", { name: /^Play/ }).getAttribute("href"),
   ).toMatch(/^\/play\/gemsurge\/?\?c=5bGIRR-9qERD$/);
+  // The link can be copied from the line; Share shows only where it works.
+  expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Share" })).toBeNull();
   // The results stay closed until the player count is pressed.
   expect(screen.queryByRole("list")).toBeNull();
   const players = screen.getByRole("button", { name: /3 players/ });
