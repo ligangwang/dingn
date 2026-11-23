@@ -435,6 +435,10 @@ test("open challenges list signed-in players' ones, newest first, by game", asyn
     name: "Ada",
     players: 2,
     top: { name: "Bo", score: 40 },
+    results: [
+      { name: "Bo", score: 40 },
+      { name: "Ada", score: 33 },
+    ],
     createdAt: body.challenges[0].createdAt,
   });
   const all = (await call("/api/challenges", { method: "GET" })).body;
@@ -450,6 +454,16 @@ test("open challenges list signed-in players' ones, newest first, by game", asyn
   await registry.updateRecord("memory", (r) => ({ ...r, status: "listed" }));
   registry.clearRegistryCache();
   assert.ok(body.challenges.length <= challenges.MAX_LISTED);
+  // A line saved before lists carried results still shows them.
+  await store.updateDoc("challengeBoards", "memory", (board) => ({
+    threads: board.threads.map(({ results: _results, ...thread }) => thread),
+  }));
+  challenges.forgetLists();
+  const old = await call("/api/challenges?game=memory", { method: "GET" });
+  assert.deepEqual(old.body.challenges[0].results, [
+    { name: "Bo", score: 40 },
+    { name: "Ada", score: 33 },
+  ]);
 });
 
 test("its maker closes a challenge: it stays readable, takes no results and leaves the list", async () => {
@@ -572,4 +586,38 @@ test("a challenge id names one challenge across dingn, whatever the game", async
   });
   assert.equal(third.status, 503);
   assert.equal((await store.getDoc("challenges", first.body.id)).deleted, true);
+});
+
+test("a result carries its player's public number, which links their page", async () => {
+  const numbered = (uid, name, player_no) => ({
+    claims: { uid, name },
+    cookie: "dingn-session=x",
+    profile: { user_name: name, player_no },
+  });
+  const { body } = await call("/api/challenges", {
+    body: { game: "memory", ...round },
+    ...numbered("u-cy", "Cy", "1234567890"),
+  });
+  await post(body.id, 15, numbered("u-di", "Di", "2345678901"));
+  // A player whose account has no number yet has no link.
+  await post(body.id, 12, bo);
+  const thread = (await open(body.id)).body;
+  assert.deepEqual(thread.results, [
+    { name: "Di", score: 15, number: "2345678901" },
+    { name: "Bo", score: 12 },
+    { name: "Cy", score: 10, number: "1234567890" },
+  ]);
+  assert.equal(JSON.stringify(thread).includes("u-di"), false);
+  challenges.forgetLists();
+  const listed = await call("/api/challenges?game=memory", { method: "GET" });
+  const line = listed.body.challenges.find((c) => c.id === body.id);
+  assert.deepEqual(line.results, thread.results);
+  assert.equal(JSON.stringify(listed.body).includes("u-di"), false);
+  // A result saved before numbers were kept gets its player's from their account.
+  const old = await challenges.shownResults(
+    [{ uid: "u-old", name: "Old", score: 3 }],
+    null,
+    async (uid) => (uid === "u-old" ? { player_no: "3456789012" } : null),
+  );
+  assert.deepEqual(old, [{ name: "Old", score: 3, number: "3456789012" }]);
 });

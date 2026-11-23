@@ -70,6 +70,7 @@ import {
   type Thread,
 } from "@/lib/challenges";
 import { scoreText } from "@/data/challenge.mjs";
+import { ChallengeResults, ShareChallenge } from "./challenge-card";
 import { claimReferral, noteArrival, referralOpen } from "@/lib/referral";
 import { trackGame } from "@/lib/funnel";
 
@@ -801,32 +802,22 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               {t("This challenge is closed. It takes no more results.")}
             </p>
           )}
-          <ol>
-            {thread.results.map((r, i) => (
-              <li key={i} className={r.mine ? "mine" : undefined}>
-                <span className="rank">{i + 1}</span>
-                <span className="name">
-                  {r.name ?? t("A player")}
-                  {r.mine && <em> · {t("you")}</em>}
-                </span>
-                <span className="pts">
-                  {scoreText({ ...challenge, score: r.score }, locale, t)}
-                </span>
-              </li>
-            ))}
-          </ol>
-          {thread.owner && (
-            // Its maker can stop it taking results, or take it off dingn.
-            <p className="play-thread-actions">
-              {!thread.closed && (
-                <button
-                  type="button"
-                  className="quiet-link"
-                  onClick={() => void endChallenge("close")}
-                >
-                  {t("Close challenge")}
-                </button>
-              )}
+          <ChallengeResults challenge={challenge} results={thread.results} />
+          <p className="play-thread-actions">
+            {challengeId.current && (
+              <ShareChallenge game={state.game.id} id={challengeId.current} />
+            )}
+            {thread.owner && !thread.closed && (
+              // Its maker can stop it taking results, or take it off dingn.
+              <button
+                type="button"
+                className="quiet-link"
+                onClick={() => void endChallenge("close")}
+              >
+                {t("Close challenge")}
+              </button>
+            )}
+            {thread.owner && (
               <button
                 type="button"
                 className="quiet-link"
@@ -834,8 +825,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
               >
                 {t("Delete challenge")}
               </button>
-            </p>
-          )}
+            )}
+          </p>
         </section>
       )}
       {state.game.preview && (
