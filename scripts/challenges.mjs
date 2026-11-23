@@ -79,7 +79,6 @@ import {
   createDoc,
   getDoc,
   listDocs,
-  mergeDoc,
   updateDoc,
   updateMany,
 } from "./platform-store.mjs";
@@ -726,14 +725,20 @@ export async function handleChallenges(
       // one at the same moment: the first to be named for the level keeps
       // it, and this one is withdrawn and joins theirs.
       const made = id;
-      const held = await updateDoc(
-        "challengeRounds",
-        roundKey(body.game, challenge),
-        // (Pure: Firestore may run it again. An id named here that no longer
-        // names an open challenge is checked just below.)
-        (now) => now ?? { id: made },
-      );
-      if (held.id !== made) {
+      const key = roundKey(body.game, challenge);
+      // An id the level names that no longer names an open challenge (it was
+      // closed or deleted): replaced only if it is still the one named, so
+      // two players replacing it at once can't both win.
+      let stale = null;
+      for (let tries = 0; tries < ID_TRIES; tries++) {
+        const replaced = stale;
+        const held = await updateDoc(
+          "challengeRounds",
+          key,
+          // (Pure: Firestore may run it again.)
+          (now) => (!now || now.id === replaced ? { id: made } : now),
+        );
+        if (held.id === made) break;
         const theirs = await getDoc("challenges", held.id);
         if (isOpen(theirs)) {
           await updateDoc("challenges", made, (mine) => ({
@@ -743,11 +748,7 @@ export async function handleChallenges(
           }));
           return joined({ id: held.id, doc: theirs });
         }
-        // The level's last challenge was closed or deleted: this one takes
-        // its place.
-        await mergeDoc("challengeRounds", roundKey(body.game, challenge), {
-          id: made,
-        });
+        stale = held.id;
       }
     }
     if (doc.public) {

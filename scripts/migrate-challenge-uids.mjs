@@ -24,6 +24,7 @@
 //   node scripts/migrate-challenge-uids.mjs --apply  # writes
 import { pathToFileURL } from "node:url";
 import {
+  MAX_LISTED,
   MAX_RESULTS,
   byScore,
   listed,
@@ -80,9 +81,12 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
  * The open challenges that share a level, merged: for each level with a
  * signed-in player's listed challenge, `keep` is the first one made, with
  * everyone's best score under it, `gone` the ids of the others, and `bests`
- * each player's best ({ uid, score, at }).
+ * each player's best ({ uid, score, at }). `kept` holds every player's own
+ * best as dingn keeps it apart from a challenge's top results
+ * (challengeResults: { challenge, uid, score, at }), so a player below a
+ * challenge's kept results is merged too.
  */
-export function merged(challenges) {
+export function merged(challenges, kept = []) {
   const levels = new Map();
   for (const c of challenges) {
     // Only challenges that share their level: a signed-in player's, open.
@@ -98,8 +102,12 @@ export function merged(challenges) {
     );
     const best = new Map();
     const unnamed = [];
+    const ids = new Set(group.map((c) => c.id));
+    const own = kept.filter(
+      (r) => ids.has(r.challenge) && typeof r.uid === "string",
+    );
     for (const c of [first, ...rest])
-      for (const r of resultsOf(c)) {
+      for (const r of [...resultsOf(c), ...(c === first ? own : [])]) {
         if (typeof r.uid !== "string") unnamed.push(r);
         else if (byScore(r, best.get(r.uid) ?? { score: -1, at: "" }) < 0)
           best.set(r.uid, r);
@@ -155,7 +163,8 @@ export async function migrate({
       );
   }
   // One challenge for each level.
-  for (const { key, keep, gone, bests } of merged([...after.values()])) {
+  const own = await listDocs("challengeResults");
+  for (const { key, keep, gone, bests } of merged([...after.values()], own)) {
     counts.levels += 1;
     counts.merged += gone.length;
     const { id, ...kept } = keep;
@@ -188,14 +197,22 @@ export async function migrate({
     }
     await updateDoc("challengeRounds", key, () => ({ id }));
   }
-  // Each game's list again, from its challenges as they are now.
-  for (const { id: game, threads } of await listDocs("challengeBoards")) {
-    const lines = (threads ?? []).flatMap((thread) => {
-      const doc = after.get(thread.id);
-      // A line whose challenge is gone, closed or merged leaves the list.
-      return doc && !doc.deleted && !doc.closed ? [listed(thread.id, doc)] : [];
-    });
-    if (same(lines, threads ?? [])) continue;
+  // Each game's list again, from its listed challenges as they are now:
+  // the newest first, as many as a list holds.
+  const boards = new Map(
+    (await listDocs("challengeBoards")).map((b) => [b.id, b.threads ?? []]),
+  );
+  const open = [...after.values()].filter(
+    (c) =>
+      typeof c.uid === "string" && c.public === true && !c.deleted && !c.closed,
+  );
+  for (const game of new Set([...boards.keys(), ...open.map((c) => c.game)])) {
+    const lines = open
+      .filter((c) => c.game === game)
+      .sort((a, b) => (String(a.createdAt) < String(b.createdAt) ? 1 : -1))
+      .slice(0, MAX_LISTED)
+      .map((c) => listed(c.id, c));
+    if (same(lines, boards.get(game) ?? [])) continue;
     counts.lists += 1;
     if (apply)
       await updateDoc("challengeBoards", game, () => ({ threads: lines }));
