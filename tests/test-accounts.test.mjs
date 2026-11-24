@@ -89,7 +89,7 @@ test("test accounts are made confirmed, as testers, with one password that comes
   );
   assert.match(made.password, /^[A-Za-z0-9_-]{16}$/);
   for (const user of auth.users.values()) {
-    // Confirmed, so they sign in without an activation email.
+    // Their address is confirmed when they are made.
     assert.equal(user.emailVerified, true);
     assert.deepEqual(user.customClaims, { roles: ["tester"] });
     assert.equal(user.password, made.password);

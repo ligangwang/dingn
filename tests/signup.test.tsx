@@ -36,8 +36,8 @@ it("asks for the password twice and stops at a typo", async () => {
   expect(session.loginEmail).not.toHaveBeenCalled();
 });
 
-it("sends an activation link instead of signing in, then offers sign-in", async () => {
-  session.loginEmail.mockResolvedValue({ activate: true });
+it("makes the account and signs in, with no email to open", async () => {
+  session.loginEmail.mockResolvedValue(undefined);
   await signUp("secret-password", "secret-password");
   expect(session.loginEmail).toHaveBeenCalledWith(
     "new@example.com",
@@ -45,29 +45,8 @@ it("sends an activation link instead of signing in, then offers sign-in", async 
     true,
     "secret-password",
   );
-  expect(screen.getByRole("status").textContent).toBe(
-    "We sent an activation link to new@example.com. Open it to activate your account, then sign in here.",
-  );
-  // Back on the sign-in form, with one password box.
-  expect(
-    screen.getByRole("button", { name: "Sign in with email" }),
-  ).toBeTruthy();
-  expect(screen.queryByLabelText("Confirm password")).toBeNull();
-});
-
-it("explains an account that isn't activated yet", async () => {
-  session.loginEmail.mockRejectedValue(
-    Object.assign(new Error("x"), { code: "email-not-verified" }),
-  );
-  render(<SignIn />);
-  await userEvent.type(screen.getByLabelText("Email"), "new@example.com");
-  await userEvent.type(screen.getByLabelText("Password"), "secret-password");
-  await userEvent.click(
-    screen.getByRole("button", { name: "Sign in with email" }),
-  );
-  expect(screen.getByRole("alert").textContent).toBe(
-    "Activate your account first: open the link we emailed you. We just sent a new one.",
-  );
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("opens on creating an account when a challenge's invitation sends you", async () => {

@@ -2,8 +2,7 @@
 // Users page without the sign-up form or an inbox.
 //
 // Each one is an email-and-password account whose address is marked as
-// confirmed when it is made, so Firebase sends no activation email and it can
-// sign in on /signin/ at once. It holds the tester role (scripts/roles.mjs), which
+// confirmed when it is made, and it can sign in on /signin/ at once. It holds the tester role (scripts/roles.mjs), which
 // keeps it out of what real players see and earn: it is never on the
 // leaderboard (scripts/game-api.mjs) and never brings a friend for referral
 // coins (scripts/referrals.mjs). Everything else works as for a player.
