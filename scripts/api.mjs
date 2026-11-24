@@ -88,29 +88,6 @@ async function lookup(token) {
   if (!user || user.disabled) throw new ApiError(401, "invalid-credential");
   return user;
 }
-/**
- * Email accounts made from this time on must open the activation link sent
- * to their address before they can sign in. Older ones (made before
- * activation existed) keep working; Google accounts are always verified.
- */
-export const ACTIVATION_FROM = Date.parse("2026-11-21T00:00:00Z");
-export const needsActivation = (user) =>
-  user.emailVerified !== true && Number(user.createdAt) >= ACTIVATION_FROM;
-/**
- * Emails the account's activation link (Firebase's "verify email" message).
- * Its Continue button leads back to dingn's sign-in page where allowed.
- */
-async function sendActivation(idToken, origin) {
-  const url = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${key}`;
-  const request = { requestType: "VERIFY_EMAIL", idToken };
-  try {
-    await upstream(url, { ...request, continueUrl: `${origin}/signin/` });
-  } catch (e) {
-    // An address Firebase won't link back to: send the plain link.
-    if (e.status === 429) throw e;
-    await upstream(url, request);
-  }
-}
 async function identity(token, known) {
   const user = known ?? (await lookup(token));
   // Claims are read only after Google's lookup has validated this token.
@@ -210,21 +187,10 @@ export async function handleApi(req, res) {
           returnSecureToken: true,
         },
       );
-      const origin = req.headers.origin;
-      if (action === "signUp") {
-        // Not signed in until the activation link in the email is opened.
-        await sendActivation(result.idToken, origin);
-        data = { activate: true, email: body.email.trim() };
-      } else {
-        const user = await lookup(result.idToken);
-        if (needsActivation(user)) {
-          // A fresh link, in case the first one was lost.
-          await sendActivation(result.idToken, origin).catch(() => {});
-          throw new ApiError(403, "email-not-verified");
-        }
-        data = await identity(result.idToken, user);
-        cookie(res, result.refreshToken);
-      }
+      // A new account is signed in at once: no emailed link to open first,
+      // which many players (in mainland China, for one) can't reach.
+      data = await identity(result.idToken);
+      cookie(res, result.refreshToken);
     } else if (route === "/api/auth/google") {
       throttle(req);
       if (
@@ -236,16 +202,7 @@ export async function handleApi(req, res) {
         `https://securetoken.googleapis.com/v1/token?key=${key}`,
         { grant_type: "refresh_token", refresh_token: body.refreshToken },
       );
-      // Any Firebase token can arrive here, an email account's too, so
-      // activation is checked on this way in as well.
-      const user = await lookup(result.id_token);
-      if (needsActivation(user)) {
-        await sendActivation(result.id_token, req.headers.origin).catch(
-          () => {},
-        );
-        throw new ApiError(403, "email-not-verified");
-      }
-      data = await identity(result.id_token, user);
+      data = await identity(result.id_token);
       cookie(res, result.refresh_token);
     } else if (route === "/api/auth/session") {
       data = readCookie(req) ? await identity(await refresh(req, res)) : null;

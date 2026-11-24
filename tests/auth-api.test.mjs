@@ -202,7 +202,7 @@ test("Google sign-in returns the provider photo as the default avatar, but only 
   assert.equal(unsafe.body.photoURL, null);
 });
 
-test("a new email account types its password twice and is activated by email, not signed in", async () => {
+test("a new email account types its password twice and is signed in at once, with no email to open", async () => {
   const mismatch = stub([]);
   const typo = await request("/api/auth/signup", {
     email: "new@example.com",
@@ -215,7 +215,13 @@ test("a new email account types its password twice and is activated by email, no
 
   const calls = stub([
     { data: { idToken, refreshToken: "private-refresh" } },
-    { data: { email: "new@example.com" } },
+    {
+      data: {
+        users: [
+          { localId: "u2", email: "new@example.com", emailVerified: false },
+        ],
+      },
+    },
   ]);
   const made = await request("/api/auth/signup", {
     email: " new@example.com ",
@@ -223,105 +229,36 @@ test("a new email account types its password twice and is activated by email, no
     confirm: "secret-password",
   });
   assert.equal(made.status, 200);
-  assert.deepEqual(made.body, { activate: true, email: "new@example.com" });
-  // No session until the account is activated.
-  assert.equal(made.headers["Set-Cookie"], undefined);
-  assert.match(calls[1].url, /accounts:sendOobCode/);
-  assert.deepEqual(JSON.parse(calls[1].body), {
-    requestType: "VERIFY_EMAIL",
-    idToken,
-    continueUrl: "http://127.0.0.1:3001/signin/",
-  });
+  assert.equal(made.body.uid, "u2");
+  assert.match(made.headers["Set-Cookie"], /private-refresh/);
+  assert.equal(JSON.parse(calls[0].body).email, "new@example.com");
+  // Nothing is emailed.
+  assert.equal(calls.length, 2);
+  assert.ok(!calls.some((call) => /sendOobCode/.test(call.url)));
 });
 
-test("the activation email falls back to a plain link where dingn's address isn't allowed", async () => {
-  const calls = stub([
-    { data: { idToken, refreshToken: "r" } },
-    { status: 400, data: { error: { message: "UNAUTHORIZED_DOMAIN" } } },
-    { data: {} },
-  ]);
-  const made = await request("/api/auth/signup", {
-    email: "new@example.com",
-    password: "secret-password",
-    confirm: "secret-password",
-  });
-  assert.equal(made.status, 200);
-  assert.deepEqual(JSON.parse(calls[2].body), {
-    requestType: "VERIFY_EMAIL",
-    idToken,
-  });
-});
-
-test("an account not yet activated can't sign in and gets a new link; older accounts still can", async () => {
-  const { ACTIVATION_FROM } = await import("../scripts/api.mjs");
+test("an email account signs in whether or not its address was ever confirmed", async () => {
   const calls = stub([
     { data: { idToken, refreshToken: "private-refresh" } },
     {
       data: {
         users: [
           {
-            localId: "u2",
-            email: "new@example.com",
+            localId: "u3",
+            email: "a@example.com",
             emailVerified: false,
-            createdAt: String(ACTIVATION_FROM + 1000),
+            createdAt: String(Date.parse("2026-11-22T00:00:00Z")),
           },
         ],
       },
     },
-    { data: {} },
   ]);
-  const blocked = await request("/api/auth/login", {
-    email: "new@example.com",
+  const ok = await request("/api/auth/login", {
+    email: "a@example.com",
     password: "secret-password",
   });
-  assert.equal(blocked.status, 403);
-  assert.equal(blocked.body.error, "email-not-verified");
-  assert.equal(blocked.headers["Set-Cookie"], undefined);
-  assert.match(calls[2].url, /accounts:sendOobCode/);
-
-  for (const user of [
-    // Activated.
-    { emailVerified: true, createdAt: String(ACTIVATION_FROM + 1000) },
-    // Made before activation existed.
-    { emailVerified: false, createdAt: String(ACTIVATION_FROM - 1000) },
-  ]) {
-    stub([
-      { data: { idToken, refreshToken: "private-refresh" } },
-      { data: { users: [{ localId: "u3", email: "a@example.com", ...user }] } },
-    ]);
-    const ok = await request("/api/auth/login", {
-      email: "a@example.com",
-      password: "secret-password",
-    });
-    assert.equal(ok.status, 200, JSON.stringify(user));
-    assert.equal(ok.body.uid, "u3");
-    assert.match(ok.headers["Set-Cookie"], /private-refresh/);
-  }
-});
-
-test("an email account not yet activated can't get a session through the Google sign-in route", async () => {
-  const { ACTIVATION_FROM } = await import("../scripts/api.mjs");
-  const calls = stub([
-    { data: { id_token: idToken, refresh_token: "private-refresh" } },
-    {
-      data: {
-        users: [
-          {
-            localId: "u4",
-            email: "new@example.com",
-            emailVerified: false,
-            createdAt: String(ACTIVATION_FROM + 1000),
-          },
-        ],
-      },
-    },
-    { data: {} },
-  ]);
-  const blocked = await request("/api/auth/google", {
-    refreshToken: "token-from-password-sign-in",
-  });
-  assert.equal(blocked.status, 403);
-  assert.equal(blocked.body.error, "email-not-verified");
-  assert.equal(blocked.headers["Set-Cookie"], undefined);
-  assert.match(calls[2].url, /accounts:sendOobCode/);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.uid, "u3");
+  assert.match(ok.headers["Set-Cookie"], /private-refresh/);
+  assert.ok(!calls.some((call) => /sendOobCode/.test(call.url)));
 });

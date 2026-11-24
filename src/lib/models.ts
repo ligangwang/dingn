@@ -165,8 +165,6 @@ export function friendlyError(error: unknown): string {
     return "Unable to create this account. Try signing in instead.";
   if (code.includes("password-mismatch"))
     return "The two passwords don’t match. Type the same password in both boxes.";
-  if (code.includes("email-not-verified"))
-    return "Activate your account first: open the link we emailed you. We just sent a new one.";
   if (code.includes("weak-password"))
     return "Choose a stronger password with at least 8 characters.";
   if (code.includes("too-many-requests"))

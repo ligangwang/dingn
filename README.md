@@ -244,8 +244,8 @@ Administrators add or remove other administrators on `/admin/users/`. For the fi
 
 Admins make accounts for testing under "Test accounts" on `/admin/users/`,
 without the sign-up form or an inbox (`scripts/test-accounts.mjs`). Each is an
-email-and-password account whose address is already confirmed, so Firebase
-sends no activation email and it signs in on `/signin/` at once. Leave the
+email-and-password account whose address is already confirmed, and it signs
+in on `/signin/` at once. Leave the
 password empty and dingn makes one up, shown once. Firebase allows one
 password account per address, so making several numbers the address:
 `you+qa@gmail.com` makes `you+qa1@gmail.com`, `you+qa2@gmail.com`, and so on.
@@ -293,7 +293,11 @@ Production uses the Dockerfile and the PR → main → Cloud Run workflow.
 Previously persisted Firebase browser sessions require one new sign-in when
 switching to this server-session implementation. Accounts that only have Google
 credentials still need Google sign-in; this change does not assign them passwords.
-Password recovery and email verification screens are not part of this change.
+There is no password recovery screen, and a new email account is signed in as
+soon as it is made: dingn sends no activation link, because Firebase's link
+can't be opened from many networks (mainland China, for one). So an email
+account's address is never confirmed, which leaves it out of what asks for a
+confirmed address: joining as a developer and referral coins.
 
 GA4 remains opt-in and independent of authentication. Use `/opt-out/` when testing.
 Removing direct browser calls to Google/Firebase does not establish that Cloud Run
