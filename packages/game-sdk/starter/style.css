@@ -37,3 +37,22 @@ button {
   opacity: 0.4;
   cursor: default;
 }
+
+main {
+  box-sizing: border-box;
+  min-height: 100%;
+  height: auto;
+}
+
+main p {
+  margin: 0;
+}
+
+#status:empty {
+  display: none;
+}
+
+#share input {
+  max-width: min(70vw, 300px);
+  font: inherit;
+}

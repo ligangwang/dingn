@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,11 +8,18 @@
   </head>
   <body>
     <main>
-      <p id="hello"></p>
-      <button id="tap" type="button" disabled>TAP</button>
-      <p id="score"></p>
-      <p id="best"></p>
-      <button id="start" type="button"></button>
+      <p id="target" hidden></p>
+      <button id="tap" type="button" disabled>Tap</button>
+      <p id="score">Points: 0</p>
+      <p id="best">Best: 0</p>
+      <p id="outcome" role="status" hidden></p>
+      <button id="start" type="button">Start</button>
+      <button id="challenge" type="button" hidden></button>
+      <div id="share" hidden>
+        <input id="link" type="url" readonly aria-label="Challenge link" />
+        <button id="copy" type="button"></button>
+      </div>
+      <p id="status" role="status"></p>
       <button id="signin" type="button" hidden></button>
     </main>
     <script type="module" src="main.js"></script>

@@ -2,6 +2,13 @@
 
 Notes for AI coding agents (Claude Code, Codex, etc.) working in this repo.
 
+## New dingn games
+
+Start new game repositories from `packages/game-sdk/starter`. Keep points as
+the score unit, recreate the same round when opening a friend challenge, and
+support every dingn language. Copy the included GitHub Actions workflow for
+upload and approval. Its setup is in the starter README.
+
 ## Game development resources
 
 Reference links for building the games in this project. To add one, append a
