@@ -55,9 +55,8 @@ folder and `.gitattributes`. The **Release to dingn** workflow checks the
 game and packages its committed assets. Publishing runs from `main`.
 
 Add a developer upload key to the repository's Actions secrets as
-`DINGN_UPLOAD_KEY`. An admin can add a review key as `DINGN_REVIEW_KEY`
-to approve uploads automatically. With only the upload key, an admin can
-approve the beta through dingn's review queue. Bump `version` in
-`game.json` before each new release.
+`DINGN_UPLOAD_KEY`. The workflow uploads a beta for an admin to review
+and approve before it goes live. Bump `version` in `game.json`
+before each new release.
 
 The full guide and SDK reference: <https://dingn.com/developers/>.

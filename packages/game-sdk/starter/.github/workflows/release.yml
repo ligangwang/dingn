@@ -27,11 +27,10 @@ jobs:
           release="$(node -e 'const {id, version} = require("./game.json"); process.stdout.write(id + "-" + version + ".zip")')"
           mkdir -p release
           git archive --format=zip --output="release/$release" HEAD
-      - name: Publish to dingn
+      - name: Upload to dingn for review
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           DINGN_UPLOAD_KEY: ${{ secrets.DINGN_UPLOAD_KEY }}
-          DINGN_REVIEW_KEY: ${{ secrets.DINGN_REVIEW_KEY }}
         run: |
           if [ -z "$DINGN_UPLOAD_KEY" ]; then
             echo "::warning::Set DINGN_UPLOAD_KEY in the repository's Actions secrets to upload to dingn."
