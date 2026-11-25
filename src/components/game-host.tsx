@@ -342,7 +342,9 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             const name = typeof found?.name === "string" ? found.name : null;
             // The player's own link (by their account, or made in this
             // browser): their own score to beat.
-            const mine = found?.mine === true || madeHere(cid);
+            const mine =
+              found?.mine === true ||
+              (found?.makerLeads !== false && madeHere(cid));
             const at =
               typeof found?.id === "string" && CHALLENGE_ID.test(found.id)
                 ? (found.id as string)

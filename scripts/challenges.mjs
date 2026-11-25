@@ -153,6 +153,7 @@ export function nickname(userName, tokenName) {
 export const MAX_RESULTS = 50;
 /** Open challenges kept for each game's list. */
 export const MAX_LISTED = 20;
+const TOP_SCORE_GAME = "tidehop";
 
 /** Highest score first; of equal scores, the one made first. */
 export const byScore = (a, b) => b.score - a.score || (a.at < b.at ? -1 : 1);
@@ -173,13 +174,27 @@ export function resultsOf(doc) {
   ];
 }
 
+function scoreHolder(doc) {
+  const maker = {
+    uid: doc.uid ?? null,
+    name: doc.name ?? null,
+    score: doc.score,
+    at: doc.createdAt ?? "",
+  };
+  if (doc.game !== TOP_SCORE_GAME) return maker;
+  const leader = resultsOf(doc)[0];
+  return leader && leader.score >= maker.score ? leader : maker;
+}
+
 /**
- * The score to beat: the maker's best under their own challenge. A maker who
+ * Tidehop uses the leading result. Other games use the maker's best under
+ * their own challenge. A maker who
  * plays it again and scores higher raises it, so the challenge's title names
  * the score that leads their name in its results. (Raised on the challenge
  * itself from then on; one raised before that is read from its results.)
  */
 export function scoreToBeat(doc) {
+  if (doc.game === TOP_SCORE_GAME) return scoreHolder(doc).score;
   const own =
     doc?.uid && Array.isArray(doc.results)
       ? doc.results.find((r) => r.uid === doc.uid)
@@ -214,7 +229,7 @@ export function postResult(doc, { uid, score, now }, own = null) {
           ...doc,
           // The maker's better score is the new one to beat.
           ...(uid && uid === doc.uid
-            ? { score: Math.max(score, scoreToBeat(doc)) }
+            ? { score: Math.max(score, doc.score) }
             : {}),
           results,
           players,
@@ -308,15 +323,12 @@ export async function shownResults(
   );
 }
 
-/** The nickname a challenge's maker goes by now (the one kept with it if their account can't be read). */
-async function makerName(doc, account = profileOf) {
-  if (!doc?.uid) return nickname(doc?.name);
-  const [maker] = await shownResults(
-    [{ uid: doc.uid, name: doc.name, score: doc.score }],
-    null,
-    account,
-  );
-  return maker.name;
+/** The displayed name belongs to the player whose score is the target. */
+async function scoreHolderName(doc, account = profileOf) {
+  const holder = scoreHolder(doc);
+  if (!holder.uid) return nickname(holder.name);
+  const [player] = await shownResults([holder], null, account);
+  return player.name;
 }
 
 /**
@@ -404,6 +416,36 @@ const LIST_TTL_MS = 30_000;
 /** Forgets the kept lists (after a change, and between tests). */
 export const forgetLists = () => lists.clear();
 
+async function bestOpenChallenge(game, account) {
+  // The capped recent board can omit an older record that still leads.
+  const candidates = await listDocs("challenges", ["game", game]);
+  let best;
+  for (const candidate of candidates) {
+    if (candidate.public !== true || !isOpen(candidate)) continue;
+    const holder = scoreHolder(candidate);
+    if (
+      !best ||
+      holder.score > best.holder.score ||
+      (holder.score === best.holder.score &&
+        (holder.at ?? candidate.createdAt) <
+          (best.holder.at ?? best.challenge.createdAt))
+    ) {
+      best = { challenge: candidate, holder };
+    }
+  }
+  if (!best) return null;
+  const { challenge, holder } = best;
+  const { uid: _uid, results, ...line } = listed(challenge.id, challenge);
+  const [leader] = await shownResults([holder], null, account);
+  return {
+    game,
+    ...line,
+    ...leader,
+    top: { name: leader.name, score: leader.score },
+    results: await shownResults(results, null, account),
+  };
+}
+
 /** The open challenges of one game, or of every game, newest first. */
 export async function openChallenges(
   game = null,
@@ -416,12 +458,19 @@ export async function openChallenges(
   const boards = game
     ? [{ id: game, ...(await getDoc("challengeBoards", game)) }]
     : await listDocs("challengeBoards");
+  if (!game && !boards.some((board) => board.id === TOP_SCORE_GAME))
+    boards.push({ id: TOP_SCORE_GAME });
   const list = [];
   for (const board of boards) {
     // Only games in the catalog: one that is unlisted or was taken down
     // lists nothing.
     const record = await cachedRecord(board.id);
     if (!record?.live || record.status !== "listed") continue;
+    if (board.id === TOP_SCORE_GAME) {
+      const best = await bestOpenChallenge(board.id, account);
+      if (best) list.push(best);
+      continue;
+    }
     for (const thread of board.threads ?? []) {
       // A line saved before lists carried results: read them from the
       // challenge itself, until its next result saves them on the line.
@@ -479,7 +528,7 @@ export async function openChallenges(
 export async function findChallenge(id) {
   const { id: at, doc } = await savedChallenge(id);
   const found = shownChallenge(at, doc);
-  return found && { ...found, name: await makerName(doc) };
+  return found && { ...found, name: await scoreHolderName(doc) };
 }
 
 /**
@@ -626,9 +675,9 @@ async function standing(req, res, { verify, exchange, account }) {
   );
   return {
     challenge: {
-      name: await makerName(doc, account),
+      name: await scoreHolderName(doc, account),
       score: scoreToBeat(doc),
-      mine: !!uid && doc.uid === uid,
+      mine: !!uid && scoreHolder(doc).uid === uid,
       rank: outcome.rank,
       players: outcome.players,
     },
@@ -721,14 +770,15 @@ export async function handleChallenges(
       const { id: at, doc } = await savedChallenge(id);
       const found = shownChallenge(at, doc);
       if (!found) throw new ApiError(404, "not-found");
-      // Whether the player opening it made it: then it's their own score to
-      // beat. Only a yes or no; the uid itself is never sent. The answer
-      // depends on who asks, so nothing may cache it.
+      // Whether the player opening it holds the target score. The uid itself
+      // is never sent, and the answer depends on who asks.
       const viewer = await signedIn(req, res, verify, exchange);
+      const holder = scoreHolder(doc);
       return send(res, 200, {
         ...found,
-        name: await makerName(doc, account),
-        mine: !!viewer && !!doc.uid && viewer.uid === doc.uid,
+        name: await scoreHolderName(doc, account),
+        mine: !!viewer && viewer.uid === holder.uid,
+        ...(holder.uid !== (doc.uid ?? null) ? { makerLeads: false } : {}),
         results: await shownResults(resultsOf(doc), viewer?.uid, account),
         players:
           typeof doc.players === "number" ? doc.players : resultsOf(doc).length,

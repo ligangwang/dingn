@@ -856,3 +856,65 @@ test("a game can ask where a score would stand in a level's challenge, without p
     405,
   );
 });
+
+test("Tidehop shows its highest public score and player across courses", async () => {
+  await registry.updateRecord("tidehop", (record) =>
+    registry.addVersion(
+      record,
+      registry.validateManifest({
+        id: "tidehop",
+        version: "1.3.3",
+        title: { en: "Tidehop", zh: "跃过潮汐" },
+      }),
+      { listed: true },
+    ),
+  );
+  registry.clearRegistryCache();
+  const play = (score, player) =>
+    call("/api/challenges", {
+      ...player,
+      body: {
+        game: "tidehop",
+        mode: "course-v3",
+        seed: seed(),
+        unit: "points",
+        score,
+      },
+    });
+  const { body: first } = await play(2, ada);
+  const { body: second } = await play(3, ada);
+  await play(50); // A guest's link is private.
+  assert.equal((await post(first.id, 8, bo)).status, 200);
+
+  // Even a course that disappeared from the recent list can lead.
+  await store.updateDoc("challengeBoards", "tidehop", (board) =>
+    challenges.boardWithout(board, first.id),
+  );
+  challenges.forgetLists();
+  const { body } = await call("/api/challenges?game=tidehop", {
+    method: "GET",
+  });
+  assert.equal(body.challenges.length, 1);
+  assert.equal(body.challenges[0].id, first.id);
+  assert.equal(body.challenges[0].score, 8);
+  assert.equal(body.challenges[0].name, "Bo");
+  const target = await open(first.id, ada);
+  assert.equal(target.body.score, 8);
+  assert.equal(target.body.name, "Bo");
+  assert.equal(target.body.mine, false);
+  assert.equal(target.body.makerLeads, false);
+  assert.equal((await open(first.id, bo)).body.mine, true);
+  assert.equal((await open(second.id)).body.score, 3);
+  assert.equal(
+    (await call(`/api/challenges/${first.id}/close`, ada)).status,
+    200,
+  );
+  const fallback = await call("/api/challenges?game=tidehop", {
+    method: "GET",
+  });
+  assert.deepEqual(
+    fallback.body.challenges.map(({ id, score }) => [id, score]),
+    [[second.id, 3]],
+  );
+  assert.equal((await open(first.id)).body.score, 8);
+});
