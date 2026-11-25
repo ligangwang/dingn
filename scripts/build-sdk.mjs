@@ -5,7 +5,13 @@
 //
 // v1 is the protocol version. Changes to it must stay backward compatible,
 // because games load it from this address (see packages/game-sdk/README.md).
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { zip } from "./zip.mjs";
@@ -16,10 +22,11 @@ export { zip };
 export function starterFiles(sdkDir) {
   const starter = path.join(sdkDir, "starter");
   return Object.fromEntries(
-    readdirSync(starter)
+    readdirSync(starter, { recursive: true })
+      .filter((name) => statSync(path.join(starter, name)).isFile())
       .sort()
       .map((name) => [
-        `dingn-starter/${name}`,
+        `dingn-starter/${name.split(path.sep).join("/")}`,
         readFileSync(path.join(starter, name)),
       ]),
   );

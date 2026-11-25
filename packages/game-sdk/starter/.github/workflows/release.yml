@@ -1,0 +1,40 @@
+name: Release to dingn
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dingn-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+      - run: node --test
+      - name: Package the game
+        run: |
+          release="$(node -e 'const {id, version} = require("./game.json"); process.stdout.write(id + "-" + version + ".zip")')"
+          mkdir -p release
+          git archive --format=zip --output="release/$release" HEAD
+      - name: Publish to dingn
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          DINGN_UPLOAD_KEY: ${{ secrets.DINGN_UPLOAD_KEY }}
+          DINGN_REVIEW_KEY: ${{ secrets.DINGN_REVIEW_KEY }}
+        run: |
+          if [ -z "$DINGN_UPLOAD_KEY" ]; then
+            echo "::warning::Set DINGN_UPLOAD_KEY in the repository's Actions secrets to upload to dingn."
+            exit 0
+          fi
+          node scripts/publish.mjs

@@ -1,85 +1,159 @@
-// A starter game for dingn. It uses every part of the dingn game SDK:
-// language, player, device storage, account progress, badges, sign-in and
-// ready().
-// Change anything you like; keep the connect() call and dingn.ready().
 import { connect } from "https://dingn.com/sdk/v1/dingn-sdk.js";
+import { copy } from "./copy.mjs";
 
-const copy = {
-  en: {
-    hello: (name) => (name ? `Hi ${name}!` : "Hi there!"),
-    score: (n) => `Taps: ${n}`,
-    best: (n) => `Best: ${n}`,
-    start: "Start",
-    again: "Play again",
-    signIn: "Sign in to keep your best score",
-  },
-  "zh-CN": {
-    hello: (name) => (name ? `你好，${name}！` : "你好！"),
-    score: (n) => `点击：${n}`,
-    best: (n) => `最高：${n}`,
-    start: "开始",
-    again: "再玩一次",
-    signIn: "登录以保存最高分",
-  },
-};
-
+const MODE = "tap-v1";
+const ROUND_MS = 5000;
 const $ = (id) => document.getElementById(id);
 const dingn = await connect();
-const text = copy[dingn.locale] ?? copy.en;
-let best = 0;
+const incoming = dingn.challenge;
+const challenge =
+  incoming?.mode === MODE &&
+  incoming.unit === "points" &&
+  /^[a-f0-9]{32}$/.test(incoming.seed ?? "")
+    ? incoming
+    : null;
+
+let locale = dingn.locale;
 let score = 0;
+let best = 0;
+let deadline = 0;
+let finished = false;
+let seed;
+let link = "";
+let linkRequest;
+let status = null;
+
+function render() {
+  const text = copy[locale] ?? copy.en;
+  document.documentElement.lang = copy[locale] ? locale : "en";
+  const format = new Intl.NumberFormat(document.documentElement.lang);
+  $("tap").textContent = text.tap;
+  $("score").textContent = `${text.points}: ${format.format(score)}`;
+  $("best").textContent = `${text.best}: ${format.format(best)}`;
+  $("start").textContent = challenge
+    ? text.retry
+    : finished
+      ? text.again
+      : text.start;
+  $("start").hidden = Boolean(deadline);
+  $("tap").disabled = !deadline;
+  $("target").hidden = !challenge;
+  $("outcome").hidden = !challenge || !finished;
+  if (challenge) {
+    $("target").textContent =
+      `${text.target}: ${format.format(challenge.score)}`;
+    $("outcome").textContent =
+      score > challenge.score
+        ? text.win
+        : score === challenge.score
+          ? text.tie
+          : text.loss;
+  }
+  $("signin").hidden = dingn.player.signedIn || !dingn.embedded;
+  $("signin").textContent = text.signIn;
+  $("challenge").hidden =
+    !dingn.embedded || !finished || Boolean(challenge) || Boolean(link);
+  $("challenge").disabled = Boolean(linkRequest);
+  $("challenge").textContent = text.challenge;
+  $("share").hidden = !link;
+  $("link").value = link;
+  $("link").setAttribute("aria-label", text.link);
+  $("copy").textContent = text.copy;
+  $("status").textContent = status ? text[status] : "";
+}
 
 async function loadBest() {
-  // Account progress follows a signed-in player to any device;
-  // storage stays on this device. Use whichever is higher.
+  const local = await dingn.storage.get("best").catch(() => 0);
   const saved = dingn.player.signedIn
     ? await dingn.progress.load().catch(() => null)
     : null;
-  const local = await dingn.storage.get("best").catch(() => 0);
-  best = Math.max(Number(saved?.best) || 0, Number(local) || 0);
-}
-
-function render() {
-  $("hello").textContent = text.hello(dingn.player.name);
-  $("score").textContent = text.score(score);
-  $("best").textContent = text.best(best);
-  $("signin").hidden = dingn.player.signedIn || !dingn.embedded;
-  $("signin").textContent = text.signIn;
-}
-
-$("start").textContent = text.start;
-$("start").onclick = () => {
-  score = 0;
-  $("tap").disabled = false;
-  $("start").hidden = true;
+  best = Math.max(best, Number(local) || 0, Number(saved?.best) || 0);
   render();
-  setTimeout(async () => {
-    $("tap").disabled = true;
-    $("start").hidden = false;
-    $("start").textContent = text.again;
-    if (score > best) {
-      best = score;
-      await dingn.storage.set("best", best).catch(() => {});
-      if (dingn.player.signedIn)
-        await dingn.progress.save({ best }).catch(() => {});
-    }
-    // A badge from game.json. dingn shows the "Badge earned" popup and pays
-    // its coins once; signed-out players can't earn badges.
-    if (score >= 30 && dingn.player.signedIn)
-      await dingn.rewards.unlock("taps-30").catch(() => {});
-    render();
-  }, 5000);
+}
+
+function finish() {
+  deadline = 0;
+  finished = true;
+  if (score > best) {
+    best = score;
+    void dingn.storage.set("best", best).catch(() => {});
+    if (dingn.player.signedIn)
+      void dingn.progress.save({ best }).catch(() => {});
+  }
+  if (challenge) void dingn.challengeResult(score).catch(() => {});
+  dingn.roundEnded();
+  render();
+  $("start").focus();
+}
+
+$("start").onclick = () => {
+  if (deadline) return;
+  score = 0;
+  // Each ordinary run gets its own challenge. This example uses a fixed
+  // timer. Feed this seed into your level generator if your game uses one.
+  seed = challenge?.seed ?? crypto.randomUUID().replaceAll("-", "");
+  link = "";
+  linkRequest = null;
+  status = null;
+  finished = false;
+  deadline = performance.now() + ROUND_MS;
+  setTimeout(finish, ROUND_MS);
+  render();
+  $("tap").focus();
 };
+
 $("tap").onclick = () => {
+  if (!deadline || performance.now() >= deadline) return;
   score++;
   render();
 };
+
+$("challenge").onclick = async () => {
+  if (!finished || linkRequest || link) return;
+  status = null;
+  const request = dingn.challengeLink({
+    mode: MODE,
+    seed,
+    score,
+    unit: "points",
+  });
+  linkRequest = request;
+  render();
+  try {
+    const url = await request;
+    if (linkRequest === request) link = url;
+  } catch {
+    if (linkRequest === request) status = "error";
+  } finally {
+    if (linkRequest === request) {
+      linkRequest = null;
+      render();
+      if (link) $("copy").focus();
+    }
+  }
+};
+
+$("copy").onclick = async () => {
+  const url = link;
+  try {
+    await navigator.clipboard.writeText(url);
+    if (link === url) status = "copied";
+  } catch {
+    if (link !== url) return;
+    $("link").focus();
+    $("link").select();
+    status = document.execCommand("copy") ? "copied" : "manual";
+  }
+  render();
+};
+
 $("signin").onclick = () => dingn.requestSignIn();
-dingn.onPlayer(async () => {
-  await loadBest();
+dingn.onPlayer(loadBest);
+dingn.onLanguage((next) => {
+  locale = next;
   render();
 });
 
-await loadBest();
 render();
-dingn.ready(); // hides dingn's loading screen
+dingn.ready();
+void loadBest();

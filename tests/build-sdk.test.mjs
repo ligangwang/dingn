@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { crc32 } from "node:zlib";
 import { buildSdk, zip } from "../scripts/build-sdk.mjs";
+import { LOCALES } from "../src/data/locales.gen.mjs";
+import { copy } from "../packages/game-sdk/starter/copy.mjs";
 
 const repo = path.resolve(import.meta.dirname, "..");
 
@@ -52,12 +54,17 @@ test("the website serves the SDK, its types and the starter game", async () => {
       );
     const starter = unzip(await readFile(path.join(out, "starter.zip")));
     assert.deepEqual(Object.keys(starter).sort(), [
+      "dingn-starter/.gitattributes",
+      "dingn-starter/.github/workflows/release.yml",
       "dingn-starter/README.md",
+      "dingn-starter/copy.mjs",
       "dingn-starter/cover.png",
       "dingn-starter/game.json",
       "dingn-starter/index.html",
       "dingn-starter/main.js",
+      "dingn-starter/scripts/publish.mjs",
       "dingn-starter/style.css",
+      "dingn-starter/test/game.test.mjs",
     ]);
     // The starter loads the SDK from the address the website serves it at.
     assert.match(
@@ -66,7 +73,22 @@ test("the website serves the SDK, its types and the starter game", async () => {
     );
     const manifest = JSON.parse(starter["dingn-starter/game.json"]);
     const { validateManifest } = await import("../scripts/game-registry.mjs");
-    assert.equal(validateManifest(manifest).id, "mygame");
+    const validated = validateManifest(manifest);
+    assert.equal(validated.id, "mygame");
+    assert.deepEqual(
+      [...validated.languages].sort(),
+      LOCALES.map(({ lang }) => lang).sort(),
+    );
+    assert.deepEqual(Object.keys(copy).sort(), [...validated.languages].sort());
+    for (const lang of validated.languages) {
+      assert.deepEqual(
+        Object.keys(copy[lang]).sort(),
+        Object.keys(copy.en).sort(),
+      );
+      const key = lang === "zh-CN" ? "zh" : lang;
+      assert.ok(validated.title[key], lang);
+      assert.ok(validated.description[key], lang);
+    }
   } finally {
     await rm(out, { recursive: true, force: true });
   }

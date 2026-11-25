@@ -1,20 +1,26 @@
 {
   "id": "mygame",
   "version": "1.0.0",
-  "title": { "en": "My Game", "zh": "我的游戏" },
-  "description": {
-    "en": "Tap as fast as you can for five seconds.",
-    "zh": "五秒内尽可能快地点击。"
+  "title": {
+    "en": "My Game",
+    "es": "Mi juego",
+    "id": "Game Saya",
+    "ja": "マイゲーム",
+    "ko": "내 게임",
+    "pt-BR": "Meu jogo",
+    "zh": "我的游戏"
   },
+  "description": {
+    "en": "Tap for five seconds and earn one point per tap.",
+    "es": "Pulsa durante cinco segundos y gana un punto por pulsación.",
+    "id": "Ketuk selama lima detik dan dapatkan satu poin setiap ketukan.",
+    "ja": "5秒間タップして、1回につき1点を獲得しましょう。",
+    "ko": "5초 동안 탭하고 탭할 때마다 1점을 얻으세요.",
+    "pt-BR": "Toque por cinco segundos e ganhe um ponto por toque.",
+    "zh": "在五秒内点击，每次点击得一分。"
+  },
+  "languages": ["en", "es", "id", "ja", "ko", "pt-BR", "zh-CN"],
   "entry": "index.html",
   "category": "casual",
-  "cover": "cover.png",
-  "badges": [
-    {
-      "id": "taps-30",
-      "tier": "bronze",
-      "icon": "bolt",
-      "title": { "en": "30 taps in one round", "zh": "一轮点击 30 次" }
-    }
-  ]
+  "cover": "cover.png"
 }

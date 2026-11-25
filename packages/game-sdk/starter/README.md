@@ -1,7 +1,9 @@
 # dingn starter game
 
-A complete game for [dingn](https://dingn.com) in three files. It uses the
-dingn game SDK for the player's language, name, saved scores and sign-in.
+A starter game for [dingn](https://dingn.com). Each tap earns one point in a
+five-second round. The game saves best scores and supports all dingn languages.
+After a round, choose **Challenge a friend** to share a link. A friend plays
+under the same rules and submits their result through the dingn SDK.
 
 ## Try it
 
@@ -35,11 +37,27 @@ signed out, and scores last until the page closes.
   title text on it (dingn shows your title next to it).
 - Use relative paths (`style.css`, `img/hero.png`) for your files. Your game
   is served from its own folder, not the site root.
+- Update `copy.mjs` and the localized titles and descriptions in `game.json`
+  when you change the game's text.
+- Give each shareable run a seed in `dingn.challengeLink`. If your game
+  generates levels, use that seed to recreate the same level for the friend.
 - Save with `dingn.storage` and `dingn.progress`, not `localStorage` or
   cookies, which the dingn sandbox blocks.
 - Award badges and dingn coins: list them under `badges` in `game.json` and
   call `dingn.rewards.unlock(id)` when a player earns one, for example after
   passing a level. Each badge pays once per player.
 - Call `dingn.ready()` once the game can be played.
+
+## Release on dingn
+
+Commit this folder to a GitHub repository, including the hidden `.github`
+folder and `.gitattributes`. The **Release to dingn** workflow checks the
+game and packages its committed assets. Publishing runs from `main`.
+
+Add a developer upload key to the repository's Actions secrets as
+`DINGN_UPLOAD_KEY`. An admin can add a review key as `DINGN_REVIEW_KEY`
+to approve uploads automatically. With only the upload key, an admin can
+approve the beta through dingn's review queue. Bump `version` in
+`game.json` before each new release.
 
 The full guide and SDK reference: <https://dingn.com/developers/>.
