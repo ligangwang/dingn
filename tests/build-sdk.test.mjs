@@ -71,6 +71,14 @@ test("the website serves the SDK, its types and the starter game", async () => {
       starter["dingn-starter/main.js"],
       /from "https:\/\/dingn\.com\/sdk\/v1\/dingn-sdk\.js"/,
     );
+    const workflow = starter["dingn-starter/.github/workflows/release.yml"];
+    const publisher = starter["dingn-starter/scripts/publish.mjs"];
+    assert.match(workflow, /secrets\.DINGN_UPLOAD_KEY/);
+    assert.match(publisher, /\/api\/developer\/games\/upload/);
+    assert.doesNotMatch(
+      workflow + publisher,
+      /DINGN_REVIEW_KEY|\/api\/admin\/games/,
+    );
     const manifest = JSON.parse(starter["dingn-starter/game.json"]);
     const { validateManifest } = await import("../scripts/game-registry.mjs");
     const validated = validateManifest(manifest);
