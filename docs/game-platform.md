@@ -69,6 +69,47 @@ cannot upload new versions: those always come from the repository through CI.
 
 Every game plays on the one exported page, `/play/index.html`, which says noindex. When the server sends `/play/<id>/` for a game that is **listed** and whose live version is reviewed (or belongs to dingn), it fills in that game's title and description from `game.json`, plus its own canonical, hreflang and Open Graph addresses, and switches it to `index, follow` (`scripts/game-seo.mjs`). `/sitemap.xml` gets the same games added in every language. Hidden, previewed and taken-down games stay noindex. If the registry can't be read within two seconds, the page goes out as exported.
 
+## Embedding a game in another website
+
+A listed game whose live version is reviewed can be played on any website.
+Under the game on its page, "Embed this game" gives the code to paste:
+
+```html
+<iframe
+  src="https://dingn.com/embed/<id>/"
+  title="…"
+  width="960"
+  height="600"
+  style="border:0;max-width:100%"
+  allowfullscreen
+  loading="lazy"
+  allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; clipboard-write; web-share"
+></iframe>
+```
+
+`/embed/<id>/` (and `/<language>/embed/<id>/`) is dingn's embedded player:
+the game under a slim bar with its title and "Play on dingn", and no site
+header or footer (`src/app/(embed)/`, `GameHost` with `embed`). A game needs
+no change to be embedded, and sees the same SDK.
+
+- The player there is always a guest. dingn's session cookie isn't sent to a
+  frame in another site, and the embedded player has no session of its own,
+  so nothing can be earned or spent by a click another site arranged.
+  Signing in, and every other link, opens dingn in a new tab.
+- Challenge links made in an embedded game open the game on dingn, and
+  `/embed/<id>/?c=<challenge>` plays a challenge in the frame.
+- After a round (`dingn.roundEnded()`), the player invites the visitor on to
+  dingn.
+- Only the live version plays (`?v=` is ignored), and a version dingn has not
+  reviewed doesn't.
+- A game's files may be framed by other sites only inside this player: the
+  server sends `frame-ancestors *` when the request's Referer is dingn's own
+  `/embed/<id>/` page of that game (`fromEmbeddedPlayer` in
+  `scripts/game-registry.mjs`), and `frame-ancestors 'self'` otherwise.
+- The funnel counts an embedded player's visits and starts under the source
+  `embed_<the site's host>`, and visitors who follow it to dingn under
+  `embed`.
+
 ## Trying it locally
 
 ```sh
@@ -335,6 +376,16 @@ unchanged, and the game plays the friend's round under the same rules. The
 words come from dingn
 (`src/data/challenge.mjs`), never from the link. Visits through a challenge
 link count as "referred" in the funnel.
+
+Where a challenge link is shared (WhatsApp, X, WeChat, Discord), its preview
+shows the challenge's own picture: the player to beat, their score, the game
+and its round, "Can you beat it?" and the game's cover, in the link's
+language. The server draws it (`scripts/share-card.mjs`,
+`GET /share/challenge/<id>.png`, 1200×630) from the saved challenge and the
+game's title, with resvg and the fonts in the image (Open Sans, and Noto Sans
+CJK for Chinese, Japanese and Korean). A PNG or JPEG cover is drawn on it; a
+game with a WebP or AVIF cover gets a card of words alone. If the picture
+can't be drawn, the request goes to the game's cover.
 
 dingn saves each challenge when the link is made (`scripts/challenges.mjs`,
 `POST /api/challenges`), and the link carries only its id, so nobody can

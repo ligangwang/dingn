@@ -724,3 +724,94 @@ html.play-window-full body {
 .play-thread-actions .quiet-link {
   margin-top: 0;
 }
+
+/* "Embed this game": the code to paste into another website. */
+.play-embed-code {
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+}
+.play-embed-code textarea {
+  font:
+    0.8rem/1.4 ui-monospace,
+    monospace;
+  padding: 8px;
+  border-radius: 8px;
+  resize: vertical;
+}
+.play-embed-code p {
+  margin: 0;
+}
+
+/* The embedded player (/embed/<id>/) in another website's frame: the game
+   fills it, under a slim bar that leads to dingn. */
+.embed-main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: #151923;
+  color: #fff;
+}
+.embed-main .play-page {
+  padding-block: 0;
+}
+.embed-main .container.play-page {
+  padding: 16px;
+}
+.play-embed {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  padding-inline: 0;
+  gap: 0;
+}
+.play-embed .play-bar {
+  padding: 6px 10px;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.play-embed .play-bar h1 {
+  font-size: 1rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.play-embed .play-fullscreen,
+.play-embed .play-thread-toggle {
+  padding: 3px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.play-on-dingn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #d5ff58;
+  color: #151923;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.play-embed .play-stage,
+.play-embed .play-stage:not(.window-full) {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  border-radius: 0;
+}
+.play-embed .play-invite,
+.play-embed .play-outcome.joined {
+  border-radius: 0;
+}
+@media (max-width: 420px) {
+  /* A narrow frame keeps the way to dingn and drops the full-screen word. */
+  .play-embed .play-fullscreen {
+    display: none;
+  }
+}

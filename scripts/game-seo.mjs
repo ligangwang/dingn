@@ -19,6 +19,7 @@ import {
 } from "../src/data/challenge.mjs";
 import { avatarPresets } from "../src/data/avatars.mjs";
 import { LOCALES, localeInfo, pick, translate } from "./i18n.mjs";
+import { CARD_HEIGHT, CARD_WIDTH, shareCardUrl } from "./share-card.mjs";
 
 const SITE = "https://dingn.com";
 
@@ -128,7 +129,8 @@ function cardHtml(game, locale) {
  * for the links to the category's other games. When the page was opened
  * through a friend's challenge link, `challenge` is the saved challenge
  * (findChallenge in scripts/challenges.mjs) and the link preview shows the
- * score to beat (src/data/challenge.mjs).
+ * score to beat, in its words (src/data/challenge.mjs) and in its picture
+ * (scripts/share-card.mjs).
  */
 export function gamePageHtml(
   html,
@@ -194,7 +196,9 @@ export function gamePageHtml(
         `<meta name="twitter:description" content="${escape(description)}"/>`,
       ],
     );
-  if (cover)
+  // Only this game's challenges: an id from another game's link is ignored.
+  const challenged = challenge?.game === id;
+  if (cover && !challenged)
     swaps.push(
       [
         /<meta property="og:image" content="[^"]*"\/>/,
@@ -212,8 +216,7 @@ export function gamePageHtml(
         `<meta name="twitter:image" content="${escape(cover)}"/>`,
       ],
     );
-  // Only this game's challenges: an id from another game's link is ignored.
-  if (challenge?.game === id) {
+  if (challenged) {
     const said = challengeText(
       challenge,
       name,
@@ -221,6 +224,7 @@ export function gamePageHtml(
       challenge.name ?? null,
       (text) => translate(text, locale),
     );
+    const card = shareCardUrl(SITE, challenge, locale);
     swaps.push(
       [
         /<meta property="og:url" content="[^"]*"\/>/,
@@ -241,6 +245,27 @@ export function gamePageHtml(
       [
         /<meta name="twitter:description" content="[^"]*"\/>/,
         `<meta name="twitter:description" content="${escape(said.description)}"/>`,
+      ],
+      // The challenge's own picture: who to beat, their score and the game.
+      [
+        /<meta property="og:image" content="[^"]*"\/>/,
+        `<meta property="og:image" content="${escape(card)}"/>`,
+      ],
+      [
+        /<meta property="og:image:width" content="[^"]*"\/>/,
+        `<meta property="og:image:width" content="${CARD_WIDTH}"/>`,
+      ],
+      [
+        /<meta property="og:image:height" content="[^"]*"\/>/,
+        `<meta property="og:image:height" content="${CARD_HEIGHT}"/>`,
+      ],
+      [
+        /<meta property="og:image:alt" content="[^"]*"\/>/,
+        `<meta property="og:image:alt" content="${escape(said.title)}"/>`,
+      ],
+      [
+        /<meta name="twitter:image" content="[^"]*"\/>/,
+        `<meta name="twitter:image" content="${escape(card)}"/>`,
       ],
     );
   }
@@ -301,6 +326,29 @@ export function gamePageHtml(
             .join("")}</div>`
         : ""),
   );
+}
+
+/** The game's own id in an embedded player's address (/embed/<id>/). */
+export const embedUrl = (id, locale) =>
+  `${SITE}${localeInfo(locale).path}/embed/${id}/`;
+
+/**
+ * The embedded player's page for one game (/embed/<id>/, which other
+ * websites put in a frame): `html` with the game's title, and its real page
+ * as the canonical address. It stays out of search results: the game's page
+ * is /play/<id>/.
+ */
+export function embedPageHtml(html, record, locale) {
+  const live = indexableGame(record);
+  if (!live) return html;
+  const name = (live.title && pick(live.title, locale)) || record.id;
+  return [
+    [/<title>[^<]*<\/title>/, `<title>${escape(name)} · dingn</title>`],
+    [
+      /<link rel="canonical" href="[^"]*"\/>/,
+      `<link rel="canonical" href="${pageUrl(record.id, locale)}"/>`,
+    ],
+  ].reduce((out, [from, to]) => out.replace(from, () => to), html);
 }
 
 /**

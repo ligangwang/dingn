@@ -1008,7 +1008,14 @@
     "Save your progress": "진행 상황 저장하기",
     "Shows dingn's sign-in box over your game, or takes it away. Draw no sign-in text or buttons of your own: only decide when the box shows, such as on the result of a round. reasons lists what the player would gain: \"score\", \"rewards\" (coins and badges) or \"progress\". Nothing shows for a signed-in player.": "dingn의 로그인 상자를 게임 위에 표시하거나 치웁니다. 로그인 문구나 버튼을 직접 그리지 말고, 라운드 결과 화면처럼 상자를 언제 보여 줄지만 정하세요. reasons에는 플레이어가 얻게 될 것을 적습니다: \"score\", \"rewards\"(코인과 배지), \"progress\". 이미 로그인한 플레이어에게는 아무것도 표시되지 않습니다.",
     "1 player": "플레이어 1명",
-    "Show more": "더 보기"
+    "Show more": "더 보기",
+    "Can you beat it?": "이 기록을 깰 수 있나요?",
+    "Play on dingn": "dingn에서 플레이",
+    "Nice round! Play more free games on dingn.": "멋진 플레이! dingn에서 더 많은 무료 게임을 즐겨 보세요.",
+    "Embed this game": "이 게임 퍼가기",
+    "Paste this code into your page to put the game on your website.": "이 코드를 페이지에 붙여 넣으면 내 웹사이트에서 게임을 할 수 있습니다.",
+    "Copy code": "코드 복사",
+    "Code copied": "코드가 복사되었습니다"
   },
   "Asks, without posting anything, whether the level of { mode, seed, score, unit } already has an open challenge. It gives null when it has none, otherwise { name, score, mine, rank, players }: who owns the challenge, their score to beat, and the place this score would take. Call it at the end of a round: with none, offer \"Challenge anyone\"; with one, offer to join it. Either way challengeLink() then posts the score.": "아무것도 올리지 않고 { mode, seed, score, unit } 레벨에 열려 있는 챌린지가 있는지 묻습니다. 없으면 null, 있으면 { name, score, mine, rank, players }(챌린지의 주인, 넘어야 할 점수, 이 점수가 차지할 순위)를 줍니다. 라운드가 끝날 때 호출하세요. 없으면 “누구에게나 도전”을, 있으면 참가를 제안합니다. 두 경우 모두 점수는 challengeLink()가 올립니다.",
   "100 more coins when they play on another day": "다른 날 플레이하면 100코인 추가",

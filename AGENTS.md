@@ -72,6 +72,23 @@ art credits.
   (`scripts/rewards.mjs`, `scripts/kingdom.mjs`), and the honors drawn
   across the site (`src/components/honor.tsx`).
 
+## Sharing and embedding
+
+How games reach players outside dingn.com (docs/game-platform.md has the
+detail):
+
+- **A challenge link's picture** is drawn by the server
+  (`scripts/share-card.mjs`, `/share/challenge/<id>.png`) from the saved
+  challenge, never from the address. Its fonts are in the runtime image
+  (the Dockerfile installs Noto Sans CJK); text the fonts can't draw, such
+  as emoji, is left off.
+- **The embedded player** is `/embed/<id>/` (`GameHost` with `embed`), which
+  other websites frame. It is always a guest's: add nothing to it that earns,
+  spends or needs a session, and open its links in a new tab. Game files may
+  be framed by other sites only inside it (`fromEmbeddedPlayer` in
+  `scripts/game-registry.mjs`); keep every other page's game frame at
+  `frame-ancestors 'self'`.
+
 ## Roles
 
 What an account may do is its roles: `administrator`, `developer`, `player`

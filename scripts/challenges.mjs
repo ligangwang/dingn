@@ -323,13 +323,17 @@ export async function shownResults(
   );
 }
 
-/** The displayed name belongs to the player whose score is the target. */
-async function scoreHolderName(doc, account = profileOf) {
+/** The player whose score is the target, as anyone may see them: { name, avatar? }. */
+async function shownScoreHolder(doc, account = profileOf) {
   const holder = scoreHolder(doc);
-  if (!holder.uid) return nickname(holder.name);
+  if (!holder.uid) return { name: nickname(holder.name) };
   const [player] = await shownResults([holder], null, account);
-  return player.name;
+  return player;
 }
+
+/** The displayed name belongs to the player whose score is the target. */
+const scoreHolderName = async (doc, account = profileOf) =>
+  (await shownScoreHolder(doc, account)).name;
 
 /**
  * A challenge's line on its game's list of open challenges: what the list
@@ -524,11 +528,16 @@ export async function openChallenges(
   return list;
 }
 
-/** The saved challenge `id` (checked, with its maker's nickname but not their uid), or null. */
+/**
+ * The saved challenge `id` (checked, with its maker's nickname and chosen
+ * avatar but not their uid), or null.
+ */
 export async function findChallenge(id) {
   const { id: at, doc } = await savedChallenge(id);
   const found = shownChallenge(at, doc);
-  return found && { ...found, name: await scoreHolderName(doc) };
+  if (!found) return null;
+  const { name, avatar } = await shownScoreHolder(doc);
+  return { ...found, name, ...(avatar ? { avatar } : {}) };
 }
 
 /**
