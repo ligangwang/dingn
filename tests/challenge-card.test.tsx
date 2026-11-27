@@ -116,7 +116,7 @@ it("is the home page's heading when it is the latest challenge", () => {
   expect(screen.getByRole("link", { name: "Ada" })).toBeTruthy();
 });
 
-it("is one line on the Challenges page: round, maker, score, players, a way in", async () => {
+it("is one line on the Challenges page: round, top player, top score, players, a way in", async () => {
   const { container } = render(
     <ChallengeRow challenge={challenge} game={game} />,
   );
@@ -125,8 +125,9 @@ it("is one line on the Challenges page: round, maker, score, players, a way in",
   expect(container.querySelector(".challenge-round")!.textContent).toBe(
     "Level 28",
   );
+  // Its top result, not the score it was made with.
   expect(container.querySelector(".challenge-points")!.textContent).toBe(
-    "2,110 points",
+    "2,940 points",
   );
   expect(
     screen.getByRole("link", { name: "Ada" }).getAttribute("href"),
@@ -158,4 +159,29 @@ it("is one line on the Challenges page: round, maker, score, players, a way in",
   );
   expect(screen.getByText("1 player")).toBeTruthy();
   expect(screen.queryByRole("button", { name: /player/ })).toBeNull();
+  cleanup();
+  // Someone beat its maker: the line names them and their score.
+  const { container: beaten } = render(
+    <ChallengeRow
+      challenge={{
+        ...challenge,
+        players: 2,
+        results: [
+          { name: "Bo", score: 3820, number: "2345678901", avatar: "" },
+          { name: "Ada", score: 3160, number: "1234567890", avatar: "fox" },
+        ],
+      }}
+      game={game}
+    />,
+  );
+  expect(beaten.querySelector(".challenge-maker a")!.textContent).toBe("Bo");
+  expect(beaten.querySelector(".challenge-points")!.textContent).toBe(
+    "3,820 points",
+  );
+  expect(screen.getByRole("link", { name: "Bo" }).getAttribute("href")).toMatch(
+    /^\/player\/2345678901\/?$/,
+  );
+  expect(
+    screen.getByRole("link", { name: /^Play/ }).getAttribute("aria-label"),
+  ).toBe("Play: Level 28, Bo, 3,820 points");
 });
