@@ -81,7 +81,7 @@ import {
 import { roundText, scoreText } from "@/data/challenge.mjs";
 import { ChallengeResults, ShareChallenge } from "./challenge-card";
 import { claimReferral, noteArrival, referralOpen } from "@/lib/referral";
-import { trackEmbedVisit, trackGame } from "@/lib/funnel";
+import { embedTag, trackEmbedVisit, trackGame } from "@/lib/funnel";
 
 export type PublishedGame = {
   id: string;
@@ -199,10 +199,19 @@ export function GameHost({
   const session = embed ? null : found;
   // In another site's page, dingn's links open dingn in a new tab.
   const out = embed ? { target: "_blank", rel: "noopener" } : {};
-  /** A dingn page to leave an embedded player for, counted as coming from one. */
+  // The source the framing site named (/embed/<id>/?ref=itch), read once the
+  // page is in a browser.
+  const [embedRef, setEmbedRef] = useState("embed");
+  useEffect(() => {
+    if (embed) setEmbedRef(embedTag(location.href) || "embed");
+  }, [embed]);
+  /**
+   * A dingn page to leave an embedded player for, counted as coming from the
+   * source its address names, or from an embedded player.
+   */
   const fromEmbed = (path: string) => {
     const cid = challengeId.current;
-    return `${href(path)}?ref=embed${cid && path.startsWith("/play/") ? `&c=${encodeURIComponent(cid)}` : ""}`;
+    return `${href(path)}?ref=${embedRef}${cid && path.startsWith("/play/") ? `&c=${encodeURIComponent(cid)}` : ""}`;
   };
   const frame = useRef<HTMLIFrameElement>(null);
   const [state, setState] = useState<
