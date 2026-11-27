@@ -8,6 +8,7 @@ import {
   refusal,
 } from "../scripts/prune-game-versions.mjs";
 import { addVersion } from "../scripts/game-registry.mjs";
+import { reserveUpload } from "../scripts/developer-games.mjs";
 
 const record = (extra = {}) => ({
   id: "crowdrush",
@@ -27,6 +28,8 @@ const record = (extra = {}) => ({
 function fake(start) {
   const state = { record: start };
   const deleted = [];
+  // Set to make the bucket fail on one version's files, once.
+  const failing = { on: null };
   const ref = {
     async get() {
       return { exists: !!state.record, data: () => state.record };
@@ -43,13 +46,18 @@ function fake(start) {
   };
   const files = {
     async getFiles({ prefix }) {
+      if (deleted.includes(prefix)) return [[]];
       return [prefix.endsWith("/1.15.1/") ? [{}, {}, {}] : [{}]];
     },
     async deleteFiles({ prefix }) {
+      if (failing.on && prefix.endsWith(`/${failing.on}/`)) {
+        failing.on = null;
+        throw new Error("bucket unavailable");
+      }
       deleted.push(prefix);
     },
   };
-  return { db, files, deleted, state };
+  return { db, files, deleted, state, failing };
 }
 const log = () => {};
 
@@ -98,15 +106,14 @@ test("a dry run deletes nothing; apply deletes the files and the entries", async
   assert.equal(state.record.live, "1.16.0");
   assert.deepEqual(state.record.pruned, ["1.2.0", "1.9.3", "1.10.0", "1.15.1"]);
   // Nothing left to delete the second time.
-  deleted.length = 0;
   const again = await pruneGameVersions("crowdrush", {
     db,
     files,
     apply: true,
     log,
   });
-  assert.deepEqual(again.versions, []);
-  assert.deepEqual(deleted, []);
+  assert.deepEqual([again.versions, again.unfinished], [[], []]);
+  assert.equal(deleted.length, 4);
   await assert.rejects(
     pruneGameVersions("crowdrush", {
       db: fake(record({ live: null })).db,
@@ -135,4 +142,41 @@ test("a deleted version's number is never published again", () => {
   assert.equal(addVersion(after, manifest("1.17.0")).live, "1.17.0");
   // and the list survives later uploads
   assert.deepEqual(addVersion(after, manifest("1.17.0")).pruned, ["1.15.1"]);
+});
+
+test("a run that stopped part way is finished by the next one", async () => {
+  const { db, files, deleted, state, failing } = fake(record());
+  failing.on = "1.10.0";
+  await assert.rejects(
+    pruneGameVersions("crowdrush", { db, files, apply: true, log }),
+    /bucket unavailable/,
+  );
+  // The registry already dropped all four, but two versions' files remain.
+  assert.deepEqual(Object.keys(state.record.versions), ["1.16.0"]);
+  assert.deepEqual(deleted, [
+    "games/crowdrush/1.2.0/",
+    "games/crowdrush/1.9.3/",
+  ]);
+  // A dry run says so, and the next real run deletes them.
+  const dry = await pruneGameVersions("crowdrush", { db, files, log });
+  assert.deepEqual(dry.versions, []);
+  assert.deepEqual(dry.unfinished, ["1.10.0", "1.15.1"]);
+  assert.equal(dry.files, 4);
+  await pruneGameVersions("crowdrush", { db, files, apply: true, log });
+  assert.deepEqual(deleted.slice(2).sort(), [
+    "games/crowdrush/1.10.0/",
+    "games/crowdrush/1.15.1/",
+  ]);
+  const done = await pruneGameVersions("crowdrush", { db, files, log });
+  assert.deepEqual([done.versions, done.unfinished, done.files], [[], [], 0]);
+});
+
+test("an upload of a deleted version's number is turned away before any file is saved", () => {
+  const after = { ...pruned(record(), ["1.15.1"]), owner: "dev1" };
+  const developer = { uid: "dev1", email: "dev@example.com" };
+  const upload = (version) =>
+    reserveUpload(after, { id: "crowdrush", version }, developer);
+  assert.throws(() => upload("1.15.1"), { code: "version-exists" });
+  assert.throws(() => upload("1.16.0"), { code: "version-exists" });
+  assert.ok(upload("1.17.0").pending["1.17.0"]);
 });

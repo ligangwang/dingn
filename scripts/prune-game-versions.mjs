@@ -63,6 +63,16 @@ export function pruned(record, gone, now = new Date().toISOString()) {
   };
 }
 
+/**
+ * Versions already taken out of the record whose files may still be in the
+ * bucket: a run that stopped after the registry changed, before every file
+ * was deleted. The next run finishes them.
+ */
+export const leftovers = (record) =>
+  (record?.pruned ?? []).filter(
+    (version) => VERSION.test(version) && !record.versions?.[version],
+  );
+
 export async function pruneGameVersions(
   id,
   { db, files, apply = false, log = console.log },
@@ -77,33 +87,47 @@ export async function pruneGameVersions(
     .filter((version) => !gone.includes(version))
     .sort(compareVersions)
     .join(", ");
+  const filesOf = async (version) =>
+    (await files.getFiles({ prefix: `games/${id}/${version}/` }))[0].length;
   let count = 0;
   for (const version of gone) {
-    const [objects] = await files.getFiles({
-      prefix: `games/${id}/${version}/`,
-    });
-    count += objects.length;
-    log(`  ${version}: ${objects.length} files`);
+    const n = await filesOf(version);
+    count += n;
+    log(`  ${version}: ${n} files`);
+  }
+  // Files an earlier, interrupted run left behind.
+  const unfinished = [];
+  for (const version of leftovers(record)) {
+    const n = await filesOf(version);
+    if (!n) continue;
+    unfinished.push(version);
+    count += n;
+    log(`  ${version}: ${n} files left from an earlier run`);
   }
   log(
     `${apply ? "Deleting" : "Would delete"} ${gone.length} old versions of ${id} (${count} files), keeping ${kept}.`,
   );
-  if (!apply || !gone.length) return { versions: gone, files: count };
-  // The registry first: a version no page can ask for, then its files.
-  await db.runTransaction(async (tx) => {
-    const now = (await tx.get(ref)).data();
-    // Only versions still older than live and not beta, should a release
-    // or a rollback have moved a channel meanwhile.
-    const still = prunable(now).filter((version) => gone.includes(version));
-    tx.set(ref, pruned(now, still));
-  });
+  const result = { versions: gone, unfinished, files: count };
+  if (!apply || (!gone.length && !unfinished.length)) return result;
+  // The registry first: a version no page can ask for, then its files. If
+  // the files' deletion stops part way, the versions stay in `pruned` and
+  // the next run deletes what is left.
+  if (gone.length)
+    await db.runTransaction(async (tx) => {
+      const now = (await tx.get(ref)).data();
+      // Only versions still older than live and not beta, should a release
+      // or a rollback have moved a channel meanwhile.
+      const still = prunable(now).filter((version) => gone.includes(version));
+      tx.set(ref, pruned(now, still));
+    });
   const after = (await ref.get()).data();
-  for (const version of gone) {
-    if (after.versions?.[version]) continue;
-    await files.deleteFiles({ prefix: `games/${id}/${version}/` });
-  }
+  // (Only what this run listed, and only what the record no longer has.)
+  const listed = new Set([...gone, ...unfinished]);
+  for (const version of leftovers(after))
+    if (listed.has(version))
+      await files.deleteFiles({ prefix: `games/${id}/${version}/` });
   log(`Deleted. ${id} now has: ${Object.keys(after.versions).join(", ")}.`);
-  return { versions: gone, files: count };
+  return result;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

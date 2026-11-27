@@ -148,7 +148,12 @@ export function reserveUpload(record, manifest, developer, now = Date.now()) {
     throw new UploadError(403, "game-removed", manifest.id);
   if (record && record.owner !== developer.uid)
     throw new UploadError(403, "not-your-game", manifest.id);
-  if (record?.versions?.[manifest.version])
+  // (A version deleted as an old one keeps its number taken, and must be
+  // turned away here, before any of its files are saved.)
+  if (
+    record?.versions?.[manifest.version] ||
+    record?.pruned?.includes(manifest.version)
+  )
     throw new UploadError(409, "version-exists", manifest.version);
   const pending = record?.pending?.[manifest.version];
   if (pending && now - Date.parse(pending.startedAt) < PENDING_MS)
