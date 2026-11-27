@@ -8,7 +8,12 @@ import {
   referrerFromQuery,
   validChallenge,
 } from "../src/data/challenge.mjs";
-import { cleanSource, landingSource, visitFor } from "../src/lib/funnel";
+import {
+  cleanSource,
+  embedSource,
+  landingSource,
+  visitFor,
+} from "../src/lib/funnel";
 import { translate } from "../scripts/i18n.mjs";
 
 /** A language's pack, as the player page and the server use it. */
@@ -173,6 +178,13 @@ test("a visit's source is its tag, a challenge, or the site it came from", () =>
   assert.equal(landingSource(page, ""), "direct");
   assert.equal(cleanSource("<script>"), "script");
   assert.equal(cleanSource("!!!"), "");
+  // The embedded player is counted by the website it sits in.
+  assert.equal(
+    embedSource("https://www.blog.example/post/1"),
+    "embed_blog_example",
+  );
+  assert.equal(embedSource(""), "embed");
+  assert.equal(embedSource("nonsense"), "embed");
 });
 
 test("a browser counts once a day, and once as back within a week", () => {

@@ -126,6 +126,11 @@ export const pages = {
     index: false,
     en: { title: "Play" },
   },
+  "/embed/": {
+    // The player other websites frame, at /embed/<id>/: a game's page is /play/<id>/.
+    index: false,
+    en: { title: "Play" },
+  },
   "/developers/": {
     index: true,
     en: {

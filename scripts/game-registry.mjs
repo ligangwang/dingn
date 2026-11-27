@@ -677,8 +677,38 @@ export function parseGamePath(pathname) {
 // Game pages always run sandboxed: even opened directly in a tab, a game gets
 // an opaque origin, so it can never use the visitor's dingn session cookie or
 // storage. It talks to the website only through the game SDK's messages.
-export const GAME_CSP =
-  "sandbox allow-scripts allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-forms; frame-ancestors 'self'";
+const GAME_SANDBOX =
+  "sandbox allow-scripts allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-forms";
+export const GAME_CSP = `${GAME_SANDBOX}; frame-ancestors 'self'`;
+/**
+ * For a game playing in dingn's embedded player (/embed/<id>/), which other
+ * websites put in their pages: any site may be above it. Only that player
+ * gets this, so a game is never framed without dingn's player around it.
+ */
+export const EMBEDDED_GAME_CSP = `${GAME_SANDBOX}; frame-ancestors *`;
+
+/**
+ * Whether a game file is being loaded by dingn's embedded player of that
+ * game: the request's Referer is this site's own /embed/<id>/ page (in any
+ * language). A browser sets the header itself, so another site's page can't
+ * claim to be the player.
+ */
+export function fromEmbeddedPlayer(headers, id) {
+  const host = String(headers["x-forwarded-host"] || headers.host || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  try {
+    const from = new URL(headers.referer);
+    return (
+      !!host &&
+      from.host.toLowerCase() === host &&
+      new RegExp(`^/(?:[a-z]{2,3}/)?embed/${id}/$`).test(from.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
 
 /** File types a browser can open as a page that runs scripts. */
 const isPage = (file) =>
@@ -686,7 +716,7 @@ const isPage = (file) =>
     path.extname(file).toLowerCase(),
   );
 
-function fileHeaders(file) {
+function fileHeaders(file, embedded = false) {
   const headers = {
     "Content-Type":
       types[path.extname(file).toLowerCase()] || "application/octet-stream",
@@ -702,13 +732,14 @@ function fileHeaders(file) {
     "Accept-Ranges": "bytes",
     // Every game file is sandboxed, whatever its type, so no file a game
     // ships can ever run with dingn's origin.
-    "Content-Security-Policy": GAME_CSP,
+    "Content-Security-Policy": embedded ? EMBEDDED_GAME_CSP : GAME_CSP,
   };
   if (isPage(file)) {
     // Pages are checked on every request, because the same URL either plays
     // in the player's frame or redirects to the player (serveGameFile).
     headers["Cache-Control"] = "no-cache";
-    headers["Vary"] = "Sec-Fetch-Dest";
+    // (and by whom: the embedded player's frame may sit in any site).
+    headers["Vary"] = "Sec-Fetch-Dest, Referer";
     // A game's own page is never a search result: its player page is.
     headers["X-Robots-Tag"] = "noindex";
   }
@@ -748,6 +779,7 @@ async function serveGameFile(req, res, pathname) {
     return;
   }
   const { id, version, file } = parsed;
+  const embedded = fromEmbeddedPlayer(req.headers, id);
   if ((await cachedRecord(id))?.status === "removed") {
     res.writeHead(404, {
       "Content-Type": "text/plain",
@@ -787,7 +819,7 @@ async function serveGameFile(req, res, pathname) {
       });
       return res.end();
     }
-    const headers = fileHeaders(file);
+    const headers = fileHeaders(file, embedded);
     if (range) {
       headers["Content-Range"] = `bytes ${range.start}-${range.end}/${size}`;
       headers["Content-Length"] = String(range.end - range.start + 1);
@@ -840,7 +872,7 @@ async function serveGameFile(req, res, pathname) {
           );
           return resolve();
         }
-        const headers = fileHeaders(file);
+        const headers = fileHeaders(file, embedded);
         if (response.headers["content-length"])
           headers["Content-Length"] = response.headers["content-length"];
         if (status === 206 && response.headers["content-range"])

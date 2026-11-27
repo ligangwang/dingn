@@ -2,6 +2,11 @@
 // Plays a game published on the dingn game platform. The page is the same for
 // every game: it asks the registry which version is live, runs that version in
 // a sandboxed frame, and answers the game's SDK requests (src/lib/game-bridge).
+//
+// The same player, pared down, is what other websites put in their pages
+// (`embed`, at /embed/<id>/): the game with a slim bar that leads to dingn,
+// always played as a guest. Its links open dingn in a new tab, since the
+// frame belongs to the other site's page.
 import { pick, stripLocale } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -76,7 +81,7 @@ import {
 import { roundText, scoreText } from "@/data/challenge.mjs";
 import { ChallengeResults, ShareChallenge } from "./challenge-card";
 import { claimReferral, noteArrival, referralOpen } from "@/lib/referral";
-import { trackGame } from "@/lib/funnel";
+import { trackEmbedVisit, trackGame } from "@/lib/funnel";
 
 export type PublishedGame = {
   id: string;
@@ -144,11 +149,34 @@ function rewardError(error: unknown) {
   return new BridgeError("unavailable", "Badges are unavailable right now.");
 }
 
-/** The game id in /play/<id>/, or the same under a language's prefix (/es/play/<id>/). */
+/**
+ * The game id in /play/<id>/ (or the embedded player's /embed/<id>/), or the
+ * same under a language's prefix (/es/play/<id>/).
+ */
 export function gameIdFromPath(pathname: string) {
   return (
-    /^\/play\/([a-z][a-z0-9]{1,30})\/?$/.exec(stripLocale(pathname))?.[1] ?? ""
+    /^\/(?:play|embed)\/([a-z][a-z0-9]{1,30})\/?$/.exec(
+      stripLocale(pathname),
+    )?.[1] ?? ""
   );
+}
+
+/** What a frame of the embedded player may do, as the code to copy says it. */
+export const EMBED_ALLOW =
+  "fullscreen; autoplay; gamepad; accelerometer; gyroscope; clipboard-write; web-share";
+
+/**
+ * The code another website pastes into a page to show a game there: a frame
+ * of dingn's embedded player (`src`, /embed/<id>/ in the page's language).
+ */
+export function embedCode(src: string, title: string) {
+  const attr = (text: string) =>
+    text
+      .replaceAll("&", "&amp;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  return `<iframe src="${attr(src)}" title="${attr(title)}" width="960" height="600" style="border:0;max-width:100%" allow="${EMBED_ALLOW}" allowfullscreen loading="lazy"></iframe>`;
 }
 
 // What a sandboxed frame may do. It has no allow-same-origin, so the game runs
@@ -156,10 +184,26 @@ export function gameIdFromPath(pathname: string) {
 export const SANDBOX =
   "allow-scripts allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-forms";
 
-/** Plays the game in the URL (/play/<id>/), or `gameId` on a game's own page. */
-export function GameHost({ gameId }: { gameId?: string } = {}) {
+/**
+ * Plays the game in the URL (/play/<id>/), or `gameId` on a game's own page.
+ * With `embed`, it is the player other websites frame (/embed/<id>/).
+ */
+export function GameHost({
+  gameId,
+  embed = false,
+}: { gameId?: string; embed?: boolean } = {}) {
   const { locale, t, href } = useLocale();
-  const session = useOptionalSession();
+  // An embedded player is always a guest's: it sits in another site's page,
+  // where nothing may be spent or earned on a click that site arranged.
+  const found = useOptionalSession();
+  const session = embed ? null : found;
+  // In another site's page, dingn's links open dingn in a new tab.
+  const out = embed ? { target: "_blank", rel: "noopener" } : {};
+  /** A dingn page to leave an embedded player for, counted as coming from one. */
+  const fromEmbed = (path: string) => {
+    const cid = challengeId.current;
+    return `${href(path)}?ref=embed${cid && path.startsWith("/play/") ? `&c=${encodeURIComponent(cid)}` : ""}`;
+  };
   const frame = useRef<HTMLIFrameElement>(null);
   const [state, setState] = useState<
     | { status: "loading" | "missing" | "error" }
@@ -318,8 +362,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
 
   useEffect(() => {
     const id = gameId ?? gameIdFromPath(location.pathname);
-    const requested = new URLSearchParams(location.search).get("v") ?? "";
+    // Other sites show the live version only, never one still in testing.
+    const requested = embed
+      ? ""
+      : (new URLSearchParams(location.search).get("v") ?? "");
     if (!id) return setState({ status: "missing" });
+    // Counted by the site it sits in, before the game's start is.
+    if (embed) trackEmbedVisit();
     let active = true;
     // Looked up alongside the game and given to it at start, so the game
     // never starts without the challenge it was opened for. A link that
@@ -364,6 +413,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         if (!response.ok) throw new Error("unavailable");
         const [game, friend] = await Promise.all([response.json(), saved]);
         if (!active) return;
+        // A version dingn has not reviewed plays on dingn only.
+        if (embed && game.preview) return setState({ status: "missing" });
         setChallenge(friend?.c ?? null);
         setChallenger(friend?.name ?? null);
         // (The id dingn answered with: a challenge merged into its level's
@@ -505,10 +556,16 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       // The bridge already checked the path; check the final URL again so a
       // game can never send the player to another site.
       const target = new URL(href(path), location.origin);
-      if (target.origin === location.origin) location.href = target.href;
+      if (target.origin !== location.origin) return;
+      if (embed) window.open(target.href, "_blank", "noopener");
+      else location.href = target.href;
     },
     signIn: () => {
-      location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;
+      // From another site's page, signing in means playing on dingn.
+      if (embed)
+        window.open(fromEmbed(`/play/${game.id}/`), "_blank", "noopener");
+      else
+        location.href = `${href("/signin/")}?next=${encodeURIComponent(location.pathname + location.search)}`;
     },
     showSignIn: (reasons) => setSignInAsk(reasons),
     hideSignIn: () => setSignInAsk(null),
@@ -576,7 +633,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       if (Date.now() - lastRound.current < 3000) return;
       lastRound.current = Date.now();
       if (counted) trackGame("finish", game.id);
-      if (!user && referralOpen())
+      // (An embedded player invites every visitor on to dingn.)
+      if (!user && (embed || referralOpen()))
         setInvite((was) => (was === "hidden" ? "shown" : was));
     },
     rewards: {
@@ -774,7 +832,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       <div className="container play-page">
         <p className="play-status">{t("Loading game…")}</p>
         {/* The server describes the game here until it loads. */}
-        <ServerFill name="game" className="game-about" />
+        {!embed && <ServerFill name="game" className="game-about" />}
       </div>
     );
   if (state.status !== "ready")
@@ -786,7 +844,13 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
             : t("This game is not available right now.")}
         </h1>
         <p>
-          <Link href={href("/")}>{t("Find another game →")}</Link>
+          {embed ? (
+            <a href={fromEmbed("/")} {...out}>
+              {t("Find another game →")}
+            </a>
+          ) : (
+            <Link href={href("/")}>{t("Find another game →")}</Link>
+          )}
         </p>
       </div>
     );
@@ -803,9 +867,24 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
       : state.pinned
     : "";
   return (
-    <div className="play-page play-ready">
+    <div
+      className={
+        embed ? "play-page play-ready play-embed" : "play-page play-ready"
+      }
+    >
       <div className="play-bar">
         <h1>{title}</h1>
+        {embed && (
+          // The way from another site's page to dingn: this game there, with
+          // its challenge if the frame opened one.
+          <a
+            className="play-on-dingn"
+            href={fromEmbed(`/play/${state.game.id}/`)}
+            {...out}
+          >
+            {t("Play on dingn")} <span aria-hidden="true">↗</span>
+          </a>
+        )}
         {testing && (
           <span className="play-version" title={state.game.version}>
             {testing} · {state.game.version}
@@ -880,7 +959,7 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           src={state.game.url + gameHash(location.hash)}
           title={title}
           sandbox={SANDBOX}
-          allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; clipboard-write; web-share"
+          allow={EMBED_ALLOW}
           allowFullScreen
           onLoad={() => setTimeout(() => setLoaded(true), 4000)}
         />
@@ -919,7 +998,16 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
                   {t(
                     "New to dingn? Sign up free from this challenge and get 100 coins.",
                   )}{" "}
-                  <a href={signUpHref()}>{t("Create free account")}</a>
+                  <a
+                    href={
+                      embed
+                        ? fromEmbed(`/play/${state.game.id}/`)
+                        : signUpHref()
+                    }
+                    {...out}
+                  >
+                    {t("Create free account")}
+                  </a>
                 </span>
               )}
             </p>
@@ -951,7 +1039,16 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
                 {/* The sign-in box, while it shows, already says so. */}
                 {!user && !thread?.closed && !signInAsk && (
                   <span>
-                    <a href={signUpHref()}>{t("Sign in to post your score")}</a>
+                    <a
+                      href={
+                        embed
+                          ? fromEmbed(`/play/${state.game.id}/`)
+                          : signUpHref()
+                      }
+                      {...out}
+                    >
+                      {t("Sign in to post your score")}
+                    </a>
                   </span>
                 )}
               </p>
@@ -1004,7 +1101,8 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
                 ? ["challenge", ...signInAsk.filter((r) => r !== "score")]
                 : signInAsk
             }
-            href={signUpHref()}
+            href={embed ? fromEmbed(`/play/${state.game.id}/`) : signUpHref()}
+            newTab={embed}
             onClose={() => {
               setSignInAsk(null);
               frame.current?.focus();
@@ -1013,7 +1111,23 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
         )}
         {ask && <SpendConfirm ask={ask} gameTitle={title} />}
       </div>
-      {invite === "shown" && !user && (
+      {embed && invite === "shown" && (
+        // After a round on another site: the rest of dingn, a tab away.
+        <div className="play-invite" role="note">
+          <p>{t("Nice round! Play more free games on dingn.")}</p>
+          <a className="button" href={fromEmbed("/")} {...out}>
+            {t("Play on dingn")}
+          </a>
+          <button
+            type="button"
+            className="quiet-link"
+            onClick={() => setInvite("dismissed")}
+          >
+            {t("Not now")}
+          </button>
+        </div>
+      )}
+      {!embed && invite === "shown" && !user && (
         <div className="play-invite" role="note">
           <p>
             {t("Nice round! Create a free dingn account and get 100 coins.")}
@@ -1030,9 +1144,17 @@ export function GameHost({ gameId }: { gameId?: string } = {}) {
           </button>
         </div>
       )}
-      <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
-      <GameAbout game={state.game} />
-      <ReportGame game={state.game} signedIn={!!user} />
+      {!embed && (
+        <>
+          <GameBadges game={state.game.id} badges={state.game.badges ?? []} />
+          <GameAbout game={state.game} />
+          {/* Only a reviewed, live version plays on other websites. */}
+          {!state.game.preview && !state.pinned && (
+            <EmbedGame id={state.game.id} title={title} />
+          )}
+          <ReportGame game={state.game} signedIn={!!user} />
+        </>
+      )}
     </div>
   );
 }
@@ -1053,10 +1175,13 @@ const REASON_TEXT: Record<ReportReason, string> = {
 function SignInBox({
   reasons,
   href,
+  newTab = false,
   onClose,
 }: {
   reasons: (SignInReason | "challenge")[];
   href: string;
+  /** In an embedded player, where the link leaves for dingn. */
+  newTab?: boolean;
   onClose: () => void;
 }) {
   const { t } = useLocale();
@@ -1077,7 +1202,11 @@ function SignInBox({
       ) : (
         <p>{t("Keep what you earn in this game.")}</p>
       )}
-      <a className="button" href={href}>
+      <a
+        className="button"
+        href={href}
+        {...(newTab ? { target: "_blank", rel: "noopener" } : {})}
+      >
         {t("Sign in free")}
       </a>
       <button
@@ -1090,6 +1219,68 @@ function SignInBox({
         ✕
       </button>
     </aside>
+  );
+}
+
+/**
+ * "Embed this game": the code that puts the game on another website, in a
+ * frame of dingn's embedded player (/embed/<id>/), to copy.
+ */
+function EmbedGame({ id, title }: { id: string; title: string }) {
+  const { t, href } = useLocale();
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (!open)
+    return (
+      <p className="play-report">
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => setOpen(true)}
+        >
+          {t("Embed this game")}
+        </button>
+      </p>
+    );
+  const code = embedCode(location.origin + href(`/embed/${id}/`), title);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // The browser refused the clipboard: the code is there to select.
+    }
+  }
+  return (
+    <div className="play-report play-embed-code">
+      <label htmlFor="embed-code">
+        {t("Paste this code into your page to put the game on your website.")}
+      </label>
+      <textarea
+        id="embed-code"
+        readOnly
+        rows={4}
+        value={code}
+        onFocus={(event) => event.target.select()}
+      />
+      <p>
+        <button
+          type="button"
+          className="button small"
+          onClick={() => void copy()}
+        >
+          {copied ? t("Code copied") : t("Copy code")}
+        </button>{" "}
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setOpen(false)}
+        >
+          {t("Close")}
+        </button>
+      </p>
+    </div>
   );
 }
 

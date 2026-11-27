@@ -146,7 +146,25 @@ test("the API serves the live, beta or a pinned version, and the sandboxed files
   // Pages are rechecked (a direct visit redirects to the player); every
   // other published file never changes.
   assert.equal(page.headers["Cache-Control"], "no-cache");
-  assert.equal(page.headers.Vary, "Sec-Fetch-Dest");
+  assert.equal(page.headers.Vary, "Sec-Fetch-Dest, Referer");
+  // Only dingn's own pages may frame a game…
+  assert.match(
+    page.headers["Content-Security-Policy"],
+    /frame-ancestors 'self'$/,
+  );
+  // …but in dingn's embedded player of that game, any site may be above it.
+  const embedded = await call("/g/hello/1.0.0/index.html", "GET", {
+    host: "dingn.com",
+    referer: "https://dingn.com/es/embed/hello/",
+  });
+  assert.match(
+    embedded.headers["Content-Security-Policy"],
+    /^sandbox allow-scripts.*; frame-ancestors \*$/,
+  );
+  assert.doesNotMatch(
+    embedded.headers["Content-Security-Policy"],
+    /allow-same-origin/,
+  );
   await writeFile(path.join(files, "main.js"), "1");
   assert.match(
     (await call("/g/hello/1.0.0/main.js")).headers["Cache-Control"],
@@ -290,4 +308,36 @@ test("the catalog lists approved, listed games with their recent plays", () => {
       ["approved", { week: 0, month: 0 }, "2026-11-10T00:00:00.000Z"],
     ],
   );
+});
+
+test("only dingn's embedded player of a game lets other sites frame it", () => {
+  const from = (referer, host = "dingn.com", id = "hello") =>
+    registry.fromEmbeddedPlayer({ host, referer }, id);
+  assert.equal(from("https://dingn.com/embed/hello/"), true);
+  assert.equal(from("https://dingn.com/zh/embed/hello/?c=Xq3v9TzK1bWm"), true);
+  assert.equal(
+    registry.fromEmbeddedPlayer(
+      {
+        host: "internal:8080",
+        "x-forwarded-host": "dingn.com",
+        referer: "https://dingn.com/embed/hello/",
+      },
+      "hello",
+    ),
+    true,
+  );
+  for (const referer of [
+    // Another site's page, whatever its address looks like.
+    "https://evil.example/embed/hello/",
+    "https://dingn.com.evil.example/embed/hello/",
+    // dingn's other pages, and another game's player.
+    "https://dingn.com/play/hello/",
+    "https://dingn.com/embed/other/",
+    "https://dingn.com/embed/hello/extra/",
+    "https://dingn.com/",
+    "not a url",
+    undefined,
+  ])
+    assert.equal(from(referer), false, String(referer));
+  assert.equal(from("https://dingn.com/embed/hello/", ""), false);
 });

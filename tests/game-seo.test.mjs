@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   categoryPageHtml,
+  embedPageHtml,
   fillSlot,
   gamePageHtml,
   homePageHtml,
@@ -311,7 +312,18 @@ test("a challenge link's preview shows the saved score to beat", () => {
     en,
     /rel="canonical" href="https:\/\/dingn.com\/play\/crowdrush\/"/,
   );
+  // Its picture is the challenge's own card, not the game's cover; the
+  // address carries the score, so a raised score has a new picture.
+  const card =
+    "https://dingn.com/share/challenge/Xq3v9TzK1bWm.png?l=en&amp;s=42";
+  assert.ok(en.includes(`og:image" content="${card}"`), en);
+  assert.ok(en.includes(`twitter:image" content="${card}"`));
+  assert.match(en, /og:image:width" content="1200"/);
+  assert.match(en, /og:image:height" content="630"/);
+  assert.match(en, /og:image:alt" content="A friend reached 42 points/);
+  assert.doesNotMatch(en, /cover\.jpg"\/>/);
   const zh = gamePageHtml(page, game(), "zh-CN", [], saved);
+  assert.match(zh, /Xq3v9TzK1bWm\.png\?l=zh-CN&amp;s=42/);
   assert.match(
     zh,
     /og:title" content="朋友在「人潮突击 \(2026-11-16\)」中达到了 42 分，你能超过吗？"/,
@@ -327,4 +339,22 @@ test("a challenge link's preview shows the saved score to beat", () => {
       gamePageHtml(page, game(), "en", [], other),
       /og:title" content="Crowd Rush"/,
     );
+});
+
+test("the embedded player's page names its game and points at the game's page", () => {
+  const en = embedPageHtml(page, game(), "en");
+  assert.match(en, /<title>Crowd Rush · dingn<\/title>/);
+  assert.match(
+    en,
+    /rel="canonical" href="https:\/\/dingn.com\/play\/crowdrush\/"/,
+  );
+  // Never a search result itself.
+  assert.match(en, /name="robots" content="noindex, nofollow"/);
+  assert.match(
+    embedPageHtml(page, game(), "zh-CN"),
+    /<title>人潮突击 · dingn<\/title>/,
+  );
+  // A game dingn doesn't show is left as the plain page.
+  assert.equal(embedPageHtml(page, game({ status: "unlisted" }), "en"), page);
+  assert.equal(embedPageHtml(page, null, "en"), page);
 });

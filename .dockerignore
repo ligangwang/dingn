@@ -19,6 +19,7 @@
 !scripts/api.mjs
 !scripts/billing.mjs
 !scripts/build-sdk.mjs
+!scripts/share-card.mjs
 !packages/
 !packages/game-sdk/
 !packages/game-sdk/**

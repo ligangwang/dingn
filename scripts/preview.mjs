@@ -15,6 +15,7 @@ import {
 } from "./game-registry.mjs";
 import {
   categoryPageHtml,
+  embedPageHtml,
   gamePageHtml,
   homePageHtml,
   sitemapWithGames,
@@ -49,6 +50,7 @@ import {
 import { challengeIdFromQuery } from "../src/data/challenge.mjs";
 import { PREFIXES, localeOfPrefix } from "./i18n.mjs";
 import { handleReferrals, referralRoutes } from "./referrals.mjs";
+import { handleShareCard, isShareCardPath } from "./share-card.mjs";
 // A failed background call in the XP API (for example missing Google
 // credentials) must never take the website down with it.
 process.on("unhandledRejection", (error) => {
@@ -83,7 +85,7 @@ function etagOf(file) {
  * knows. If that fails or takes over two seconds (the registry is down, say),
  * the file goes out as exported.
  */
-async function sendFilled(res, file, type, change) {
+async function sendFilled(res, file, type, change, headers = {}) {
   const text = await readFile(file, "utf8");
   let filled = text;
   try {
@@ -96,7 +98,11 @@ async function sendFilled(res, file, type, change) {
   } catch (error) {
     console.error("page fill", error.message);
   }
-  res.writeHead(200, { "Content-Type": type, "Cache-Control": "no-cache" });
+  res.writeHead(200, {
+    "Content-Type": type,
+    "Cache-Control": "no-cache",
+    ...headers,
+  });
   res.end(filled);
 }
 const types = {
@@ -159,6 +165,10 @@ http
     }
     if (isChallengePath(pathname)) {
       void handleChallenges(req, res, pathname);
+      return;
+    }
+    if (isShareCardPath(pathname)) {
+      void handleShareCard(req, res, pathname);
       return;
     }
     if (kingdomRoutes.includes(pathname)) {
@@ -285,6 +295,38 @@ http
             games,
             challenge,
           );
+        },
+      ).catch(() => {
+        res.writeHead(500);
+        res.end();
+      });
+      return;
+    }
+    // The embedded player, which other websites put in a frame: every game
+    // shares the one exported page here too.
+    const embed = new RegExp(
+      `^\\/(?:(${PREFIXES})\\/)?embed\\/[a-z][a-z0-9]{1,30}\\/?$`,
+    ).exec(pathname);
+    if (embed) {
+      if (!pathname.endsWith("/")) {
+        const url = new URL(req.url, "http://localhost");
+        res.writeHead(308, { Location: pathname + "/" + url.search });
+        res.end();
+        return;
+      }
+      const id = pathname.split("/").filter(Boolean).at(-1);
+      void sendFilled(
+        res,
+        path.join(root, embed[1] ?? "", "embed", "index.html"),
+        types[".html"],
+        async (html) =>
+          embedPageHtml(html, await cachedRecord(id), localeOfPrefix(embed[1])),
+        {
+          // The game's frame tells the server it is this player's by its
+          // Referer (fromEmbeddedPlayer in scripts/game-registry.mjs), so
+          // the page always sends its address to its own site.
+          "Referrer-Policy": "strict-origin-when-cross-origin",
+          "X-Robots-Tag": "noindex",
         },
       ).catch(() => {
         res.writeHead(500);

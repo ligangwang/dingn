@@ -157,10 +157,27 @@ function readState(): FunnelState | null {
 const send = (event: FunnelEvent) =>
   void api("/api/funnel", event).catch(() => {});
 
+/**
+ * Where a view of the embedded player (/embed/<id>/) came from: the website
+ * whose page it sits in, as "embed_<its host>", or "embed" when the browser
+ * doesn't say.
+ */
+export function embedSource(referrer: string) {
+  let host = "";
+  try {
+    host = new URL(referrer).hostname.replace(/^www\./, "");
+  } catch {}
+  return (host && cleanSource(`embed_${host}`)) || "embed";
+}
+
 /** Counts this page view as the day's visit, unless this browser opted out. */
-export function trackVisit(href = location.href, referrer = document.referrer) {
+export function trackVisit(
+  href = location.href,
+  referrer = document.referrer,
+  source = landingSource(href, referrer),
+) {
   if (optedOut()) return;
-  const { state, event } = visitFor(readState(), landingSource(href, referrer));
+  const { state, event } = visitFor(readState(), source);
   try {
     localStorage.setItem(FUNNEL_KEY, JSON.stringify(state));
   } catch {
@@ -168,6 +185,10 @@ export function trackVisit(href = location.href, referrer = document.referrer) {
   }
   if (event) send(event);
 }
+
+/** Counts a view of the embedded player as a visit from the site it sits in. */
+export const trackEmbedVisit = (referrer = document.referrer) =>
+  trackVisit(location.href, referrer, embedSource(referrer));
 
 /** Counts a game start, finished round or challenge link, by first source. */
 export function trackGame(event: "start" | "finish" | "share", game: string) {
