@@ -20,7 +20,7 @@ test("the uploaded page is only the embedded player of the game", () => {
   const page = itchPage(game);
   assert.match(
     page,
-    /<iframe src="https:\/\/dingn\.com\/embed\/tilezen\/" title="Tile &quot;Zen&quot; &lt;1&gt;" allow="fullscreen; [^"]*" allowfullscreen>/,
+    /<iframe src="https:\/\/dingn\.com\/embed\/tilezen\/\?ref=itch" title="Tile &quot;Zen&quot; &lt;1&gt;" allow="fullscreen; [^"]*" allowfullscreen>/,
   );
   assert.match(page, /<title>Tile &quot;Zen&quot; &lt;1&gt;<\/title>/);
   // Nothing of its own runs on itch.io: no scripts, and no other addresses.
@@ -28,18 +28,21 @@ test("the uploaded page is only the embedded player of the game", () => {
   assert.deepEqual(
     [...new Set(page.match(/https?:\/\/[^"\s<]+/g))],
     [
-      "https://dingn.com/embed/tilezen/",
+      "https://dingn.com/embed/tilezen/?ref=itch",
       "https://dingn.com/play/tilezen/?ref=itch",
     ],
   );
   // In another language: that language's player and title.
   const zh = itchPage(game, "zh-CN");
   assert.match(zh, /<html lang="zh-CN">/);
-  assert.match(zh, /src="https:\/\/dingn\.com\/zh\/embed\/tilezen\/"/);
+  assert.match(
+    zh,
+    /src="https:\/\/dingn\.com\/zh\/embed\/tilezen\/\?ref=itch"/,
+  );
   assert.match(zh, /<title>静心麻将<\/title>/);
   assert.equal(
     embedAddress("memory", "pt-BR"),
-    "https://dingn.com/pt/embed/memory/",
+    "https://dingn.com/pt/embed/memory/?ref=itch",
   );
 });
 

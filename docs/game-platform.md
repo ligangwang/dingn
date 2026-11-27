@@ -108,7 +108,8 @@ no change to be embedded, and sees the same SDK.
   `scripts/game-registry.mjs`), and `frame-ancestors 'self'` otherwise.
 - The funnel counts an embedded player's visits and starts under the source
   `embed_<the site's host>`, and visitors who follow it to dingn under
-  `embed`.
+  `embed`. A site that frames `/embed/<id>/?ref=<name>` is counted by that
+  name instead: `embed_<name>` in the player, and `<name>` on dingn.
 
 ### Listing a game on itch.io
 
@@ -118,8 +119,9 @@ plays a zip with an `index.html`. `npm run package:itch -- <id>` writes
 cover, and `listing.txt` with the title, description and settings to enter
 at https://itch.io/game/new (`--lang ja` packs another language). The upload
 is done by hand, under an itch.io account. Because the zip only frames
-`/embed/<id>/`, the game there is always dingn's live version, and the
-funnel counts its players under `embed_<itch.io's file host>`. Sites that
+`/embed/<id>/?ref=itch`, the game there is always dingn's live version, and
+the funnel counts its players under `embed_itch` and those who follow
+"Play on dingn" under `itch`. Sites that
 require their own SDK and allow no links out (CrazyGames, Poki) can't take
 this: they need a build of the game made for them.
 

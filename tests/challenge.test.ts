@@ -11,6 +11,7 @@ import {
 import {
   cleanSource,
   embedSource,
+  embedTag,
   landingSource,
   visitFor,
 } from "../src/lib/funnel";
@@ -185,6 +186,12 @@ test("a visit's source is its tag, a challenge, or the site it came from", () =>
   );
   assert.equal(embedSource(""), "embed");
   assert.equal(embedSource("nonsense"), "embed");
+  // A source named in the player's address wins over the framing site.
+  const tagged = "https://dingn.com/embed/tilezen/?ref=itch";
+  assert.equal(embedTag(tagged), "itch");
+  assert.equal(embedSource("https://html.itch.zone/", tagged), "embed_itch");
+  assert.equal(embedTag("https://dingn.com/embed/tilezen/"), "");
+  assert.equal(embedTag("https://dingn.com/embed/tilezen/?ref=!!!"), "");
 });
 
 test("a browser counts once a day, and once as back within a week", () => {

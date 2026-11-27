@@ -35,9 +35,12 @@ const escape = (value) =>
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 
-/** The embedded player's address of a game, in a language. */
+/**
+ * The embedded player's address of a game, in a language. `?ref=itch` has
+ * the funnel count its players, and those who follow it to dingn, as itch.io's.
+ */
 export const embedAddress = (id, locale = "en") =>
-  `${SITE}${localeInfo(locale).path}/embed/${id}/`;
+  `${SITE}${localeInfo(locale).path}/embed/${id}/?ref=itch`;
 
 /** The uploaded page: the embedded player, filling the frame itch.io gives it. */
 export function itchPage(game, locale = "en") {

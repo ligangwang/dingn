@@ -158,11 +158,25 @@ const send = (event: FunnelEvent) =>
   void api("/api/funnel", event).catch(() => {});
 
 /**
- * Where a view of the embedded player (/embed/<id>/) came from: the website
- * whose page it sits in, as "embed_<its host>", or "embed" when the browser
- * doesn't say.
+ * The source a site names in the embedded player's address
+ * (/embed/<id>/?ref=itch), or "" when it names none.
  */
-export function embedSource(referrer: string) {
+export function embedTag(href: string) {
+  try {
+    return cleanSource(new URL(href).searchParams.get("ref"));
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Where a view of the embedded player (/embed/<id>/) came from: the source
+ * its address names, as "embed_<that source>", else the website whose page
+ * it sits in, as "embed_<its host>", or "embed" when the browser doesn't say.
+ */
+export function embedSource(referrer: string, href = "") {
+  const tag = embedTag(href);
+  if (tag) return cleanSource(`embed_${tag}`);
   let host = "";
   try {
     host = new URL(referrer).hostname.replace(/^www\./, "");
@@ -188,7 +202,7 @@ export function trackVisit(
 
 /** Counts a view of the embedded player as a visit from the site it sits in. */
 export const trackEmbedVisit = (referrer = document.referrer) =>
-  trackVisit(location.href, referrer, embedSource(referrer));
+  trackVisit(location.href, referrer, embedSource(referrer, location.href));
 
 /** Counts a game start, finished round or challenge link, by first source. */
 export function trackGame(event: "start" | "finish" | "share", game: string) {
