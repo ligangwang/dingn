@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       game:
-        description: Game id (folder under games/). Leave empty to redeploy the website.
+        description: Game id (folder under games/, or any game's id for prune-game-versions). Leave empty to redeploy the website.
         required: false
       action:
         description: What to do with that game
@@ -24,7 +24,7 @@ on:
       migration:
         description: One-time data migration to run instead (dry-run only counts)
         type: choice
-        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game, challenge-uids-dry-run, challenge-uids]
+        options: [none, crowd-progress-dry-run, crowd-progress, badge-xp-dry-run, badge-xp, memory-export, memory-favorites-dry-run, memory-favorites, remove-crowd-game-dry-run, remove-crowd-game, challenge-uids-dry-run, challenge-uids, prune-game-versions-dry-run, prune-game-versions]
         default: none
 
 permissions:
@@ -277,3 +277,11 @@ jobs:
           set -o pipefail
           if [ "${{ inputs.migration }}" = remove-crowd-game ]; then apply=--apply; else apply=; fi
           node scripts/remove-game.mjs crowd $apply | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Delete a game's old versions
+        if: startsWith(inputs.migration, 'prune-game-versions')
+        env:
+          GAME: ${{ inputs.game }}
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.migration }}" = prune-game-versions ]; then apply=--apply; else apply=; fi
+          node scripts/prune-game-versions.mjs "$GAME" $apply | tee -a "$GITHUB_STEP_SUMMARY"

@@ -110,6 +110,19 @@ no change to be embedded, and sees the same SDK.
   `embed_<the site's host>`, and visitors who follow it to dingn under
   `embed`.
 
+### Listing a game on itch.io
+
+itch.io (like other sites that want an uploaded HTML5 build, not a link)
+plays a zip with an `index.html`. `npm run package:itch -- <id>` writes
+`dist-itch/<id>/`: a zip whose page is only the embedded player, the game's
+cover, and `listing.txt` with the title, description and settings to enter
+at https://itch.io/game/new (`--lang ja` packs another language). The upload
+is done by hand, under an itch.io account. Because the zip only frames
+`/embed/<id>/`, the game there is always dingn's live version, and the
+funnel counts its players under `embed_<itch.io's file host>`. Sites that
+require their own SDK and allow no links out (CrazyGames, Poki) can't take
+this: they need a build of the game made for them.
+
 ## Trying it locally
 
 ```sh
@@ -232,6 +245,19 @@ dismisses one or takes the game down. **Take down** (also on each game's
 card) asks for a reason and sets the game's status to `removed`: its player
 page, API and files answer 404 and it cannot be uploaded to. **Restore**
 brings it back, unlisted.
+
+### Deleting old versions
+
+Published versions are kept, so a release can be rolled back and a link can
+pin one (`?v=1.2.0`). When old versions hold something that must go (files
+whose licence the game no longer follows, say), delete them for good: run the
+Website workflow by hand with **game** set to the game's id and **migration**
+set to `prune-game-versions-dry-run`, which lists what would go, then
+`prune-game-versions` (`scripts/prune-game-versions.mjs`). It deletes every
+version older than the live one, files and registry entries, and keeps the
+live version, the beta and any newer upload still waiting for review. Links
+that pin a deleted version stop working, there is no rollback to one, and
+its number can never be published again (`pruned` on the record).
 
 ### Play counts
 

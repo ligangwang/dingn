@@ -134,7 +134,10 @@ if (existing?.versions?.[manifest.version] && flag("--if-new")) {
   console.log(`${id} ${manifest.version} is already published; nothing to do.`);
   process.exit(0);
 }
-if (existing?.versions?.[manifest.version])
+if (
+  existing?.versions?.[manifest.version] ||
+  existing?.pruned?.includes(manifest.version)
+)
   fail(
     `${id} ${manifest.version} is already published. Bump "version" in games/${id}/game.json.`,
   );

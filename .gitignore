@@ -89,6 +89,7 @@ gha-creds-*.json
 
 # Game platform: local registry and publish staging
 .games-local/
+dist-itch/
 .games-build/
 games/*/dist/
 # Built from packages/game-sdk by scripts/build-sdk.mjs

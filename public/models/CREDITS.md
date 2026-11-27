@@ -6,6 +6,8 @@ authors on [Sketchfab](https://sketchfab.com/), and are used under
 listed with its author, its source and the changes we made:
 
 - The kingdom: https://dingn.com/rewards/kingdom/live/assets/kingdom/CREDITS.md
-- Crowd Rush: https://dingn.com/models/crowd/CREDITS.md
 
 Neither Polyfork nor the Sketchfab authors endorse dingn or its games.
+
+A game on dingn credits what it uses in its own files. Crowd Rush's
+characters are its own, built from code, and need no credit.
