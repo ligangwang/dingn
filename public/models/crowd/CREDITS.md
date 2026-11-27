@@ -1,4 +1,8 @@
-# Crowd Rush models
+# Crowd Rush models (versions up to 1.15.1)
+
+From version 1.16.0, Crowd Rush's characters are its own, built from code,
+and it uses none of the Polyfork models below. This page stays for the
+earlier versions, which dingn still keeps.
 
 These models are from [Polyfork](https://polyfork.dev) and are used under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (see
