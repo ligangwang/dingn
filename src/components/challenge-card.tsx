@@ -217,7 +217,11 @@ export function ChallengeRow({
     players === 1
       ? t("1 player")
       : t("{0} players").replace("{0}", players.toLocaleString(locale));
-  const name = challenge.name ?? t("A player");
+  // The line leads with whoever is on top and their score (its maker until
+  // someone beats them), so it matches the first of its results.
+  const leader: ThreadResult = results[0] ?? challenge;
+  const name = leader.name ?? t("A player");
+  const best = scoreText({ ...challenge, score: leader.score }, locale, t);
   const rows = `challenge-rows-${challenge.id}`;
   return (
     <div className="challenge-row">
@@ -225,20 +229,18 @@ export function ChallengeRow({
         <span className="challenge-round">{round}</span>
         <span className="challenge-maker">
           <Avatar
-            choice={challenge.avatar ?? ""}
+            choice={leader.avatar ?? ""}
             name={name}
-            user={photoUser(challenge.photo)}
+            user={photoUser(leader.photo)}
             size={28}
           />
-          {challenge.number ? (
-            <Link href={href(`/player/${challenge.number}/`)}>{name}</Link>
+          {leader.number ? (
+            <Link href={href(`/player/${leader.number}/`)}>{name}</Link>
           ) : (
             <span>{name}</span>
           )}
         </span>
-        <strong className="challenge-points">
-          {scoreText(challenge, locale, t)}
-        </strong>
+        <strong className="challenge-points">{best}</strong>
         {/* Someone besides its maker played: their results open in place. */}
         {results.length > 1 ? (
           <button
@@ -256,7 +258,7 @@ export function ChallengeRow({
         <Link
           className="button small challenge-play"
           href={href(challengePath(game.id, challenge.id))}
-          aria-label={`${t("Play")}: ${round ? `${round}, ` : ""}${name}, ${scoreText(challenge, locale, t)}`}
+          aria-label={`${t("Play")}: ${round ? `${round}, ` : ""}${name}, ${best}`}
         >
           {t("Play")}
         </Link>
