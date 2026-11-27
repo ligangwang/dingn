@@ -246,6 +246,19 @@ card) asks for a reason and sets the game's status to `removed`: its player
 page, API and files answer 404 and it cannot be uploaded to. **Restore**
 brings it back, unlisted.
 
+### Deleting old versions
+
+Published versions are kept, so a release can be rolled back and a link can
+pin one (`?v=1.2.0`). When old versions hold something that must go (files
+whose licence the game no longer follows, say), delete them for good: run the
+Website workflow by hand with **game** set to the game's id and **migration**
+set to `prune-game-versions-dry-run`, which lists what would go, then
+`prune-game-versions` (`scripts/prune-game-versions.mjs`). It deletes every
+version older than the live one, files and registry entries, and keeps the
+live version, the beta and any newer upload still waiting for review. Links
+that pin a deleted version stop working, there is no rollback to one, and
+its number can never be published again (`pruned` on the record).
+
 ### Play counts
 
 The player page counts a play each time a game opens

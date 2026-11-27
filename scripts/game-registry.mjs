@@ -440,7 +440,9 @@ export function addVersion(
   { channel = "live", listed, now = new Date().toISOString() } = {},
 ) {
   const versions = { ...(record?.versions ?? {}) };
-  if (versions[manifest.version])
+  // A version deleted as an old one (scripts/prune-game-versions.mjs) was
+  // published once, and its number stays taken.
+  if (versions[manifest.version] || record?.pruned?.includes(manifest.version))
     throw new Error(
       `${manifest.id} ${manifest.version} is already published. Published versions never change, so bump "version" in game.json.`,
     );
